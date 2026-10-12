@@ -29,3 +29,21 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Backend (Laravel)
+/backend/vendor/
+/backend/node_modules/
+/backend/.env
+/backend/storage/*.key
+/backend/bootstrap/cache/*
+
+# Frontend (Angular)
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.angular/
