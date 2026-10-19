@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1782" viewBox="0 0 1600 1782" font-family="Inter, DejaVu Sans, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#087f91" stroke-width="1.6"/></marker></defs>
+<rect width="1600" height="1782" fill="#ffffff"/>
+<text x="800.0" y="64" text-anchor="middle" font-size="32" font-weight="700" fill="#17374e">Diagrama de casos de uso · SHURI</text>
+<text x="800.0" y="98" text-anchor="middle" font-size="17" fill="#64748b">Qué tiene permitido hacer cada usuario del sistema (una sola sucursal)</text>
+<rect x="300" y="190" width="1000" height="1442" rx="18" fill="#f9fafb" stroke="#17374e" stroke-width="2"/>
+<text x="800.0" y="226" text-anchor="middle" font-size="18" font-weight="700" fill="#17374e">Sistema SHURI · Reparaciones y Ventas</text>
+<line x1="180" y1="402.0" x2="360.0" y2="281.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="402.0" x2="360.0" y2="343.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="402.0" x2="360.0" y2="405.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="402.0" x2="360.0" y2="467.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="402.0" x2="360.0" y2="529.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="402.0" x2="360.0" y2="591.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<ellipse cx="515.0" cy="281.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="286.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Consultar su folio</text>
+<ellipse cx="515.0" cy="343.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="348.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Ver estado y etapas del equipo</text>
+<ellipse cx="515.0" cy="405.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="410.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Autorizar o rechazar cotización</text>
+<ellipse cx="515.0" cy="467.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="472.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Aprobar costo adicional</text>
+<ellipse cx="515.0" cy="529.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="534.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Solicitar garantía</text>
+<ellipse cx="515.0" cy="591.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="596.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Ver datos de contacto del negocio</text>
+<g stroke="#17374e" stroke-width="3" fill="none" stroke-linecap="round"><circle cx="150" cy="370.0" r="16" fill="#fff"/><line x1="150" y1="386.0" x2="150" y2="430.0"/><line x1="124" y1="402.0" x2="176" y2="402.0"/><line x1="150" y1="430.0" x2="130" y2="466.0"/><line x1="150" y1="430.0" x2="170" y2="466.0"/></g><text x="150" y="496.0" text-anchor="middle" font-size="19" font-weight="700" fill="#17374e">Cliente</text><text x="150" y="518.0" text-anchor="middle" font-size="14" fill="#64748b">Portal del cliente</text>
+<line x1="180" y1="892.0" x2="360.0" y2="709.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="892.0" x2="360.0" y2="771.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="892.0" x2="360.0" y2="833.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="892.0" x2="360.0" y2="895.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="892.0" x2="360.0" y2="957.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="892.0" x2="360.0" y2="1019.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="892.0" x2="360.0" y2="1081.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="892.0" x2="360.0" y2="1143.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<ellipse cx="515.0" cy="709.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="714.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Abrir caja y hacer corte</text>
+<ellipse cx="515.0" cy="771.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="776.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Cobrar venta</text>
+<ellipse cx="515.0" cy="833.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="838.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Aplicar descuento (hasta el límite)</text>
+<ellipse cx="515.0" cy="895.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="900.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Registrar orden de servicio</text>
+<ellipse cx="515.0" cy="957.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="962.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Elaborar presupuesto</text>
+<ellipse cx="515.0" cy="1019.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1024.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Entregar equipo y cobrar saldo</text>
+<ellipse cx="515.0" cy="1081.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1086.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Registrar cliente</text>
+<ellipse cx="515.0" cy="1143.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1148.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Recibir mercancía del pedido</text>
+<g stroke="#17374e" stroke-width="3" fill="none" stroke-linecap="round"><circle cx="150" cy="860.0" r="16" fill="#fff"/><line x1="150" y1="876.0" x2="150" y2="920.0"/><line x1="124" y1="892.0" x2="176" y2="892.0"/><line x1="150" y1="920.0" x2="130" y2="956.0"/><line x1="150" y1="920.0" x2="170" y2="956.0"/></g><text x="150" y="986.0" text-anchor="middle" font-size="19" font-weight="700" fill="#17374e">Cajera</text><text x="150" y="1008.0" text-anchor="middle" font-size="14" fill="#64748b">Caja y mostrador</text>
+<line x1="180" y1="1382.0" x2="360.0" y2="1261.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="1382.0" x2="360.0" y2="1323.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="1382.0" x2="360.0" y2="1385.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="1382.0" x2="360.0" y2="1447.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="1382.0" x2="360.0" y2="1509.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="180" y1="1382.0" x2="360.0" y2="1571.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<ellipse cx="515.0" cy="1261.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1266.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Ver equipos asignados</text>
+<ellipse cx="515.0" cy="1323.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1328.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Registrar diagnóstico</text>
+<ellipse cx="515.0" cy="1385.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1390.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Cambiar estado del equipo</text>
+<ellipse cx="515.0" cy="1447.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1452.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Solicitar refacciones</text>
+<ellipse cx="515.0" cy="1509.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1514.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Reportar revisión de garantía</text>
+<ellipse cx="515.0" cy="1571.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="515.0" y="1576.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Consultar su historial</text>
+<g stroke="#17374e" stroke-width="3" fill="none" stroke-linecap="round"><circle cx="150" cy="1350.0" r="16" fill="#fff"/><line x1="150" y1="1366.0" x2="150" y2="1410.0"/><line x1="124" y1="1382.0" x2="176" y2="1382.0"/><line x1="150" y1="1410.0" x2="130" y2="1446.0"/><line x1="150" y1="1410.0" x2="170" y2="1446.0"/></g><text x="150" y="1476.0" text-anchor="middle" font-size="19" font-weight="700" fill="#17374e">Técnico</text><text x="150" y="1498.0" text-anchor="middle" font-size="14" fill="#64748b">Taller</text>
+<line x1="1420" y1="433.0" x2="1240.0" y2="281.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="433.0" x2="1240.0" y2="343.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="433.0" x2="1240.0" y2="405.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="433.0" x2="1240.0" y2="467.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="433.0" x2="1240.0" y2="529.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="433.0" x2="1240.0" y2="591.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="433.0" x2="1240.0" y2="653.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<ellipse cx="1085.0" cy="281.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="286.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Asignar equipos a técnicos</text>
+<ellipse cx="1085.0" cy="343.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="348.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Cotizar reparación</text>
+<ellipse cx="1085.0" cy="405.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="410.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Decidir si aplica la garantía</text>
+<ellipse cx="1085.0" cy="467.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="472.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Hacer pedido de refacciones</text>
+<ellipse cx="1085.0" cy="529.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="534.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Consultar inventario</text>
+<ellipse cx="1085.0" cy="591.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="596.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Supervisar a los técnicos</text>
+<ellipse cx="1085.0" cy="653.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="658.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Liberar equipos terminados</text>
+<g stroke="#17374e" stroke-width="3" fill="none" stroke-linecap="round"><circle cx="1450" cy="401.0" r="16" fill="#fff"/><line x1="1450" y1="417.0" x2="1450" y2="461.0"/><line x1="1424" y1="433.0" x2="1476" y2="433.0"/><line x1="1450" y1="461.0" x2="1430" y2="497.0"/><line x1="1450" y1="461.0" x2="1470" y2="497.0"/></g><text x="1450" y="527.0" text-anchor="middle" font-size="19" font-weight="700" fill="#17374e">Jefe de técnicos</text><text x="1450" y="549.0" text-anchor="middle" font-size="14" fill="#64748b">Supervisión del taller</text>
+<line x1="1420" y1="985.0" x2="1240.0" y2="771.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="833.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="895.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="957.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="1019.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="1081.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="1143.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="1205.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<line x1="1420" y1="985.0" x2="1240.0" y2="1267.0" stroke="#17374e" stroke-width="1.4" opacity="0.55"/>
+<ellipse cx="1085.0" cy="771.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="776.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Ver reportes y estadísticas</text>
+<ellipse cx="1085.0" cy="833.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="838.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Revisar cortes de caja</text>
+<ellipse cx="1085.0" cy="895.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="900.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Gestionar catálogo y precios</text>
+<ellipse cx="1085.0" cy="957.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="962.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Gestionar proveedores</text>
+<ellipse cx="1085.0" cy="1019.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="1024.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Gestionar facturación</text>
+<ellipse cx="1085.0" cy="1081.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="1086.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Gestionar usuarios y permisos</text>
+<ellipse cx="1085.0" cy="1143.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="1148.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Definir descuento máximo (≤ 20 %)</text>
+<ellipse cx="1085.0" cy="1205.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="1210.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Consultar bitácora</text>
+<ellipse cx="1085.0" cy="1267.0" rx="155.0" ry="24.0" fill="#e7f5f7" stroke="#087f91" stroke-width="1.6"/><text x="1085.0" y="1272.0" text-anchor="middle" font-size="15" font-weight="500" fill="#17374e">Configurar negocio y marca</text>
+<g stroke="#17374e" stroke-width="3" fill="none" stroke-linecap="round"><circle cx="1450" cy="953.0" r="16" fill="#fff"/><line x1="1450" y1="969.0" x2="1450" y2="1013.0"/><line x1="1424" y1="985.0" x2="1476" y2="985.0"/><line x1="1450" y1="1013.0" x2="1430" y2="1049.0"/><line x1="1450" y1="1013.0" x2="1470" y2="1049.0"/></g><text x="1450" y="1079.0" text-anchor="middle" font-size="19" font-weight="700" fill="#17374e">Administrador</text><text x="1450" y="1101.0" text-anchor="middle" font-size="14" fill="#64748b">Gestión del negocio</text>
+<path d="M 676.0 833.0 C 720.0 833.0, 720.0 771.0, 676.0 771.0" fill="none" stroke="#087f91" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<text x="788.0" y="807.0" font-size="13" fill="#087f91" font-style="italic">«extend»</text>
+<path d="M 676.0 1019.0 C 806.0 1019.0, 806.0 771.0, 676.0 771.0" fill="none" stroke="#087f91" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<text x="781.5" y="900.0" font-size="13" fill="#087f91" font-style="italic">«include»</text>
+<text x="800.0" y="1676" text-anchor="middle" font-size="14" fill="#64748b">El personal (cajera, técnico, jefe de técnicos y administrador) inicia sesión con usuario y contraseña; el cliente entra al portal con su folio y teléfono.</text>
+<text x="800.0" y="1700" text-anchor="middle" font-size="14" fill="#64748b">«include»: siempre ocurre como parte del otro caso · «extend»: ocurre solo a veces (el descuento lo limita el administrador, máximo 20 %).</text>
+</svg>
