@@ -215,6 +215,20 @@ Una tarea se considera terminada cuando:
 | **Sprint 3** | 26 oct – 08 nov | Punto de Venta con liquidación de servicios, caja con cortes, cotizaciones, garantías y compras a proveedores. | Félix, Brisa |
 | **Sprint 4** | 09 nov – 22 nov | Portal del cliente (aprobación de presupuestos, garantía, chat), correos automáticos, facturación, pruebas de integración y cierre. | Félix, Diana, Brisa |
 
+### 7.6 Avance del proyecto (corte: 20 de octubre de 2026)
+
+| Entregable | Estado | Evidencia | Responsable |
+|---|---|---|---|
+| Estructura del proyecto (Laravel 10 + Angular 17) | ✅ Terminado | [`backend/`](backend/), [`frontend/`](frontend/) | Diana |
+| Repositorio, flujo de trabajo y plantillas de PR | ✅ Terminado | [Sección 12](#-12-flujo-de-trabajo-workflow), [`.github/`](.github/) | Diana |
+| Prototipo de alta fidelidad (6 módulos + sistema de diseño) | ✅ Terminado | [Sección 9](#-9-prototipado-y-wireframes), [`docs/diseno/`](docs/diseno/) | Félix |
+| Diagrama de casos de uso | ✅ Terminado | [Sección 14.2](#142-diagrama-de-casos-de-uso-uml) | Félix |
+| Modelo de datos: DER y diccionario (51 tablas) | ✅ Terminado | [Sección 14.3](#143-diagrama-entidad-relación-der), [Sección 15](#-15-diccionario-de-datos) | Brisa |
+| `.gitignore` y configuración de seguridad del repositorio | ✅ Terminado | [Sección 13](#-13-configuración-del-entorno-de-versiones) | Brisa, Diana |
+| Migraciones y seeders en Laravel | 🔄 En curso | `backend/database/migrations/` | Brisa |
+| Maquetación de vistas en Angular | 🔄 En curso | `frontend/src/app/` | Félix |
+| API REST, autenticación y RBAC | ⏳ Pendiente (Sprint 2–3) | — | Brisa, Diana |
+
 ---
 
 ## 🏛️ 8. Arquitectura, stack tecnológico y patrones de diseño
@@ -396,33 +410,32 @@ Cada mensaje se guarda en `estados_orden.mensaje_cliente`, y su color en `estado
 
 Adoptamos **Git Flow simplificado** porque se ajusta a nuestra metodología Scrum: `develop` acumula el trabajo del Sprint y `main` solo recibe versiones estables al cierre de cada Sprint. Descartamos *GitHub Flow* puro porque integrar directamente en `main` no nos deja un punto de integración donde probar backend y frontend juntos antes de entregar.
 
+**Flujo aplicado en los Sprints 1–2** (cada rama entra a `develop` por Pull Request; `develop` pasa a `main` al cierre del Sprint):
+
 ```mermaid
 gitGraph
     commit id: "Initial commit"
     commit id: "estructura Laravel + Angular"
     branch develop
     checkout develop
-    branch feature/backend
-    checkout feature/backend
-    commit id: "feat(db): migraciones"
-    commit id: "feat(auth): Sanctum + roles"
-    checkout develop
-    merge feature/backend id: "PR #1"
     branch feature/frontend-ui
     checkout feature/frontend-ui
-    commit id: "feat(ui): login"
-    commit id: "feat(ui): panel taller"
+    commit id: "diseño: módulos AD/01/J/T/P"
+    commit id: "diseño: chat y correos"
     checkout develop
-    merge feature/frontend-ui id: "PR #2"
+    merge feature/frontend-ui id: "PR #1 Félix"
+    branch feature/backend
+    checkout feature/backend
+    commit id: "docs(bd): DER y diccionario"
+    checkout develop
+    merge feature/backend id: "PR #2 Brisa"
+    branch feature/docs-architecture
+    checkout feature/docs-architecture
+    commit id: "docs(readme): Unidad 1 y 2"
+    checkout develop
+    merge feature/docs-architecture id: "PR #3 Diana"
     checkout main
-    merge develop tag: "v0.1.0-sprint1"
-    checkout develop
-    branch fix/folio-duplicado
-    commit id: "fix(taller): folio único"
-    checkout develop
-    merge fix/folio-duplicado id: "PR #3"
-    checkout main
-    merge develop tag: "v0.2.0-sprint2"
+    merge develop tag: "v0.1.0-sprint2"
 ```
 
 ### 12.2 Ramas y nomenclatura
@@ -537,18 +550,17 @@ git switch develop
 
 ### 13.2 Control de accesos
 
-| Integrante | Permiso en GitHub | Puede |
-|---|---|---|
-| Diana Ochoa | **Admin** (propietaria) | Configurar el repositorio, proteger ramas, aprobar y combinar PRs, crear *releases*. |
-| Brisa Luna | **Write** (colaboradora) | Crear ramas, hacer *push* a sus ramas, abrir y revisar PRs. |
-| Félix Martínez | **Write** (colaborador) | Crear ramas, hacer *push* a sus ramas, abrir y revisar PRs. |
-| Profesor | **Read** | Consultar código, historial y PRs. |
+| Integrante | Usuario de GitHub | Permiso | Puede |
+|---|---|---|---|
+| Diana Ochoa | `@dianaaochoa` | **Admin** (propietaria) | Configurar el repositorio, proteger ramas, aprobar y combinar PRs, crear *releases*. |
+| Brisa Luna | `@LunaBrisa` | **Write** (colaboradora) | Crear ramas, hacer *push* a sus ramas, abrir y revisar PRs. |
+| Félix Martínez | `@GaelSaldivar` | **Write** (colaborador) | Crear ramas, hacer *push* a sus ramas, abrir y revisar PRs. |
+| Profesor | — | **Lectura** (repositorio público) | Consultar código, historial y PRs. |
 
 **Reglas de protección** (*Settings → Branches → Branch protection rules*) aplicadas a `main` y `develop`:
 
 - ✅ *Require a pull request before merging*
-- ✅ *Require approvals* (1)
-- ✅ *Require review from Code Owners*
+- ✅ *Require approvals* (1): Diana aprueba los PR de Brisa y Félix; Brisa o Félix aprueban los de Diana.
 - ✅ *Dismiss stale pull request approvals when new commits are pushed*
 - ✅ *Require conversation resolution before merging*
 - ✅ *Do not allow bypassing the above settings*
@@ -569,6 +581,7 @@ El [`.gitignore`](.gitignore) de la raíz, mantenido por Brisa, está organizado
 | 7. Sistema y editores | `.DS_Store`, `Thumbs.db`, `desktop.ini`, `.vscode/`, `.idea/`, `*.swp` | Archivos personales del sistema operativo y del editor. |
 
 El archivo [`backend/.env.example`](backend/.env.example) **sí** se versiona: es la plantilla sin contraseñas que cada integrante copia como `.env`.
+
 ### 13.4 Llaves y credenciales de seguridad
 
 | Credencial | Manejo |
@@ -2686,7 +2699,7 @@ cd backend
 composer install
 cp .env.example .env          # en PowerShell: copy .env.example .env
 php artisan key:generate
-# Editar .env: DB_DATABASE=shuri, DB_USERNAME, DB_PASSWORD
+# Editar .env: DB_DATABASE=shuri_db, DB_USERNAME, DB_PASSWORD
 php artisan migrate --seed
 php artisan serve             # http://localhost:8000
 ```
@@ -2712,17 +2725,17 @@ SHURI-Sistema-Gestion/
 │   ├── app/
 │   │   ├── Http/Controllers/
 │   │   ├── Models/
-│   │   ├── Observers/               # RepairOrderObserver, StockObserver
-│   │   ├── Repositories/            # InventoryRepository, OrderRepository
-│   │   └── Services/
+│   │   ├── Observers/               # RepairOrderObserver, StockObserver   (Sprint 2–3)
+│   │   ├── Repositories/            # InventoryRepository, OrderRepository (Sprint 2–3)
+│   │   └── Services/                # Reglas de negocio                    (Sprint 2–3)
 │   ├── database/migrations/
 │   ├── routes/api.php
 │   └── .env.example
 ├── frontend/                        # SPA — Angular 17
 │   └── src/app/
-│       ├── core/                    # guards, interceptors, servicios
-│       ├── modules/                 # admin, taller, tecnico, pos, portal
-│       └── shared/                  # componentes reutilizables
+│       ├── core/                    # guards, interceptors, servicios      (Sprint 2–3)
+│       ├── modules/                 # admin, cajera, jefe, tecnico, portal (Sprint 2–4)
+│       └── shared/                  # componentes reutilizables            (Sprint 2–3)
 ├── docs/
 │   └── diseno/                      # Prototipo exportado de Figma
 │       ├── 01-acceso/ … 06-portal-cliente/   # Pantallas por rol
