@@ -1,49 +1,83 @@
-/vendor/
-node_modules/
-npm-debug.log
-yarn-error.log
+# =====================================================================
+#  SHURI · .gitignore
+#  Evita subir carpetas pesadas, contraseñas/credenciales y la base de datos.
+# =====================================================================
 
-# Laravel 4 specific
-bootstrap/compiled.php
-app/storage/
-
-# Laravel 5 & Lumen specific
-public/storage
-public/hot
-
-# Laravel 5 & Lumen specific with changed public path
-public_html/storage
-public_html/hot
-
-storage/*.key
+# ---------------------------------------------------------------------
+# 1. Contraseñas, llaves y variables de entorno (NUNCA subir)
+# ---------------------------------------------------------------------
 .env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+auth.json
+credentials.json
+secrets.json
 Homestead.yaml
 Homestead.json
-/.vagrant
+
+# ---------------------------------------------------------------------
+# 2. Base de datos (por ahora solo vive en local / MySQL Workbench)
+# ---------------------------------------------------------------------
+*.sql
+*.sql.gz
+*.sql.zip
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.mwb.bak
+dumps/
+
+# ---------------------------------------------------------------------
+# 3. Dependencias (carpetas súper pesadas que se reinstalan)
+# ---------------------------------------------------------------------
+vendor/
+node_modules/
+
+# ---------------------------------------------------------------------
+# 4. Backend (Laravel 10)
+# ---------------------------------------------------------------------
+/backend/bootstrap/cache/*
+!/backend/bootstrap/cache/.gitignore
+/backend/storage/*.key
+/backend/storage/pail
+/backend/public/storage
+/backend/public/hot
+/backend/public/build
 .phpunit.result.cache
 /.phpunit.cache
-
-/public/build
-/storage/pail
-.env.backup
-.env.production
 .phpactor.json
-auth.json
+/.vagrant
 
-# Archivos del sistema
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Backend (Laravel)
-/backend/vendor/
-/backend/node_modules/
-/backend/.env
-/backend/storage/*.key
-/backend/bootstrap/cache/*
-
-# Frontend (Angular)
-/frontend/node_modules/
+# ---------------------------------------------------------------------
+# 5. Frontend (Angular 17)
+# ---------------------------------------------------------------------
 /frontend/dist/
 /frontend/.angular/
+/frontend/coverage/
+/frontend/out-tsc/
+
+# ---------------------------------------------------------------------
+# 6. Logs y temporales
+# ---------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tmp
+*.cache
+
+# ---------------------------------------------------------------------
+# 7. Sistema operativo y editores
+# ---------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
