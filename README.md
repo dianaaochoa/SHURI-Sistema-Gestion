@@ -501,7 +501,7 @@ Los cambios de diseño se registran como `docs(diseno): ...` (por ejemplo, `docs
    - Tiene **al menos 1 aprobación** (Diana revisa todo; los PR de Diana los revisa Brisa o Félix).
    - No tiene conflictos.
    - El proyecto compila (`ng build` y `php artisan test` sin errores).
-4. **`feature/*` → `develop`:** *Squash and merge* (un commit limpio por funcionalidad).
+4. **`feature/*` → `develop`:** *Create a merge commit*. Se conserva cada commit con su autor, como evidencia de la participación de cada integrante.
 5. **`develop` → `main`:** *Create a merge commit* al cierre de cada Sprint, seguido de una etiqueta de versión (`v0.1.0-sprint1`, `v0.2.0-sprint2`, …).
 6. Las ramas temporales se eliminan después de combinarse.
 
@@ -514,7 +514,7 @@ flowchart LR
     C --> D["Abrir PR hacia develop<br/>(plantilla obligatoria)"]
     D --> E{"Revisión<br/>de Diana"}
     E -->|Cambios solicitados| B
-    E -->|Aprobado| F["Squash and merge"]
+    E -->|Aprobado| F["Create a merge commit"]
     F --> G["Eliminar rama"]
     G --> H{"¿Fin de<br/>Sprint?"}
     H -->|Sí| I["PR develop → main<br/>+ tag de versión"]
