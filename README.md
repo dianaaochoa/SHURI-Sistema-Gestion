@@ -180,7 +180,38 @@ Se adopta **Scrum** con **4 Sprints de 2 semanas**. Cada Sprint termina con una 
 1. **Ausencia de un integrante:** redistribución temporal de tareas mediante *Pair Programming*, coordinada por Diana Ochoa.
 2. **Retraso en un módulo crítico:** se suspenden tareas secundarias (como el pulido visual) para reasignar esfuerzo a las funciones del MVP.
 
-### 7.3 Definition of Done
+### 7.3 Matriz de análisis de riesgos
+
+Cada riesgo se evalúa por **Probabilidad (P)** y **Gravedad (G)**, en una escala del 1 (muy baja) al 5 (muy alta).
+
+**Mapa de calor**
+
+| Probabilidad ↓ / Gravedad → | 1 | 2 | 3 | 4 | 5 |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| **5** | | | | | |
+| **4** | | 🟠 R4, R5 | | | |
+| **3** | | 🟡 R10 | | 🟠 R6, R7 | |
+| **2** | | 🟢 R12 | | 🟠 R2, R3 | 🟠 R8 |
+| **1** | | 🟢 R14 | | | |
+
+🟢 Muy bajo / Bajo · 🟡 Moderado · 🟠 Alto · 🔴 Extremo
+
+**Detalle de los riesgos**
+
+| ID | Riesgo | P | G | Nivel | Consecuencia | Respuesta | Mitigación |
+|---|---|:---:|:---:|---|---|---|---|
+| R2 | Pérdida o corrupción de la base de datos de reparaciones por falta de respaldos. | 2 | 4 | 🟠 Alto | Pérdida del historial de reparaciones y ventas, lo que detiene la operación. | Restaurar desde el respaldo más reciente y reconstruir los datos faltantes con las notas físicas. | Respaldos automáticos diarios en un servidor externo o en la nube, con pruebas de restauración. |
+| R3 | Filtración de datos de clientes (folios, teléfonos) por una vulnerabilidad del portal. | 2 | 4 | 🟠 Alto | Exposición de datos de clientes y daño a la reputación. | Aislar el módulo comprometido, revocar los tokens y corregir el fallo de seguridad. | Validación estricta de entradas, contraseñas cifradas (Bcrypt), acceso al portal con correo + contraseña y bloqueo tras intentos fallidos. |
+| R4 | Saturación del taller por acumulación de equipos abandonados por los clientes. | 4 | 2 | 🟠 Alto | Menos espacio físico para recibir nuevos trabajos. | Trasladar los equipos a almacenamiento secundario según el protocolo legal de abandono. | Tiempo límite de resguardo en las políticas (90 días), cobro de almacenaje y alerta automática en el sistema (RF-09). |
+| R5 | Resistencia de los técnicos a utilizar la bitácora digital. | 4 | 2 | 🟠 Alto | Diagnósticos incompletos e imprecisión en las refacciones usadas. | Seguimiento del Jefe de Técnicos; el registro digital es obligatorio para cerrar una orden. | Capacitación previa al personal e interfaz simple, con el mínimo de clics. |
+| R6 | Retraso en el desarrollo de la bitácora o del panel de asignación. | 3 | 4 | 🟠 Alto | Se posponen las pruebas de integración del taller. | Ajustar el alcance del Sprint y reasignar las tareas no críticas. | Planificación con Scrum, con entregas cortas y funcionales. |
+| R7 | Error de captura técnica que muestre un estatus equivocado al cliente. | 3 | 4 | 🟠 Alto | Confusión del cliente o visitas innecesarias a la sucursal. | Corregir el estado de inmediato y aclarar la situación con el cliente por el chat del portal. | Cuadro de confirmación antes de guardar un cambio de estatus; cada cambio queda en la bitácora. |
+| R8 | Caída del servidor local o del servicio web durante el horario de atención. | 2 | 5 | 🟠 Alto | No se puede cobrar en caja ni registrar la recepción de equipos. | Usar notas físicas de contingencia y capturarlas en el sistema al restablecerse el servicio. | Servidor de alta disponibilidad o infraestructura en la nube con respaldo. |
+| R10 | Retraso del cliente en responder un presupuesto en la plataforma. | 3 | 2 | 🟡 Moderado | La reparación se detiene por falta de autorización. | Si pasan más de 48 horas sin respuesta, enviar un recordatorio por correo y un mensaje del Jefe de Técnicos por el chat. | Aviso destacado de "Presupuesto pendiente" en el portal y correo automático al cliente (RF-17). |
+| R12 | Inconsistencia de existencias por el descuento incorrecto de refacciones. | 2 | 2 | 🟢 Bajo | Diferencias entre el inventario del sistema y el stock físico del almacén. | Ajuste manual en el módulo de inventario después de una auditoría. | El técnico debe seleccionar la refacción del catálogo digital antes de usarla; cada movimiento queda en `movimientos_inventario`. |
+| R14 | Confusión del cliente sobre el horario de entrega en la sucursal. | 1 | 2 | 🟢 Muy bajo | El cliente acude fuera del horario de atención a recoger su equipo. | Atenderlo en el siguiente horario hábil, explicándole la política de la sucursal. | Mostrar la dirección y el horario de atención en el portal del cliente (pantalla P4). |
+
+### 7.4 Definition of Done
 
 Una tarea se considera terminada cuando:
 
@@ -188,7 +219,7 @@ Una tarea se considera terminada cuando:
 2. Pasa las pruebas funcionales sin errores críticos.
 3. La interfaz es adaptativa y funciona correctamente en móvil y escritorio.
 
-### 7.4 Desglose de tareas
+### 7.5 Desglose de tareas
 
 | ID | Tarea | Dependencia | Estimación | Asignado |
 |---|---|---|---|---|
@@ -206,7 +237,7 @@ Una tarea se considera terminada cuando:
 | T-12 | Facturación electrónica (CFDI) y configuración del negocio. | T-09 | 1 día | Brisa |
 | T-13 | Pruebas de integración, validación de seguridad y corrección de errores. | Todas | 1 día | Diana |
 
-### 7.5 Cronograma de Sprints e hitos
+### 7.6 Cronograma de Sprints e hitos
 
 | Sprint | Fechas | Hitos y entregables verificables | Responsables |
 |---|---|---|---|
@@ -215,7 +246,7 @@ Una tarea se considera terminada cuando:
 | **Sprint 3** | 26 oct – 08 nov | Punto de Venta con liquidación de servicios, caja con cortes, cotizaciones, garantías y compras a proveedores. | Félix, Brisa |
 | **Sprint 4** | 09 nov – 22 nov | Portal del cliente (aprobación de presupuestos, garantía, chat), correos automáticos, facturación, pruebas de integración y cierre. | Félix, Diana, Brisa |
 
-### 7.6 Avance del proyecto (corte: 20 de octubre de 2026)
+### 7.7 Avance del proyecto (corte: 20 de octubre de 2026)
 
 | Entregable | Estado | Evidencia | Responsable |
 |---|---|---|---|
@@ -485,7 +516,7 @@ Los cambios de diseño se registran como `docs(diseno): ...` (por ejemplo, `docs
    git switch feature/mi-rama && git merge develop
    ```
 3. Un PR solo se combina si:
-   - Tiene **al menos 1 aprobación** (Diana revisa todo; los PR de Diana los revisa Brisa o Félix).
+   - Tiene **la aprobación de Diana**, líder del proyecto, que revisa y aprueba los PR de Brisa y Félix. Los PR de Diana los combina ella misma con su permiso de administradora (*bypass*), después de revisarlos.
    - No tiene conflictos.
    - El proyecto compila (`ng build` y `php artisan test` sin errores).
 4. **`feature/*` → `develop`:** *Create a merge commit*. Se conserva cada commit con su autor, como evidencia de la participación de cada integrante.
@@ -539,19 +570,21 @@ git switch develop
 
 | Integrante | Usuario de GitHub | Permiso | Puede |
 |---|---|---|---|
-| Diana Ochoa | `@dianaaochoa` | **Admin** (propietaria) | Configurar el repositorio, proteger ramas, aprobar y combinar PRs, crear *releases*. |
-| Brisa Luna | `@LunaBrisa` | **Write** (colaboradora) | Crear ramas, hacer *push* a sus ramas, abrir y revisar PRs. |
-| Félix Martínez | `@GaelSaldivar` | **Write** (colaborador) | Crear ramas, hacer *push* a sus ramas, abrir y revisar PRs. |
+| Diana Ochoa | `@dianaaochoa` | **Admin** (propietaria) | Configurar el repositorio, proteger ramas, **aprobar los PR del equipo**, combinar PRs, crear *releases*. Es la única que puede combinar sin aprobación (*bypass*), y solo en sus propios PR. |
+| Brisa Luna | `@LunaBrisa` | **Write** (colaboradora) | Crear ramas, hacer *push* a sus ramas y abrir PRs hacia `develop`. Sus PR requieren la aprobación de Diana. |
+| Félix Martínez | `@GaelSaldivar` | **Write** (colaborador) | Crear ramas, hacer *push* a sus ramas y abrir PRs hacia `develop`. Sus PR requieren la aprobación de Diana. |
 | Profesor | — | **Lectura** (repositorio público) | Consultar código, historial y PRs. |
 
 **Reglas de protección** (*Settings → Branches → Branch protection rules*) aplicadas a `main` y `develop`:
 
 - ✅ *Require a pull request before merging*
-- ✅ *Require approvals* (1): Diana aprueba los PR de Brisa y Félix; Brisa o Félix aprueban los de Diana.
+- ✅ *Require approvals* (1): Diana, como líder, aprueba los PR de Brisa y Félix.
 - ✅ *Dismiss stale pull request approvals when new commits are pushed*
 - ✅ *Require conversation resolution before merging*
-- ✅ *Do not allow bypassing the above settings*
+- ⬜ *Do not allow bypassing the above settings*: **desactivada a propósito**. GitHub no permite aprobar un PR propio, así que la líder (administradora) combina sus PR con *bypass*. Brisa y Félix no tienen ese permiso.
 - ❌ *Allow force pushes* / *Allow deletions*
+
+Con esto, **nadie sube cambios directo a `main` ni a `develop`**: todo entra por Pull Request.
 
 ### 13.3 Archivos de exclusión (`.gitignore`)
 
