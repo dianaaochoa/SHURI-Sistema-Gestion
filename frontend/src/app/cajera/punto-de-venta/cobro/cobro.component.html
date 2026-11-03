@@ -1,0 +1,197 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal cobro" role="dialog" aria-modal="true" aria-labelledby="titulo-cobro" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-cobro">Cobrar venta {{ folio() }}</h2>
+        <p class="modal__subtitulo">{{ articulos() }} {{ articulos() === 1 ? 'artículo' : 'artículos' }} · {{ cliente() }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/pdv/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <div class="cobro__total">
+      <span>Total a cobrar (IVA incluido)</span>
+      <strong>{{ dinero(total()) }}</strong>
+    </div>
+
+    <p class="campo__etiqueta" id="metodo-pago">Método de pago</p>
+    <div class="metodos" role="radiogroup" aria-labelledby="metodo-pago">
+      @for (opcion of metodos; track opcion.id) {
+        <button
+          type="button"
+          role="radio"
+          class="metodo"
+          [class.metodo--elegido]="opcion.id === metodo()"
+          [attr.aria-checked]="opcion.id === metodo()"
+          [disabled]="opcion.id === 'mixto'"
+          [attr.title]="opcion.id === 'mixto' ? 'Próximamente' : null"
+          (click)="elegirMetodo(opcion.id)"
+        >
+          <span class="icono metodo__icono" [style.--icono]="'url(assets/pdv/' + opcion.icono + '.svg)'"></span>
+          {{ opcion.etiqueta }}
+        </button>
+      }
+    </div>
+
+    @switch (metodo()) {
+      @case ('efectivo') {
+        <div class="cobro__fila">
+          <div class="campo">
+            <label class="campo__etiqueta" for="recibido">Monto recibido</label>
+            <div class="campo__control campo__control--40">
+              <input
+                id="recibido"
+                class="campo__input cobro__enfoque"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="$0.00"
+                [value]="recibido() === null ? '' : recibido()"
+                (input)="recibido.set(leerNumero($any($event.target).value))"
+              />
+            </div>
+          </div>
+          <div class="campo">
+            <span class="campo__etiqueta">{{ cambio() >= 0 ? 'Cambio a entregar' : 'Falta por cobrar' }}</span>
+            <output class="cambio" [class.cambio--falta]="cambio() < 0" aria-live="polite">
+              {{ dinero(cambio() < 0 ? -cambio() : cambio()) }}
+            </output>
+          </div>
+        </div>
+        <div class="montos">
+          <button type="button" class="boton boton--contorno montos__boton" (click)="recibido.set(total())">Exacto</button>
+          @for (monto of montos(); track monto) {
+            <button type="button" class="boton boton--contorno montos__boton" (click)="recibido.set(monto)">
+              {{ dinero(monto, true) }}
+            </button>
+          }
+        </div>
+      }
+
+      @case ('tarjeta') {
+        <div class="cobro__fila">
+          <div class="campo">
+            <span class="campo__etiqueta" id="tipo-tarjeta">Tipo de tarjeta</span>
+            <div class="alternar" role="radiogroup" aria-labelledby="tipo-tarjeta">
+              <button type="button" role="radio" [class.alternar--activo]="tipoTarjeta === 'debito'" [attr.aria-checked]="tipoTarjeta === 'debito'" (click)="tipoTarjeta = 'debito'">
+                Débito
+              </button>
+              <button type="button" role="radio" [class.alternar--activo]="tipoTarjeta === 'credito'" [attr.aria-checked]="tipoTarjeta === 'credito'" (click)="tipoTarjeta = 'credito'">
+                Crédito
+              </button>
+            </div>
+          </div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="terminal">Terminal</label>
+            <div class="campo__control campo__control--40">
+              <select id="terminal" class="campo__input campo__select" [(ngModel)]="terminal">
+                <option>BBVA · Caja 01</option>
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </div>
+          </div>
+        </div>
+        <div class="cobro__fila">
+          <div class="campo">
+            <label class="campo__etiqueta" for="digitos">Últimos 4 dígitos</label>
+            <div class="campo__control campo__control--40">
+              <img src="assets/pdv/card-16.svg" width="16" height="16" alt="" />
+              <input id="digitos" class="campo__input" inputmode="numeric" maxlength="4" autocomplete="off" [(ngModel)]="ultimosDigitos" />
+            </div>
+          </div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="autorizacion">No. de autorización *</label>
+            <div class="campo__control campo__control--40">
+              <input
+                id="autorizacion"
+                class="campo__input cobro__enfoque"
+                autocomplete="off"
+                [value]="autorizacion()"
+                (input)="autorizacion.set($any($event.target).value)"
+              />
+            </div>
+          </div>
+        </div>
+        <p class="aviso aviso--info">
+          <img src="assets/pdv/card-info.svg" width="16" height="16" alt="" />
+          Cobra {{ dinero(total()) }} en la terminal y captura el número de autorización del voucher.
+        </p>
+      }
+
+      @case ('transferencia') {
+        <div class="cuenta">
+          <div>
+            <p class="cuenta__banco">Cuenta SHURI · BBVA</p>
+            <p class="cuenta__clabe">CLABE {{ clabe }}</p>
+          </div>
+          <button type="button" class="enlace" (click)="copiarClabe()">
+            <img src="assets/pdv/copy.svg" width="14" height="14" alt="" />{{ copiado() ? 'Copiada' : 'Copiar' }}
+          </button>
+        </div>
+        <div class="cobro__fila">
+          <div class="campo">
+            <label class="campo__etiqueta" for="banco">Banco de origen</label>
+            <div class="campo__control campo__control--40">
+              <select id="banco" class="campo__input campo__select" [(ngModel)]="bancoOrigen">
+                @for (banco of bancos; track banco) {
+                  <option [value]="banco">{{ banco }}</option>
+                }
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </div>
+          </div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="monto-transferencia">Monto recibido</label>
+            <div class="campo__control campo__control--40">
+              <input
+                id="monto-transferencia"
+                class="campo__input"
+                inputmode="decimal"
+                autocomplete="off"
+                [value]="montoTransferencia() ?? total()"
+                (input)="montoTransferencia.set(leerNumero($any($event.target).value))"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="rastreo">Clave de rastreo / referencia *</label>
+          <div class="campo__control campo__control--40">
+            <input
+              id="rastreo"
+              class="campo__input cobro__enfoque"
+              autocomplete="off"
+              [value]="rastreo()"
+              (input)="rastreo.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+        <label class="casilla">
+          <input type="checkbox" [checked]="verificado()" (change)="verificado.set($any($event.target).checked)" />
+          Verifiqué el depósito en la banca en línea
+        </label>
+        <p class="aviso aviso--advertencia">
+          <img src="assets/cajera/alert.svg" width="16" height="16" alt="" />
+          No entregues la mercancía hasta confirmar que el depósito llegó.
+        </p>
+      }
+    }
+
+    <hr class="cobro__separador" />
+
+    <div class="cobro__opciones">
+      <label class="casilla"><input type="checkbox" [(ngModel)]="imprimir" />Imprimir ticket</label>
+      <label class="casilla"><input type="checkbox" [(ngModel)]="enviarCorreo" />Enviar por correo</label>
+    </div>
+
+    <div class="cobro__acciones">
+      <button type="button" class="boton boton--contorno cobro__cancelar" (click)="cerrar.emit()">Cancelar</button>
+      <button type="button" class="boton boton--primario cobro__confirmar" [disabled]="!valido()" (click)="cobrar()">
+        @if (imprimir) {
+          <img src="assets/pdv/printer.svg" width="16" height="16" alt="" />
+        }
+        {{ metodo() === 'transferencia' ? 'Confirmar transferencia' : 'Confirmar cobro' }}{{ imprimir ? ' e imprimir' : '' }}
+      </button>
+    </div>
+  </section>
+</div>

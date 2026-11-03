@@ -1,0 +1,76 @@
+<table class="tabla">
+  <thead>
+    <tr>
+      <th class="col-sku">Cód/SKU</th>
+      <th>Descripción del Producto</th>
+      <th class="col-cantidad">Cant.</th>
+      <th class="col-dinero">Precio Unit.</th>
+      <th class="col-descuento">Desc. (%)</th>
+      <th class="col-dinero">Total Línea</th>
+      <th class="col-quitar"><span class="oculto">Quitar</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (linea of venta.lineas(); track linea.sku) {
+      <tr>
+        <td class="col-sku">{{ linea.sku }}</td>
+        <td class="col-nombre">
+          {{ linea.nombre }}
+          @if (linea.disponibles === null) {
+            <span class="estado estado--info temporal">Temporal</span>
+          }
+        </td>
+        <td class="col-cantidad">
+          <span class="cantidad">
+            <button
+              type="button"
+              class="cantidad__boton"
+              [attr.aria-label]="'Quitar uno de ' + linea.nombre"
+              [disabled]="linea.cantidad <= 1"
+              (click)="venta.cambiarCantidad(linea.sku, -1)"
+            >
+              <img src="assets/pdv/minus-chico.svg" width="12" height="12" alt="" />
+            </button>
+            {{ linea.cantidad }}
+            <button
+              type="button"
+              class="cantidad__boton cantidad__boton--sumar"
+              [attr.aria-label]="'Agregar uno de ' + linea.nombre"
+              [disabled]="linea.disponibles !== null && linea.cantidad >= linea.disponibles"
+              [attr.title]="linea.disponibles !== null && linea.cantidad >= linea.disponibles ? 'No hay más disponibles' : null"
+              (click)="venta.cambiarCantidad(linea.sku, 1)"
+            >
+              <img src="assets/pdv/plus-chico.svg" width="12" height="12" alt="" />
+            </button>
+          </span>
+        </td>
+        <td class="col-dinero">{{ dinero(linea.precio) }}</td>
+        <td class="col-descuento">
+          <input
+            class="descuento"
+            inputmode="numeric"
+            maxlength="3"
+            [attr.aria-label]="'Descuento en % de ' + linea.nombre"
+            [value]="linea.descuento"
+            (change)="venta.fijarDescuento(linea.sku, +$any($event.target).value)"
+            (focus)="$any($event.target).select()"
+          />
+        </td>
+        <td class="col-dinero col-total">{{ dinero(totalLinea(linea)) }}</td>
+        <td class="col-quitar">
+          <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + linea.nombre" (click)="venta.quitar(linea.sku)">
+            <img src="assets/pdv/trash.svg" width="18" height="18" alt="" />
+          </button>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+<p class="nota">
+  <img src="assets/pdv/info.svg" width="16" height="16" alt="" />
+  @if (venta.descuento() > 0) {
+    Descuento aplicado: {{ dinero(venta.descuento()) }} ·
+  }
+  Los importes se calculan en MXN.
+</p>

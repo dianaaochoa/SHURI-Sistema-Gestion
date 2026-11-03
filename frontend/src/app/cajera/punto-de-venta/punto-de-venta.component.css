@@ -1,0 +1,50 @@
+/* La barra del punto de venta va de orilla a orilla: se anula el padding del contenido. */
+:host { display: block; height: calc(100% + 48px); margin: -24px; }
+.pdv { display: flex; flex-direction: column; height: 100%; }
+.area { display: flex; flex: 1; flex-direction: column; gap: 24px; min-height: 0; padding: 24px; }
+.area > .aviso { margin-bottom: -12px; }
+
+/* ---------- Ticket ---------- */
+.ticket { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; border: 1px solid var(--color-borde); border-radius: 8px; }
+.ticket__encabezado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 80px; padding: 16px 24px; }
+.ticket__folio { font-size: 20px; color: var(--color-marino); }
+.ticket__resumen { margin-top: 4px; font-size: 12px; color: var(--color-texto-tenue); }
+.ticket__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.ticket__acciones .boton { padding: 0 12px; }
+.ticket__cuerpo { flex: 1; min-height: 0; overflow: auto; }
+
+/* Carrito vacío (C2.2) */
+.vacio { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
+.vacio__ilustracion { display: flex; align-items: center; justify-content: center; width: 112px; height: 112px; border-radius: 999px; background: var(--color-superficie); }
+.vacio__titulo { font-size: 20px; font-weight: 600; color: var(--color-marino); }
+.vacio__texto { font-size: 14px; color: var(--color-texto-tenue); }
+
+/* ---------- Resumen y cobro ---------- */
+.cobro { display: flex; flex-direction: column; gap: 16px; padding: 24px; border-top: 1px solid var(--color-borde); }
+.cobro--vacio { background: var(--color-superficie); }
+.cobro__totales { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.cobro__base { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--color-texto-tenue); }
+.cobro__base strong { font-weight: 600; color: var(--color-marino); }
+.cobro__total { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; font-weight: 600; color: var(--color-texto-tenue); }
+.cobro__total strong { font-size: 48px; line-height: 1.4; color: var(--color-marino); }
+.cobro__acciones { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+.cobro__boton-56 { height: 56px; }
+.cobro__boton-168 { width: 168px; }
+.cobro__cobrar { flex: 1; min-width: 200px; height: 64px; }
+.cobro__cobrar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Atajos ---------- */
+.atajos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 16px; background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: 8px; }
+.atajos__item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-texto-secundario); }
+.atajos__item--pendiente { opacity: 0.45; }
+
+.confirmar { max-width: 440px; }
+
+@media (max-width: 768px) {
+  :host { height: auto; min-height: calc(100% + 32px); margin: -16px; }
+  .area { padding: 16px; }
+  .ticket { min-height: 480px; }
+  .cobro__total strong { font-size: 32px; }
+  .cobro__boton-168 { flex: 1; width: auto; }
+  .atajos { display: none; }
+}

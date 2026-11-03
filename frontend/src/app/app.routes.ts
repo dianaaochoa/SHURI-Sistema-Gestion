@@ -6,6 +6,7 @@ import { CrearContrasenaComponent } from './acceso/crear-contrasena/crear-contra
 import { IniciarSesionComponent } from './acceso/iniciar-sesion/iniciar-sesion.component';
 import { OlvideContrasenaComponent } from './acceso/olvide-contrasena/olvide-contrasena.component';
 import { InicioCajeraComponent } from './cajera/inicio-cajera/inicio-cajera.component';
+import { PuntoDeVentaComponent } from './cajera/punto-de-venta/punto-de-venta.component';
 import { NAVEGACION, rutaInicio } from './sistema/navegacion';
 import { PaginaPendienteComponent } from './sistema/pagina-pendiente/pagina-pendiente.component';
 import { SistemaLayoutComponent } from './sistema/sistema-layout/sistema-layout.component';
@@ -34,6 +35,7 @@ const soloRol =
 /** Pantallas ya construidas, por "prefijo/ruta". Las demás usan PaginaPendienteComponent. */
 const PANTALLAS: Record<string, Type<unknown>> = {
   'cajera/inicio': InicioCajeraComponent,
+  'cajera/punto-de-venta': PuntoDeVentaComponent,
 };
 
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
