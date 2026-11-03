@@ -71,6 +71,9 @@
   white-space: nowrap;
 }
 
+/* Figma C1.2: "Caja 01 · Caja cerrada" en rojo claro sobre el marino. */
+.menu__resumen--alerta { color: #fca5a5; }
+
 /* ---------- Grupos y destinos ---------- */
 
 .menu__grupos {

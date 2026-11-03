@@ -14,7 +14,7 @@
     </span>
   </div>
 
-  <p class="menu__resumen">{{ navegacion().resumen }}</p>
+  <p class="menu__resumen" [class.menu__resumen--alerta]="cajaCerrada()">{{ resumen() }}</p>
 
   <div class="menu__grupos">
     @for (grupo of navegacion().grupos; track $index) {
@@ -94,3 +94,7 @@
     }
   </div>
 </nav>
+
+@if (confirmarSalida()) {
+  <app-salir-con-turno (cancelar)="confirmarSalida.set(false)" (irACorte)="irACorte()" (salirSinCerrar)="salir()" />
+}

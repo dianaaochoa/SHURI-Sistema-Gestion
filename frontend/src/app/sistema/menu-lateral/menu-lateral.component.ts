@@ -1,6 +1,8 @@
 import { Component, ElementRef, HostListener, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
+import { CajaService } from '../../cajera/caja.service';
+import { SalirConTurnoComponent } from '../../cajera/salir-con-turno/salir-con-turno.component';
 import { MenuUsuarioComponent } from '../menu-usuario/menu-usuario.component';
 import { NAVEGACION, iniciales } from '../navegacion';
 import { NotificacionesService } from '../notificaciones.service';
@@ -16,7 +18,7 @@ const PANTALLA_MOVIL = '(max-width: 768px)';
 @Component({
   selector: 'app-menu-lateral',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MenuUsuarioComponent, PanelNotificacionesComponent],
+  imports: [RouterLink, RouterLinkActive, MenuUsuarioComponent, PanelNotificacionesComponent, SalirConTurnoComponent],
   templateUrl: './menu-lateral.component.html',
   styleUrl: './menu-lateral.component.css',
   host: { '[class.riel]': 'contraido()' },
@@ -30,8 +32,16 @@ export class MenuLateralComponent {
   private readonly router = inject(Router);
   protected readonly notificaciones = inject(NotificacionesService);
 
+  private readonly caja = inject(CajaService);
+
   protected readonly sesion = this.auth.sesion;
   protected readonly navegacion = computed(() => NAVEGACION[this.sesion()?.rol ?? 'cajera']);
+  protected readonly esCajera = computed(() => this.sesion()?.rol === 'cajera');
+  /** La cajera ve el estado real de su caja (C1.1 / C1.2); los demás roles, el de navegacion.ts. */
+  protected readonly resumen = computed(() => (this.esCajera() ? this.caja.resumen() : this.navegacion().resumen));
+  protected readonly cajaCerrada = computed(() => this.esCajera() && !this.caja.abierta());
+  /** C1.7: confirmar la salida cuando la cajera deja su turno abierto. */
+  protected readonly confirmarSalida = signal(false);
   protected readonly iniciales = computed(() => iniciales(this.sesion()?.nombre ?? ''));
 
   private readonly preferencia = signal<boolean | null>(leerPreferencia());
@@ -68,6 +78,21 @@ export class MenuLateralComponent {
 
   cerrarSesion(): void {
     this.abierto.set(null);
+    if (this.esCajera() && this.caja.abierta()) {
+      this.confirmarSalida.set(true);
+      return;
+    }
+    this.salir();
+  }
+
+  irACorte(): void {
+    this.confirmarSalida.set(false);
+    this.cerrar.emit();
+    this.router.navigateByUrl('/cajera/corte-de-caja');
+  }
+
+  salir(): void {
+    this.confirmarSalida.set(false);
     this.auth.cerrarSesion();
     this.router.navigateByUrl('/iniciar-sesion');
   }

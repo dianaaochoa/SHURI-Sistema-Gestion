@@ -3,6 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../acceso/auth.service';
+import { CajaService } from '../../cajera/caja.service';
+import { formatearFechaLarga, saludoDelDia } from '../../compartido/formato';
 import { NAVEGACION } from '../navegacion';
 
 /** `data` que cada ruta del menú le pasa a esta página (ver app.routes.ts). */
@@ -54,19 +56,13 @@ export class PaginaPendienteComponent {
   });
 
   protected readonly esInicio = computed(() => this.datos().titulo === 'Inicio');
-  protected readonly resumen = computed(() => NAVEGACION[this.sesion()?.rol ?? 'cajera'].resumen);
-  protected readonly saludo = computed(() => {
-    const hora = new Date().getHours();
-    const parte = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
-    return `${parte}, ${this.sesion()?.nombre.split(' ')[0] ?? ''}`;
-  });
+  private readonly caja = inject(CajaService);
+  protected readonly resumen = computed(() =>
+    this.sesion()?.rol === 'cajera' ? this.caja.resumen() : NAVEGACION[this.sesion()?.rol ?? 'cajera'].resumen,
+  );
+  protected readonly saludo = computed(
+    () => `${saludoDelDia(new Date())}, ${this.sesion()?.nombre.split(' ')[0] ?? ''}`,
+  );
 
-  /** "Viernes 16 oct 2026", como en Figma. */
-  protected readonly fecha = formatearFecha(new Date());
-}
-
-function formatearFecha(fecha: Date): string {
-  const dia = fecha.toLocaleDateString('es-MX', { weekday: 'long' });
-  const mes = fecha.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '');
-  return `${dia[0].toUpperCase()}${dia.slice(1)} ${fecha.getDate()} ${mes} ${fecha.getFullYear()}`;
+  protected readonly fecha = formatearFechaLarga(new Date());
 }

@@ -1,10 +1,11 @@
-import { inject } from '@angular/core';
+import { Type, inject } from '@angular/core';
 import { CanActivateFn, Route, Router, Routes } from '@angular/router';
 import { AccesoLayoutComponent } from './acceso/acceso-layout/acceso-layout.component';
 import { AuthService, Rol } from './acceso/auth.service';
 import { CrearContrasenaComponent } from './acceso/crear-contrasena/crear-contrasena.component';
 import { IniciarSesionComponent } from './acceso/iniciar-sesion/iniciar-sesion.component';
 import { OlvideContrasenaComponent } from './acceso/olvide-contrasena/olvide-contrasena.component';
+import { InicioCajeraComponent } from './cajera/inicio-cajera/inicio-cajera.component';
 import { NAVEGACION, rutaInicio } from './sistema/navegacion';
 import { PaginaPendienteComponent } from './sistema/pagina-pendiente/pagina-pendiente.component';
 import { SistemaLayoutComponent } from './sistema/sistema-layout/sistema-layout.component';
@@ -30,6 +31,11 @@ const soloRol =
     return inject(Router).parseUrl('/inicio');
   };
 
+/** Pantallas ya construidas, por "prefijo/ruta". Las demás usan PaginaPendienteComponent. */
+const PANTALLAS: Record<string, Type<unknown>> = {
+  'cajera/inicio': InicioCajeraComponent,
+};
+
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
 function rutasDeRol(rol: Rol): Route {
   const { prefijo, grupos } = NAVEGACION[rol];
@@ -46,7 +52,7 @@ function rutasDeRol(rol: Rol): Route {
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       ...pantallas.map((p) => ({
         path: p.ruta,
-        component: PaginaPendienteComponent,
+        component: PANTALLAS[`${prefijo}/${p.ruta}`] ?? PaginaPendienteComponent,
         title: `${p.etiqueta} · SHURI`,
         data: { titulo: p.etiqueta, figma: p.figma },
       })),
