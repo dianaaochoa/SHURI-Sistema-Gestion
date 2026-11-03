@@ -39,7 +39,9 @@ flowchart LR
     AD["AD1–AD9"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
-    C["01–11"]:::pendiente
+    C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
+    C16["C1.6 Mi perfil y contraseña"]:::pendiente
+    C["C2–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -56,6 +58,7 @@ flowchart LR
   ACC -->|"un solo login,<br/>cada rol a su inicio"| SHELL
   SHELL --> ADM & CAJ & JEF & TEC
   USR --> A6
+  C1 -->|"Ir a corte de caja"| C
   BASE --> POR
 ```
 
@@ -118,18 +121,30 @@ flowchart LR
     PP["PaginaPendiente<br/>lugar de cada pantalla"]:::comp
   end
 
+  subgraph CAJERA["cajera/"]
+    IC["InicioCajera<br/>C1.1 · C1.2"]:::comp
+    AT["AbrirTurno<br/>modal C1.3"]:::comp
+    ST["SalirConTurno<br/>modal C1.7"]:::comp
+  end
+
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
-  GLB["styles.css<br/>tokens + .tarjeta .campo .boton .icono .avatar .popover"]:::css
+  CAJA["CajaService<br/>turno de caja (simulado)"]:::serv
+  FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
+  GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal"]:::css
 
   APP --> RUT
   RUT --> LAY --> IS & OC & CC
   RUT --> SL --> ML --> MU & PN
-  SL --> PP
+  ML --> ST
+  SL --> PP & IC
+  IC --> AT
   NAV --> RUT & ML & PP
   IS & OC & CC & ML & MU & PP --> AUTH
   PN --> NOTS --> AUTH
-  GLB -.-> ACCESO & SISTEMA
+  IC & AT & ST & ML & MU & PP --> CAJA
+  IC & AT & ST --> FMT
+  GLB -.-> ACCESO & SISTEMA & CAJERA
 ```
 
 ---
@@ -156,6 +171,11 @@ npm run build      # compilación de producción
 
 Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana Martínez, Jorge López, Carlos Ruiz).
 
+**Caja de la cajera:**
+- La primera vez entra con la **caja cerrada** (C1.2).
+- Para abrirla se cuenta el fondo en el modal; con 2×$200, 3×$100, 4×$50 y 5×$20 coincide con el fondo asignado de $1,000.
+- El turno se guarda en `localStorage` (`shuri.turno`). Para volver a probar la caja cerrada, borra esa clave o ejecuta `localStorage.clear()` en la consola.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -165,9 +185,17 @@ frontend/src/
 ├── assets/
 │   ├── acceso/                # logo-shuri.png, elipses del panel de marca
 │   ├── iconos/                # SVG de las pantallas de acceso
-│   └── menu/                  # SVG del menú lateral, usuario y notificaciones
+│   ├── menu/                  # SVG del menú lateral, usuario y notificaciones
+│   └── cajera/                # SVG de las pantallas de la cajera
 └── app/
-    ├── app.routes.ts          # rutas + guardas (las del sistema salen de navegacion.ts)
+    ├── app.routes.ts          # rutas + guardas; PANTALLAS = las ya construidas
+    ├── compartido/
+    │   └── formato.ts         # dinero, fechas, horas, duración, saludo
+    ├── cajera/
+    │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
+    │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
+    │   ├── abrir-turno/       # C1.3 modal de conteo del fondo
+    │   └── salir-con-turno/   # C1.7 modal al cerrar sesión con caja abierta
     ├── acceso/
     │   ├── auth.service.ts    # sesión, intentos, contraseña temporal (simulado)
     │   ├── acceso-layout/     # marco común A.1–A.5
@@ -189,7 +217,16 @@ frontend/src/
 - **Componentes standalone**, `signal()` / `computed()` para estado, `input()` / `output()` de señales, **Reactive Forms** (`NonNullableFormBuilder`), control de flujo nuevo (`@if`, `@for`).
 - **Nombres en español** (componentes, clases CSS, variables), igual que en Figma.
 - **Colores:** siempre `var(--color-*)` de `styles.css`. Los nombres salen de las variables de Figma (`color/primario` → `--color-primario`).
-- **Estilos compartidos en `styles.css`**: `.tarjeta`, `.campo`, `.boton--primario`, `.enlace`, `.aviso--error`, `.casilla`, `.icono`, `.avatar`, `.popover`, `.encabezado-pagina`. El presupuesto de CSS por componente es 2 kB de aviso y 4 kB de error, así que lo reutilizable va global y lo específico va en el componente.
+- **Estilos compartidos en `styles.css`**, uno por componente de Figma:
+  - Formularios y acciones: `.tarjeta`, `.campo`, `.boton--primario`, `.boton--contorno`, `.enlace`, `.casilla`
+  - Avisos y popovers: `.aviso--error`, `.aviso--advertencia`, `.popover`, `.modal-fondo`, `.modal`
+  - Componentes de datos: `.panel`, `.fila`, `.indicador`, `.estado--<tono>`, `.tecla`
+  - Otros: `.icono`, `.avatar`, `.encabezado-pagina`
+
+  El presupuesto de CSS por componente es 2 kB de aviso y 4 kB de error, así que lo reutilizable va global y lo específico va en el componente.
+- **Pantallas construidas:** se registran en `PANTALLAS` de `app.routes.ts` (`'cajera/inicio': InicioCajeraComponent`). Las que no están ahí usan `PaginaPendienteComponent`.
+- **Datos de prueba de una pantalla:** en un archivo `<pantalla>.datos.ts` junto al componente, con los textos de Figma y la forma que tendrá la respuesta de la API.
+- **Formatos:** siempre con `compartido/formato.ts` (`formatearDinero`, `formatearFechaLarga`, `formatearHora`, `formatearDuracion`, `saludoDelDia`).
 - **Íconos:** se descargan de Figma, no se redibujan.
   - Con color fijo: `<img>` con su `width`/`height` original.
   - Si cambian de color según el estado (menú): `<span class="icono" [style.--icono]="'url(assets/menu/x.svg)'">`, que usa el SVG como máscara y lo pinta con `color`.
@@ -232,8 +269,15 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Fijar el riel abierto | Al pasar el mouse, el riel muestra “Fijar abierto”; en 184 px dice “Contraer”. La preferencia se guarda en `localStorage`. | Figma muestra “Contraer” pero no cómo volver a expandir. |
 | Menú en celular | Cajón de 260 px con barra superior (☰ SHURI) | Figma solo tiene versión celular para el jefe (J10) y tablet para el técnico (T7); se hará cuando se construyan esas pantallas. |
 | Avisos de la campana | Datos de prueba por rol; los del técnico son los de T1.2 | No hay API todavía. |
-| Menú de usuario de la cajera | Sin la opción “Turno abierto desde 09:00” | Depende de la caja (C1), que aún no existe. |
+| Menú de usuario de la cajera | “Turno abierto desde HH:MM” como línea informativa (no clicable) | Así aparece en C1.5; Figma no indica a dónde lleva. |
 | Pantallas no construidas | `PaginaPendiente` con título, saludo en Inicio y clave de Figma | Permite navegar todo el menú desde ya. |
+| Estado inicial de la caja (demo) | La cajera entra con la caja cerrada (C1.2) | Así se puede probar todo el flujo C1.2 → C1.3 → C1.1. |
+| Fondo contado distinto al asignado | Se permite abrir; el total se pinta en ámbar con “Faltan/Sobran $X” | Figma solo muestra el caso que coincide. |
+| Centavos en el conteo | Se capturan como importe (0.00–0.99), no como cantidad | Figma muestra “—” en la cantidad de centavos. |
+| Atajos F1–F5 | F1/F4 con la caja cerrada abren el modal de abrir turno. F5 no recarga la página mientras se está en el inicio. | Las teclas vienen de Figma; el comportamiento con la caja cerrada no está definido. |
+| Cifras del inicio | Las de Figma (ventas, entregas, paneles). “Efectivo en caja” = $6,180 de ventas + el fondo contado. | No hay API todavía. |
+| C1.7 · “Salir sin cerrar el turno” | Al elegir esa opción, el botón principal cambia a “Salir sin cerrar el turno” | Figma solo muestra el botón de la opción recomendada. |
+| Notificaciones | Ícono de color por tipo (éxito, advertencia, info, neutro), como en C1.4 | El componente “Notificación” usa una campana fija; las pantallas reales no. |
 
 ## 9. Pendientes conocidos
 
@@ -246,7 +290,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol (empezando por los inicios: AD1, C1, J1, T1).
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C2–C11.
+- [ ] C1.6 Mi perfil y contraseña.
+- [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
+- [ ] Corte de caja (C10) debe llamar a `CajaService.cerrarTurno()`.
+- [ ] Color exacto del fondo atenuado de los modales (se usó marino al 45 %).
 
 ---
 
@@ -280,3 +328,21 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 1366×768: riel de 72 px que se abre al pasar el mouse sin mover el contenido
   - a 360 px: cajón que se cierra al navegar, sin scroll horizontal
   - redirección por rol y cierre de sesión
+
+### 2 nov 2026 · Cajera C1: inicio y apertura de caja
+- Revisadas en Figma C1.1–C1.7.
+- Construidas:
+  - C1.1 inicio con turno abierto y C1.2 con caja cerrada (aviso marino, accesos atenuados, último corte)
+  - C1.3 modal de conteo del fondo por denominación, con total en verde o ámbar
+  - C1.7 modal al cerrar sesión con el turno abierto
+- Integrado en lo existente:
+  - C1.4: panel de notificaciones con íconos de color y los avisos de la cajera
+  - C1.5: “Turno abierto desde HH:MM” en el menú de usuario
+  - El estado del menú lateral cambia entre “Caja 01 · Turno abierto” y “Caja 01 · Caja cerrada” (en rojo claro)
+- Nuevo `CajaService` (turno guardado en el navegador) y `compartido/formato.ts`.
+- Pasaron a `styles.css` los componentes de Figma Panel, Fila, Indicador KPI, Estado, Tecla, Modal y Botón contorno. El CSS del inicio pasaba el límite de 4 kB.
+- Verificado:
+  - a 1440×900: posiciones iguales a Figma C1.2 (aviso en y=88, indicadores en y=290, pendientes en y=370)
+  - flujo completo: abrir turno → C1.1 → F3 → notificaciones → cerrar sesión → C1.7 → salir sin cerrar → volver a entrar con la caja abierta
+  - a 1366×768: cabe sin scroll
+  - a 360 px: una columna, modal con scroll interno, sin scroll horizontal
