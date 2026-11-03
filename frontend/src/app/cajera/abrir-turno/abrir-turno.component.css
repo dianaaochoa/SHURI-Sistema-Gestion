@@ -4,22 +4,8 @@
 
 .abrir-turno__datos {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-}
-
-.campo__control--40 {
-  height: 40px;
-  font-size: 14px;
-}
-
-.campo__control--fijo {
-  background: var(--color-neutro-suave);
-}
-
-.campo__select {
-  appearance: none;
-  cursor: pointer;
 }
 
 .abrir-turno__conteos {

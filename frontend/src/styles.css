@@ -216,6 +216,21 @@ input {
   color: var(--color-peligro);
 }
 
+/* Campo compacto de 40 px (Figma › Campo, usado en modales) */
+.campo__control--40 {
+  height: 40px;
+}
+
+/* Campo de solo lectura (fondo gris) */
+.campo__control--fijo {
+  background: var(--color-neutro-suave);
+}
+
+.campo__select {
+  appearance: none;
+  cursor: pointer;
+}
+
 /* ---------- Casilla de verificación ---------- */
 
 .casilla {
@@ -293,8 +308,49 @@ input {
   background: var(--color-primario-suave);
 }
 
+.boton.boton--contorno:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .boton--44 {
   height: 44px;
+}
+
+.boton--40 {
+  height: 40px;
+}
+
+/* Figma › Botón · Tipo=Secundario: fondo claro con borde gris */
+.boton--secundario {
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  color: var(--color-marino);
+}
+
+.boton--secundario:hover:not(:disabled) {
+  border-color: var(--color-marino);
+}
+
+/* Figma › Botón · Tipo=Peligro */
+.boton--peligro {
+  background: var(--color-peligro);
+  border: 1px solid var(--color-peligro);
+  color: var(--color-superficie);
+}
+
+.boton--peligro:hover:not(:disabled) {
+  background: #9b1d14;
+}
+
+/* Figma › Botón · Disabled (secundario y peligro). `.boton` delante para ganarle a `.boton:disabled`. */
+.boton.boton--secundario:disabled,
+.boton.boton--peligro:disabled {
+  opacity: 1;
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #788391;
+  cursor: not-allowed;
 }
 
 .boton:disabled {
@@ -410,7 +466,8 @@ input {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(23, 55, 78, 0.45);
+  /* Figma › Fondo atenuado: color/marino-profundo #0f172a */
+  background: rgba(15, 23, 42, 0.5);
 }
 
 .modal {
@@ -585,4 +642,20 @@ input {
 .aviso--advertencia {
   background: var(--color-advertencia-suave);
   color: var(--color-advertencia);
+}
+
+.aviso--exito {
+  align-items: center;
+  background: var(--color-exito-suave);
+  color: var(--color-exito);
+}
+
+/* Texto solo para lectores de pantalla */
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
