@@ -161,9 +161,24 @@ frontend/src/
   - Campo en foco: borde 1.5 px `--color-primario`. Campo con error: borde 1.5 px `--color-peligro`.
   - Validación al salir del campo y al guardar; el mensaje va en rojo debajo del campo.
   - Campos obligatorios con `*`.
-- **Responsivo:** base 1440×900. Debajo de 960 px de ancho se oculta el panel de marca y aparece el logo arriba del formulario. Con menos de 760 px de alto se ocultan las tarjetas flotantes del panel.
+- **Responsivo:** base 1440×900, mínimo 360 px de ancho (lo exige el checklist de PR). Debajo de 960 px de ancho se oculta el panel de marca y aparece el logo arriba del formulario. Con menos de 760 px de alto se ocultan las tarjetas flotantes del panel.
 
-## 7. Decisiones y desviaciones del diseño
+## 7. Flujo de trabajo del equipo
+
+Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github/`](../.github/):
+
+- Flujo de ramas: `feature/frontend-ui` → **PR a `develop`** → `develop` pasa a `main` al cierre de cada sprint. **Nunca abrir el PR directo a `main`.**
+- **Diana** (`@dianaaochoa`, CODEOWNERS) revisa y aprueba todos los PR. Política de unión: *merge commit*.
+- Checklist del PR ([plantilla](../.github/pull_request_template.md)):
+  - rama actualizada con `develop`
+  - commits `tipo(modulo): descripción`
+  - `ng build` sin errores
+  - sin `node_modules/`
+  - vista adaptable a **360 px** y escritorio
+- Antes de abrir un PR: traer `origin/develop` a esta rama (merge, no rebase) y volver a compilar.
+- Sprint 3: 26 oct – 8 nov · Sprint 4: 9 – 22 nov 2026 (cierre del proyecto).
+
+## 8. Decisiones y desviaciones del diseño
 
 | Tema | Decisión | Motivo |
 |---|---|---|
@@ -172,8 +187,9 @@ frontend/src/
 | Niveles del indicador de contraseña | 0–2 requisitos: Débil (rojo) · 3: Media (ámbar) · 4: Segura (verde) | Figma solo trae la variante “Segura”. |
 | Requisito no cumplido | Círculo gris vacío | Figma solo muestra requisitos cumplidos. |
 | Destino tras iniciar sesión | `/inicio` provisional que muestra el rol | Los inicios por rol (AD1.1, C1.1, J1.1, T1.1) aún no existen. |
+| Estilos | CSS propio con tokens de Figma, sin Tailwind ni Angular Material | `frontend/README.md` menciona “Tailwind CSS / Angular Material”, pero ninguno está instalado. Con CSS propio se copia el diseño de Figma tal cual. Pendiente acordarlo con el equipo. |
 
-## 8. Pendientes conocidos
+## 9. Pendientes conocidos
 
 - [ ] Conectar `AuthService` a la API de Laravel (Sanctum) cuando exista; quitar los usuarios de prueba.
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 48 px).
@@ -185,7 +201,7 @@ frontend/src/
 
 ---
 
-## 9. Registro de sesiones
+## 10. Registro de sesiones
 
 ### 2 nov 2026 · Acceso del personal (A.1–A.5)
 - Se revisó todo el archivo de Figma: 3 páginas (Sistema del personal, Portal del cliente, Componentes y tokens) y las secciones de cada rol.
@@ -194,3 +210,8 @@ frontend/src/
 - `AuthService` simulado: 3 intentos y bloqueo, contraseña temporal, cambio obligatorio en el primer ingreso.
 - Guardas de ruta: `conSesion` y `conContrasenaTemporal`.
 - Verificado en el navegador a 1440×900 (posiciones iguales a Figma) y en ancho de celular.
+
+### 2 nov 2026 · Rama al día con `develop`
+- Se unió `origin/develop` a `feature/frontend-ui` sin conflictos. Llegaron solo cambios de documentación del equipo: README, `backend/README.md`, `frontend/README.md`, `.gitignore` y la plantilla de PR.
+- Tras unirla: `ng build` correcto y login revisado a 360 px sin scroll horizontal.
+- Se documentó el flujo de trabajo del equipo (sección 7).
