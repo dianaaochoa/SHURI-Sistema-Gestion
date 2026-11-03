@@ -1,22 +1,58 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router, Routes } from '@angular/router';
+import { CanActivateFn, Route, Router, Routes } from '@angular/router';
 import { AccesoLayoutComponent } from './acceso/acceso-layout/acceso-layout.component';
-import { AuthService } from './acceso/auth.service';
+import { AuthService, Rol } from './acceso/auth.service';
 import { CrearContrasenaComponent } from './acceso/crear-contrasena/crear-contrasena.component';
 import { IniciarSesionComponent } from './acceso/iniciar-sesion/iniciar-sesion.component';
 import { OlvideContrasenaComponent } from './acceso/olvide-contrasena/olvide-contrasena.component';
-import { InicioPendienteComponent } from './inicio/inicio-pendiente.component';
-
-/** Solo entra quien tiene sesión y ya creó su contraseña definitiva. */
-const conSesion: CanActivateFn = () => {
-  const sesion = inject(AuthService).sesion();
-  if (!sesion) return inject(Router).parseUrl('/iniciar-sesion');
-  return sesion.requiereCambioContrasena ? inject(Router).parseUrl('/crear-contrasena') : true;
-};
+import { NAVEGACION, rutaInicio } from './sistema/navegacion';
+import { PaginaPendienteComponent } from './sistema/pagina-pendiente/pagina-pendiente.component';
+import { SistemaLayoutComponent } from './sistema/sistema-layout/sistema-layout.component';
 
 /** A.5 solo tiene sentido si se entró con contraseña temporal. */
 const conContrasenaTemporal: CanActivateFn = () =>
   inject(AuthService).sesion()?.requiereCambioContrasena ? true : inject(Router).parseUrl('/iniciar-sesion');
+
+/** Un solo login para el personal: cada rol entra a su propio inicio (nota de Figma A.1/A.5). */
+const aSuInicio: CanActivateFn = () => {
+  const sesion = inject(AuthService).sesion();
+  const router = inject(Router);
+  if (!sesion) return router.parseUrl('/iniciar-sesion');
+  return router.parseUrl(sesion.requiereCambioContrasena ? '/crear-contrasena' : rutaInicio(sesion.rol));
+};
+
+/** Solo entra el rol dueño de la sección; los demás vuelven a su inicio. */
+const soloRol =
+  (rol: Rol): CanActivateFn =>
+  () => {
+    const sesion = inject(AuthService).sesion();
+    if (sesion?.rol === rol && !sesion.requiereCambioContrasena) return true;
+    return inject(Router).parseUrl('/inicio');
+  };
+
+/** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
+function rutasDeRol(rol: Rol): Route {
+  const { prefijo, grupos } = NAVEGACION[rol];
+  const pantallas = [
+    ...grupos.flatMap((grupo) => grupo.destinos),
+    { etiqueta: 'Mi perfil', ruta: 'perfil', figma: 'Menú de usuario' },
+    { etiqueta: 'Cambiar contraseña', ruta: 'cambiar-contrasena', figma: 'A.6' },
+  ];
+  return {
+    path: prefijo,
+    component: SistemaLayoutComponent,
+    canActivate: [soloRol(rol)],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'inicio' },
+      ...pantallas.map((p) => ({
+        path: p.ruta,
+        component: PaginaPendienteComponent,
+        title: `${p.etiqueta} · SHURI`,
+        data: { titulo: p.etiqueta, figma: p.figma },
+      })),
+    ],
+  };
+}
 
 export const routes: Routes = [
   {
@@ -34,6 +70,10 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: 'inicio', component: InicioPendienteComponent, canActivate: [conSesion], title: 'Inicio · SHURI' },
+  { path: 'inicio', canActivate: [aSuInicio], children: [] },
+  rutasDeRol('administrador'),
+  rutasDeRol('cajera'),
+  rutasDeRol('jefe-tecnicos'),
+  rutasDeRol('tecnico'),
   { path: '**', redirectTo: 'iniciar-sesion' },
 ];

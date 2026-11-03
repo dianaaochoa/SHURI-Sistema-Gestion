@@ -7,6 +7,8 @@ export interface Sesion {
   usuario: string;
   nombre: string;
   rol: Rol;
+  /** Segunda línea bajo el nombre en el menú lateral (p. ej. "Cajera · Caja 01"). */
+  puesto: string;
   /** Entró con contraseña temporal: debe crear la suya (A.5) antes de seguir. */
   requiereCambioContrasena: boolean;
 }
@@ -23,15 +25,30 @@ const INTENTOS_PERMITIDOS = 3;
  * Al conectar el backend se reemplazan las llamadas simuladas por HttpClient.
  */
 const USUARIOS_DEMO: Record<string, { contrasena: string; correo: string; sesion: Sesion }> = {
+  vcastillo: {
+    contrasena: 'Shuri2026!',
+    correo: 'vcastillo@shuri.mx',
+    sesion: { usuario: 'vcastillo', nombre: 'Verónica Castillo', rol: 'administrador', puesto: 'Administradora', requiereCambioContrasena: false },
+  },
   amartinez: {
     contrasena: 'Shuri2026!',
     correo: 'amartinez@shuri.mx',
-    sesion: { usuario: 'amartinez', nombre: 'Ana Martínez', rol: 'cajera', requiereCambioContrasena: false },
+    sesion: { usuario: 'amartinez', nombre: 'Ana Martínez', rol: 'cajera', puesto: 'Cajera · Caja 01', requiereCambioContrasena: false },
+  },
+  jlopez: {
+    contrasena: 'Shuri2026!',
+    correo: 'jlopez@shuri.mx',
+    sesion: { usuario: 'jlopez', nombre: 'Jorge López', rol: 'jefe-tecnicos', puesto: 'Jefe de técnicos', requiereCambioContrasena: false },
+  },
+  cruiz: {
+    contrasena: 'Shuri2026!',
+    correo: 'cruiz@shuri.mx',
+    sesion: { usuario: 'cruiz', nombre: 'Carlos Ruiz', rol: 'tecnico', puesto: 'Técnico · Taller', requiereCambioContrasena: false },
   },
   nuevo: {
     contrasena: 'temporal123',
     correo: 'nuevo@shuri.mx',
-    sesion: { usuario: 'nuevo', nombre: 'Usuario nuevo', rol: 'tecnico', requiereCambioContrasena: true },
+    sesion: { usuario: 'nuevo', nombre: 'Usuario nuevo', rol: 'tecnico', puesto: 'Técnico · Taller', requiereCambioContrasena: true },
   },
 };
 

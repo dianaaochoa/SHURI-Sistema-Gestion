@@ -1,0 +1,55 @@
+<section class="popover panel" role="dialog" aria-label="Notificaciones">
+  <header class="panel__encabezado">
+    <h2 class="panel__titulo">Notificaciones</h2>
+    @if (notificaciones.nuevas().length) {
+      <button type="button" class="enlace" (click)="notificaciones.marcarTodoLeido()">Marcar todo como leído</button>
+    }
+  </header>
+
+  <div class="panel__pestanas" role="tablist">
+    <button
+      type="button"
+      role="tab"
+      class="panel__pestana"
+      [class.panel__pestana--activa]="pestana() === 'nuevas'"
+      [attr.aria-selected]="pestana() === 'nuevas'"
+      (click)="pestana.set('nuevas')"
+    >
+      Nuevas ({{ notificaciones.nuevas().length }})
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="panel__pestana"
+      [class.panel__pestana--activa]="pestana() === 'todas'"
+      [attr.aria-selected]="pestana() === 'todas'"
+      (click)="pestana.set('todas')"
+    >
+      Todas
+    </button>
+  </div>
+
+  <ul class="panel__lista">
+    @for (aviso of pestana() === 'nuevas' ? notificaciones.nuevas() : notificaciones.todas(); track aviso.id) {
+      <li>
+        <button
+          type="button"
+          class="aviso-item"
+          [class.aviso-item--nueva]="!aviso.leida"
+          (click)="notificaciones.marcarLeida(aviso.id)"
+        >
+          <span class="aviso-item__icono"><img src="assets/menu/bell.svg" width="18" height="18" alt="" /></span>
+          <span class="aviso-item__texto">
+            <strong>{{ aviso.titulo }}</strong>
+            <span>{{ aviso.detalle }}</span>
+          </span>
+          @if (!aviso.leida) {
+            <img class="aviso-item__punto" src="assets/menu/punto.svg" width="8" height="8" alt="Sin leer" />
+          }
+        </button>
+      </li>
+    } @empty {
+      <li class="panel__vacio">No tienes notificaciones nuevas.</li>
+    }
+  </ul>
+</section>
