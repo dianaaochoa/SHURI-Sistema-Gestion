@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 3 nov 2026
+- **Última actualización:** 3 nov 2026 (C2 completo)
 
 ---
 
@@ -43,7 +43,7 @@ flowchart LR
     C16["C1.6 Mi perfil y contraseña"]:::pendiente
     C2A["C2 Punto de venta · fase 1<br/>C2.1–C2.4 · C2.7 · C2.10–C2.12"]:::hecho
     C2B["C2 fase 2 · cliente, descuento,<br/>pausar y en espera (C2.5 C2.6 C2.8 C2.9)"]:::hecho
-    C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::pendiente
+    C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::hecho
     C["C3–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
@@ -140,11 +140,18 @@ flowchart LR
       AD["AplicarDescuento<br/>C2.6"]:::comp
       PV["PausarVenta<br/>C2.8"]:::comp
       VE["VentasEnEspera<br/>C2.9"]:::comp
+      PM["PagoMixto<br/>C2.13"]:::comp
+      TR["TarjetaRechazada<br/>C2.14"]:::comp
+      EI["ErrorImpresora<br/>C2.15"]:::comp
+      SCX["AvisoSinConexion<br/>C2.16"]:::comp
+      AK["AtajosTeclado<br/>C2.17"]:::comp
+      DF["DatosFactura<br/>C2.18"]:::comp
     end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
-  CLI["clientes.datos.ts<br/>clientes y motivos"]:::serv
+  CLI["clientes.datos.ts<br/>clientes, motivos y catálogos del SAT"]:::serv
+  DIS["DispositivosService<br/>conexión e impresora (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
@@ -159,7 +166,10 @@ flowchart LR
   SL --> PP & IC & PDV
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
-  PDV --> SC & AD & PV & VE
+  PDV --> SC & AD & PV & VE & EI & SCX & AK
+  CB --> PM & TR & DF
+  PDV & BB & CB & SCX --> DIS
+  DF --> CLI
   PDV & BB & TT & SC & AD & PV & VE --> VS
   BB --> CAT
   SC & AD --> CLI
@@ -218,6 +228,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Clientes de prueba en `cajera/punto-de-venta/clientes.datos.ts` (María Hernández, Martha Treviño, Raúl Ortiz…). Se buscan por nombre, teléfono o correo.
 - Con la venta de Figma, un descuento del 10 % a toda la venta da $809.10. Arriba de 10 % el modal marca el error y no deja aplicar.
 - Al entrar hay 2 ventas en espera de prueba (V-00864 y V-00863). Retomar una con el ticket lleno pausa primero la venta actual.
+- Más teclas: `?` abre todos los atajos (C2.17), Supr quita la fila enfocada del ticket, Ctrl+P reimprime el último ticket, F3 va a Nueva orden y F5 a Ventas.
+- Casos de error simulados (fase 3):
+  - **Tarjeta rechazada (C2.14):** cobrar con tarjeta poniendo `0000` en “Últimos 4 dígitos”.
+  - **Impresora sin papel (C2.15):** en la consola, `localStorage.setItem('shuri.demo.impresora', 'falla')`; para quitarlo, `localStorage.removeItem('shuri.demo.impresora')`.
+  - **Sin conexión (C2.16):** DevTools › Network › Offline. Las ventas en efectivo o tarjeta se cuentan “por sincronizar” y se suben al volver la conexión.
+- Factura (C2.18): casilla “Facturar” en el cobro. María Hernández ya tiene datos fiscales (HEMM850312QX4).
 - Sin turno abierto, el punto de venta pide abrir caja (C1.3). Si se cierra el modal, regresa al inicio.
 
 ## 5. Estructura de carpetas
@@ -251,7 +267,14 @@ frontend/src/
     │       ├── seleccionar-cliente/  # C2.5
     │       ├── aplicar-descuento/    # C2.6
     │       ├── pausar-venta/         # C2.8
-    │       └── ventas-en-espera/     # C2.9
+    │       ├── ventas-en-espera/     # C2.9
+    │       ├── pago-mixto/           # C2.13 (dentro del cobro)
+    │       ├── tarjeta-rechazada/    # C2.14 (dentro del cobro)
+    │       ├── error-impresora/      # C2.15
+    │       ├── aviso-sin-conexion/   # C2.16
+    │       ├── atajos-teclado/       # C2.17
+    │       ├── datos-factura/        # C2.18 (encima del cobro)
+    │       └── dispositivos.service.ts # conexión, ventas por sincronizar, impresora y último ticket
     ├── acceso/
     │   ├── auth.service.ts    # sesión, intentos, contraseña temporal (simulado)
     │   ├── acceso-layout/     # marco común A.1–A.5
@@ -338,12 +361,20 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Cifras del inicio | Las de Figma (ventas, entregas, paneles). “Efectivo en caja” = $6,180 de ventas + el fondo contado. | No hay API todavía. |
 | C1.7 · “Salir sin cerrar el turno” | Al elegir esa opción, el botón principal cambia a “Salir sin cerrar el turno” | Figma solo muestra el botón de la opción recomendada. |
 | Notificaciones | Ícono de color por tipo (éxito, advertencia, info, neutro), como en C1.4 | El componente “Notificación” usa una campana fija; las pantallas reales no. |
-| C2 por fases | Fase 1: C2.1–C2.4, C2.7 y C2.10–C2.12. Fase 2: C2.5, C2.6, C2.8 y C2.9. El cobro Mixto sigue deshabilitado con el tooltip “Próximamente” (fase 3). | Son 18 pantallas; así cada fase queda completa y probada. |
+| C2 por fases | Fase 1: C2.1–C2.4, C2.7 y C2.10–C2.12. Fase 2: C2.5, C2.6, C2.8 y C2.9. Fase 3: C2.13–C2.18. | Son 18 pantallas; así cada fase queda completa y probada. |
 | Tabla del ticket | Las columnas ocupan todo el ancho | En Figma terminan en ~816 px y dejan vacío el lado derecho. |
 | Barra de atajos | Alto natural (~35 px), sin “? Ver todos los atajos” (C2.17, fase 3) | En Figma mide 118 px por un marco vacío de 100 px. |
 | Cancelar venta | Modal de confirmación “¿Cancelar la venta V-…?” | Figma no define confirmación y cancelar borra todo el ticket. |
 | Venta cobrada | Aviso verde arriba del ticket: “Venta V-… cobrada · $… · entrega $… de cambio” | Figma no muestra qué pasa después de cobrar. |
-| Impresión del ticket | La casilla se respeta, pero todavía no imprime | El ticket impreso es C11. |
+| Impresión del ticket | `DispositivosService.imprimir()` simula la impresora: siempre imprime salvo con la falla de prueba en `localStorage` | No hay impresora conectada; el ticket impreso es C11. |
+| Cobro mixto (C2.13) | Cada parte tiene su monto; tarjeta pide autorización y transferencia clave de rastreo. Al entrar a un monto vacío se propone lo que falta. Solo el efectivo puede dar cambio. La tarjeta se llama “Tarjeta” (Figma: “Tarjeta de débito”). | Figma muestra el caso ya cuadrado, sin cómo se captura la autorización ni qué pasa si sobra. |
+| “Agregar otro método de pago” | Muestra botones para Efectivo, Tarjeta y Transferencia (sin conexión, sin Transferencia) | Figma no muestra el menú. |
+| Tarjeta rechazada (C2.14) | Terminal simulada: rechaza la tarjeta terminada en `0000` con “fondos insuficientes (código 51)”. Reintentar vuelve a los datos capturados, Otra tarjeta los limpia y Cambiar método pasa a efectivo. | Todavía no hay terminal real. |
+| Error de impresora (C2.15) | “Reintentar” cuenta los intentos (“Sigue sin responder (2 intentos)”). “Enviar ticket por correo” se deshabilita si el cliente no tiene correo. | Figma solo muestra el primer intento. |
+| Sin conexión (C2.16) | Se usa la conexión real del navegador. Sin conexión se deshabilitan Transferencia, Facturar y el botón de cliente. “Reintentar” vuelve a revisar la conexión. | Es lo que dice el aviso de Figma. |
+| Atajos (C2.17) | Se abren con `?` y con “? Ver todos los atajos” en la barra. En el punto de venta: F1 enfoca el buscador, F3 va a Nueva orden, F5 a Ventas; F4 es Cliente (no Entrega de equipo). | Figma lista F4 dos veces: el modal aclara que la de Entrega es “fuera del POS”. |
+| Factura (C2.18) | Casilla “Facturar” en el cobro que abre el modal encima. Valida RFC (12–13 caracteres), CP de 5 dígitos y razón social. Los datos se guardan en el cliente para la próxima vez; con Público general no se guardan. | Figma no muestra desde dónde se abre. |
+| Régimen y uso del CFDI | Lista corta de los catálogos del SAT más usados en mostrador | El catálogo completo vendrá de la API (AD6). |
 | Tope de descuento | 10 % por línea y por venta (`DESCUENTO_MAXIMO`). El campo de la tabla no deja pasar de 10; el modal muestra “El máximo permitido es 10 %.” y deshabilita Aplicar. | Es la regla que muestra C2.6. Falta definir si un supervisor puede autorizar más. |
 | Descuento en $ | Se escribe sobre el total con IVA y se guarda sin IVA, igual que el producto temporal | La cajera ve y cobra totales con IVA; el ticket muestra precios antes de IVA. |
 | Motivo del descuento | Lista: Cliente frecuente, Producto con detalle, Promoción vigente, Ajuste de precio, Otro. Solo se pide para toda la venta. | Figma muestra el campo pero no las opciones. |
@@ -371,7 +402,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
 - [ ] El panel “Ventas en espera” del inicio de la cajera (C1.1) sigue con datos fijos; debe leer `VentaService.pausadas`.
 - [ ] “Crear cliente nuevo” (C2.5) debe abrir el alta de cliente con el nombre buscado cuando exista C9.
-- [ ] C2 fase 3: cobro mixto (C2.13), tarjeta rechazada (C2.14), error de impresora (C2.15), sin conexión (C2.16), atajos de teclado (C2.17) y datos de facturación (C2.18).
+- [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
+- [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
+- [ ] El paquete inicial pesa 506 kB (aviso de 500 kB). Conviene cargar cada rol bajo demanda (lazy loading) cuando crezcan las pantallas.
+- [ ] Los montos del cobro (efectivo, mixto) se ven como 500 en vez de $500.00 mientras se escriben.
 - [ ] Las ventas cobradas no se guardan en ningún lado (solo avanza el folio); deben ir a la API y aparecer en C3 Ventas y en el inicio.
 - [ ] El inventario no baja al vender; “disponibles” es fijo en el catálogo de prueba.
 - [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
@@ -468,3 +502,21 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - pausar V-00865 deja la caja en “Venta nueva” y “En espera (3)”; retomar con ticket lleno pausa la actual; descartar la quita
   - Esc cierra cada modal sin abrir la confirmación de cancelar
   - a 1366×768 y 360 px sin scroll horizontal
+
+### 3 nov 2026 · Cajera C2: punto de venta (fase 3) · C2 completo
+- El PR #6 (`feature/frontend-ui` → `develop`) quedó abierto con las fases 1 y 2; esta fase se suma al mismo PR.
+- Construidas:
+  - C2.13 cobro mixto: partes con monto, autorización o clave de rastreo, agregar y quitar métodos, resumen pagado / restante / cambio
+  - C2.14 tarjeta rechazada: Reintentar, Otra tarjeta, Cambiar método y Cancelar cobro
+  - C2.15 error de impresora: reintentar, enviar ticket por correo o continuar; Ctrl+P reimprime el último ticket
+  - C2.16 sin conexión: aviso con Reintentar, estado “Sin conexión · N por sincronizar” y aviso al sincronizar
+  - C2.17 atajos de teclado (`?`), Supr para quitar la fila enfocada, F1, F3 y F5
+  - C2.18 datos de facturación con validación de RFC, código postal y razón social
+- Nuevo `DispositivosService` (conexión, ventas por sincronizar, impresora y último ticket). La barra de búsqueda ya no escucha la conexión por su cuenta.
+- Corregido: con el aviso sin conexión y el aviso verde a la vez, el carrito vacío cortaba el total a 1366×768.
+- Verificado:
+  - a 1440×900, posiciones como en Figma: cobro mixto en 440,113 (560×675), tarjeta rechazada en 440,170 (560×560), impresora en 480,239 (480×421), atajos en 360,189 (720×522), factura en 420,162 (600×577)
+  - venta de Figma ($899.00) cobrada con $500 en efectivo y $399 con tarjeta, con factura de María Hernández; aviso “pagada con efectivo y tarjeta · factura enviada por correo”
+  - impresora: 2 intentos fallidos y luego impreso; Ctrl+P reimprime
+  - sin conexión: venta en efectivo queda “1 por sincronizar” y al reconectar “1 venta sincronizada”
+  - a 360 px los 6 modales y el aviso caben sin scroll horizontal (la factura se desbordaba: sus rejillas pasaron a `minmax(0, 1fr)`)
