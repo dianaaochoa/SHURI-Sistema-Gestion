@@ -36,7 +36,6 @@
 /* ---------- Atajos ---------- */
 .atajos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 16px; background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: 8px; }
 .atajos__item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-texto-secundario); }
-.atajos__item--pendiente { opacity: 0.45; }
 
 .confirmar { max-width: 440px; }
 

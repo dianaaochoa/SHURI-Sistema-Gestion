@@ -28,6 +28,3 @@ export const CATALOGO: Producto[] = [
 
 /** Para el selector de categoría del producto temporal (C2.7). */
 export const CATEGORIAS = ['Accesorios', 'Refacciones', 'Consumibles', 'Servicios'];
-
-/** Ventas pausadas en este turno (Figma: "En espera (2)"). Se construyen en C2.8 / C2.9. */
-export const VENTAS_EN_ESPERA_DEMO = 2;
