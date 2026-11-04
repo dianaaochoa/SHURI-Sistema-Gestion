@@ -20,45 +20,6 @@
   color: var(--color-marino);
 }
 
-/* Selector de método de pago */
-.metodos {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.metodo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
-  border: 1px solid var(--color-borde);
-  border-radius: 8px;
-  background: var(--color-superficie);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-texto-secundario);
-  cursor: pointer;
-}
-
-.metodo__icono {
-  width: 20px;
-  height: 20px;
-  color: var(--color-texto-tenue);
-}
-
-.metodo--elegido {
-  padding: 11px 7px;
-  border: 2px solid var(--color-primario);
-  background: var(--color-primario-suave);
-  font-weight: 600;
-  color: var(--color-primario);
-}
-
-.metodo--elegido .metodo__icono { color: var(--color-primario); }
-.metodo:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .cobro__fila {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -92,30 +53,6 @@
 .montos__boton {
   height: 36px;
   padding: 0 8px;
-}
-
-/* Tarjeta */
-.alternar {
-  display: flex;
-  overflow: hidden;
-  border: 1px solid var(--color-borde);
-  border-radius: 8px;
-}
-
-.alternar button {
-  flex: 1;
-  height: 40px;
-  border: 0;
-  background: var(--color-superficie);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-texto-secundario);
-  cursor: pointer;
-}
-
-.alternar button.alternar--activo {
-  background: var(--color-primario);
-  color: var(--color-superficie);
 }
 
 .aviso--info {
@@ -163,7 +100,8 @@
 .cobro__confirmar { flex: 1; }
 
 @media (max-width: 560px) {
-  .metodos, .montos { grid-template-columns: repeat(2, 1fr); }
+  .montos { grid-template-columns: repeat(2, 1fr); }
+  .selector { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cobro__fila { grid-template-columns: 1fr; }
   .cobro__total strong { font-size: 24px; }
   .cobro__cancelar { width: auto; }
