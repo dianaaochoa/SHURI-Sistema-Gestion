@@ -2,6 +2,9 @@
   <app-barra-busqueda (agregado)="aviso.set(null)" (cobrar)="abrir('cobro')" (temporal)="abrirTemporal($event)" />
 
   <div class="area">
+    @if (!dispositivos.enLinea()) {
+      <app-aviso-sin-conexion />
+    }
     @if (aviso(); as mensaje) {
       <p class="aviso aviso--exito" role="status">
         <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}
@@ -22,7 +25,13 @@
         </div>
         <div class="ticket__acciones">
           @if (venta.vacia()) {
-            <button type="button" class="boton boton--contorno boton--40" (click)="abrir('cliente')">
+            <button
+              type="button"
+              class="boton boton--contorno boton--40"
+              [disabled]="!dispositivos.enLinea()"
+              [attr.title]="dispositivos.enLinea() ? null : 'Búsqueda de clientes no disponible sin conexión'"
+              (click)="abrir('cliente')"
+            >
               <img src="assets/pdv/user-round.svg" width="16" height="16" alt="" />{{ venta.etiquetaCliente() }}
             </button>
             <a class="boton boton--secundario boton--40 ticket__volver" routerLink="/cajera/inicio">Volver atrás</a>
@@ -39,7 +48,13 @@
                 ({{ d.modo === '%' ? d.valor + ' %' : dinero(d.valor) }})
               }
             </button>
-            <button type="button" class="boton boton--contorno boton--40 ticket__cliente" (click)="abrir('cliente')">
+            <button
+              type="button"
+              class="boton boton--contorno boton--40 ticket__cliente"
+              [disabled]="!dispositivos.enLinea()"
+              [attr.title]="dispositivos.enLinea() ? null : 'Búsqueda de clientes no disponible sin conexión'"
+              (click)="abrir('cliente')"
+            >
               <img src="assets/pdv/user-round.svg" width="16" height="16" alt="" />{{ venta.etiquetaCliente() }}
             </button>
           }
@@ -103,6 +118,7 @@
           <kbd class="tecla">{{ atajo.tecla }}</kbd>{{ atajo.accion }}
         </span>
       }
+      <button type="button" class="enlace atajos__todos" (click)="abrir('atajos')">? Ver todos los atajos</button>
     </nav>
   </div>
 </div>
@@ -117,7 +133,7 @@
       [folio]="venta.folio()"
       [total]="venta.total()"
       [articulos]="venta.articulos()"
-      [cliente]="venta.cliente().nombre"
+      [cliente]="venta.cliente()"
       (cerrar)="cerrarModal()"
       (confirmar)="confirmarCobro($event)"
     />
@@ -142,6 +158,19 @@
   }
   @case ('espera') {
     <app-ventas-en-espera (cerrar)="cerrarModal()" (retomada)="alRetomar($event)" />
+  }
+  @case ('impresora') {
+    <app-error-impresora
+      [venta]="ticketFallido()!"
+      [correo]="ticketFallido()!.cliente.correo"
+      [intentos]="intentosImpresion()"
+      (reintentar)="reintentarImpresion()"
+      (enviarCorreo)="enviarTicketPorCorreo()"
+      (continuar)="cerrarModal()"
+    />
+  }
+  @case ('atajos') {
+    <app-atajos-teclado (cerrar)="cerrarModal()" />
   }
   @case ('cancelar') {
     <div class="modal-fondo" (click)="cerrarModal()">

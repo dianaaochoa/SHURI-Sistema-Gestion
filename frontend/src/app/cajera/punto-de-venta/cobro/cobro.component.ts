@@ -1,10 +1,15 @@
 import { AfterViewInit, Component, ElementRef, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { formatearDinero } from '../../../compartido/formato';
-import { MetodoPago, Pago } from '../venta.service';
+import { Cliente, DatosFiscales } from '../clientes.datos';
+import { DatosFacturaComponent } from '../datos-factura/datos-factura.component';
+import { DispositivosService } from '../dispositivos.service';
+import { PagoMixtoComponent, resumenMixto } from '../pago-mixto/pago-mixto.component';
+import { TarjetaRechazadaComponent } from '../tarjeta-rechazada/tarjeta-rechazada.component';
+import { MetodoPago, ParteMixta, Pago } from '../venta.service';
 
 interface OpcionMetodo {
-  id: MetodoPago | 'mixto';
+  id: MetodoPago;
   etiqueta: string;
   icono: string;
 }
@@ -26,11 +31,17 @@ function montosRapidos(total: number): number[] {
   return [...new Set(candidatos)].filter((m) => m > total).sort((a, b) => a - b).slice(0, 4);
 }
 
-/** C2.10 efectivo · C2.11 tarjeta · C2.12 transferencia (modal "Cobrar venta"). */
+/** Terminación de tarjeta que la terminal de prueba rechaza (C2.14). */
+const TARJETA_RECHAZADA = '0000';
+
+/**
+ * Modal "Cobrar venta": C2.10 efectivo · C2.11 tarjeta · C2.12 transferencia · C2.13 mixto ·
+ * C2.14 tarjeta rechazada · C2.18 datos de facturación.
+ */
 @Component({
   selector: 'app-cobro',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, DatosFacturaComponent, PagoMixtoComponent, TarjetaRechazadaComponent],
   templateUrl: './cobro.component.html',
   styleUrl: './cobro.component.css',
 })
@@ -38,12 +49,14 @@ export class CobroComponent implements AfterViewInit {
   readonly folio = input.required<string>();
   readonly total = input.required<number>();
   readonly articulos = input.required<number>();
-  readonly cliente = input.required<string>();
+  readonly cliente = input.required<Cliente>();
 
   readonly cerrar = output<void>();
   readonly confirmar = output<Pago>();
 
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
+  /** Sin conexión no hay transferencias ni facturas (C2.16). */
+  protected readonly enLinea = inject(DispositivosService).enLinea;
 
   protected readonly metodos = METODOS;
   protected readonly bancos = BANCOS;
@@ -60,6 +73,15 @@ export class CobroComponent implements AfterViewInit {
   protected terminal = 'BBVA · Caja 01';
   protected ultimosDigitos = '';
   protected readonly autorizacion = signal('');
+  /** Motivo del rechazo de la terminal (C2.14). */
+  protected readonly rechazo = signal<string | null>(null);
+
+  // Mixto (C2.13): efectivo y tarjeta, como en Figma.
+  protected readonly partes = signal<ParteMixta[]>([
+    { metodo: 'efectivo', monto: null, referencia: '' },
+    { metodo: 'tarjeta', monto: null, referencia: '' },
+  ]);
+  private readonly mixto = computed(() => resumenMixto(this.partes(), this.total()));
 
   // Transferencia
   protected readonly clabe = '012 580 0123 4567 8901';
@@ -72,6 +94,10 @@ export class CobroComponent implements AfterViewInit {
   protected imprimir = true;
   protected enviarCorreo = false;
 
+  // Factura (C2.18)
+  protected readonly factura = signal<DatosFiscales | null>(null);
+  protected readonly facturaAbierta = signal(false);
+
   protected readonly valido = computed(() => {
     switch (this.metodo()) {
       case 'efectivo':
@@ -82,6 +108,8 @@ export class CobroComponent implements AfterViewInit {
         return (
           this.rastreo().trim().length > 0 && this.verificado() && (this.montoTransferencia() ?? this.total()) >= this.total()
         );
+      case 'mixto':
+        return this.mixto().valido;
     }
   });
 
@@ -89,10 +117,40 @@ export class CobroComponent implements AfterViewInit {
     this.enfocarCampo();
   }
 
-  elegirMetodo(id: OpcionMetodo['id']): void {
-    if (id === 'mixto') return;
+  elegirMetodo(id: MetodoPago): void {
+    if (id === 'transferencia' && !this.enLinea()) return;
+    this.rechazo.set(null);
     this.metodo.set(id);
     setTimeout(() => this.enfocarCampo());
+  }
+
+  // C2.14: opciones después de un rechazo.
+  protected reintentarTarjeta(): void {
+    this.rechazo.set(null);
+    setTimeout(() => this.enfocarCampo());
+  }
+
+  protected usarOtraTarjeta(): void {
+    this.ultimosDigitos = '';
+    this.autorizacion.set('');
+    this.rechazo.set(null);
+    setTimeout(() => this.elemento.nativeElement.querySelector<HTMLInputElement>('#digitos')?.focus());
+  }
+
+  // C2.18
+  protected alternarFactura(marcada: boolean): void {
+    if (marcada) this.facturaAbierta.set(true);
+    else this.factura.set(null);
+  }
+
+  protected guardarFactura(datos: DatosFiscales): void {
+    this.factura.set(datos);
+    this.facturaAbierta.set(false);
+  }
+
+  protected quitarFactura(): void {
+    this.factura.set(null);
+    this.facturaAbierta.set(false);
   }
 
   leerNumero(texto: string): number | null {
@@ -111,20 +169,34 @@ export class CobroComponent implements AfterViewInit {
   }
 
   cobrar(): void {
-    if (!this.valido()) return;
+    if (!this.valido() || this.rechazo()) return;
     const metodo = this.metodo();
+    // Terminal simulada: rechaza la tarjeta terminada en 0000 (C2.14).
+    if (metodo === 'tarjeta' && this.ultimosDigitos.trim() === TARJETA_RECHAZADA) {
+      this.rechazo.set('fondos insuficientes (código 51)');
+      return;
+    }
+    const recibido = {
+      efectivo: this.recibido() ?? 0,
+      tarjeta: this.total(),
+      transferencia: this.montoTransferencia() ?? this.total(),
+      mixto: this.mixto().pagado,
+    }[metodo];
     this.confirmar.emit({
       metodo,
-      recibido:
-        metodo === 'efectivo' ? this.recibido() ?? 0 : metodo === 'transferencia' ? this.montoTransferencia() ?? this.total() : this.total(),
+      recibido,
       referencia: metodo === 'tarjeta' ? this.autorizacion() : metodo === 'transferencia' ? this.rastreo() : undefined,
+      partes: metodo === 'mixto' ? this.partes() : undefined,
       imprimir: this.imprimir,
       enviarCorreo: this.enviarCorreo,
+      factura: this.factura(),
     });
   }
 
   @HostListener('document:keydown', ['$event'])
   protected alPresionarTecla(evento: KeyboardEvent): void {
+    // Con el modal de factura encima, las teclas son suyas.
+    if (this.facturaAbierta()) return;
     if (evento.key === 'Escape') this.cerrar.emit();
     if (evento.key === 'Enter' && (evento.target as HTMLElement).tagName !== 'BUTTON') {
       evento.preventDefault();

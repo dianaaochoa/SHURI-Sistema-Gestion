@@ -30,3 +30,4 @@
   .tabla .col-dinero { width: 84px; }
   .col-quitar { width: 36px; }
 }
+tbody tr:focus-visible { outline: 2px solid var(--color-acento); outline-offset: -2px; background: var(--color-primario-suave); }

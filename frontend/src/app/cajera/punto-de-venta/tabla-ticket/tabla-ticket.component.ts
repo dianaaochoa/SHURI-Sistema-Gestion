@@ -13,4 +13,13 @@ export class TablaTicketComponent {
   protected readonly venta = inject(VentaService);
   protected readonly dinero = formatearDinero;
   protected readonly totalLinea = totalLinea;
+
+  /** Supr con la fila enfocada (no dentro del campo de descuento) quita el artículo y enfoca la siguiente. */
+  protected alSuprimir(evento: Event, sku: string): void {
+    if (evento.target !== evento.currentTarget) return;
+    const fila = evento.currentTarget as HTMLElement;
+    const vecina = (fila.nextElementSibling ?? fila.previousElementSibling) as HTMLElement | null;
+    this.venta.quitar(sku);
+    vecina?.focus();
+  }
 }

@@ -96,6 +96,8 @@
   gap: 8px;
 }
 
+.cobro__acciones--rechazo { justify-content: flex-end; }
+.cobro__rfc { font-size: 11px; color: var(--color-texto-tenue); }
 .cobro__cancelar { width: 140px; }
 .cobro__confirmar { flex: 1; }
 

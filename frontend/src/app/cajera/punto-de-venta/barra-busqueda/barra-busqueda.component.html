@@ -90,10 +90,12 @@
 
   <div class="estado-caja">
     <time class="estado-caja__hora">{{ hora() }}</time>
-    @if (enLinea()) {
+    @if (dispositivos.enLinea()) {
       <span class="estado estado--exito estado-caja__conexion">En línea · sincronizado</span>
     } @else {
-      <span class="estado estado--peligro estado-caja__conexion">Sin conexión</span>
+      <span class="estado estado--advertencia estado-caja__conexion">
+        Sin conexión{{ dispositivos.porSincronizar() ? ' · ' + dispositivos.porSincronizar() + ' por sincronizar' : '' }}
+      </span>
     }
   </div>
 </header>

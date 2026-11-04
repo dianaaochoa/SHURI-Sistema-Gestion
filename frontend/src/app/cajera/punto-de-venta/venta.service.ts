@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { CATALOGO, Producto } from './catalogo.datos';
-import { CLIENTES, Cliente, PUBLICO_GENERAL } from './clientes.datos';
+import { CLIENTES, Cliente, DatosFiscales, PUBLICO_GENERAL } from './clientes.datos';
 
 export const IVA = 0.16;
 /** Descuento máximo para la cajera (Figma C2.6: "lo define el administrador"). Vendrá de la configuración (AD9). */
@@ -47,21 +47,39 @@ export interface ProductoTemporal {
   darDeAlta: boolean;
 }
 
-export type MetodoPago = 'efectivo' | 'tarjeta' | 'transferencia';
+export type MetodoSimple = 'efectivo' | 'tarjeta' | 'transferencia';
+export type MetodoPago = MetodoSimple | 'mixto';
+
+/** Una parte de un cobro mixto (C2.13). */
+export interface ParteMixta {
+  metodo: MetodoSimple;
+  monto: number | null;
+  /** Autorización de la tarjeta o clave de rastreo de la transferencia. */
+  referencia: string;
+}
 
 export interface Pago {
   metodo: MetodoPago;
+  /** Lo que entregó el cliente (en mixto, la suma de las partes). */
   recibido: number;
   referencia?: string;
+  partes?: ParteMixta[];
   imprimir: boolean;
   enviarCorreo: boolean;
+  /** C2.18: datos para timbrar; null si no pidió factura. */
+  factura: DatosFiscales | null;
 }
 
 export interface VentaCobrada {
   folio: string;
   total: number;
   metodo: MetodoPago;
+  partes?: ParteMixta[];
   cambio: number;
+  cliente: Cliente;
+  imprimir: boolean;
+  enviarCorreo: boolean;
+  facturada: boolean;
 }
 
 export const redondear = (valor: number) => Math.round(valor * 100) / 100;
@@ -239,11 +257,19 @@ export class VentaService {
   }
 
   cobrar(pago: Pago): VentaCobrada {
+    // Los datos fiscales capturados se quedan en el cliente para la próxima factura (simulado: en la lista de prueba).
+    const guardado = CLIENTES.find((c) => c.id === this.cliente().id);
+    if (pago.factura && guardado) guardado.fiscal = pago.factura;
     const cobrada: VentaCobrada = {
       folio: this.folio(),
       total: this.total(),
       metodo: pago.metodo,
-      cambio: pago.metodo === 'efectivo' ? redondear(pago.recibido - this.total()) : 0,
+      partes: pago.partes,
+      cambio: pago.metodo === 'efectivo' || pago.metodo === 'mixto' ? Math.max(0, redondear(pago.recibido - this.total())) : 0,
+      cliente: this.cliente(),
+      imprimir: pago.imprimir,
+      enviarCorreo: pago.enviarCorreo,
+      facturada: pago.factura !== null,
     };
     this.cancelar();
     this.numeroFolio.set(this.siguienteFolio++);

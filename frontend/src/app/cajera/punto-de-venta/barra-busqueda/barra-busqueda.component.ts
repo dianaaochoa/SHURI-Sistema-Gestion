@@ -2,6 +2,7 @@ import { Component, DestroyRef, ElementRef, computed, inject, output, signal, vi
 import { RouterLink } from '@angular/router';
 import { formatearDinero } from '../../../compartido/formato';
 import { CATALOGO, Producto } from '../catalogo.datos';
+import { DispositivosService } from '../dispositivos.service';
 import { IVA, VentaService } from '../venta.service';
 
 const sinAcentos = (texto: string) =>
@@ -31,7 +32,8 @@ export class BarraBusquedaComponent {
   protected readonly dinero = formatearDinero;
 
   protected readonly hora = signal(horaActual());
-  protected readonly enLinea = signal(navigator.onLine);
+  /** Conexión y ventas por sincronizar (C2.16). */
+  protected readonly dispositivos = inject(DispositivosService);
 
   protected readonly busqueda = signal('');
   protected readonly resaltado = signal(0);
@@ -47,14 +49,7 @@ export class BarraBusquedaComponent {
 
   constructor() {
     const reloj = setInterval(() => this.hora.set(horaActual()), 1000);
-    const conexion = () => this.enLinea.set(navigator.onLine);
-    window.addEventListener('online', conexion);
-    window.addEventListener('offline', conexion);
-    inject(DestroyRef).onDestroy(() => {
-      clearInterval(reloj);
-      window.removeEventListener('online', conexion);
-      window.removeEventListener('offline', conexion);
-    });
+    inject(DestroyRef).onDestroy(() => clearInterval(reloj));
   }
 
   enfocar(): void {

@@ -12,7 +12,8 @@
   </thead>
   <tbody>
     @for (linea of venta.lineas(); track linea.sku) {
-      <tr>
+      <!-- Fila enfocable: Supr la quita (C2.17 "Quitar artículo seleccionado"). -->
+      <tr tabindex="0" [attr.aria-label]="linea.nombre + ', Supr para quitar'" (keydown.delete)="alSuprimir($event, linea.sku)">
         <td class="col-sku">{{ linea.sku }}</td>
         <td class="col-nombre">
           {{ linea.nombre }}
