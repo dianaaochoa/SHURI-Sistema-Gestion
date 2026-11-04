@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 3 nov 2026 (C2 completo)
+- **Última actualización:** 3 nov 2026 (C3 Ventas)
 
 ---
 
@@ -44,7 +44,8 @@ flowchart LR
     C2A["C2 Punto de venta · fase 1<br/>C2.1–C2.4 · C2.7 · C2.10–C2.12"]:::hecho
     C2B["C2 fase 2 · cliente, descuento,<br/>pausar y en espera (C2.5 C2.6 C2.8 C2.9)"]:::hecho
     C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::hecho
-    C["C3–C11"]:::pendiente
+    C3["C3 Ventas<br/>C3.1 historial · C3.2 sin resultados · C3.3 devolución"]:::hecho
+    C["C4–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -63,6 +64,7 @@ flowchart LR
   USR --> A6
   C1 -->|"F1 Nueva venta"| C2A
   C2A --> C2B --> C2C
+  C2C -->|"cada venta cobrada<br/>entra al historial"| C3
   C1 -->|"Ir a corte de caja"| C
   BASE --> POR
 ```
@@ -108,7 +110,7 @@ flowchart LR
   classDef css fill:#f9fafb,stroke:#dce2e8,color:#64748b
 
   APP["AppComponent<br/>router-outlet"]:::comp
-  RUT["app.routes.ts<br/>aSuInicio · soloRol · conContrasenaTemporal"]:::serv
+  RUT["app.routes.ts<br/>aSuInicio · soloRol · conContrasenaTemporal<br/>pantallas con loadComponent"]:::serv
   NAV["sistema/navegacion.ts<br/>menú de cada rol"]:::serv
 
   subgraph ACCESO["acceso/"]
@@ -147,11 +149,17 @@ flowchart LR
       AK["AtajosTeclado<br/>C2.17"]:::comp
       DF["DatosFactura<br/>C2.18"]:::comp
     end
+    subgraph VTG["ventas/"]
+      VEN["Ventas<br/>C3.1 · C3.2"]:::comp
+      DV["DetalleVenta<br/>panel del ticket"]:::comp
+      DEV["Devolucion<br/>C3.3"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
   CLI["clientes.datos.ts<br/>clientes, motivos y catálogos del SAT"]:::serv
   DIS["DispositivosService<br/>conexión e impresora (simulado)"]:::serv
+  HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
@@ -163,7 +171,10 @@ flowchart LR
   RUT --> LAY --> IS & OC & CC
   RUT --> SL --> ML --> MU & PN
   ML --> ST
-  SL --> PP & IC & PDV
+  SL --> PP & IC & PDV & VEN
+  VEN --> DV & DEV
+  PDV & VEN & DEV --> HV
+  VEN --> DIS & CAJA
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -234,6 +245,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
   - **Impresora sin papel (C2.15):** en la consola, `localStorage.setItem('shuri.demo.impresora', 'falla')`; para quitarlo, `localStorage.removeItem('shuri.demo.impresora')`.
   - **Sin conexión (C2.16):** DevTools › Network › Offline. Las ventas en efectivo o tarjeta se cuentan “por sincronizar” y se suben al volver la conexión.
 - Factura (C2.18): casilla “Facturar” en el cobro. María Hernández ya tiene datos fiscales (HEMM850312QX4).
+
+**Ventas (`/cajera/ventas`):**
+- Hay 7 ventas de prueba (V-00856 a V-00862) con los folios, clientes, métodos y estados de Figma; las fechas son relativas a hoy (V-00862 es de hoy).
+- Cada venta cobrada en el punto de venta aparece arriba del historial mientras no se recargue la página.
+- V-00860 ya tiene una devolución parcial; V-00857 está cancelada; V-00856 es de otra cajera (Luis Pérez).
+- Para ver C3.2, busca algo que no exista (“audífonos gamer”).
 - Sin turno abierto, el punto de venta pide abrir caja (C1.3). Si se cierra el modal, regresa al inicio.
 
 ## 5. Estructura de carpetas
@@ -256,6 +273,11 @@ frontend/src/
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
     │   ├── abrir-turno/       # C1.3 modal de conteo del fondo
     │   ├── salir-con-turno/   # C1.7 modal al cerrar sesión con caja abierta
+    │   ├── ventas/            # C3
+    │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
+    │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
+    │   │   ├── detalle-venta/              # panel del ticket seleccionado
+    │   │   └── devolucion/                 # C3.3
     │   └── punto-de-venta/    # C2
     │       ├── venta.service.ts      # líneas, totales, IVA, folio, cobrar (simulado)
     │       ├── catalogo.datos.ts     # productos de prueba de Figma
@@ -307,7 +329,7 @@ frontend/src/
 - **Rejillas con campos:** usar `repeat(n, minmax(0, 1fr))`, no `1fr`. Con `1fr` los inputs no se encogen y el modal se desborda.
 
   El presupuesto de CSS por componente es 2 kB de aviso y 4 kB de error, así que lo reutilizable va global y lo específico va en el componente.
-- **Pantallas construidas:** se registran en `PANTALLAS` de `app.routes.ts` (`'cajera/inicio': InicioCajeraComponent`). Las que no están ahí usan `PaginaPendienteComponent`.
+- **Pantallas construidas:** se registran en `PANTALLAS` de `app.routes.ts` con carga bajo demanda: `'cajera/ventas': () => import('./cajera/ventas/ventas.component').then((m) => m.VentasComponent)`. Así cada pantalla baja en su propio archivo y el paquete inicial no crece. Las que no están ahí usan `PaginaPendienteComponent`.
 - **Datos de prueba de una pantalla:** en un archivo `<pantalla>.datos.ts` junto al componente, con los textos de Figma y la forma que tendrá la respuesta de la API.
 - **Formatos:** siempre con `compartido/formato.ts` (`formatearDinero`, `formatearFechaLarga`, `formatearHora`, `formatearDuracion`, `saludoDelDia`).
 - **Íconos:** se descargan de Figma, no se redibujan.
@@ -386,6 +408,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Montos rápidos de efectivo | Siguiente centena, siguiente $500, siguiente $1,000 y +$500/+$1,000 (para $899: $900, $1,000, $1,500, $2,000) | Es la regla que reproduce los montos de Figma. |
 | Ticket en celular | Se ocultan SKU, precio unitario y descuento | Con todas las columnas el navegador del celular alejaba la página. |
 | Fondo de los modales | `marino-profundo` #0f172a al 50 % | Color de Figma “Fondo atenuado” (antes era un supuesto). |
+| Datos del historial (C3.1) | Folios, clientes, métodos y estados de Figma; totales calculados con los productos del catálogo (V-00862 sí da $899.00) y fechas relativas a hoy | Los totales de Figma no salen de productos del catálogo y sus fechas son de octubre. |
+| Indicadores de Ventas | Se calculan con las ventas del periodo elegido (no con los filtros): cobradas y ticket promedio, total con IVA, número de devoluciones y lo reembolsado, canceladas | Figma muestra cifras de un mes completo (312 ventas). |
+| Periodo | Turno actual (desde la apertura), Hoy, Semana (desde el lunes), Mes y Rango con fechas Desde/Hasta. “Ver todo el año” (C3.2) pone el año en curso. | Figma no muestra el selector de rango. |
+| Importe a reembolsar (C3.3) | Con IVA y con la parte proporcional de los descuentos: el cargador de V-00862 reembolsa $261.00 | Figma muestra $225.00 (el precio antes de IVA), que es menos de lo que pagó el cliente. |
+| Devolución | Solo hasta 7 días después de la compra; marcar un artículo elige todas sus piezas disponibles; “A la misma tarjeta” solo si se pagó con tarjeta; el estado del producto dice qué pasa con el inventario. Si se devuelve todo, la venta queda “Devuelta”. | Figma solo muestra el caso de 1 de 1. |
+| Botón del modal de devolución | “Reembolsar e imprimir comprobante” | La capa de Figma se llama “Solicitar autorización y reembolsar”, pero el texto visible es el otro; la autorización de un superior queda pendiente con RF-14. |
+| Cancelar venta | Solo ventas pagadas y sin devoluciones, con confirmación; regresa el total y los artículos | Figma dice “Antes de entregar mercancía” sin más detalle. |
+| Pantallas bajo demanda | `loadComponent` en `PANTALLAS`: el paquete inicial bajó de 549 kB a 371 kB | Con Ventas el paquete pasaba el aviso de 500 kB. |
 
 ## 9. Pendientes conocidos
 
@@ -398,15 +428,17 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C3–C11.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C4–C11.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
 - [ ] El panel “Ventas en espera” del inicio de la cajera (C1.1) sigue con datos fijos; debe leer `VentaService.pausadas`.
 - [ ] “Crear cliente nuevo” (C2.5) debe abrir el alta de cliente con el nombre buscado cuando exista C9.
 - [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
 - [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
-- [ ] El paquete inicial pesa 506 kB (aviso de 500 kB). Conviene cargar cada rol bajo demanda (lazy loading) cuando crezcan las pantallas.
 - [ ] Los montos del cobro (efectivo, mixto) se ven como 500 en vez de $500.00 mientras se escriben.
-- [ ] Las ventas cobradas no se guardan en ningún lado (solo avanza el folio); deben ir a la API y aparecer en C3 Ventas y en el inicio.
+- [ ] Las ventas cobradas, cancelaciones y devoluciones viven en memoria (`HistorialVentasService`): se pierden al recargar. Deben ir a la API.
+- [ ] El panel “Ventas recientes” y “Vendido en el turno” del inicio de la cajera siguen fijos; deben leer el historial.
+- [ ] Cancelar y devolver no mueven inventario ni la caja todavía (el efectivo reembolsado debe restarse en el corte, C10).
+- [ ] La nota de crédito y el “cambio por otro” solo se registran; falta su flujo (saldo del cliente y nueva venta).
 - [ ] El inventario no baja al vender; “disponibles” es fijo en el catálogo de prueba.
 - [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
 - [ ] C1.6 Mi perfil y contraseña.
@@ -520,3 +552,19 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - impresora: 2 intentos fallidos y luego impreso; Ctrl+P reimprime
   - sin conexión: venta en efectivo queda “1 por sincronizar” y al reconectar “1 venta sincronizada”
   - a 360 px los 6 modales y el aviso caben sin scroll horizontal (la factura se desbordaba: sus rejillas pasaron a `minmax(0, 1fr)`)
+
+### 3 nov 2026 · Cajera C3: Ventas
+- Revisadas en Figma C3.1 historial, C3.2 sin resultados y C3.3 devolución.
+- Construidas:
+  - C3.1: periodo (Turno actual, Hoy, Semana, Mes, Rango), 4 indicadores, búsqueda por folio, cliente o producto, filtros de cajera, método y estado, tabla con selección (clic, Enter, ↑/↓) y panel del ticket con Reimprimir, Enviar, Cancelar venta y Devolución
+  - C3.2: sin resultados con “Limpiar filtros” y “Ver todo el año”
+  - C3.3: devolución por artículo y cantidad, motivo, estado del producto, forma de reembolso y resumen
+- Nuevo `HistorialVentasService`; el punto de venta registra ahí cada venta cobrada.
+- Las pantallas construidas se cargan bajo demanda (`loadComponent`): el paquete inicial pasó de 549 kB a 371 kB.
+- Verificado:
+  - a 1440×900, posiciones como en Figma: encabezado y=24, indicadores y=88, filtros y=167, columnas y=223 (1208×653), tabla 792 px y panel 400 px; modal de devolución en 360,92 (720×717)
+  - devolución del cargador de V-00862: $261.00 en efectivo, la venta queda “Devolución parcial” y los indicadores suben a 2 devoluciones
+  - “audífonos gamer” muestra C3.2; Limpiar filtros, Turno actual y un rango del 1 oct funcionan
+  - cancelar V-00861 pide confirmación y la deja “Cancelada” con Devolución deshabilitada
+  - una venta cobrada con tarjeta en el punto de venta aparece primera en el historial
+  - a 1366×768 cabe sin scroll; a 360 px todo se apila sin scroll horizontal (la tabla tenía alto cero al apilarse; corregido)
