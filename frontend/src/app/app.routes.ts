@@ -5,8 +5,6 @@ import { AuthService, Rol } from './acceso/auth.service';
 import { CrearContrasenaComponent } from './acceso/crear-contrasena/crear-contrasena.component';
 import { IniciarSesionComponent } from './acceso/iniciar-sesion/iniciar-sesion.component';
 import { OlvideContrasenaComponent } from './acceso/olvide-contrasena/olvide-contrasena.component';
-import { InicioCajeraComponent } from './cajera/inicio-cajera/inicio-cajera.component';
-import { PuntoDeVentaComponent } from './cajera/punto-de-venta/punto-de-venta.component';
 import { NAVEGACION, rutaInicio } from './sistema/navegacion';
 import { PaginaPendienteComponent } from './sistema/pagina-pendiente/pagina-pendiente.component';
 import { SistemaLayoutComponent } from './sistema/sistema-layout/sistema-layout.component';
@@ -32,10 +30,14 @@ const soloRol =
     return inject(Router).parseUrl('/inicio');
   };
 
-/** Pantallas ya construidas, por "prefijo/ruta". Las demás usan PaginaPendienteComponent. */
-const PANTALLAS: Record<string, Type<unknown>> = {
-  'cajera/inicio': InicioCajeraComponent,
-  'cajera/punto-de-venta': PuntoDeVentaComponent,
+/**
+ * Pantallas ya construidas, por "prefijo/ruta". Las demás usan PaginaPendienteComponent.
+ * Se cargan bajo demanda: cada una baja en su propio archivo al entrar (así el paquete inicial no crece con cada pantalla).
+ */
+const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
+  'cajera/inicio': () => import('./cajera/inicio-cajera/inicio-cajera.component').then((m) => m.InicioCajeraComponent),
+  'cajera/punto-de-venta': () => import('./cajera/punto-de-venta/punto-de-venta.component').then((m) => m.PuntoDeVentaComponent),
+  'cajera/ventas': () => import('./cajera/ventas/ventas.component').then((m) => m.VentasComponent),
 };
 
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
@@ -54,7 +56,7 @@ function rutasDeRol(rol: Rol): Route {
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       ...pantallas.map((p) => ({
         path: p.ruta,
-        component: PANTALLAS[`${prefijo}/${p.ruta}`] ?? PaginaPendienteComponent,
+        loadComponent: PANTALLAS[`${prefijo}/${p.ruta}`] ?? (() => Promise.resolve(PaginaPendienteComponent)),
         title: `${p.etiqueta} · SHURI`,
         data: { titulo: p.etiqueta, figma: p.figma },
       })),
