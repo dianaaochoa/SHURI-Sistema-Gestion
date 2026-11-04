@@ -80,6 +80,13 @@ export interface VentaCobrada {
   imprimir: boolean;
   enviarCorreo: boolean;
   facturada: boolean;
+  // Lo que necesita el historial (C3).
+  lineas: Linea[];
+  descuento: DescuentoVenta | null;
+  subtotal: number;
+  iva: number;
+  recibido: number;
+  referencia?: string;
 }
 
 export const redondear = (valor: number) => Math.round(valor * 100) / 100;
@@ -270,6 +277,12 @@ export class VentaService {
       imprimir: pago.imprimir,
       enviarCorreo: pago.enviarCorreo,
       facturada: pago.factura !== null,
+      lineas: this.lineas(),
+      descuento: this.descuentoVenta(),
+      subtotal: this.subtotal(),
+      iva: this.iva(),
+      recibido: pago.recibido,
+      referencia: pago.referencia,
     };
     this.cancelar();
     this.numeroFolio.set(this.siguienteFolio++);

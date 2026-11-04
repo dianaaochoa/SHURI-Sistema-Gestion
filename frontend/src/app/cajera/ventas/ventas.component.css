@@ -1,0 +1,66 @@
+:host { display: block; height: 100%; }
+.ventas { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+.ventas > .aviso { align-items: center; }
+
+/* Periodo (Figma: Turno actual · Hoy · Semana · Mes · Rango + fechas) */
+.periodo { display: flex; flex-wrap: wrap; gap: 8px; }
+.periodo__opciones { display: flex; overflow: hidden; border: 1px solid var(--color-borde); border-radius: 8px; }
+.periodo__opciones button { padding: 10px 14px; border: 0; background: var(--color-superficie); font: 600 13px var(--fuente); color: var(--color-texto-secundario); white-space: nowrap; cursor: pointer; }
+.periodo__opciones .periodo__opcion--activa { background: var(--color-primario); color: var(--color-superficie); }
+.periodo__fechas { position: relative; }
+.periodo__campo { gap: 8px; width: 200px; font: 14px var(--fuente); color: var(--color-marino); cursor: pointer; }
+.periodo__rango { position: absolute; top: 48px; right: 0; z-index: 10; display: flex; flex-direction: column; gap: 12px; width: 240px; padding: 16px; overflow: visible; }
+
+.indicadores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+
+.filtros { display: flex; flex-wrap: wrap; gap: 12px; }
+.filtros > .campo__control { width: 180px; }
+.filtros > .filtros__buscar { gap: 8px; width: 340px; }
+
+/* Historial + detalle */
+.columnas { display: flex; flex: 1; align-items: stretch; gap: 16px; min-height: 0; }
+.historial { flex: 1; align-self: flex-start; max-height: 100%; min-width: 0; overflow: auto; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.columnas__detalle { flex-shrink: 0; width: 400px; }
+
+.tabla { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--color-marino); }
+.tabla th { position: sticky; top: 0; height: 40px; padding: 0 8px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; color: var(--color-texto-secundario); white-space: nowrap; }
+.tabla td { height: 48px; padding: 0 8px; border-top: 1px solid var(--color-borde); white-space: nowrap; }
+.tabla th:first-child, .tabla td:first-child { padding-left: 16px; }
+.tabla tbody tr { cursor: pointer; }
+.tabla tbody tr:hover { background: var(--color-fondo); }
+.tabla tbody tr:focus-visible { outline: 2px solid var(--color-acento); outline-offset: -2px; }
+.tabla .tabla__fila--elegida, .tabla .tabla__fila--elegida:hover { background: var(--color-primario-suave); }
+.col-folio, .col-total { font-weight: 600; }
+.col-articulos { text-align: center !important; }
+.col-total { text-align: right !important; }
+.tenue { color: var(--color-texto-tenue); }
+
+/* C3.2 · Sin resultados */
+.sin-resultados { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 48px 24px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); text-align: center; }
+.sin-resultados__icono { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 999px; background: var(--color-fondo-tenue); }
+.sin-resultados__titulo { font-size: 16px; font-weight: 700; color: var(--color-marino); }
+.sin-resultados__texto { max-width: 440px; font-size: 12px; color: var(--color-texto-tenue); }
+.sin-resultados__acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.sin-resultados__acciones .boton { height: 32px; padding: 0 12px; font-size: 12px; }
+
+.confirmar { max-width: 460px; }
+
+@media (max-width: 1280px) {
+  /* Apilado: la página crece con su contenido en vez de ajustarse al alto de la pantalla. */
+  :host, .ventas { height: auto; }
+  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .columnas { flex: none; flex-direction: column; }
+  .historial { align-self: stretch; max-height: none; }
+  .columnas__detalle { width: auto; }
+}
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .periodo__opciones { overflow-x: auto; }
+  .filtros > .campo__control, .filtros > .filtros__buscar { flex: 1 1 160px; width: auto; }
+  .col-fecha, .col-articulos, .col-metodo { display: none; }
+}
+
+@media (max-width: 560px) {
+  .indicadores { grid-template-columns: minmax(0, 1fr); }
+}

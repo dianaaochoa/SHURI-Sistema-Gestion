@@ -1,8 +1,10 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../acceso/auth.service';
 import { formatearDinero } from '../../compartido/formato';
 import { AbrirTurnoComponent } from '../abrir-turno/abrir-turno.component';
 import { CajaService } from '../caja.service';
+import { HistorialVentasService } from '../ventas/historial-ventas.service';
 import { AplicarDescuentoComponent } from './aplicar-descuento/aplicar-descuento.component';
 import { AtajosTecladoComponent } from './atajos-teclado/atajos-teclado.component';
 import { AvisoSinConexionComponent } from './aviso-sin-conexion/aviso-sin-conexion.component';
@@ -64,6 +66,8 @@ export class PuntoDeVentaComponent {
   protected readonly venta = inject(VentaService);
   protected readonly caja = inject(CajaService);
   protected readonly dispositivos = inject(DispositivosService);
+  private readonly historial = inject(HistorialVentasService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly barra = viewChild.required(BarraBusquedaComponent);
 
@@ -119,8 +123,9 @@ export class PuntoDeVentaComponent {
   confirmarCobro(pago: Pago): void {
     const cobrada = this.venta.cobrar(pago);
     this.dispositivos.registrarVenta(cobrada);
+    this.historial.registrar(cobrada, this.auth.sesion()?.nombre ?? '');
     this.aviso.set(this.mensajeCobro(cobrada));
-    if (cobrada.imprimir && !this.dispositivos.imprimir(cobrada)) {
+    if (cobrada.imprimir && !this.dispositivos.imprimir(cobrada.folio)) {
       this.mostrarErrorImpresion(cobrada);
       return;
     }
@@ -153,7 +158,7 @@ export class PuntoDeVentaComponent {
   reintentarImpresion(): void {
     const venta = this.ticketFallido();
     if (!venta) return;
-    if (this.dispositivos.imprimir(venta)) {
+    if (this.dispositivos.imprimir(venta.folio)) {
       this.aviso.set(`Ticket de la venta ${venta.folio} impreso`);
       this.cerrarModal();
     } else {
@@ -175,7 +180,7 @@ export class PuntoDeVentaComponent {
       this.aviso.set('Todavía no hay un ticket para reimprimir en este turno');
       return;
     }
-    if (this.dispositivos.imprimir(venta)) this.aviso.set(`Ticket de la venta ${venta.folio} reimpreso`);
+    if (this.dispositivos.imprimir(venta.folio)) this.aviso.set(`Ticket de la venta ${venta.folio} reimpreso`);
     else this.mostrarErrorImpresion(venta);
   }
 

@@ -39,8 +39,8 @@ export class DispositivosService {
     if (!this.enLinea()) this.porSincronizar.update((n) => n + 1);
   }
 
-  /** Devuelve false si la impresora no responde. */
-  imprimir(_venta: VentaCobrada): boolean {
+  /** Imprime un ticket o comprobante. Devuelve false si la impresora no responde. */
+  imprimir(_folio: string): boolean {
     try {
       return localStorage.getItem(DEMO_IMPRESORA) !== 'falla';
     } catch {
