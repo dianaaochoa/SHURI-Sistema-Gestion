@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 6 nov 2026 (C4 Órdenes de servicio)
+- **Última actualización:** 6 nov 2026 (C5 Nueva orden)
 
 ---
 
@@ -46,7 +46,8 @@ flowchart LR
     C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::hecho
     C3["C3 Ventas<br/>C3.1 historial · C3.2 sin resultados · C3.3 devolución"]:::hecho
     C4["C4 Órdenes de servicio<br/>C4.1–C4.9"]:::hecho
-    C["C5–C11"]:::pendiente
+    C5["C5 Nueva orden<br/>C5.1 recepción · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
+    C["C6–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -66,6 +67,7 @@ flowchart LR
   C1 -->|"F1 Nueva venta"| C2A
   C2A --> C2B --> C2C
   C2C -->|"cada venta cobrada<br/>entra al historial"| C3
+  C5 -->|"la orden queda<br/>Por cotizar"| C4
   C4 -->|"Entregar equipo<br/>(con el folio)"| C
   C1 -->|"Ir a corte de caja"| C
   BASE --> POR
@@ -163,6 +165,9 @@ flowchart LR
       RC["RespuestaCliente<br/>C4.2 · adicional"]:::comp
       RG["RecibirGarantia<br/>C4.5"]:::comp
       EB["EnviarBodega<br/>C4.7"]:::comp
+      NO["NuevaOrden<br/>C5.1"]:::comp
+      NC["NuevoCliente<br/>C5.2"]:::comp
+      OR["OrdenRegistrada<br/>C5.3"]:::comp
     end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
@@ -187,7 +192,9 @@ flowchart LR
   PDV & VEN & DEV --> HV
   VEN --> DIS & CAJA
   SL --> ORD
-  ORD --> DO & RC & RG & EB
+  ORD --> DO & RC & RG & EB & NO & OR
+  NO --> NC
+  NO & NC --> CLI
   DO --> SO
   ORD --> OS & DIS
   IC --> AT
@@ -275,6 +282,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Se busca por folio, cliente, equipo, teléfono o IMEI (4 dígitos o más). “Samsung A15” muestra C4.9.
 - “Entregar equipo” y “Sacar de bodega y entregar” abren `/cajera/entrega-de-equipo?folio=…` (C6 todavía es página pendiente).
 
+**Nueva orden (`/cajera/nueva-orden`, o “Nueva orden” en Órdenes):**
+- Es un modal sobre la lista de órdenes. Busca al cliente con Enter: `55 1234 5678` encuentra a María Hernández (con domicilio); un teléfono que no existe (`55 9876 5432`) abre “Nuevo cliente” con el teléfono ya puesto.
+- Al registrar, la orden queda “Por cotizar” sin técnico (lo asigna el jefe de taller) y se ve la confirmación C5.3. “Ver en Órdenes” abre la lista con esa orden seleccionada (`?folio=1044`).
+
 ## 5. Estructura de carpetas
 
 ```
@@ -302,7 +313,10 @@ frontend/src/
     │   │   ├── seguimiento-orden/          # los 6 pasos
     │   │   ├── respuesta-cliente/          # C4.2 (y respuesta al adicional)
     │   │   ├── recibir-garantia/           # C4.5
-    │   │   └── enviar-bodega/              # C4.7
+    │   │   ├── enviar-bodega/              # C4.7
+    │   │   ├── nueva-orden/                # C5.1 recepción de taller
+    │   │   ├── nuevo-cliente/              # C5.2 (también “Editar cliente”)
+    │   │   └── orden-registrada/           # C5.3
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -453,6 +467,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Garantía (C4.5) | Falla y condición física son obligatorias; el estado pasa a “En garantía” con el técnico elegido. El botón se deshabilita si la garantía ya venció. | Reglas del texto de Figma. |
 | Panel según estado | Por cotizar, en taller y esperando refacción muestran un aviso y sin botón principal; las listas y vencidas, “Entregar equipo” | Figma solo dibuja 5 de los estados. |
 | Columna “Días” | Desde la recepción; en la vista de bodega, desde el aviso de “Listo” | Así coinciden los números de C4.1 y C4.6. |
+| Nueva orden (C5) | Es un modal sobre Órdenes. La ruta `/cajera/nueva-orden` carga la misma pantalla y lo abre; al cerrarlo regresa a `/cajera/ordenes-de-servicio`. | Figma la dibuja encima de la lista y el menú tiene su propio destino “Nueva orden”. |
+| Búsqueda del cliente (C5.1) | Con Enter: teléfono (4 dígitos o más), nombre o correo. Si hay varios, se elige de una lista; si no hay ninguno se abre “Nuevo cliente” con el dato ya puesto. | Figma solo muestra “encontrado” y “sin resultados”. |
+| Nuevo cliente (C5.2) | Nombre (nombre y apellido), teléfono de 10 dígitos y correo son obligatorios (el correo es el usuario del portal). País México con lista de estados; Coahuila y Torreón de inicio. El mismo modal sirve para “Editar cliente”. | Así lo marca Figma; la lista de estados no viene en Figma. |
+| Contraseña temporal | 3 + 3 caracteres sin 0/O ni 1/I (p. ej. K7M-4Q2), con “Regenerar” | Para que no se confundan al dictarla. |
+| Técnico de la orden nueva | “Por asignar (jefe de taller)”; diagnóstico estimado al día hábil siguiente a las 18:00 | Así lo dice C5.3. |
+| Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
 
@@ -468,6 +488,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C5–C11.
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
+- [ ] El anticipo de la orden nueva no entra todavía a la caja ni al corte; el PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
+- [ ] Los clientes nuevos se agregan a la lista de prueba en memoria; C8 Clientes debe guardarlos en la API.
 - [ ] “Entregar equipo” abre C6 con `?folio=`; C6 debe leerlo y marcar la orden como terminada al cobrar el saldo.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
 - [ ] El panel “Ventas en espera” del inicio de la cajera (C1.1) sigue con datos fijos; debe leer `VentaService.pausadas`.
@@ -625,3 +647,19 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - enviar 2 equipos a bodega actualiza estados e indicadores; “Samsung A15” muestra C4.9; teléfono e IMEI encuentran su orden
   - “Entregar equipo” abre `/cajera/entrega-de-equipo?folio=1026`
   - a 1366×768 cabe sin scroll; a 360 px se apila sin scroll horizontal (la tabla se desliza dentro de su caja) y los tres modales caben
+
+### 6 nov 2026 · Cajera C5: Nueva orden
+- Revisadas en Figma C5.1 recepción con cliente encontrado, C5.2 cliente nuevo y C5.3 orden registrada.
+- Construidas:
+  - C5.1: búsqueda del cliente con Enter, resumen con domicilio y “Editar cliente”; equipo con sugerencias de tipo, marca y modelo; IMEI, PIN, accesorios, falla y condición física; anticipo, método y contraseña temporal del portal con “Regenerar”
+  - C5.2: alta de cliente con teléfono, correo y domicilio; se abre sola cuando la búsqueda no encuentra nada
+  - C5.3: confirmación con técnico, diagnóstico estimado, usuario y contraseña del portal; Reimprimir, Reenviar por correo, Ver en Órdenes y Registrar otra orden
+- `/cajera/nueva-orden` ya es pantalla construida (abre el modal sobre Órdenes). `OrdenesService.crear()` agrega la orden y calcula el siguiente folio.
+- Corregido: las filas del panel de órdenes (C4) heredaban relleno y borde de la clase global `.fila`.
+- Corregido: el Enter que abría “Nuevo cliente” llegaba también al modal nuevo y lo intentaba guardar vacío.
+- Verificado:
+  - a 1440×900, posiciones como en Figma: recepción en 200,67 (1040×767), nuevo cliente en 380,173 (680×554), confirmación en 440,201 (560×498)
+  - guardar vacío marca los campos obligatorios y enfoca el primero
+  - María Hernández → orden #1044 “Por cotizar” con anticipo de $300.00; `55 9876 5432` → alta de Jorge Alberto Salinas Ruiz y su orden
+  - “Ver en Órdenes” deja la orden seleccionada; Esc regresa a la lista
+  - a 360 px los tres modales caben sin scroll horizontal
