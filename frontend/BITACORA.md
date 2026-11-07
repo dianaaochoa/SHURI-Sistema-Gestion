@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 3 nov 2026 (C3 Ventas)
+- **Última actualización:** 6 nov 2026 (C4 Órdenes de servicio)
 
 ---
 
@@ -45,7 +45,8 @@ flowchart LR
     C2B["C2 fase 2 · cliente, descuento,<br/>pausar y en espera (C2.5 C2.6 C2.8 C2.9)"]:::hecho
     C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::hecho
     C3["C3 Ventas<br/>C3.1 historial · C3.2 sin resultados · C3.3 devolución"]:::hecho
-    C["C4–C11"]:::pendiente
+    C4["C4 Órdenes de servicio<br/>C4.1–C4.9"]:::hecho
+    C["C5–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -65,6 +66,7 @@ flowchart LR
   C1 -->|"F1 Nueva venta"| C2A
   C2A --> C2B --> C2C
   C2C -->|"cada venta cobrada<br/>entra al historial"| C3
+  C4 -->|"Entregar equipo<br/>(con el folio)"| C
   C1 -->|"Ir a corte de caja"| C
   BASE --> POR
 ```
@@ -154,12 +156,21 @@ flowchart LR
       DV["DetalleVenta<br/>panel del ticket"]:::comp
       DEV["Devolucion<br/>C3.3"]:::comp
     end
+    subgraph ORG["ordenes/"]
+      ORD["Ordenes<br/>C4.1 · C4.6 · C4.9"]:::comp
+      DO["DetalleOrden<br/>C4.1 C4.3 C4.4 C4.6 C4.8"]:::comp
+      SO["SeguimientoOrden<br/>6 pasos"]:::comp
+      RC["RespuestaCliente<br/>C4.2 · adicional"]:::comp
+      RG["RecibirGarantia<br/>C4.5"]:::comp
+      EB["EnviarBodega<br/>C4.7"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
   CLI["clientes.datos.ts<br/>clientes, motivos y catálogos del SAT"]:::serv
   DIS["DispositivosService<br/>conexión e impresora (simulado)"]:::serv
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
+  OS["OrdenesService<br/>órdenes, respuestas, garantías<br/>y bodega (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
@@ -175,6 +186,10 @@ flowchart LR
   VEN --> DV & DEV
   PDV & VEN & DEV --> HV
   VEN --> DIS & CAJA
+  SL --> ORD
+  ORD --> DO & RC & RG & EB
+  DO --> SO
+  ORD --> OS & DIS
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -246,12 +261,19 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
   - **Sin conexión (C2.16):** DevTools › Network › Offline. Las ventas en efectivo o tarjeta se cuentan “por sincronizar” y se suben al volver la conexión.
 - Factura (C2.18): casilla “Facturar” en el cobro. María Hernández ya tiene datos fiscales (HEMM850312QX4).
 
+- Sin turno abierto, el punto de venta pide abrir caja (C1.3). Si se cierra el modal, regresa al inicio.
+
 **Ventas (`/cajera/ventas`):**
 - Hay 7 ventas de prueba (V-00856 a V-00862) con los folios, clientes, métodos y estados de Figma; las fechas son relativas a hoy (V-00862 es de hoy).
 - Cada venta cobrada en el punto de venta aparece arriba del historial mientras no se recargue la página.
 - V-00860 ya tiene una devolución parcial; V-00857 está cancelada; V-00856 es de otra cajera (Luis Pérez).
 - Para ver C3.2, busca algo que no exista (“audífonos gamer”).
-- Sin turno abierto, el punto de venta pide abrir caja (C1.3). Si se cierra el modal, regresa al inicio.
+
+**Órdenes de servicio (`/cajera/ordenes-de-servicio`):**
+- 13 órdenes de prueba con los folios, clientes y equipos de Figma, una por cada estado: #1043 por cotizar, #1035 por aprobar (C4.2), #1029 cargo adicional (C4.8), #1026 lista (C4.3), #0998 terminada con garantía (C4.4/C4.5), #1037 sin reparación, #0961/#0957/#0963 vencidas y #0954/#0948/#0939 en bodega (C4.6/C4.7).
+- Los indicadores “Por aprobar”, “Listas” y “En bodega” filtran la lista; el chip “Bodega” cambia encabezado, indicadores y columnas a la vista C4.6.
+- Se busca por folio, cliente, equipo, teléfono o IMEI (4 dígitos o más). “Samsung A15” muestra C4.9.
+- “Entregar equipo” y “Sacar de bodega y entregar” abren `/cajera/entrega-de-equipo?folio=…` (C6 todavía es página pendiente).
 
 ## 5. Estructura de carpetas
 
@@ -273,6 +295,14 @@ frontend/src/
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
     │   ├── abrir-turno/       # C1.3 modal de conteo del fondo
     │   ├── salir-con-turno/   # C1.7 modal al cerrar sesión con caja abierta
+    │   ├── ordenes/           # C4
+    │   │   ├── ordenes.service.ts          # órdenes, estados, respuestas, garantía y bodega (simulado)
+    │   │   ├── ordenes.component.*         # C4.1 lista · C4.6 vista de bodega · C4.9 sin resultados
+    │   │   ├── detalle-orden/              # panel según el estado (C4.1 C4.3 C4.4 C4.6 C4.8)
+    │   │   ├── seguimiento-orden/          # los 6 pasos
+    │   │   ├── respuesta-cliente/          # C4.2 (y respuesta al adicional)
+    │   │   ├── recibir-garantia/           # C4.5
+    │   │   └── enviar-bodega/              # C4.7
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -416,6 +446,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Botón del modal de devolución | “Reembolsar e imprimir comprobante” | La capa de Figma se llama “Solicitar autorización y reembolsar”, pero el texto visible es el otro; la autorización de un superior queda pendiente con RF-14. |
 | Cancelar venta | Solo ventas pagadas y sin devoluciones, con confirmación; regresa el total y los artículos | Figma dice “Antes de entregar mercancía” sin más detalle. |
 | Pantallas bajo demanda | `loadComponent` en `PANTALLAS`: el paquete inicial bajó de 549 kB a 371 kB | Con Ventas el paquete pasaba el aviso de 500 kB. |
+| Datos de órdenes (C4) | Folios, clientes, equipos y técnicos de Figma con fechas relativas a hoy; los conteos de chips e indicadores se calculan (13 órdenes, no 52) | Figma muestra cifras de un taller lleno. |
+| Vista de bodega (C4.6) | Es el chip “Bodega” de la misma pantalla: cambia subtítulo, indicadores, la columna “Listo desde” y agrega “Enviar vencidos a bodega”. Se usa un solo juego de chips. | En Figma C4.6 tiene chips distintos a C4.1. |
+| Vencidas | Las órdenes listas con 30 días o más sin recoger salen como “Vencido · por enviar”; en C4.7 van marcadas las de más de 30 días (como en Figma). Desde el panel, “Enviar a bodega” abre el modal solo con esa orden. | Figma no muestra el panel de una vencida. |
+| Respuesta en mostrador (C4.2) | Aprobó: la orden pasa a “En taller”. Rechazó: pasa a “Sin reparación” y queda lista para recoger. En el adicional (C4.8) el mismo modal suma o no el monto al total. | Figma solo muestra “Aprobó”. |
+| Garantía (C4.5) | Falla y condición física son obligatorias; el estado pasa a “En garantía” con el técnico elegido. El botón se deshabilita si la garantía ya venció. | Reglas del texto de Figma. |
+| Panel según estado | Por cotizar, en taller y esperando refacción muestran un aviso y sin botón principal; las listas y vencidas, “Entregar equipo” | Figma solo dibuja 5 de los estados. |
+| Columna “Días” | Desde la recepción; en la vista de bodega, desde el aviso de “Listo” | Así coinciden los números de C4.1 y C4.6. |
 
 ## 9. Pendientes conocidos
 
@@ -428,7 +465,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C4–C11.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C5–C11.
+- [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
+- [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
+- [ ] “Entregar equipo” abre C6 con `?folio=`; C6 debe leerlo y marcar la orden como terminada al cobrar el saldo.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
 - [ ] El panel “Ventas en espera” del inicio de la cajera (C1.1) sigue con datos fijos; debe leer `VentaService.pausadas`.
 - [ ] “Crear cliente nuevo” (C2.5) debe abrir el alta de cliente con el nombre buscado cuando exista C9.
@@ -568,3 +608,20 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - cancelar V-00861 pide confirmación y la deja “Cancelada” con Devolución deshabilitada
   - una venta cobrada con tarjeta en el punto de venta aparece primera en el historial
   - a 1366×768 cabe sin scroll; a 360 px todo se apila sin scroll horizontal (la tabla tenía alto cero al apilarse; corregido)
+
+### 6 nov 2026 · Cajera C4: Órdenes de servicio
+- Revisadas en Figma las 9 pantallas de C4.
+- Construidas:
+  - C4.1 lista con filtros por estado, búsqueda (folio, cliente, equipo, teléfono o IMEI), indicadores que filtran y panel con el seguimiento de 6 pasos
+  - C4.2 registrar respuesta en mostrador (aprobó / rechazó con nota) y la misma respuesta para el cargo adicional de C4.8
+  - C4.3 orden lista (entregar, avisar al cliente) · C4.4 terminada con días de garantía · C4.5 recibir en garantía
+  - C4.6 vista de bodega · C4.7 enviar equipos a bodega · C4.9 sin resultados
+- Nuevo `OrdenesService`. En `styles.css`: `.boton--32`, `.indicador--boton` (indicador que filtra) y `.indicador__valor--advertencia`.
+- Íconos exportados de Figma a `assets/ordenes/`.
+- Verificado:
+  - a 1440×900, posiciones como en Figma: columnas en y=223 con lista de 762 px y panel de 430 px; respuesta en 420,182 (600×536); garantía 680×498; bodega en 400,193 (640×513) con #0961 y #0957 marcados y estante B-4
+  - #1035 aprobado pasa a “En taller” con la nota en el historial; el adicional de #1029 rechazado sigue con $1,180.00
+  - la garantía de #0998 pide falla y condición, y queda “En garantía”
+  - enviar 2 equipos a bodega actualiza estados e indicadores; “Samsung A15” muestra C4.9; teléfono e IMEI encuentran su orden
+  - “Entregar equipo” abre `/cajera/entrega-de-equipo?folio=1026`
+  - a 1366×768 cabe sin scroll; a 360 px se apila sin scroll horizontal (la tabla se desliza dentro de su caja) y los tres modales caben
