@@ -39,6 +39,8 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
   'cajera/punto-de-venta': () => import('./cajera/punto-de-venta/punto-de-venta.component').then((m) => m.PuntoDeVentaComponent),
   'cajera/ventas': () => import('./cajera/ventas/ventas.component').then((m) => m.VentasComponent),
   'cajera/ordenes-de-servicio': () => import('./cajera/ordenes/ordenes.component').then((m) => m.OrdenesComponent),
+  // C5 es un modal sobre la lista de órdenes: la misma pantalla lo abre al entrar por esta ruta.
+  'cajera/nueva-orden': () => import('./cajera/ordenes/ordenes.component').then((m) => m.OrdenesComponent),
 };
 
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */

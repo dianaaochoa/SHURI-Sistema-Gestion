@@ -2,7 +2,7 @@
   <header class="detalle__encabezado">
     <div>
       <h2 class="detalle__titulo">Folio {{ o.folio }} · {{ o.equipo }}</h2>
-      <p class="detalle__subtitulo">{{ o.cliente.nombre }} · {{ o.cliente.telefono }} · Técnico {{ o.tecnico.iniciales }}</p>
+      <p class="detalle__subtitulo">{{ o.cliente.nombre }} · {{ o.cliente.telefono }} · {{ o.tecnico.iniciales === '—' ? 'Sin técnico asignado' : 'Técnico ' + o.tecnico.iniciales }}</p>
     </div>
     <span class="estado estado--{{ estados[o.estado].tono }}">{{ o.estado === 'terminada' ? 'Terminado' : etiqueta() }}</span>
   </header>
@@ -17,11 +17,11 @@
         <div class="caja">
           <p class="caja__titulo caja__titulo--advertencia">Presupuesto enviado el {{ diaMes(p.enviado) }} · sin respuesta</p>
           <p>{{ p.descripcion }}</p>
-          <p class="fila"><span>Total (IVA incluido)</span><strong class="fuerte">{{ dinero(p.total) }}</strong></p>
+          <p class="dato"><span>Total (IVA incluido)</span><strong class="fuerte">{{ dinero(p.total) }}</strong></p>
           @if (o.anticipo) {
-            <p class="fila"><span>Anticipo recibido</span><strong>− {{ dinero(o.anticipo) }}</strong></p>
+            <p class="dato"><span>Anticipo recibido</span><strong>− {{ dinero(o.anticipo) }}</strong></p>
           }
-          <p class="fila"><span>Restante al entregar</span><strong>{{ dinero(saldo()) }}</strong></p>
+          <p class="dato"><span>Restante al entregar</span><strong>{{ dinero(saldo()) }}</strong></p>
         </div>
       }
     }
@@ -31,11 +31,11 @@
         <div class="caja">
           <p class="caja__titulo caja__titulo--advertencia">Cargo adicional enviado {{ cuando(a.enviado, false).replace('Hoy', 'hoy') }} · sin respuesta</p>
           <p>{{ a.descripcion }}</p>
-          <p class="fila"><span>Adicional (IVA incluido)</span><strong class="fuerte">{{ dinero(a.monto) }}</strong></p>
-          <p class="fila">
+          <p class="dato"><span>Adicional (IVA incluido)</span><strong class="fuerte">{{ dinero(a.monto) }}</strong></p>
+          <p class="dato">
             <span>Ya autorizado ({{ o.presupuesto?.aprobado ? diaMes(o.presupuesto!.aprobado!) : '' }})</span><strong class="fuerte">{{ dinero(o.presupuesto?.total ?? 0) }}</strong>
           </p>
-          <p class="fila"><span>Nuevo total de la orden</span><strong class="fuerte">{{ dinero((o.presupuesto?.total ?? 0) + a.monto) }}</strong></p>
+          <p class="dato"><span>Nuevo total de la orden</span><strong class="fuerte">{{ dinero((o.presupuesto?.total ?? 0) + a.monto) }}</strong></p>
         </div>
       }
     }
@@ -48,9 +48,9 @@
           <p class="garantia__texto">Entregado el {{ diaMes(o.entrega!.fecha) }} · {{ garantia() ? 'vence' : 'venció' }} el {{ venceGarantia() }}</p>
         </div>
       </div>
-      <p class="fila"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
-      <p class="fila"><span>Total pagado</span><strong>{{ dinero(o.entrega!.pagado) }}</strong></p>
-      <p class="fila"><span>Entregó</span><strong>{{ o.entrega!.por }}</strong></p>
+      <p class="dato"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
+      <p class="dato"><span>Total pagado</span><strong>{{ dinero(o.entrega!.pagado) }}</strong></p>
+      <p class="dato"><span>Entregó</span><strong>{{ o.entrega!.por }}</strong></p>
     }
 
     @case ('bodega') {
@@ -61,26 +61,29 @@
           <p class="ubicacion__texto">Enviado el {{ diaMes(o.bodega!.enviado) }} por {{ o.bodega!.por }} · {{ diasDesdeAviso() }} días desde el aviso</p>
         </div>
       </div>
-      <p class="fila"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
-      <p class="fila"><span>Saldo pendiente</span><strong>{{ dinero(saldo()) }}</strong></p>
-      <p class="fila"><span>Responsabilidad del taller</span><strong class="peligro">Terminada (cláusula 4)</strong></p>
+      <p class="dato"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
+      <p class="dato"><span>Saldo pendiente</span><strong>{{ dinero(saldo()) }}</strong></p>
+      <p class="dato"><span>Responsabilidad del taller</span><strong class="peligro">Terminada (cláusula 4)</strong></p>
     }
 
     @case ('por-cotizar') {
-      <p class="fila"><span>Falla reportada</span><strong>{{ o.trabajo }}</strong></p>
-      <p class="fila"><span>Recibido</span><strong>{{ cuando(o.recibido) }}</strong></p>
+      <div class="caja">
+        <p class="caja__titulo">Falla reportada por el cliente</p>
+        <p>{{ o.trabajo }}</p>
+      </div>
+      <p class="dato"><span>Recibido</span><strong>{{ cuando(o.recibido) }}</strong></p>
     }
     @default {
-      <p class="fila"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
+      <p class="dato"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
       @if (enMostrador()) {
-        <p class="fila"><span>{{ o.estado === 'sin-reparacion' ? 'Avisado' : 'Listo desde' }}</span><strong>{{ cuando(o.listaDesde!) }}</strong></p>
-        <p class="fila"><span>Recoger antes del</span><strong [class.peligro]="o.estado === 'vencida'">{{ limite() }} (30 días)</strong></p>
-        <p class="fila"><span>Saldo a cobrar</span><strong class="fuerte">{{ dinero(saldo()) }}</strong></p>
+        <p class="dato"><span>{{ o.estado === 'sin-reparacion' ? 'Avisado' : 'Listo desde' }}</span><strong>{{ cuando(o.listaDesde!) }}</strong></p>
+        <p class="dato"><span>Recoger antes del</span><strong [class.peligro]="o.estado === 'vencida'">{{ limite() }} (30 días)</strong></p>
+        <p class="dato"><span>Saldo a cobrar</span><strong class="fuerte">{{ dinero(saldo()) }}</strong></p>
       } @else {
         @if (o.presupuesto; as p) {
-          <p class="fila"><span>Presupuesto aprobado</span><strong>{{ dinero(p.total) }}</strong></p>
+          <p class="dato"><span>Presupuesto aprobado</span><strong>{{ dinero(p.total) }}</strong></p>
         }
-        <p class="fila"><span>Técnico</span><strong>{{ o.tecnico.nombre }}</strong></p>
+        <p class="dato"><span>Técnico</span><strong>{{ o.tecnico.nombre }}</strong></p>
       }
     }
   }
@@ -96,7 +99,11 @@
     @case ('por-cotizar') {
       <p class="aviso detalle__aviso">
         <img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />
-        {{ o.tecnico.nombre }} está haciendo el diagnóstico. El presupuesto llegará al portal del cliente y aquí.
+        @if (o.tecnico.iniciales === '—') {
+          El jefe de taller asignará un técnico para el diagnóstico. El presupuesto llegará al portal del cliente y aquí.
+        } @else {
+          {{ o.tecnico.nombre }} está haciendo el diagnóstico. El presupuesto llegará al portal del cliente y aquí.
+        }
       </p>
     }
     @case ('esperando-refaccion') {

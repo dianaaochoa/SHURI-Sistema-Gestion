@@ -167,6 +167,23 @@
       <app-recibir-garantia [orden]="orden" (cerrar)="modal.set(null)" (registrada)="registrarGarantia(orden, $event)" />
     }
   }
+  @case ('nueva') {
+    <app-nueva-orden [folio]="folioNuevo()" [cajera]="cajera" (cerrar)="cerrarNueva()" (registrar)="registrarOrden($event)" />
+  }
+  @case ('registrada') {
+    @if (registrada(); as r) {
+      <app-orden-registrada
+        [orden]="r.orden"
+        [contrasena]="r.contrasena"
+        [metodoAnticipo]="r.metodo"
+        [impreso]="r.impreso"
+        (reimprimir)="reimprimirRegistrada()"
+        (reenviar)="reenviarAcceso()"
+        (verEnOrdenes)="verEnOrdenes()"
+        (otra)="otraOrden()"
+      />
+    }
+  }
   @case ('bodega') {
     <app-enviar-bodega
       [ordenes]="vencidas()"

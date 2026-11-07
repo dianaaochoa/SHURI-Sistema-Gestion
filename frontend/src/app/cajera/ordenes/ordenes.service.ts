@@ -68,6 +68,24 @@ export interface Orden {
   contactos: Evento[];
 }
 
+/** Técnico de una orden recién recibida: la asigna el jefe de taller (C5.3). */
+export const POR_ASIGNAR: Tecnico = { iniciales: '—', nombre: 'Por asignar (jefe de taller)' };
+
+/** Datos que captura la recepción de taller (C5.1). */
+export interface NuevaOrden {
+  cliente: { nombre: string; telefono: string; correo?: string };
+  tipo: string;
+  marca: string;
+  modelo: string;
+  color: string;
+  imei: string;
+  accesorios: string;
+  falla: string;
+  condicion: string;
+  anticipo: number;
+  metodoAnticipo: string;
+}
+
 export const TECNICOS: Tecnico[] = [
   { iniciales: 'CR', nombre: 'Carlos Ruiz' },
   { iniciales: 'MV', nombre: 'Mariana Vega' },
@@ -374,8 +392,36 @@ const ahoraIso = () => new Date().toISOString();
 export class OrdenesService {
   readonly ordenes = signal<Orden[]>(ordenesDemo());
 
+  /** Folio que tendrá la siguiente orden (C5.1 "Nueva orden #1044"). */
+  readonly siguienteFolio = computed(() => {
+    const mayor = this.ordenes().reduce((max, o) => Math.max(max, Number(o.folio.replace(/[^0-9]/g, ''))), 0);
+    return `#${String(mayor + 1).padStart(4, '0')}`;
+  });
+
   /** Listas que ya pasaron 30 días sin recoger y siguen en el mostrador (C4.7). */
   readonly vencidas = computed(() => this.ordenes().filter((o) => o.estado === 'vencida'));
+
+  /** C5.1: registra la orden recibida en mostrador. Queda "Por cotizar" hasta que el jefe de taller la asigne. */
+  crear(datos: NuevaOrden, cajera: string): Orden {
+    const ahora = ahoraIso();
+    const historial: Evento[] = [{ fecha: ahora, texto: `Recibido por ${cajera}` }];
+    if (datos.anticipo > 0) historial.push({ fecha: ahora, texto: `Anticipo de $${datos.anticipo.toFixed(2)} en ${datos.metodoAnticipo.toLowerCase()}` });
+    const orden: Orden = {
+      folio: this.siguienteFolio(),
+      recibido: ahora,
+      cliente: datos.cliente,
+      equipo: `${datos.marca === 'Apple' ? '' : datos.marca} ${datos.modelo}`.trim() || datos.tipo,
+      imei: datos.imei.replace(/ /g, ''),
+      tecnico: POR_ASIGNAR,
+      estado: 'por-cotizar',
+      trabajo: datos.falla.trim(),
+      anticipo: datos.anticipo,
+      historial,
+      contactos: datos.cliente.correo ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
+    };
+    this.ordenes.update((lista) => [orden, ...lista]);
+    return orden;
+  }
 
   /** C4.2 / C4.8: respuesta del cliente registrada en mostrador. */
   registrarRespuesta(folio: string, aprobo: boolean, nota: string, cajera: string): void {

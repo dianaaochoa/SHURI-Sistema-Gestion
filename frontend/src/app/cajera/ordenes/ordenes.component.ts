@@ -1,10 +1,12 @@
 import { Component, ElementRef, HostListener, computed, inject, signal, viewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { formatearDinero } from '../../compartido/formato';
 import { DispositivosService } from '../punto-de-venta/dispositivos.service';
 import { AccionOrden, DetalleOrdenComponent, diaMes } from './detalle-orden/detalle-orden.component';
 import { EnviarBodegaComponent, EnvioBodega } from './enviar-bodega/enviar-bodega.component';
+import { NuevaOrdenComponent, OrdenCapturada } from './nueva-orden/nueva-orden.component';
+import { OrdenRegistradaComponent } from './orden-registrada/orden-registrada.component';
 import {
   DIAS_PARA_RECOGER,
   ESTADOS_ORDEN,
@@ -19,7 +21,7 @@ import {
 import { RecepcionGarantia, RecibirGarantiaComponent } from './recibir-garantia/recibir-garantia.component';
 import { RespuestaClienteComponent } from './respuesta-cliente/respuesta-cliente.component';
 
-type Modal = 'respuesta' | 'garantia' | 'bodega';
+type Modal = 'respuesta' | 'garantia' | 'bodega' | 'nueva' | 'registrada';
 
 const sinAcentos = (texto: string) =>
   texto
@@ -31,11 +33,20 @@ const sinAcentos = (texto: string) =>
  * C4 · Órdenes de servicio.
  * C4.1 lista con detalle · C4.2 respuesta en mostrador · C4.3 lista para entregar · C4.4 garantía activa ·
  * C4.5 recibir en garantía · C4.6 equipos en bodega · C4.7 enviar a bodega · C4.8 cargo adicional · C4.9 sin resultados.
+ * En /cajera/nueva-orden abre encima C5 · Nueva orden (C5.1 recepción · C5.2 cliente nuevo · C5.3 confirmación).
  */
 @Component({
   selector: 'app-ordenes',
   standalone: true,
-  imports: [RouterLink, DetalleOrdenComponent, RespuestaClienteComponent, RecibirGarantiaComponent, EnviarBodegaComponent],
+  imports: [
+    RouterLink,
+    DetalleOrdenComponent,
+    RespuestaClienteComponent,
+    RecibirGarantiaComponent,
+    EnviarBodegaComponent,
+    NuevaOrdenComponent,
+    OrdenRegistradaComponent,
+  ],
   templateUrl: './ordenes.component.html',
   styleUrl: './ordenes.component.css',
 })
@@ -233,4 +244,54 @@ export class OrdenesComponent {
   }
 
   protected readonly diasParaRecoger = DIAS_PARA_RECOGER;
+
+  // ---------- C5 · Nueva orden ----------
+  protected readonly folioNuevo = this.servicio.siguienteFolio;
+  /** Lo que muestra C5.3. */
+  protected readonly registrada = signal<{ orden: Orden; contrasena: string; metodo: string; impreso: boolean } | null>(null);
+  private readonly enRutaNueva = this.router.url.startsWith('/cajera/nueva-orden');
+
+  constructor() {
+    if (this.enRutaNueva) this.modal.set('nueva');
+    // "Ver en Órdenes" y otras pantallas llegan con ?folio=1044 para dejar la orden seleccionada.
+    const folio = inject(ActivatedRoute).snapshot.queryParamMap.get('folio');
+    if (folio) this.folioElegido.set(`#${folio}`);
+  }
+
+  registrarOrden(captura: OrdenCapturada): void {
+    const orden = this.servicio.crear(captura.datos, this.cajera);
+    const impreso = this.dispositivos.imprimir(orden.folio);
+    this.registrada.set({ orden, contrasena: captura.contrasena, metodo: captura.datos.metodoAnticipo, impreso });
+    this.filtro.set('todas');
+    this.busqueda.set('');
+    this.folioElegido.set(orden.folio);
+    this.modal.set('registrada');
+  }
+
+  cerrarNueva(): void {
+    this.modal.set(null);
+    if (this.enRutaNueva) this.router.navigateByUrl('/cajera/ordenes-de-servicio');
+  }
+
+  verEnOrdenes(): void {
+    const folio = this.registrada()?.orden.folio.replace('#', '');
+    this.modal.set(null);
+    if (this.enRutaNueva) this.router.navigate(['/cajera/ordenes-de-servicio'], { queryParams: { folio } });
+  }
+
+  /** "Registrar otra orden": un formulario limpio. */
+  otraOrden(): void {
+    this.modal.set(null);
+    setTimeout(() => this.modal.set('nueva'));
+  }
+
+  reimprimirRegistrada(): void {
+    const r = this.registrada();
+    if (r) this.registrada.set({ ...r, impreso: this.dispositivos.imprimir(r.orden.folio) });
+  }
+
+  reenviarAcceso(): void {
+    const r = this.registrada();
+    if (r) this.aviso.set(`Acceso al portal reenviado a ${r.orden.cliente.correo}`);
+  }
 }

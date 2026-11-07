@@ -8,10 +8,10 @@
 .detalle__acciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .boton { padding: 0 14px; white-space: nowrap; }
 
-.fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--color-texto-tenue); }
-.fila strong { font-weight: 600; text-align: right; color: var(--color-marino); }
-.fila .fuerte { font-weight: 700; }
-.fila .peligro { color: var(--color-peligro); }
+.dato { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--color-texto-tenue); }
+.dato strong { font-weight: 600; text-align: right; color: var(--color-marino); }
+.dato .fuerte { font-weight: 700; }
+.dato .peligro { color: var(--color-peligro); }
 
 .caja { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid var(--color-borde); border-radius: 8px; font-size: 12px; color: var(--color-texto-secundario); }
 .caja__titulo { font-weight: 600; }

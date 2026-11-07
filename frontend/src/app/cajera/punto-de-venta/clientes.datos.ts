@@ -18,7 +18,36 @@ export interface Cliente {
   /** Equipos del cliente en el taller (Figma: "1 en taller", "1 listo"). */
   estado?: { texto: string; tono: 'info' | 'exito' };
   fiscal?: DatosFiscales;
+  /** Domicilio (C5.2 Nuevo cliente). */
+  direccion?: Direccion;
+  comentarios?: string;
 }
+
+export interface Direccion {
+  pais: string;
+  estado: string;
+  ciudad: string;
+  cp: string;
+  calle: string;
+  exterior: string;
+  interior: string;
+}
+
+/** "Av. Morelos 456 Int. 3, Torreón, Coahuila, México · CP 27000" */
+export function textoDireccion(d: Direccion | undefined): string {
+  if (!d) return '';
+  const calle = [d.calle, d.exterior, d.interior ? `Int. ${d.interior}` : ''].filter(Boolean).join(' ');
+  const lugar = [calle, d.ciudad, d.estado, d.pais].filter(Boolean).join(', ');
+  return d.cp ? `${lugar} · CP ${d.cp}` : lugar;
+}
+
+/** Estados de México para el domicilio del cliente. */
+export const ESTADOS_MEXICO = [
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila',
+  'Colima', 'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco', 'Michoacán', 'Morelos', 'Nayarit',
+  'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas',
+  'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas',
+];
 
 /** Catálogo del SAT: régimen fiscal del receptor (los más comunes en mostrador). */
 export const REGIMENES_FISCALES = [
@@ -45,7 +74,9 @@ export const PUBLICO_GENERAL: Cliente = { id: 'publico', nombre: 'Público gener
 export const CLIENTES: Cliente[] = [
   { id: 'c-001', nombre: 'María Hernández', telefono: '55 1234 5678', correo: 'maria.hdz@gmail.com', estado: { texto: '1 en taller', tono: 'info' },
     // Datos fiscales de Figma C2.18.
-    fiscal: { rfc: 'HEMM850312QX4', codigoPostal: '06700', razonSocial: 'MARÍA HERNÁNDEZ MORALES', regimen: '605', usoCfdi: 'S01', correo: 'maria.hernandez@correo.mx' } },
+    fiscal: { rfc: 'HEMM850312QX4', codigoPostal: '06700', razonSocial: 'MARÍA HERNÁNDEZ MORALES', regimen: '605', usoCfdi: 'S01', correo: 'maria.hernandez@correo.mx' },
+    // Domicilio de Figma C5.1.
+    direccion: { pais: 'México', estado: 'Coahuila', ciudad: 'Torreón', cp: '27000', calle: 'Av. Morelos', exterior: '456', interior: '3' } },
   { id: 'c-002', nombre: 'Mario Ramírez', telefono: '55 4567 1234', correo: 'mario.rmz@hotmail.com' },
   { id: 'c-003', nombre: 'Martha Treviño', telefono: '87 1122 3344', correo: 'mtrevino@gmail.com', estado: { texto: '1 listo', tono: 'exito' } },
   { id: 'c-004', nombre: 'Laura Medina', telefono: '87 1987 6543', correo: 'laura.medina@gmail.com', estado: { texto: '1 listo', tono: 'exito' } },
