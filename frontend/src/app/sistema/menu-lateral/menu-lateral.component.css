@@ -1,0 +1,291 @@
+:host {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  width: 184px;
+}
+
+:host(.riel) {
+  width: 72px;
+}
+
+.menu {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 184px;
+  height: 100%;
+  padding: 16px;
+  background: var(--color-marino);
+  color: var(--color-superficie);
+}
+
+/* ---------- Marca ---------- */
+
+.marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 4px 0;
+}
+
+.marca__logo {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: 9px;
+}
+
+.marca__logo img {
+  position: absolute;
+  top: -25.2%;
+  left: -47%;
+  width: 200%;
+  height: 200%;
+  max-width: none;
+}
+
+.marca__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--color-menu-icono);
+  white-space: nowrap;
+}
+
+.marca__texto strong {
+  font-size: 14px;
+  color: var(--color-superficie);
+}
+
+.menu__resumen {
+  font-size: 12px;
+  line-height: 15px;
+  white-space: nowrap;
+}
+
+/* Figma C1.2: "Caja 01 · Caja cerrada" en rojo claro sobre el marino. */
+.menu__resumen--alerta { color: #fca5a5; }
+
+/* ---------- Grupos y destinos ---------- */
+
+.menu__grupos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  margin: 0 -4px;
+  padding: 0 4px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grupo__titulo {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-menu-seccion);
+}
+
+.destino {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--color-menu-icono);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.destino__etiqueta {
+  color: var(--color-superficie);
+}
+
+.destino:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.destino--activo,
+.destino--activo:hover {
+  background: var(--color-marino-activo);
+  color: var(--color-acento);
+}
+
+.destino--activo .destino__etiqueta {
+  font-weight: 600;
+}
+
+.destino__insignia {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: var(--color-acento);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-marino);
+}
+
+.destino:focus-visible,
+.menu button:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 1px;
+}
+
+/* ---------- Pie: contraer, usuario y campana ---------- */
+
+.menu__contraer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--color-menu-icono);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Sin posición propia: los flotantes se ubican respecto a todo el menú. */
+.menu__pie {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-marino-activo);
+}
+
+.usuario {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.usuario__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--color-menu-icono);
+}
+
+.usuario__texto > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usuario__texto strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-superficie);
+}
+
+.campana {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-menu-icono);
+  cursor: pointer;
+}
+
+.campana--abierta {
+  background: var(--color-marino-activo);
+}
+
+.flotante {
+  position: absolute;
+  bottom: 16px;
+  z-index: 30;
+}
+
+.flotante--usuario { left: calc(100% - 8px); }
+.flotante--notificaciones { left: calc(100% + 8px); }
+
+/* ---------- Riel de 72 px (1366 × 768 o menos) ---------- */
+
+:host(.riel) .menu:not(.menu--desplegado) {
+  width: 72px;
+  padding: 16px 12px;
+  align-items: center;
+}
+
+:host(.riel) .menu:not(.menu--desplegado) :is(.marca__texto, .menu__resumen, .grupo__titulo, .destino__etiqueta, .destino__insignia, .menu__contraer, .usuario__texto) {
+  display: none;
+}
+
+:host(.riel) .menu:not(.menu--desplegado) .destino {
+  padding: 10px 12px;
+}
+
+:host(.riel) .menu:not(.menu--desplegado) .marca__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+:host(.riel) .menu:not(.menu--desplegado) .menu__pie {
+  flex-direction: column-reverse;
+  gap: 12px;
+}
+
+.menu--desplegado {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-shadow: 8px 0 24px rgba(23, 56, 79, 0.25);
+}
+
+/* ---------- Celular: cajón ---------- */
+
+@media (max-width: 768px) {
+  :host { width: 0; }
+
+  .menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .menu__contraer { display: none; }
+
+  .menu--movil-abierto {
+    transform: none;
+    box-shadow: 8px 0 24px rgba(23, 56, 79, 0.25);
+  }
+
+  .flotante { position: fixed; left: 16px; right: 16px; bottom: 16px; }
+}

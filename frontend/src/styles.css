@@ -1,1 +1,740 @@
-/* You can add global styles to this file, and also import other style files */
+/* ==========================================================
+   SHURI · Tokens y estilos base
+   Fuente: Figma › "3 · Componentes y tokens" (variables color/*)
+   ========================================================== */
+
+:root {
+  /* Marca */
+  --color-marino: #17374e;
+  --color-marino-activo: #2a4c63;
+  --color-primario: #087f91;
+  --color-primario-suave: #e7f5f7;
+  --color-acento: #31b2bd;
+  --color-acento-brillante: #7fe0e8;
+
+  /* Superficies y texto */
+  --color-fondo: #f9fafb;
+  --color-superficie: #ffffff;
+  --color-borde: #dce2e8;
+  --color-borde-control: #cbd5e1;
+  --color-fondo-tenue: #eef1f4;
+  --color-texto-secundario: #273b4a;
+  --color-texto-tenue: #64748b;
+  --color-placeholder: #94a3b8;
+  --color-neutro-suave: #f3f4f6;
+  --color-menu-icono: #aabcca;
+  --color-menu-seccion: #9fb3c2;
+
+  /* Estados */
+  --color-exito: #187047;
+  --color-exito-suave: #eaf6ef;
+  --color-advertencia: #925d0b;
+  --color-advertencia-suave: #fff4dc;
+  --color-advertencia-borde: #f2d49b;
+  --color-peligro: #b42318;
+  --color-peligro-suave: #feece9;
+
+  /* Radios y sombras */
+  --radio-control: 8px;
+  --radio-tarjeta: 16px;
+  --sombra-tarjeta: 0 12px 16px rgba(23, 56, 79, 0.08);
+  --sombra-flotante: 0 16px 20px rgba(0, 0, 0, 0.25);
+
+  --fuente: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--fuente);
+  font-size: 14px;
+  color: var(--color-marino);
+  background: var(--color-fondo);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- Tarjeta (contenedor blanco con borde) ---------- */
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 440px;
+  padding: 40px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+.tarjeta__encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tarjeta__titulo {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-marino);
+}
+
+.tarjeta__descripcion {
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--color-texto-tenue);
+}
+
+.tarjeta__icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--color-primario-suave);
+}
+
+@media (max-width: 480px) {
+  .tarjeta {
+    padding: 28px 20px;
+  }
+
+  .tarjeta__titulo {
+    font-size: 24px;
+  }
+}
+
+/* ---------- Campo (etiqueta + control + error) ---------- */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo__etiqueta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+}
+
+.campo__control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-control);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+/* Foco y error usan borde de 1.5 px (Figma › Campo › Estado=Foco) */
+.campo__control:focus-within {
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 0.5px var(--color-primario);
+}
+
+.campo__control--error,
+.campo__control--error:focus-within {
+  border-color: var(--color-peligro);
+  box-shadow: 0 0 0 0.5px var(--color-peligro);
+}
+
+.campo__control img {
+  flex-shrink: 0;
+}
+
+.campo__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--color-marino);
+}
+
+.campo__input::placeholder {
+  color: var(--color-placeholder);
+}
+
+.campo__boton-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-right: -6px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.campo__boton-icono:hover {
+  background: var(--color-neutro-suave);
+}
+
+.campo__boton-icono--activo img {
+  opacity: 0.5;
+}
+
+.campo__error {
+  font-size: 12px;
+  color: var(--color-peligro);
+}
+
+/* Campo compacto de 40 px (Figma › Campo, usado en modales) */
+.campo__control--40 {
+  height: 40px;
+}
+
+/* Campo de solo lectura (fondo gris) */
+.campo__control--fijo {
+  background: var(--color-neutro-suave);
+}
+
+.campo__select {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* ---------- Casilla de verificación ---------- */
+
+.casilla {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-texto-secundario);
+  cursor: pointer;
+  user-select: none;
+}
+
+.casilla input {
+  appearance: none;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-superficie) center / 12px 12px no-repeat;
+  cursor: pointer;
+}
+
+.casilla input:checked {
+  border-color: var(--color-primario);
+  background-color: var(--color-primario);
+  background-image: url("assets/iconos/check.svg");
+}
+
+.casilla input:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}
+
+/* ---------- Botones y enlaces ---------- */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radio-control);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.boton--primario {
+  background: var(--color-primario);
+  color: var(--color-superficie);
+}
+
+.boton--primario:hover:not(:disabled) {
+  background: #066d7c;
+}
+
+.boton--bloque {
+  width: 100%;
+}
+
+/* Figma › Botón · Tipo=Contorno */
+.boton--contorno {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-primario);
+  color: var(--color-primario);
+}
+
+.boton--contorno:hover:not(:disabled) {
+  background: var(--color-primario-suave);
+}
+
+.boton.boton--contorno:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.boton--44 {
+  height: 44px;
+}
+
+.boton--32 {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.boton--40 {
+  height: 40px;
+}
+
+/* Figma › Botón · Tipo=Secundario: fondo claro con borde gris */
+.boton--secundario {
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  color: var(--color-marino);
+}
+
+.boton--secundario:hover:not(:disabled) {
+  border-color: var(--color-marino);
+}
+
+/* Figma › Botón · Tipo=Peligro */
+.boton--peligro {
+  background: var(--color-peligro);
+  border: 1px solid var(--color-peligro);
+  color: var(--color-superficie);
+}
+
+.boton--peligro:hover:not(:disabled) {
+  background: #9b1d14;
+}
+
+/* Figma › Botón · Disabled (secundario y peligro). `.boton` delante para ganarle a `.boton:disabled`. */
+.boton.boton--secundario:disabled,
+.boton.boton--peligro:disabled {
+  opacity: 1;
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #788391;
+  cursor: not-allowed;
+}
+
+.boton:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.boton:focus-visible,
+.enlace:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}
+
+.enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primario);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.enlace:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Ícono teñible ----------
+   Usa el SVG de Figma como máscara para pintarlo con `color`
+   (p. ej. gris en el menú y cian cuando el destino está activo).
+   Uso: <span class="icono" [style.--icono]="'url(assets/menu/home.svg)'"></span> */
+
+.icono {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+  mask: var(--icono) center / contain no-repeat;
+}
+
+/* ---------- Avatar (iniciales) ---------- */
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--color-primario-suave);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primario);
+}
+
+/* ---------- Popover (menú de usuario, notificaciones) ---------- */
+
+.popover {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-control);
+  box-shadow: 0 8px 24px rgba(23, 56, 79, 0.12);
+  overflow: hidden;
+}
+
+/* ---------- Estado (pastilla de color) · Figma › Estado ---------- */
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estado--exito { background: var(--color-exito-suave); color: var(--color-exito); }
+.estado--neutro { background: var(--color-neutro-suave); color: var(--color-texto-tenue); }
+.estado--peligro { background: var(--color-peligro-suave); color: var(--color-peligro); }
+.estado--advertencia { background: var(--color-advertencia-suave); color: var(--color-advertencia); }
+.estado--info { background: var(--color-primario-suave); color: var(--color-primario); }
+
+/* ---------- Tecla de atajo (F1, F3…) ---------- */
+
+.tecla {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--color-borde-control);
+  border-radius: 4px;
+  background: var(--color-superficie);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+}
+
+/* ---------- Selector de tarjetas (Figma: "Método de pago", "Aplicar a") ---------- */
+
+.selector {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 8px;
+}
+
+.selector__opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  background: var(--color-superficie);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-texto-secundario);
+  cursor: pointer;
+}
+
+.selector__opcion .icono {
+  width: 20px;
+  height: 20px;
+  color: var(--color-texto-tenue);
+}
+
+.selector__opcion--elegida {
+  padding: 11px 7px;
+  border: 2px solid var(--color-primario);
+  background: var(--color-primario-suave);
+  font-weight: 600;
+  color: var(--color-primario);
+}
+
+.selector__opcion--elegida .icono { color: var(--color-primario); }
+.selector__opcion:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Alternar (Figma: Débito/Crédito, % / $) ---------- */
+
+.alternar {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.alternar button {
+  flex: 1;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  background: var(--color-superficie);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+  cursor: pointer;
+}
+
+.alternar button.alternar--activo {
+  background: var(--color-primario);
+  color: var(--color-superficie);
+}
+
+/* ---------- Modal · Figma › Modal (encabezado, cuerpo, acciones) ---------- */
+
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  /* Figma › Fondo atenuado: color/marino-profundo #0f172a */
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--color-superficie);
+  border-radius: 12px;
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.18);
+}
+
+.modal__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal__titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-marino);
+}
+
+.modal__subtitulo {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-texto-tenue);
+}
+
+.modal__cerrar {
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.modal__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- Indicador KPI · Figma › Indicador ---------- */
+
+.indicador {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.indicador__valor { font-size: 22px; font-weight: 700; color: var(--color-marino); }
+.indicador__valor--conteo { font-size: 28px; }
+.indicador__valor--exito { color: var(--color-exito); }
+.indicador__valor--tenue { color: var(--color-texto-tenue); }
+.indicador__valor--peligro { color: var(--color-peligro); }
+.indicador__valor--advertencia { color: var(--color-advertencia); }
+/* Indicador que filtra la lista al hacer clic (Figma C4: "En bodega"). */
+.indicador--boton { font: inherit; text-align: left; cursor: pointer; }
+.indicador--boton:hover { border-color: var(--color-primario); }
+.indicador--boton:focus-visible { outline: 2px solid var(--color-acento); outline-offset: 2px; }
+.indicador__titulo { font-size: 12px; font-weight: 600; color: var(--color-marino); }
+.indicador__detalle { margin-top: 4px; font-size: 11px; color: var(--color-texto-tenue); }
+
+/* ---------- Panel con lista · Figma › Panel ---------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.panel__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+
+.panel__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-marino);
+}
+
+.panel__enlace {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+/* Fila de un panel: título + detalle, etiqueta opcional y flecha. */
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-fondo-tenue);
+  text-decoration: none;
+}
+
+.fila:hover .fila__texto strong { color: var(--color-primario); }
+
+.fila__texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--color-texto-tenue);
+}
+
+.fila__texto strong { font-size: 13px; font-weight: 600; color: var(--color-marino); }
+.fila__monto { font-size: 12px; font-weight: 600; color: var(--color-marino); }
+
+/* ---------- Encabezado de página ---------- */
+
+.encabezado-pagina {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+}
+
+.encabezado-pagina__titulo {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-marino);
+}
+
+.encabezado-pagina__subtitulo {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-texto-tenue);
+}
+
+/* ---------- Aviso ---------- */
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radio-control);
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-marino);
+}
+
+.aviso img {
+  flex-shrink: 0;
+  margin-top: 0.5px;
+}
+
+.aviso--error {
+  background: var(--color-peligro-suave);
+}
+
+.aviso--advertencia {
+  background: var(--color-advertencia-suave);
+  color: var(--color-advertencia);
+}
+
+.aviso--exito {
+  align-items: center;
+  background: var(--color-exito-suave);
+  color: var(--color-exito);
+}
+
+/* Texto solo para lectores de pantalla */
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

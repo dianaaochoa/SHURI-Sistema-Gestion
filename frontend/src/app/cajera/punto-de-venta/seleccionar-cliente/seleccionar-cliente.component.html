@@ -1,0 +1,73 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal clientes" role="dialog" aria-modal="true" aria-labelledby="titulo-clientes" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-clientes">Seleccionar cliente</h2>
+        <p class="modal__subtitulo">Busca por nombre, teléfono o correo</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/pdv/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <div class="campo__control campo__control--40">
+      <img src="assets/pdv/search-16.svg" width="16" height="16" alt="" />
+      <input
+        class="campo__input"
+        type="search"
+        autocomplete="off"
+        aria-label="Buscar cliente por nombre, teléfono o correo"
+        [value]="busqueda()"
+        (input)="escribir($any($event.target).value)"
+      />
+    </div>
+
+    <ul class="lista" role="listbox" aria-label="Clientes">
+      @for (cliente of resultados(); track cliente.id) {
+        <li
+          class="cliente"
+          role="option"
+          [class.cliente--elegido]="cliente.id === elegido()"
+          [attr.aria-selected]="cliente.id === elegido()"
+          (click)="elegido.set(cliente.id)"
+          (dblclick)="seleccionar(cliente)"
+        >
+          <span class="cliente__avatar">{{ cliente.id === 'publico' ? 'PG' : iniciales(cliente.nombre) }}</span>
+          <span class="cliente__texto">
+            <strong>{{ cliente.nombre }}</strong>
+            <span>
+              @if (cliente.id === 'publico') {
+                Venta sin datos del cliente
+              } @else {
+                {{ cliente.telefono }}{{ cliente.telefono && cliente.correo ? ' · ' : '' }}{{ cliente.correo }}
+              }
+            </span>
+          </span>
+          @if (cliente.estado) {
+            <span class="estado" [class]="'estado--' + cliente.estado.tono">{{ cliente.estado.texto }}</span>
+          }
+          @if (cliente.id === elegido()) {
+            <img src="assets/pdv/check-primario.svg" width="18" height="18" alt="" />
+          }
+        </li>
+      }
+      @if (busqueda().trim() && resultados().length === 1) {
+        <li class="lista__vacio">No hay clientes que coincidan con “{{ busqueda().trim() }}”.</li>
+      }
+    </ul>
+
+    <p class="ayuda">↑ ↓ para moverte · Enter para seleccionar</p>
+
+    <div class="acciones">
+      <a class="boton boton--contorno boton--44" routerLink="/cajera/clientes">
+        <img src="assets/pdv/plus.svg" width="16" height="16" alt="" />Crear cliente nuevo
+      </a>
+      <div class="acciones__derecha">
+        <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+        <button type="button" class="boton boton--primario boton--44" (click)="seleccionar()">
+          <img src="assets/pdv/check-blanco.svg" width="16" height="16" alt="" />Seleccionar cliente
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

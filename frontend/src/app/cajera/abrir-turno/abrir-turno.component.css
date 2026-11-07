@@ -1,0 +1,122 @@
+.abrir-turno {
+  max-width: 720px;
+}
+
+.abrir-turno__datos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.abrir-turno__conteos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.conteo {
+  width: 100%;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-marino);
+}
+
+.conteo th {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--color-fondo);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--color-texto-secundario);
+}
+
+.conteo td {
+  height: 38px;
+  padding: 0 16px;
+  border-top: 1px solid var(--color-borde);
+}
+
+.conteo .conteo__cantidad {
+  width: 90px;
+  padding: 0;
+  text-align: center;
+}
+
+.conteo .conteo__importe {
+  width: 106px;
+  padding-left: 0;
+  text-align: right;
+}
+
+.conteo input {
+  width: 56px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.conteo input::-webkit-inner-spin-button,
+.conteo input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.conteo input:focus {
+  outline: 0;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 0.5px var(--color-primario);
+}
+
+.total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--color-exito-suave);
+  color: var(--color-exito);
+}
+
+.total--diferencia {
+  background: var(--color-advertencia-suave);
+  color: var(--color-advertencia);
+}
+
+.total__titulo {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.total__detalle {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.total__importe {
+  font-size: 26px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .abrir-turno__datos,
+  .abrir-turno__conteos {
+    grid-template-columns: 1fr;
+  }
+
+  .total__importe {
+    font-size: 20px;
+  }
+}
