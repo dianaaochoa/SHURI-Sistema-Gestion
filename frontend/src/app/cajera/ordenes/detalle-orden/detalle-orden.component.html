@@ -1,0 +1,182 @@
+@if (orden(); as o) {
+  <header class="detalle__encabezado">
+    <div>
+      <h2 class="detalle__titulo">Folio {{ o.folio }} · {{ o.equipo }}</h2>
+      <p class="detalle__subtitulo">{{ o.cliente.nombre }} · {{ o.cliente.telefono }} · Técnico {{ o.tecnico.iniciales }}</p>
+    </div>
+    <span class="estado estado--{{ estados[o.estado].tono }}">{{ o.estado === 'terminada' ? 'Terminado' : etiqueta() }}</span>
+  </header>
+
+  @if (o.estado !== 'bodega') {
+    <app-seguimiento-orden [paso]="estados[o.estado].paso" />
+  }
+
+  @switch (o.estado) {
+    @case ('por-aprobar') {
+      @if (o.presupuesto; as p) {
+        <div class="caja">
+          <p class="caja__titulo caja__titulo--advertencia">Presupuesto enviado el {{ diaMes(p.enviado) }} · sin respuesta</p>
+          <p>{{ p.descripcion }}</p>
+          <p class="fila"><span>Total (IVA incluido)</span><strong class="fuerte">{{ dinero(p.total) }}</strong></p>
+          @if (o.anticipo) {
+            <p class="fila"><span>Anticipo recibido</span><strong>− {{ dinero(o.anticipo) }}</strong></p>
+          }
+          <p class="fila"><span>Restante al entregar</span><strong>{{ dinero(saldo()) }}</strong></p>
+        </div>
+      }
+    }
+
+    @case ('adicional') {
+      @if (o.adicional; as a) {
+        <div class="caja">
+          <p class="caja__titulo caja__titulo--advertencia">Cargo adicional enviado {{ cuando(a.enviado, false).replace('Hoy', 'hoy') }} · sin respuesta</p>
+          <p>{{ a.descripcion }}</p>
+          <p class="fila"><span>Adicional (IVA incluido)</span><strong class="fuerte">{{ dinero(a.monto) }}</strong></p>
+          <p class="fila">
+            <span>Ya autorizado ({{ o.presupuesto?.aprobado ? diaMes(o.presupuesto!.aprobado!) : '' }})</span><strong class="fuerte">{{ dinero(o.presupuesto?.total ?? 0) }}</strong>
+          </p>
+          <p class="fila"><span>Nuevo total de la orden</span><strong class="fuerte">{{ dinero((o.presupuesto?.total ?? 0) + a.monto) }}</strong></p>
+        </div>
+      }
+    }
+
+    @case ('terminada') {
+      <div class="garantia" [class.garantia--vencida]="!garantia()">
+        <strong class="garantia__dias">{{ garantia() }}</strong>
+        <div>
+          <p class="garantia__titulo">{{ garantia() ? 'días de garantía restantes' : 'La garantía ya venció' }}</p>
+          <p class="garantia__texto">Entregado el {{ diaMes(o.entrega!.fecha) }} · {{ garantia() ? 'vence' : 'venció' }} el {{ venceGarantia() }}</p>
+        </div>
+      </div>
+      <p class="fila"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
+      <p class="fila"><span>Total pagado</span><strong>{{ dinero(o.entrega!.pagado) }}</strong></p>
+      <p class="fila"><span>Entregó</span><strong>{{ o.entrega!.por }}</strong></p>
+    }
+
+    @case ('bodega') {
+      <div class="ubicacion">
+        <img src="assets/ordenes/bodega-marino.svg" width="22" height="22" alt="" />
+        <div>
+          <p class="ubicacion__titulo">{{ o.bodega!.ubicacion }} · Estante {{ o.bodega!.estante }}</p>
+          <p class="ubicacion__texto">Enviado el {{ diaMes(o.bodega!.enviado) }} por {{ o.bodega!.por }} · {{ diasDesdeAviso() }} días desde el aviso</p>
+        </div>
+      </div>
+      <p class="fila"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
+      <p class="fila"><span>Saldo pendiente</span><strong>{{ dinero(saldo()) }}</strong></p>
+      <p class="fila"><span>Responsabilidad del taller</span><strong class="peligro">Terminada (cláusula 4)</strong></p>
+    }
+
+    @case ('por-cotizar') {
+      <p class="fila"><span>Falla reportada</span><strong>{{ o.trabajo }}</strong></p>
+      <p class="fila"><span>Recibido</span><strong>{{ cuando(o.recibido) }}</strong></p>
+    }
+    @default {
+      <p class="fila"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
+      @if (enMostrador()) {
+        <p class="fila"><span>{{ o.estado === 'sin-reparacion' ? 'Avisado' : 'Listo desde' }}</span><strong>{{ cuando(o.listaDesde!) }}</strong></p>
+        <p class="fila"><span>Recoger antes del</span><strong [class.peligro]="o.estado === 'vencida'">{{ limite() }} (30 días)</strong></p>
+        <p class="fila"><span>Saldo a cobrar</span><strong class="fuerte">{{ dinero(saldo()) }}</strong></p>
+      } @else {
+        @if (o.presupuesto; as p) {
+          <p class="fila"><span>Presupuesto aprobado</span><strong>{{ dinero(p.total) }}</strong></p>
+        }
+        <p class="fila"><span>Técnico</span><strong>{{ o.tecnico.nombre }}</strong></p>
+      }
+    }
+  }
+
+  <div class="historial">
+    <p class="historial__titulo">{{ o.estado === 'bodega' ? 'Intentos de contacto' : 'Historial' }}</p>
+    @for (evento of o.estado === 'bodega' ? o.contactos : o.historial; track $index) {
+      <p>• {{ linea(evento) }}</p>
+    }
+  </div>
+
+  @switch (o.estado) {
+    @case ('por-cotizar') {
+      <p class="aviso detalle__aviso">
+        <img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />
+        {{ o.tecnico.nombre }} está haciendo el diagnóstico. El presupuesto llegará al portal del cliente y aquí.
+      </p>
+    }
+    @case ('esperando-refaccion') {
+      <p class="aviso detalle__aviso">
+        <img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />
+        La reparación sigue cuando llegue la refacción. El técnico avisará al cliente en su portal.
+      </p>
+    }
+    @case ('lista') {
+      <p class="aviso detalle__aviso">
+        <img src="assets/ordenes/paquete-primario.svg" width="16" height="16" alt="" />
+        “Entregar equipo” abre la pantalla de Entrega con este folio ya cargado: verificación, cobro del saldo e inicio de la garantía.
+      </p>
+    }
+    @case ('vencida') {
+      <p class="aviso aviso--advertencia detalle__aviso">
+        <img src="assets/ventas/alert-advertencia.svg" width="16" height="16" alt="" />
+        Pasaron {{ diasDesdeAviso() }} días desde el aviso de “Listo”. Si el cliente no viene, envíalo a bodega.
+      </p>
+    }
+  }
+
+  <div class="detalle__espacio"></div>
+
+  <!-- Acciones según el estado -->
+  @if (o.estado === 'bodega') {
+    <button type="button" class="boton boton--contorno boton--40" (click)="accion.emit('recordatorio')">
+      <img src="assets/ordenes/call-primario.svg" width="16" height="16" alt="" />Enviar recordatorio por correo
+    </button>
+    <button type="button" class="boton boton--primario boton--44" (click)="accion.emit('entregar')">
+      <img src="assets/ordenes/paquete-blanco.svg" width="16" height="16" alt="" />Sacar de bodega y entregar
+    </button>
+  } @else {
+    <div class="detalle__acciones">
+      <button type="button" class="boton boton--contorno boton--40" (click)="accion.emit('reimprimir')">
+        <img src="assets/ventas/printer-primario.svg" width="16" height="16" alt="" />Reimprimir orden
+      </button>
+      @if (o.estado === 'vencida') {
+        <button type="button" class="boton boton--contorno boton--40" (click)="accion.emit('bodega')">
+          <img src="assets/ordenes/bodega-primario.svg" width="16" height="16" alt="" />Enviar a bodega
+        </button>
+      } @else if (enMostrador()) {
+        <button type="button" class="boton boton--contorno boton--40" (click)="accion.emit('avisar')">
+          <img src="assets/pdv/send-primario.svg" width="16" height="16" alt="" />Avisar al cliente
+        </button>
+      } @else {
+        <button type="button" class="boton boton--contorno boton--40" (click)="accion.emit('reenviar-acceso')">
+          <img src="assets/ordenes/key-primario.svg" width="16" height="16" alt="" />Reenviar acceso
+        </button>
+      }
+    </div>
+    @switch (o.estado) {
+      @case ('por-aprobar') {
+        <button type="button" class="boton boton--primario boton--44" (click)="accion.emit('responder')">
+          <img src="assets/ordenes/call-blanco.svg" width="16" height="16" alt="" />Registrar respuesta del cliente
+        </button>
+      }
+      @case ('adicional') {
+        <button type="button" class="boton boton--primario boton--44" (click)="accion.emit('responder')">
+          <img src="assets/ordenes/call-blanco.svg" width="16" height="16" alt="" />Registrar respuesta sobre el adicional
+        </button>
+      }
+      @case ('terminada') {
+        <button
+          type="button"
+          class="boton boton--primario boton--44"
+          [disabled]="!garantia()"
+          [attr.title]="garantia() ? null : 'La garantía ya venció'"
+          (click)="accion.emit('garantia')"
+        >
+          <img src="assets/ordenes/escudo-blanco.svg" width="16" height="16" alt="" />Recibir equipo en garantía
+        </button>
+      }
+      @default {
+        @if (enMostrador()) {
+          <button type="button" class="boton boton--primario boton--44" (click)="accion.emit('entregar')">
+            <img src="assets/ordenes/paquete-blanco.svg" width="16" height="16" alt="" />Entregar equipo
+          </button>
+        }
+      }
+    }
+  }
+}

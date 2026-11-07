@@ -317,6 +317,12 @@ input {
   height: 44px;
 }
 
+.boton--32 {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
 .boton--40 {
   height: 40px;
 }
@@ -602,6 +608,11 @@ input {
 .indicador__valor--exito { color: var(--color-exito); }
 .indicador__valor--tenue { color: var(--color-texto-tenue); }
 .indicador__valor--peligro { color: var(--color-peligro); }
+.indicador__valor--advertencia { color: var(--color-advertencia); }
+/* Indicador que filtra la lista al hacer clic (Figma C4: "En bodega"). */
+.indicador--boton { font: inherit; text-align: left; cursor: pointer; }
+.indicador--boton:hover { border-color: var(--color-primario); }
+.indicador--boton:focus-visible { outline: 2px solid var(--color-acento); outline-offset: 2px; }
 .indicador__titulo { font-size: 12px; font-weight: 600; color: var(--color-marino); }
 .indicador__detalle { margin-top: 4px; font-size: 11px; color: var(--color-texto-tenue); }
 
