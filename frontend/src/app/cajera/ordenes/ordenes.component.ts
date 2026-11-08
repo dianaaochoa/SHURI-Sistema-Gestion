@@ -250,6 +250,8 @@ export class OrdenesComponent {
   /** Lo que muestra C5.3. */
   protected readonly registrada = signal<{ orden: Orden; contrasena: string; metodo: string; impreso: boolean } | null>(null);
   private readonly enRutaNueva = this.router.url.startsWith('/cajera/nueva-orden');
+  /** C8: /cajera/nueva-orden?cliente=55 1234 5678 abre la recepción con el cliente ya buscado. */
+  protected readonly clienteNuevo = inject(ActivatedRoute).snapshot.queryParamMap.get('cliente') ?? '';
 
   constructor() {
     if (this.enRutaNueva) this.modal.set('nueva');

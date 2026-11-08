@@ -21,6 +21,18 @@ export interface Cliente {
   /** Domicilio (C5.2 Nuevo cliente). */
   direccion?: Direccion;
   comentarios?: string;
+  /** ISO: alta del cliente (C8 "Cliente desde mar 2025"). */
+  desde?: string;
+  /** Acceso al portal de seguimiento (C8). */
+  portal?: AccesoPortal;
+}
+
+export interface AccesoPortal {
+  tipo: 'personalizada' | 'temporal';
+  /** ISO: cuándo la cambió o cuándo se envió la temporal. */
+  fecha: string;
+  /** Solo la temporal se puede volver a mostrar e imprimir. */
+  temporal?: string;
 }
 
 export interface Direccion {
@@ -73,6 +85,7 @@ export const PUBLICO_GENERAL: Cliente = { id: 'publico', nombre: 'Público gener
 
 export const CLIENTES: Cliente[] = [
   { id: 'c-001', nombre: 'María Hernández', telefono: '55 1234 5678', correo: 'maria.hdz@gmail.com', estado: { texto: '1 en taller', tono: 'info' },
+    desde: '2025-03-05T11:00:00', portal: { tipo: 'personalizada', fecha: '2026-10-04T18:20:00' },
     // Datos fiscales de Figma C2.18.
     fiscal: { rfc: 'HEMM850312QX4', codigoPostal: '06700', razonSocial: 'MARÍA HERNÁNDEZ MORALES', regimen: '605', usoCfdi: 'S01', correo: 'maria.hernandez@correo.mx' },
     // Domicilio de Figma C5.1.

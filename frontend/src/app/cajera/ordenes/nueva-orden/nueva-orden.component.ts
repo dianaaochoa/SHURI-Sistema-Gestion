@@ -1,7 +1,8 @@
 import { AfterViewInit, Component, ElementRef, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { formatearFechaCorta } from '../../../compartido/formato';
-import { CLIENTES, Cliente, textoDireccion } from '../../punto-de-venta/clientes.datos';
+import { Cliente, textoDireccion } from '../../punto-de-venta/clientes.datos';
+import { ClientesService } from '../../clientes/clientes.service';
 import { NuevoClienteComponent } from '../nuevo-cliente/nuevo-cliente.component';
 import { NuevaOrden } from '../ordenes.service';
 
@@ -48,6 +49,9 @@ export interface OrdenCapturada {
 export class NuevaOrdenComponent implements AfterViewInit {
   readonly folio = input.required<string>();
   readonly cajera = input('');
+  /** C8 "Nueva orden para este cliente": teléfono del cliente para buscarlo de una vez. */
+  readonly clienteInicial = input('');
+  private readonly clientes = inject(ClientesService);
   readonly cerrar = output<void>();
   readonly registrar = output<OrdenCapturada>();
 
@@ -89,6 +93,14 @@ export class NuevaOrdenComponent implements AfterViewInit {
   private readonly intentado = signal(false);
 
   ngAfterViewInit(): void {
+    const inicial = this.clienteInicial();
+    if (inicial) {
+      setTimeout(() => {
+        this.busqueda.set(inicial);
+        this.buscar();
+      });
+      return;
+    }
     setTimeout(() => this.elemento.nativeElement.querySelector<HTMLInputElement>('#buscar-cliente')?.focus());
   }
 
@@ -98,7 +110,8 @@ export class NuevaOrdenComponent implements AfterViewInit {
     if (!texto) return;
     const normal = sinAcentos(texto);
     const digitos = texto.replace(/[^0-9]/g, '');
-    const lista = CLIENTES.filter(
+    // Todo el registro de Clientes (C8): también los que solo tienen órdenes o ventas.
+    const lista = this.clientes.clientes().filter(
       (c) =>
         (digitos.length >= 4 && (c.telefono ?? '').replace(/[^0-9]/g, '').includes(digitos)) ||
         (!digitos.length && sinAcentos(c.nombre).includes(normal)) ||
@@ -122,10 +135,8 @@ export class NuevaOrdenComponent implements AfterViewInit {
   }
 
   protected clienteGuardado(cliente: Cliente): void {
-    const existente = CLIENTES.findIndex((c) => c.id === cliente.id);
-    // Simulado: el cliente queda en la lista de prueba para encontrarlo después (C8 Clientes lo guardará en la API).
-    if (existente >= 0) CLIENTES[existente] = cliente;
-    else CLIENTES.push(cliente);
+    // Queda en el registro de Clientes (C8) y en la lista que usan Punto de venta y esta búsqueda.
+    this.clientes.guardar(cliente);
     this.modalCliente.set(null);
     this.elegirCliente(cliente);
   }

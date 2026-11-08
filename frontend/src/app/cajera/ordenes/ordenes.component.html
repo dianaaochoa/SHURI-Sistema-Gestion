@@ -168,7 +168,7 @@
     }
   }
   @case ('nueva') {
-    <app-nueva-orden [folio]="folioNuevo()" [cajera]="cajera" (cerrar)="cerrarNueva()" (registrar)="registrarOrden($event)" />
+    <app-nueva-orden [folio]="folioNuevo()" [cajera]="cajera" [clienteInicial]="clienteNuevo" (cerrar)="cerrarNueva()" (registrar)="registrarOrden($event)" />
   }
   @case ('registrada') {
     @if (registrada(); as r) {

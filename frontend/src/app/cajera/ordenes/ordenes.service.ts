@@ -244,6 +244,21 @@ function ordenesDemo(): Orden[] {
     },
     {
       ...base,
+      // Figma C8: el equipo en taller de María Hernández.
+      folio: '#1024',
+      recibido: hace(3, '10:40'),
+      cliente: { nombre: 'María Hernández', telefono: '55 1234 5678', correo: 'maria.hdz@gmail.com' },
+      equipo: 'Samsung S22 Ultra',
+      imei: '359876221054321',
+      tecnico: tecnico('LO'),
+      estado: 'en-taller',
+      trabajo: 'Puerto USB-C y flex de carga',
+      presupuesto: { enviado: hace(3, '15:30'), descripcion: 'No carga: puerto USB-C dañado y flex de carga con falso contacto.', refacciones: 928, manoObra: 372, total: 1508, aprobado: hace(2, '10:05') },
+      anticipo: 500,
+      historial: [ev(3, '10:40', 'Recibido por Ana Martínez'), ev(2, '10:05', 'Presupuesto aprobado en el portal'), ev(1, '12:00', 'En reparación (LO)')],
+    },
+    {
+      ...base,
       folio: '#1026',
       recibido: hace(10, '10:00'),
       cliente: { nombre: 'Laura Medina', telefono: '55 2233 4455', correo: 'laura.medina@gmail.com' },

@@ -1,0 +1,78 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal historial" role="dialog" aria-modal="true" aria-labelledby="titulo-historial" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-historial">Historial de {{ cliente().nombre }}</h2>
+        <p class="modal__subtitulo">{{ subtitulo() }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/inventario/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    @if (mensaje(); as m) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ m }}</p>
+    }
+
+    <div class="cifras">
+      <p><strong>{{ conteo().compras }}</strong>Compras · {{ dinero(conteo().montoCompras) }}</p>
+      <p><strong>{{ conteo().dejados }}</strong>{{ conteo().dejados === 1 ? 'Equipo dejado' : 'Equipos dejados' }}</p>
+      <p><strong>{{ conteo().garantias }}</strong>{{ conteo().garantias === 1 ? 'Garantía usada' : 'Garantías usadas' }}</p>
+      <p><strong>{{ dinero(conteo().total, conteo().total % 1 === 0) }}</strong>Total gastado</p>
+    </div>
+
+    <div class="barra">
+      <nav class="pestanas" aria-label="Tipo de movimiento">
+        <button type="button" [class.activa]="pestana() === 'todo'" (click)="pestana.set('todo')">Todo ({{ conteo().todo }})</button>
+        <button type="button" [class.activa]="pestana() === 'compras'" (click)="pestana.set('compras')">Compras ({{ conteo().compras }})</button>
+        <button type="button" [class.activa]="pestana() === 'equipos'" (click)="pestana.set('equipos')">Equipos ({{ conteo().equipos }})</button>
+      </nav>
+      <label class="campo__control campo__control--40 periodo">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <select class="campo__input campo__select" aria-label="Periodo" (change)="periodo.set($any($event.target).value)">
+          @for (p of periodos; track p.id) {
+            <option [value]="p.id" [selected]="p.id === periodo()">{{ p.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </label>
+    </div>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr><th>Fecha</th><th>Tipo</th><th>Folio</th><th class="h-desc">Descripción</th><th class="h-monto">Monto</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+          @for (m of filas(); track m.folio + m.tipo) {
+            <tr>
+              <td>{{ visita(m.fecha) }}</td>
+              <td>{{ m.tipo }}</td>
+              <td>
+                @if (m.orden) {
+                  <a class="enlace" routerLink="/cajera/ordenes-de-servicio" [queryParams]="{ folio: m.orden.replace('#', '') }">{{ m.folio }}</a>
+                } @else {
+                  {{ m.folio }}
+                }
+              </td>
+              <td class="h-desc"><span>{{ m.descripcion }}</span></td>
+              <td class="h-monto">{{ m.monto === null ? 'Sin costo' : dinero(m.monto) }}</td>
+              <td><span class="estado estado--{{ m.estado.tono }}">{{ m.estado.texto }}</span></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="vacia">Sin movimientos en este periodo.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="imprimir()">
+        <img src="assets/ventas/printer-primario.svg" width="16" height="16" alt="" />Imprimir historial
+      </button>
+      <button type="button" class="boton boton--primario boton--44" (click)="nuevaOrden.emit()">
+        <span class="icono" style="--icono: url(assets/menu/clip-plus.svg)"></span>Nueva orden para este cliente
+      </button>
+    </div>
+  </section>
+</div>

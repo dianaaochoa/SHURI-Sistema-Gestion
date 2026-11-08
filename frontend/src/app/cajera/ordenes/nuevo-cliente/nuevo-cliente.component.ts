@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, HostListener, OnInit, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ClientesService } from '../../clientes/clientes.service';
 import { Cliente, ESTADOS_MEXICO } from '../../punto-de-venta/clientes.datos';
 
 const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,7 +26,11 @@ export function formatearTelefono(texto: string): string {
           <div>
             <h2 class="modal__titulo" id="titulo-cliente">{{ inicial() ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
             <p class="modal__subtitulo">
-              @if (inicial()) {
+              @if (desdeClientes() && inicial()) {
+                Los cambios se ven en Punto de venta y en Nueva orden.
+              } @else if (desdeClientes()) {
+                El mismo registro que se usa en Recepción de taller.
+              } @else if (inicial()) {
                 Los cambios se guardan en su ficha y en esta orden.
               } @else if (busqueda()) {
                 No encontramos “{{ busqueda() }}”. Al guardar regresas a la recepción con los datos llenos.
@@ -57,7 +62,7 @@ export function formatearTelefono(texto: string): string {
               <input id="cliente-telefono" class="campo__input" type="tel" inputmode="tel" autocomplete="off" [(ngModel)]="datos.telefono" />
             </div>
             @if (error('telefono')) {
-              <p class="campo__error">Debe tener 10 dígitos.</p>
+              <p class="campo__error">{{ duplicado('telefono') ? 'Ya es el teléfono de ' + duplicado('telefono') + '.' : 'Debe tener 10 dígitos.' }}</p>
             }
           </div>
           <div class="campo">
@@ -67,7 +72,7 @@ export function formatearTelefono(texto: string): string {
               <input id="cliente-correo" class="campo__input" type="email" autocomplete="off" [(ngModel)]="datos.correo" />
             </div>
             @if (error('correo')) {
-              <p class="campo__error">Es el usuario de su portal: escribe un correo válido.</p>
+              <p class="campo__error">{{ duplicado('correo') ? 'Ya es el usuario de portal de ' + duplicado('correo') + '.' : 'Es el usuario de su portal: escribe un correo válido.' }}</p>
             }
           </div>
         </div>
@@ -174,10 +179,13 @@ export class NuevoClienteComponent implements OnInit, AfterViewInit {
   readonly inicial = input<Cliente | null>(null);
   /** Lo que se buscó sin resultados: prellena teléfono, correo o nombre. */
   readonly busqueda = input('');
+  /** Abierto desde C8 Clientes (cambia el texto bajo el título). */
+  readonly desdeClientes = input(false);
   readonly cerrar = output<void>();
   readonly guardado = output<Cliente>();
 
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly clientes = inject(ClientesService);
   protected readonly paises = PAISES;
   protected readonly estados = ESTADOS_MEXICO;
   protected datos = { nombre: '', telefono: '', correo: '' };
@@ -210,9 +218,20 @@ export class NuevoClienteComponent implements OnInit, AfterViewInit {
   private errores(): Record<Campo, boolean> {
     return {
       nombre: this.datos.nombre.trim().split(/\s+/).length < 2,
-      telefono: this.datos.telefono.replace(/[^0-9]/g, '').length < 10,
-      correo: !CORREO.test(this.datos.correo.trim()),
+      telefono: this.datos.telefono.replace(/[^0-9]/g, '').length < 10 || !!this.duplicado('telefono'),
+      correo: !CORREO.test(this.datos.correo.trim()) || !!this.duplicado('correo'),
     };
+  }
+
+  /** Nombre del otro cliente que ya usa ese teléfono o correo (el correo es su usuario del portal). */
+  protected duplicado(campo: 'telefono' | 'correo'): string | null {
+    const propio = this.inicial()?.id;
+    const valor = campo === 'telefono' ? this.datos.telefono.replace(/\D/g, '') : this.datos.correo.trim().toLowerCase();
+    if (!valor) return null;
+    const otro = this.clientes
+      .clientes()
+      .find((c) => c.id !== propio && (campo === 'telefono' ? (c.telefono ?? '').replace(/\D/g, '') === valor : (c.correo ?? '').toLowerCase() === valor));
+    return otro?.nombre ?? null;
   }
 
   protected error(campo: Campo): boolean {
