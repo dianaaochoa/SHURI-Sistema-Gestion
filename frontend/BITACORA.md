@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 7 nov 2026 (C6 Entrega de equipo)
+- **Última actualización:** 7 nov 2026 (C7 Inventario)
 
 ---
 
@@ -48,7 +48,8 @@ flowchart LR
     C4["C4 Órdenes de servicio<br/>C4.1–C4.9"]:::hecho
     C5["C5 Nueva orden<br/>C5.1 recepción · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
     C6["C6 Entrega de equipo<br/>C6.1 normal · C6.2 sin reparar · C6.3 garantía · C6.4 otra persona"]:::hecho
-    C["C7–C11"]:::pendiente
+    C7["C7 Inventario<br/>C7.1 alta · C7.2 Excel · C7.3 entrada · C7.4 ajuste<br/>C7.5 pedido del jefe · C7.6 pago · C7.7 historial"]:::hecho
+    C["C8–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -71,6 +72,7 @@ flowchart LR
   C5 -->|"la orden queda<br/>Por cotizar"| C4
   C4 -->|"Entregar equipo<br/>(con el folio)"| C6
   C6 -->|"la orden queda<br/>Terminado"| C4
+  C7 -->|"llega la refacción:<br/>se aparta y la orden<br/>vuelve a En taller"| C4
   C1 -->|"Ir a corte de caja"| C
   BASE --> POR
 ```
@@ -176,6 +178,20 @@ flowchart LR
       QR["QuienRecoge<br/>titular u otra persona"]:::comp
       CE["CobroEntrega<br/>saldo y método"]:::comp
     end
+    subgraph INVG["inventario/"]
+      INV["Inventario<br/>encabezado, pestañas y modales"]:::comp
+      CTL["Catalogo<br/>filtros, Excel y paginación"]:::comp
+      AP["AltaProducto<br/>C7.1 (también edita)"]:::comp
+      IE["ImportarExcel<br/>C7.2"]:::comp
+      EN["Entrada<br/>C7.3 · C7.5"]:::comp
+      PJ["PedidosJefe<br/>C7.5"]:::comp
+      PP2["PagoProveedor<br/>C7.6"]:::comp
+      HE["HistorialEntradas<br/>C7.7 y detalle"]:::comp
+      AJ["AjusteInventario<br/>C7.4"]:::comp
+      AJS["Ajustes<br/>registro de ajustes"]:::comp
+      MOV["Movimientos<br/>historial del producto"]:::comp
+      PAG["Paginacion"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
@@ -183,12 +199,13 @@ flowchart LR
   DIS["DispositivosService<br/>conexión e impresora (simulado)"]:::serv
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
   OS["OrdenesService<br/>órdenes, respuestas, garantías<br/>y bodega (simulado)"]:::serv
+  INS["InventarioService<br/>productos, entradas, pedidos<br/>y ajustes (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
-  CAJA["CajaService<br/>turno de caja (simulado)"]:::serv
+  CAJA["CajaService<br/>turno y pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
-  GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar"]:::css
+  GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
 
   APP --> RUT
   RUT --> LAY --> IS & OC & CC
@@ -207,6 +224,13 @@ flowchart LR
   SL --> ENT
   ENT --> QR & CE & DF
   ENT --> OS & DIS
+  SL --> INV
+  INV --> CTL & AP & IE & EN & HE & AJ & AJS & MOV
+  CTL --> PAG
+  EN --> PJ & PP2
+  INV & CTL & AP & IE & EN & HE & AJ & AJS & MOV --> INS
+  EN --> OS & CAJA & DIS
+  PP2 --> CAJA
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -301,6 +325,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Se busca por folio con Enter (`1026` o `#1026`); un folio que no existe o que aún no está listo muestra el motivo.
 - Hay que marcar toda la verificación (y, si recoge otra persona, nombre completo, carta poder y copia de la identificación del titular) para habilitar “Cobrar y entregar”.
 
+**Inventario (`/cajera/inventario`; la pestaña va en `?vista=entradas|historial|ajustes`):**
+- Catálogo con 19 productos de prueba (los 12 de Figma y los del punto de venta). “Stock bajo” y “Sin existencias” filtran; la búsqueda acepta nombre, SKU o código de barras (`7501000000465`).
+- “Añadir Producto” abre C7.1; el lápiz edita y el reloj muestra los movimientos del producto (con “Ajustar stock”).
+- Importar: cualquier `.xlsx` muestra la vista previa de Figma (la lectura real de Excel llega con la API); un `.csv` con las columnas de la plantilla se lee de verdad. Exportar baja un CSV que abre Excel.
+- Entradas: PED-0123 llega hoy y se paga con efectivo de caja (C7.5 → C7.6). Al registrarla, el kit de sellos queda apartado para #1028 y esa orden pasa de “Esperando refacción” a “En taller”.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -336,6 +366,18 @@ frontend/src/
     │   │   ├── entrega.component.*         # tarjetas, datos de la orden y verificación
     │   │   ├── quien-recoge/               # titular u otra persona (C6.4)
     │   │   └── cobro-entrega/              # cobro, revisión (C6.2) o costo de garantía (C6.3)
+    │   ├── inventario/        # C7
+    │   │   ├── inventario.datos.ts         # productos, pedidos, entradas y ajustes de prueba
+    │   │   ├── inventario.service.ts       # stock, costo promedio, apartados, ajustes (simulado)
+    │   │   ├── inventario.component.*      # encabezado, pestañas y modales
+    │   │   ├── catalogo/  paginacion/      # tabla del catálogo
+    │   │   ├── alta-producto/              # C7.1 (también edita)
+    │   │   ├── importar-excel/  csv.ts     # C7.2
+    │   │   ├── entrada/  pedidos-jefe/     # C7.3 · C7.5
+    │   │   ├── pago-proveedor/             # C7.6
+    │   │   ├── historial-entradas/         # C7.7
+    │   │   ├── ajuste-inventario/  ajustes/  # C7.4 y registro de ajustes
+    │   │   └── movimientos/                # historial de un producto
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -496,6 +538,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Tarjetas de “por entregar” | Todas las entregables, con desplazamiento horizontal (3 visibles a 1440 px) | Figma muestra solo 3. |
 | Garantía lista (C6.3) | Nuevo estado “Garantía lista” en Órdenes; dato de prueba #0991 (Paola Cruz) | #0998 sigue mostrando C4.4/C4.5. |
 | Factura en la entrega | La casilla abre el mismo modal de datos fiscales del punto de venta (C2.18) | Figma solo muestra la casilla. |
+| Inventario (C7) | Una sola pantalla con 3 pestañas; el encabezado cambia con la pestaña (“Inventario y Catálogo”, “Inventario”, “Historial de entradas”, “Ajustes de inventario”). El historial se abre con “Historial de entradas” dentro de la pestaña Entradas. | En Figma el catálogo (C7.1) no tiene pestañas y la pestaña “Ajustes” no tiene diseño propio (solo el modal C7.4): se hizo un registro de ajustes con filtro por tipo. |
+| Cifras del catálogo | Conteos reales de los datos de prueba (19 productos, stock bajo 4, sin existencias 4) y paginación real (25/50/100 por página) | Figma muestra 3,450 productos y 69 páginas. |
+| Pastilla de stock | Sin disponibles = advertencia; en el mínimo o debajo = peligro; hasta el doble del mínimo = neutro; si no, éxito | Figma no explica la regla; se dedujo de sus 12 filas. |
+| Totales de entradas | Se calculan (ENT-0055 da $9,275.00 + IVA = $10,759.00) | Figma suma $9,725.00 / $11,281.00 con las mismas líneas. |
+| Resultado de importar | Dice qué cambia (“Actualiza costo y nombre”) | Figma dice “Actualiza precio” en ACC-001 aunque el precio no cambia. |
+| Entrada de mercancía | Se agregaron “Forma de pago” también en compra directa (el historial C7.7 muestra Crédito y Transferencia), “Diferencia con la factura” (alimenta el aviso del historial) y la opción “Registrar compra directa” para soltar un pedido | En C7.3 no aparecen. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -509,7 +557,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C5–C11.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C8–C11.
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
 - [ ] El anticipo de la orden nueva no entra todavía a la caja ni al corte; el PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
@@ -531,6 +579,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] C1.6 Mi perfil y contraseña.
 - [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
 - [ ] Corte de caja (C10) debe llamar a `CajaService.cerrarTurno()`.
+- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta todavía usa su propio catálogo (`catalogo.datos.ts`, precios sin IVA); debe leer el inventario cuando exista la API.
+- [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
+- [ ] El efectivo en caja para pagar a proveedores parte de $7,180.00 (dato de Figma); el corte (C10) debe calcularlo con fondo, ventas, retiros y pagos.
+- [ ] Los pedidos del jefe son datos de prueba; deben venir de su módulo (J6). Avisar al técnico y al jefe solo se anota en el historial de la orden.
+- [ ] La foto del producto y la de la factura no se suben a ningún lado (la del producto solo se ve mientras dura la sesión).
 
 ---
 
@@ -699,3 +752,18 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - #1026 entregado con tarjeta ($890.00) y garantía hasta 30 días después; #1021 recogido por Ana Núñez Ruiz con carta poder; #1037 sin reparar; #0991 tras garantía; en Órdenes aparecen “Entregado sin reparar” y “Terminado · garantía”
   - folio `1035` avisa que está “Por aprobar”; `9999` que no existe
   - a 1366×768 y 360 px sin scroll horizontal (el botón “Escanear folio” baja a su propia fila en celular)
+
+### 7 nov 2026 · Cajera C7: Inventario
+- Revisadas en Figma C7.1 alta de producto, C7.2 importar desde Excel, C7.3 entrada de mercancía, C7.4 ajuste, C7.5 entrada contra pedido del jefe, C7.6 pago al proveedor y C7.7 historial de entradas. A media revisión se agotaron las llamadas al MCP de Figma (plan Starter); los íconos se bajaron de las URL de los recursos que ya había dado.
+- Construido `InventarioService`: disponible = stock − apartadas, costo promedio ponderado al recibir, apartado automático para la orden del pedido, ajustes con valor a costo y movimientos por producto. `CajaService` lleva los pagos a proveedor y `OrdenesService.refaccionRecibida()` regresa la orden a “En taller”.
+- Componentes nuevos: catálogo con filtros y paginación reutilizable, alta/edición, importar (CSV real + vista previa de `.xlsx`), entrada, pedidos del jefe, pago al proveedor, historial con detalle, ajuste, registro de ajustes y movimientos. Globales nuevos: `.boton-icono`, `.aviso--info` y `.sugerencias`.
+- Corregido durante la prueba:
+  - los `<select>` con `[value]` mostraban la primera opción (“25 por página”): ahora cada opción lleva `[selected]`
+  - `??` dentro del `track` de un `@for` rompe Angular 17 (`tmp_191_0 is not defined`): la clave pasó a un método
+  - el aviso de entrada registrada se borraba al cambiar de pestaña; el resumen de importar salía vacío porque se contaba después de importar
+- Verificado:
+  - a 1440×900: barra de herramientas de 384/208 px, filas de 48 px y tabla hasta 24 px del borde como en Figma; modales de 720, 820, 600 y 540 px
+  - alta de ACC-047 con margen “62 % · $74.83”, código de barras repetido rechazado; filtros, chips, orden por nombre y búsqueda por código de barras
+  - PED-0123: $340.00 + $54.40 = $394.40, entregado $400.00, cambio $5.60, caja de $7,180.00 a $6,785.60; ENT-0056 en el historial y #1028 “En taller”; la misma remisión no se puede registrar dos veces
+  - importar `.csv` (comillas, `$80.00`, categoría inválida); ajustes de merma (−$1,208.00) y conteo físico (+2) con lector de código
+  - a 1366×768 y 360 px sin scroll horizontal (en celular la tabla oculta foto, SKU, categoría, apartadas y stock; los cinco modales caben en 328 px)
