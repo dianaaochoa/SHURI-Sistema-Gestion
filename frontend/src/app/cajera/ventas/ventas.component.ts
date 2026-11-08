@@ -5,6 +5,7 @@ import { CajaService } from '../caja.service';
 import { DispositivosService } from '../punto-de-venta/dispositivos.service';
 import { DetalleVentaComponent, fechaVenta } from './detalle-venta/detalle-venta.component';
 import { DevolucionComponent } from './devolucion/devolucion.component';
+import { DocumentosService } from '../documentos/documentos.service';
 import {
   Devolucion,
   ESTADOS,
@@ -56,6 +57,7 @@ export class VentasComponent {
   private readonly historial = inject(HistorialVentasService);
   private readonly caja = inject(CajaService);
   private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   private readonly tabla = viewChild<ElementRef<HTMLElement>>('tabla');
 
   protected readonly periodos = PERIODOS;
@@ -223,7 +225,7 @@ export class VentasComponent {
 
   reimprimir(venta: VentaRegistrada): void {
     this.aviso.set(
-      this.dispositivos.imprimir(venta.folio)
+      this.documentos.venta(venta.folio)
         ? `Ticket ${venta.folio} reimpreso`
         : 'La impresora no responde: revisa que esté encendida, con papel y conectada',
     );
@@ -252,7 +254,7 @@ export class VentasComponent {
     const venta = this.seleccionada();
     if (!venta) return;
     this.historial.devolver(venta.folio, devolucion);
-    const impreso = this.dispositivos.imprimir(venta.folio);
+    const impreso = this.documentos.devolucion(venta.folio);
     this.aviso.set(
       `Devolución de ${venta.folio} registrada · ${formatearDinero(devolucion.monto)} ${FORMAS_REEMBOLSO[devolucion.forma]}` +
         (impreso ? '' : ' · no se pudo imprimir el comprobante'),

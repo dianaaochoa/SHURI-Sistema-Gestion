@@ -20,6 +20,8 @@ export interface PagoProveedor {
 }
 
 export interface MovimientoCaja {
+  /** RET-0031 / ING-0004 (C11 "Retiro de efectivo"). */
+  folio: string;
   fecha: string;
   tipo: 'retiro' | 'ingreso';
   monto: number;
@@ -62,8 +64,13 @@ export class CajaService {
   private readonly movimientosCaja = signal<MovimientoCaja[]>([]);
   readonly movimientos = this.movimientosCaja.asReadonly();
 
-  registrarMovimiento(movimiento: Omit<MovimientoCaja, 'fecha'>): void {
-    this.movimientosCaja.update((lista) => [...lista, { ...movimiento, fecha: new Date().toISOString() }]);
+  /** Registra el retiro o ingreso y lo devuelve con su folio (los de prueba siguen a RET-0030). */
+  registrarMovimiento(movimiento: Omit<MovimientoCaja, 'fecha' | 'folio'>): MovimientoCaja {
+    const prefijo = movimiento.tipo === 'retiro' ? 'RET' : 'ING';
+    const previos = this.movimientosCaja().filter((m) => m.tipo === movimiento.tipo).length;
+    const nuevo: MovimientoCaja = { ...movimiento, folio: `${prefijo}-${String((movimiento.tipo === 'retiro' ? 31 : 5) + previos).padStart(4, '0')}`, fecha: new Date().toISOString() };
+    this.movimientosCaja.update((lista) => [...lista, nuevo]);
+    return nuevo;
   }
 
   abrirTurno(datos: Omit<Turno, 'desde'>): void {

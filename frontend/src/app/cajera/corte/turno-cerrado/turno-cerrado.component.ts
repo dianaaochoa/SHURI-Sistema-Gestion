@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
-import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
 import { Corte, diferencia } from '../corte.service';
+import { DocumentosService } from '../../documentos/documentos.service';
 
 /** C10.5 · Turno cerrado (modal): resumen del corte, reimprimir, abrir otro turno o salir. */
 @Component({
@@ -51,7 +51,7 @@ import { Corte, diferencia } from '../corte.service';
   `,
 })
 export class TurnoCerradoComponent {
-  private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   readonly corte = input.required<Corte>();
   readonly cerrar = output<void>();
   readonly abrirTurno = output<void>();
@@ -66,6 +66,6 @@ export class TurnoCerradoComponent {
   }
 
   protected reimprimir(): void {
-    this.mensaje.set(this.dispositivos.imprimir(this.corte().folio) ? `Corte #${this.corte().folio} impreso de nuevo.` : 'La impresora no responde: revisa que esté encendida, con papel y conectada.');
+    this.mensaje.set(this.documentos.imprimir({ tipo: 'corte', corte: this.corte() }) ? `Corte #${this.corte().folio} impreso de nuevo.` : 'La impresora no responde: revisa que esté encendida, con papel y conectada.');
   }
 }

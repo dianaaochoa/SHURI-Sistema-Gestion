@@ -36,6 +36,23 @@ export interface Corte {
   /** Efectivo que se queda en la caja para el siguiente turno. */
   fondoQueQueda: number;
   comentario: string;
+  /** Renglones del corte impreso (C11). Los cortes de prueba no lo traen. */
+  desglose?: Desglose;
+}
+
+export interface Desglose {
+  entregas: number;
+  numEntregas: number;
+  anticipos: number;
+  numAnticipos: number;
+  devoluciones: number;
+  numDevoluciones: number;
+  retiros: number;
+  numRetiros: number;
+  pagos: number;
+  numPagos: number;
+  ingresos: number;
+  numIngresos: number;
 }
 
 export const METODO_TEXTO: Record<MetodoCorte, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mixto: 'Mixto' };
@@ -143,6 +160,25 @@ export class CorteService {
     const retiros = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'retiro');
     const ingresos = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'ingreso');
     const pagos = this.caja.pagosAProveedor().filter((p) => p.fecha >= desde);
+    const devoluciones = this.ventas
+      .ventas()
+      .flatMap((v) => v.devoluciones)
+      .filter((d) => d.fecha >= desde && (d.forma === 'efectivo' || d.forma === 'tarjeta'));
+    const suma = (lista: { monto: number }[]) => redondear(lista.reduce((s, x) => s + x.monto, 0));
+    const desglose: Desglose = {
+      entregas: redondear(entregas.reduce((s, o) => s + (o.entrega!.cobrado ?? 0), 0)),
+      numEntregas: entregas.length,
+      anticipos: redondear(anticipos.reduce((s, o) => s + o.anticipo, 0)),
+      numAnticipos: anticipos.length,
+      devoluciones: suma(devoluciones),
+      numDevoluciones: devoluciones.length,
+      retiros: suma(retiros),
+      numRetiros: retiros.length,
+      pagos: suma(pagos),
+      numPagos: pagos.length,
+      ingresos: suma(ingresos),
+      numIngresos: ingresos.length,
+    };
 
     // Efectivo, tarjeta y transferencia: los cobros mixtos se reparten por sus partes.
     const porMetodo: Record<MetodoSimple, number> = { efectivo: 0, tarjeta: 0, transferencia: 0 };
@@ -167,6 +203,7 @@ export class CorteService {
       esperado: redondear(porMetodo.efectivo),
       tarjeta: redondear(porMetodo.tarjeta),
       transferencias: redondear(porMetodo.transferencia),
+      desglose,
     };
   });
 
@@ -200,6 +237,7 @@ export class CorteService {
       transferencias: r.transferencias,
       fondoQueQueda: redondear(fondoQueQueda),
       comentario,
+      desglose: r.desglose,
     };
     this.cortes.update((lista) => [corte, ...lista]);
     this.caja.cerrarTurno();

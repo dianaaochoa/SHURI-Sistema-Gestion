@@ -10,6 +10,7 @@ import { DispositivosService } from '../punto-de-venta/dispositivos.service';
 import { MetodoSimple } from '../punto-de-venta/venta.service';
 import { CobroEntregaComponent, TipoEntrega } from './cobro-entrega/cobro-entrega.component';
 import { QuienRecogeComponent, Recoge } from './quien-recoge/quien-recoge.component';
+import { DocumentosService } from '../documentos/documentos.service';
 
 const METODO_TEXTO: Record<MetodoSimple, string> = { efectivo: 'en efectivo', tarjeta: 'con tarjeta', transferencia: 'por transferencia' };
 
@@ -24,6 +25,7 @@ const METODO_TEXTO: Record<MetodoSimple, string> = { efectivo: 'en efectivo', ta
 export class EntregaComponent {
   private readonly ordenes = inject(OrdenesService);
   private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   private readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
   private readonly buscador = viewChild<ElementRef<HTMLInputElement>>('buscador');
 
@@ -208,7 +210,7 @@ export class EntregaComponent {
     const cobrado = saldo(o);
     const recoge = this.recoge();
     this.ordenes.entregar(o.folio, { recoge: recoge?.nombre || o.cliente.nombre, pagado: cobrado, metodo: this.metodo(), cajera: this.cajera });
-    const impreso = this.dispositivos.imprimir(o.folio);
+    const impreso = this.documentos.orden(o.folio, 'entrega');
     const partes = [`${o.folio} · ${o.equipo} entregado a ${recoge?.nombre || o.cliente.nombre}`];
     if (cobrado > 0) partes.push(`cobrados ${formatearDinero(cobrado)} ${METODO_TEXTO[this.metodo()]}`);
     if (tipo === 'normal') partes.push(`garantía hasta el ${diaMes(sumarDias(new Date().toISOString(), 30))}`);

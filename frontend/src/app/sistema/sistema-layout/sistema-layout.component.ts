@@ -1,12 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { VistaImpresionComponent } from '../../cajera/documentos/vista-impresion/vista-impresion.component';
 import { MenuLateralComponent } from '../menu-lateral/menu-lateral.component';
 
 /** Estructura de la app del personal: menú lateral + contenido con scroll propio. */
 @Component({
   selector: 'app-sistema-layout',
   standalone: true,
-  imports: [RouterOutlet, MenuLateralComponent],
+  imports: [RouterOutlet, MenuLateralComponent, VistaImpresionComponent],
   template: `
     <div class="sistema">
       <app-menu-lateral [abiertoMovil]="menuMovil()" (cerrar)="menuMovil.set(false)" />
@@ -23,6 +24,7 @@ import { MenuLateralComponent } from '../menu-lateral/menu-lateral.component';
         </header>
         <main class="sistema__contenido">
           <router-outlet />
+          <app-vista-impresion />
         </main>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { Component, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { AuthService } from '../../../acceso/auth.service';
 import { formatearDinero } from '../../../compartido/formato';
 import { CajaService } from '../../caja.service';
-import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
 import { CorteService } from '../corte.service';
+import { DocumentosService } from '../../documentos/documentos.service';
 
 type Tipo = 'retiro' | 'ingreso';
 
@@ -101,7 +102,8 @@ const MOTIVOS: Record<Tipo, string[]> = {
 })
 export class MovimientoEfectivoComponent implements OnInit {
   private readonly caja = inject(CajaService);
-  private readonly dispositivos = inject(DispositivosService);
+  private readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
+  private readonly documentos = inject(DocumentosService);
   readonly tipoInicial = input<Tipo>('retiro');
   readonly cerrar = output<void>();
   readonly registrado = output<string>();
@@ -152,8 +154,10 @@ export class MovimientoEfectivoComponent implements OnInit {
     const monto = Math.round(this.monto()! * 100) / 100;
     // Se lee antes de registrar: después, "antes" ya incluye este movimiento.
     const despues = this.despues();
-    this.caja.registrarMovimiento({ tipo: this.tipo(), monto, motivo: this.motivo(), comentario: this.comentario().trim() });
-    const impreso = this.dispositivos.imprimir(`${this.tipo()}-${Date.now()}`);
+    const antes = this.antes();
+    const movimiento = this.caja.registrarMovimiento({ tipo: this.tipo(), monto, motivo: this.motivo(), comentario: this.comentario().trim() });
+    const turno = this.caja.turno();
+    const impreso = this.documentos.imprimir({ tipo: 'movimiento', movimiento, antes, despues, cajera: this.cajera, caja: turno?.caja ?? 'Caja 01' });
     const texto = `${this.tipo() === 'retiro' ? 'Retiro' : 'Ingreso'} de ${formatearDinero(monto)} (${this.motivo().toLowerCase()}) registrado · quedan ${formatearDinero(despues)} en caja`;
     this.registrado.emit(impreso ? `${texto} · comprobante impreso` : `${texto} · no se pudo imprimir el comprobante`);
   }

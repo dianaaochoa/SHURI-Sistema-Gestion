@@ -74,11 +74,27 @@ export interface Orden {
   /** ISO: cuándo rechazó el presupuesto (C6.2). */
   rechazo?: string;
   /** Reingreso en garantía (C4.5 → C6.3). */
-  garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string };
+  garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string };
+  /** Lo que se capturó en la recepción (C5.1); lo usan la orden impresa y sus comprobantes (C11). */
+  ficha?: FichaRecepcion;
   bodega?: { ubicacion: string; estante: string; enviado: string; por: string };
   historial: Evento[];
   /** Avisos y recordatorios al cliente (C4.6 "Intentos de contacto"). */
   contactos: Evento[];
+}
+
+export interface FichaRecepcion {
+  tipo: string;
+  marca: string;
+  modelo: string;
+  color: string;
+  condicion: string;
+  /** Cajera que la recibió. */
+  recibio: string;
+  /** Falla tal como la dijo el cliente (si difiere del trabajo). */
+  falla?: string;
+  /** Contraseña temporal del portal que se imprimió con la orden. */
+  contrasena?: string;
 }
 
 /** Técnico de una orden recién recibida: la asigna el jefe de taller (C5.3). */
@@ -257,7 +273,20 @@ function ordenesDemo(): Orden[] {
       estado: 'en-taller',
       trabajo: 'Puerto USB-C y flex de carga',
       presupuesto: { enviado: hace(3, '15:30'), descripcion: 'No carga: puerto USB-C dañado y flex de carga con falso contacto.', refacciones: 928, manoObra: 372, total: 1508, aprobado: hace(2, '10:05') },
-      anticipo: 500,
+      anticipo: 300,
+      metodoAnticipo: 'efectivo',
+      accesorios: 'Funda transparente',
+      // Figma C11: orden impresa (ticket y carta) de #1024.
+      ficha: {
+        tipo: 'Teléfono celular',
+        marca: 'Samsung',
+        modelo: 'Galaxy S22 Ultra',
+        color: 'Negro',
+        condicion: 'Pantalla con rayón lateral derecho y carcasa con golpe en la esquina inferior. Enciende; botones y cámaras funcionan. Sin humedad visible. Trae SIM.',
+        recibio: 'Ana Martínez',
+        falla: 'No carga; la conexión USB-C es intermitente. El equipo enciende y la pantalla funciona.',
+        contrasena: 'K7M-4Q2',
+      },
       historial: [ev(3, '10:40', 'Recibido por Ana Martínez'), ev(2, '10:05', 'Presupuesto aprobado en el portal'), ev(1, '12:00', 'En reparación (LO)')],
     },
     {
@@ -479,7 +508,7 @@ export class OrdenesService {
   readonly vencidas = computed(() => this.ordenes().filter((o) => o.estado === 'vencida'));
 
   /** C5.1: registra la orden recibida en mostrador. Queda "Por cotizar" hasta que el jefe de taller la asigne. */
-  crear(datos: NuevaOrden, cajera: string): Orden {
+  crear(datos: NuevaOrden, cajera: string, contrasena?: string): Orden {
     const ahora = ahoraIso();
     const historial: Evento[] = [{ fecha: ahora, texto: `Recibido por ${cajera}` }];
     if (datos.anticipo > 0) historial.push({ fecha: ahora, texto: `Anticipo de $${datos.anticipo.toFixed(2)} en ${datos.metodoAnticipo.toLowerCase()}` });
@@ -495,6 +524,7 @@ export class OrdenesService {
       accesorios: datos.accesorios || 'Ninguno',
       anticipo: datos.anticipo,
       metodoAnticipo: datos.anticipo > 0 ? datos.metodoAnticipo.toLowerCase() : undefined,
+      ficha: { tipo: datos.tipo, marca: datos.marca, modelo: datos.modelo, color: datos.color, condicion: datos.condicion.trim(), recibio: cajera, contrasena },
       historial,
       contactos: datos.cliente.correo ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
     };
@@ -529,12 +559,12 @@ export class OrdenesService {
   }
 
   /** C4.5: el equipo vuelve al taller con el mismo folio. */
-  recibirGarantia(folio: string, falla: string, tecnicoAsignado: Tecnico, cajera: string): void {
+  recibirGarantia(folio: string, falla: string, tecnicoAsignado: Tecnico, cajera: string, condicion = ''): void {
     this.actualizar(folio, (o) => ({
       ...o,
       estado: 'en-garantia',
       tecnico: tecnicoAsignado,
-      garantia: { recibida: ahoraIso(), falla: falla.trim(), dictamen: 'En revisión', resolucion: '' },
+      garantia: { recibida: ahoraIso(), falla: falla.trim(), dictamen: 'En revisión', resolucion: '', condicion: condicion.trim() || undefined, recibio: cajera },
       historial: [...o.historial, { fecha: ahoraIso(), texto: `Recibido en garantía por ${cajera}: ${falla.trim()}` }],
     }));
   }

@@ -1,8 +1,8 @@
 import { Component, computed, inject, output, signal } from '@angular/core';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
-import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
 import { CerrarTurnoComponent, CierreTurno } from '../cerrar-turno/cerrar-turno.component';
 import { Corte, CorteService, METODO_TEXTO } from '../corte.service';
+import { DocumentosService } from '../../documentos/documentos.service';
 
 /** C10.1 · Turno actual: lo que entró y salió, y arqueo de efectivo. */
 @Component({
@@ -14,7 +14,7 @@ import { Corte, CorteService, METODO_TEXTO } from '../corte.service';
 })
 export class TurnoActualComponent {
   private readonly servicio = inject(CorteService);
-  private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   readonly cerrado = output<Corte>();
 
   protected readonly r = this.servicio.resumen;
@@ -43,7 +43,7 @@ export class TurnoActualComponent {
 
   protected cerrar(cierre: CierreTurno): void {
     const corte = this.servicio.cerrar(cierre.contado, cierre.comentario, cierre.fondo);
-    this.dispositivos.imprimir(corte.folio);
+    this.documentos.imprimir({ tipo: 'corte', corte });
     this.modal.set(false);
     this.cerrado.emit(corte);
   }

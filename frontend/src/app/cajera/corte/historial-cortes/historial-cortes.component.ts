@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
-import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
 import { Corte, CorteService, diferencia, estadoCorte } from '../corte.service';
+import { DocumentosService } from '../../documentos/documentos.service';
 
 const clave = (iso: string) => {
   const f = new Date(iso);
@@ -34,7 +34,7 @@ const diaMes = (iso: string) => {
 })
 export class HistorialCortesComponent {
   private readonly servicio = inject(CorteService);
-  private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   readonly mes = input.required<string>();
   readonly cajera = input('');
 
@@ -88,6 +88,6 @@ export class HistorialCortesComponent {
   }
 
   protected reimprimir(c: Corte): void {
-    this.mensaje.set(this.dispositivos.imprimir(c.folio) ? `Corte #${c.folio} impreso` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
+    this.mensaje.set(this.documentos.imprimir({ tipo: 'corte', corte: c }) ? `Corte #${c.folio} impreso` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
   }
 }

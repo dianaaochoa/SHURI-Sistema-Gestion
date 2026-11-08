@@ -20,6 +20,7 @@ import {
 } from './ordenes.service';
 import { RecepcionGarantia, RecibirGarantiaComponent } from './recibir-garantia/recibir-garantia.component';
 import { RespuestaClienteComponent } from './respuesta-cliente/respuesta-cliente.component';
+import { DocumentosService } from '../documentos/documentos.service';
 
 type Modal = 'respuesta' | 'garantia' | 'bodega' | 'nueva' | 'registrada';
 
@@ -53,6 +54,7 @@ const sinAcentos = (texto: string) =>
 export class OrdenesComponent {
   private readonly servicio = inject(OrdenesService);
   private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   private readonly router = inject(Router);
   private readonly tabla = viewChild<ElementRef<HTMLElement>>('tabla');
   protected readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
@@ -176,7 +178,7 @@ export class OrdenesComponent {
     const contacto = orden.cliente.correo ?? orden.cliente.telefono;
     switch (accion) {
       case 'reimprimir':
-        this.aviso.set(this.dispositivos.imprimir(orden.folio) ? `Orden ${orden.folio} reimpresa` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
+        this.aviso.set(this.documentos.orden(orden.folio) ? `Orden ${orden.folio} reimpresa` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
         break;
       case 'reenviar-acceso':
         this.aviso.set(`Se reenvió el acceso al portal de ${orden.cliente.nombre} (${contacto})`);
@@ -216,8 +218,8 @@ export class OrdenesComponent {
   }
 
   registrarGarantia(orden: Orden, recepcion: RecepcionGarantia): void {
-    this.servicio.recibirGarantia(orden.folio, recepcion.falla, recepcion.tecnico, this.cajera);
-    const impreso = this.dispositivos.imprimir(orden.folio);
+    this.servicio.recibirGarantia(orden.folio, recepcion.falla, recepcion.tecnico, this.cajera, recepcion.condicion);
+    const impreso = this.documentos.orden(orden.folio, 'garantia');
     this.aviso.set(
       `Garantía de ${orden.folio} recibida · asignada a ${recepcion.tecnico.nombre}` +
         (recepcion.avisar ? ' · aviso enviado al portal' : '') +
@@ -261,8 +263,8 @@ export class OrdenesComponent {
   }
 
   registrarOrden(captura: OrdenCapturada): void {
-    const orden = this.servicio.crear(captura.datos, this.cajera);
-    const impreso = this.dispositivos.imprimir(orden.folio);
+    const orden = this.servicio.crear(captura.datos, this.cajera, captura.contrasena);
+    const impreso = this.documentos.orden(orden.folio);
     this.registrada.set({ orden, contrasena: captura.contrasena, metodo: captura.datos.metodoAnticipo, impreso });
     this.filtro.set('todas');
     this.busqueda.set('');
@@ -289,7 +291,7 @@ export class OrdenesComponent {
 
   reimprimirRegistrada(): void {
     const r = this.registrada();
-    if (r) this.registrada.set({ ...r, impreso: this.dispositivos.imprimir(r.orden.folio) });
+    if (r) this.registrada.set({ ...r, impreso: this.documentos.orden(r.orden.folio) });
   }
 
   reenviarAcceso(): void {
