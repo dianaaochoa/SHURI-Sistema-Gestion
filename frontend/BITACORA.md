@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 6 nov 2026 (C5 Nueva orden)
+- **Última actualización:** 7 nov 2026 (C6 Entrega de equipo)
 
 ---
 
@@ -47,7 +47,8 @@ flowchart LR
     C3["C3 Ventas<br/>C3.1 historial · C3.2 sin resultados · C3.3 devolución"]:::hecho
     C4["C4 Órdenes de servicio<br/>C4.1–C4.9"]:::hecho
     C5["C5 Nueva orden<br/>C5.1 recepción · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
-    C["C6–C11"]:::pendiente
+    C6["C6 Entrega de equipo<br/>C6.1 normal · C6.2 sin reparar · C6.3 garantía · C6.4 otra persona"]:::hecho
+    C["C7–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -68,7 +69,8 @@ flowchart LR
   C2A --> C2B --> C2C
   C2C -->|"cada venta cobrada<br/>entra al historial"| C3
   C5 -->|"la orden queda<br/>Por cotizar"| C4
-  C4 -->|"Entregar equipo<br/>(con el folio)"| C
+  C4 -->|"Entregar equipo<br/>(con el folio)"| C6
+  C6 -->|"la orden queda<br/>Terminado"| C4
   C1 -->|"Ir a corte de caja"| C
   BASE --> POR
 ```
@@ -169,6 +171,11 @@ flowchart LR
       NC["NuevoCliente<br/>C5.2"]:::comp
       OR["OrdenRegistrada<br/>C5.3"]:::comp
     end
+    subgraph ENG["entrega/"]
+      ENT["Entrega<br/>C6.1–C6.4"]:::comp
+      QR["QuienRecoge<br/>titular u otra persona"]:::comp
+      CE["CobroEntrega<br/>saldo y método"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
@@ -197,6 +204,9 @@ flowchart LR
   NO & NC --> CLI
   DO --> SO
   ORD --> OS & DIS
+  SL --> ENT
+  ENT --> QR & CE & DF
+  ENT --> OS & DIS
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -286,6 +296,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Es un modal sobre la lista de órdenes. Busca al cliente con Enter: `55 1234 5678` encuentra a María Hernández (con domicilio); un teléfono que no existe (`55 9876 5432`) abre “Nuevo cliente” con el teléfono ya puesto.
 - Al registrar, la orden queda “Por cotizar” sin técnico (lo asigna el jefe de taller) y se ve la confirmación C5.3. “Ver en Órdenes” abre la lista con esa orden seleccionada (`?folio=1044`).
 
+**Entrega de equipo (`/cajera/entrega-de-equipo`, o “Entregar equipo” en Órdenes):**
+- Las tarjetas de arriba son lo que se puede entregar: #1026 y #1021 listas (C6.1/C6.4), #0991 garantía lista (C6.3), #1037 sin reparar (C6.2), vencidas y en bodega.
+- Se busca por folio con Enter (`1026` o `#1026`); un folio que no existe o que aún no está listo muestra el motivo.
+- Hay que marcar toda la verificación (y, si recoge otra persona, nombre completo, carta poder y copia de la identificación del titular) para habilitar “Cobrar y entregar”.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -317,6 +332,10 @@ frontend/src/
     │   │   ├── nueva-orden/                # C5.1 recepción de taller
     │   │   ├── nuevo-cliente/              # C5.2 (también “Editar cliente”)
     │   │   └── orden-registrada/           # C5.3
+    │   ├── entrega/           # C6
+    │   │   ├── entrega.component.*         # tarjetas, datos de la orden y verificación
+    │   │   ├── quien-recoge/               # titular u otra persona (C6.4)
+    │   │   └── cobro-entrega/              # cobro, revisión (C6.2) o costo de garantía (C6.3)
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -472,6 +491,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Nuevo cliente (C5.2) | Nombre (nombre y apellido), teléfono de 10 dígitos y correo son obligatorios (el correo es el usuario del portal). País México con lista de estados; Coahuila y Torreón de inicio. El mismo modal sirve para “Editar cliente”. | Así lo marca Figma; la lista de estados no viene en Figma. |
 | Contraseña temporal | 3 + 3 caracteres sin 0/O ni 1/I (p. ej. K7M-4Q2), con “Regenerar” | Para que no se confundan al dictarla. |
 | Técnico de la orden nueva | “Por asignar (jefe de taller)”; diagnóstico estimado al día hábil siguiente a las 18:00 | Así lo dice C5.3. |
+| Entrega (C6) | Una sola pantalla con 4 variantes según el estado: lista (cobra el saldo e inicia la garantía de 30 días), sin reparar (sin saldo, sin garantía), garantía lista (sin costo; la garantía original no se reinicia) y otra persona. Las vencidas y en bodega se entregan como una lista. | Figma dibuja las 4 variantes por separado. |
+| Verificación de entrega | Empieza sin marcar y el botón se habilita hasta marcar todo; abajo se dice qué falta | En Figma vienen marcados los dos primeros puntos y el botón siempre activo. |
+| Tarjetas de “por entregar” | Todas las entregables, con desplazamiento horizontal (3 visibles a 1440 px) | Figma muestra solo 3. |
+| Garantía lista (C6.3) | Nuevo estado “Garantía lista” en Órdenes; dato de prueba #0991 (Paola Cruz) | #0998 sigue mostrando C4.4/C4.5. |
+| Factura en la entrega | La casilla abre el mismo modal de datos fiscales del punto de venta (C2.18) | Figma solo muestra la casilla. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -490,6 +514,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
 - [ ] El anticipo de la orden nueva no entra todavía a la caja ni al corte; el PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
 - [ ] Los clientes nuevos se agregan a la lista de prueba en memoria; C8 Clientes debe guardarlos en la API.
+- [ ] El cobro de la entrega no entra a la caja ni al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
 - [ ] “Entregar equipo” abre C6 con `?folio=`; C6 debe leerlo y marcar la orden como terminada al cobrar el saldo.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
 - [ ] El panel “Ventas en espera” del inicio de la cajera (C1.1) sigue con datos fijos; debe leer `VentaService.pausadas`.
@@ -663,3 +688,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - María Hernández → orden #1044 “Por cotizar” con anticipo de $300.00; `55 9876 5432` → alta de Jorge Alberto Salinas Ruiz y su orden
   - “Ver en Órdenes” deja la orden seleccionada; Esc regresa a la lista
   - a 360 px los tres modales caben sin scroll horizontal
+
+### 7 nov 2026 · Cajera C6: Entrega de equipo
+- Revisadas en Figma C6.1 entrega normal, C6.2 equipo sin reparar, C6.3 regreso de garantía y C6.4 recoge otra persona.
+- Construida una sola pantalla con las 4 variantes: búsqueda por folio (también llega con `?folio=` desde Órdenes), tarjetas de equipos por entregar, datos de la orden, quién recoge, verificación y panel de cobro con método de pago, factura y comprobante.
+- `OrdenesService.entregar()`: lista → “Terminado” con garantía desde hoy; sin reparar → “Entregado sin reparar”; garantía lista → “Terminado” sin reiniciar la garantía. Nuevo estado “Garantía lista” y campos de accesorios, trabajo realizado, rechazo y garantía en la orden.
+- Corregido: el aviso de una entrega sin reparar decía “garantía hasta…” porque se leía el tipo después de entregar.
+- Verificado:
+  - a 1440×900, columnas como en Figma: datos de la orden de 792 px y cobro de 400 px
+  - #1026 entregado con tarjeta ($890.00) y garantía hasta 30 días después; #1021 recogido por Ana Núñez Ruiz con carta poder; #1037 sin reparar; #0991 tras garantía; en Órdenes aparecen “Entregado sin reparar” y “Terminado · garantía”
+  - folio `1035` avisa que está “Por aprobar”; `9999` que no existe
+  - a 1366×768 y 360 px sin scroll horizontal (el botón “Escanear folio” baja a su propia fila en celular)
