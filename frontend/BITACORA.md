@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 7 nov 2026 (C8 Clientes)
+- **Última actualización:** 7 nov 2026 (C9 Estadísticas)
 
 ---
 
@@ -50,7 +50,8 @@ flowchart LR
     C6["C6 Entrega de equipo<br/>C6.1 normal · C6.2 sin reparar · C6.3 garantía · C6.4 otra persona"]:::hecho
     C7["C7 Inventario<br/>C7.1 alta · C7.2 Excel · C7.3 entrada · C7.4 ajuste<br/>C7.5 pedido del jefe · C7.6 pago · C7.7 historial"]:::hecho
     C8["C8 Clientes<br/>C8.1 lista y ficha · C8.2 nuevo cliente<br/>C8.3 historial · C8.4 contraseña temporal"]:::hecho
-    C["C9–C11"]:::pendiente
+    C9["C9 Estadísticas<br/>Hoy · Semana · Mes · Año"]:::hecho
+    C["C10–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -76,6 +77,7 @@ flowchart LR
   C7 -->|"llega la refacción:<br/>se aparta y la orden<br/>vuelve a En taller"| C4
   C8 -->|"Nueva orden para<br/>este cliente"| C5
   C5 & C4 & C3 -.->|"equipos y compras<br/>del cliente"| C8
+  C3 & C4 -.->|"ventas, entregas<br/>y presupuestos"| C9
   C1 -->|"Ir a corte de caja"| C
   BASE --> POR
 ```
@@ -201,6 +203,10 @@ flowchart LR
       HC["HistorialCliente<br/>C8.3"]:::comp
       CT["ContrasenaTemporal<br/>C8.4"]:::comp
     end
+    subgraph ESTG["estadisticas/"]
+      EST["Estadisticas<br/>C9"]:::comp
+      GI["GraficaIngresos<br/>barras con globo"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
@@ -209,6 +215,7 @@ flowchart LR
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
   OS["OrdenesService<br/>órdenes, respuestas, garantías<br/>y bodega (simulado)"]:::serv
   INS["InventarioService<br/>productos, entradas, pedidos<br/>y ajustes (simulado)"]:::serv
+  ESV["EstadisticasService<br/>historial de prueba por día<br/>+ ventas y órdenes de la app"]:::serv
   CLSV["ClientesService<br/>registro único: une clientes de<br/>caja, órdenes y ventas (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
@@ -246,6 +253,10 @@ flowchart LR
   CLS & FC & HC & NC & NO --> CLSV
   CLSV --> OS & HV & CLI
   HC & CT --> DIS
+  SL --> EST
+  EST --> GI
+  EST --> ESV
+  ESV --> HV & OS
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -352,6 +363,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Generar contraseña temporal” abre C8.4 y cambia la ficha a “Temporal · enviada hoy…”. “Nueva orden para este cliente” abre la recepción con el cliente ya buscado (`/cajera/nueva-orden?cliente=55 1234 5678`).
 - Un teléfono o correo que ya tiene otro cliente no se puede registrar (prueba con `jorge.salinas@gmail.com`).
 
+**Estadísticas (`/cajera/estadisticas`):**
+- Hoy, Semana, Mes y Año. Los días anteriores salen de un historial de prueba de dos años (determinista, con la escala de Figma: ~$48,000 de mostrador y ~$32,000 de reparaciones al mes); a eso se suman las ventas de Ventas y las entregas y presupuestos de Órdenes, así que una venta cobrada en Punto de venta aparece en “Hoy”.
+- “Reparaciones por estado” es lo que hay en el taller ahora mismo (no depende del periodo).
+- “Exportar” baja un CSV con todo lo que se ve.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -405,6 +421,11 @@ frontend/src/
     │   │   ├── ficha-cliente/              # panel derecho de C8.1
     │   │   ├── historial-cliente/          # C8.3
     │   │   └── contrasena-temporal/        # C8.4
+    │   ├── estadisticas/      # C9
+    │   │   ├── estadisticas.datos.ts       # historial de prueba por día (2 años)
+    │   │   ├── estadisticas.service.ts     # suma por periodo, comparación y estados del taller
+    │   │   ├── estadisticas.component.*    # indicadores, estados, productos y métodos de pago
+    │   │   └── grafica-ingresos/           # barras de ventas y reparaciones
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -576,6 +597,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Orden #1024 | Se agregó a Órdenes (María, Samsung S22 Ultra, en taller) para que su ficha muestre el equipo de Figma | Órdenes tiene ahora 16 órdenes de prueba. |
 | Correo en el alta | Sigue obligatorio, como en Nueva orden (C5.2): es el usuario del portal | En C8.2 la etiqueta no lleva asterisco. Sin correo, la ficha dice que no puede entrar al portal. |
 | Teléfono o correo repetido | El formulario de cliente (C5.2 y C8.2) no deja guardar un teléfono o correo de otro cliente | Figma no lo muestra. |
+| Diseño de C9 | Se tomó de `docs/diseno/03-cajera/09-estadisticas.png` (una sola pantalla, Mes) porque el MCP de Figma seguía sin llamadas | Hoy, Semana y Año no tienen diseño: la gráfica cambia a “por hora” (bloques de 2 h), “por día” y “por mes”. |
+| Cifras de C9 | Se calculan; el mes actual (noviembre) va en su día 7, así que es menor que el octubre de Figma. La comparación es contra el mismo tramo del periodo anterior (“+25 % vs octubre (1–7)”) | Figma: “+12 % vs septiembre”. |
+| Reparaciones por estado | Renglones según los estados reales de Órdenes: Por cotizar, Por aprobar, En taller, Listo para entregar, Vencidos y en bodega, En garantía | Figma tiene “Recibido” y “Diagnóstico”, que no existen como estados de la orden. |
+| Colores de la gráfica | Los de Figma (#087F91 y #33B1BD). El validador de la guía de gráficas dice que el par se distingue con daltonismo (ΔE 15) pero el turquesa claro tiene contraste 2.5:1 y los 3 colores de “Métodos de pago” quedan muy cerca: por eso hay leyenda, total bajo cada grupo, globo al pasar o enfocar, 2–4 px entre barras y los montos en lista junto a la barra apilada | Figma no tiene globo ni separación entre los segmentos. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -589,7 +614,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C9–C11.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C10–C11.
+- [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
 - [ ] El anticipo de la orden nueva no entra todavía a la caja ni al corte; el PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
@@ -814,3 +840,18 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - filtros por equipo listo, por aprobar y sin equipos; búsqueda por teléfono (4 dígitos o más)
   - “Nueva orden para este cliente” abre la recepción con María elegida
   - a 1366×768 y 360 px sin scroll horizontal; en celular la tabla oculta teléfono y última visita y, al tocar un cliente, baja a su ficha
+
+### 7 nov 2026 · Cajera C9: Estadísticas
+- Figma seguía sin llamadas; C9 se hizo con `docs/diseno/03-cajera/09-estadisticas.png` (una pantalla).
+- `EstadisticasService` suma por periodo un historial de prueba por día (2 años, determinista) más lo que ya registra la app: ventas cobradas (sin canceladas ni lo devuelto), entregas de equipos y presupuestos aprobados o rechazados. Compara contra el mismo tramo del periodo anterior.
+- Pantalla con selector Hoy/Semana/Mes/Año, 4 indicadores, gráfica de ventas y reparaciones (componente aparte por el límite de CSS), reparaciones por estado del taller, productos más vendidos y métodos de pago. “Exportar” baja un CSV.
+- Antes de la gráfica se cargó la guía de gráficas y se corrió su validador de colores (resultado en Decisiones).
+- Corregido durante la prueba:
+  - la mica salía dos veces: el historial y el catálogo del punto de venta la escriben distinto; las ventas de la app se agrupan por SKU
+  - con 400 días de historial, 2025 salía incompleto y “Año” daba +859 %: ahora son 760 días (+7 %)
+  - en “Año” las 12 barras dobles no cabían: el ancho se ajusta al grupo (36 px como en Figma, 24 px con 12 meses) y en celular el total pasa al globo
+  - las semanas o días futuros dibujaban un trazo; un estado con 0 equipos dibujaba un punto rojo
+- Verificado:
+  - a 1440×900, gráfica de 812 px y estados de 380 px como en el PNG; barras de 36 px
+  - Mes: $11,848 + $7,650 = $19,498 (lo que muestra Sem 1); Hoy usa las ventas reales de la app por bloque de horas
+  - a 1366×768 y 360 px sin scroll horizontal en los cuatro periodos; sin errores en consola
