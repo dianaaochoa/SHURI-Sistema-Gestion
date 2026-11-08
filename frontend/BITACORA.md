@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (C11 Documentos impresos · cajera completa)
+- **Última actualización:** 8 nov 2026 (C1.6 Mi perfil · cajera completa)
 
 ---
 
@@ -26,7 +26,7 @@ flowchart LR
     A3["A.3 ¿Olvidaste tu contraseña?"]:::hecho
     A4["A.4 Correo enviado"]:::hecho
     A5["A.5 Crea tu contraseña"]:::hecho
-    A6["A.6 Cambiar contraseña (perfil)"]:::pendiente
+    A6["A.6 Cambiar contraseña<br/>(en Mi perfil, C1.6)"]:::hecho
   end
 
   subgraph SHELL["Estructura de la app"]
@@ -40,7 +40,7 @@ flowchart LR
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
-    C16["C1.6 Mi perfil y contraseña"]:::pendiente
+    C16["C1.6 Mi perfil y contraseña<br/>(la misma pantalla en todos los roles)"]:::hecho
     C2A["C2 Punto de venta · fase 1<br/>C2.1–C2.4 · C2.7 · C2.10–C2.12"]:::hecho
     C2B["C2 fase 2 · cliente, descuento,<br/>pausar y en espera (C2.5 C2.6 C2.8 C2.9)"]:::hecho
     C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::hecho
@@ -69,6 +69,7 @@ flowchart LR
   ACC -->|"un solo login,<br/>cada rol a su inicio"| SHELL
   SHELL --> ADM & CAJ & JEF & TEC
   USR --> A6
+  USR --> C16
   C1 -->|"F1 Nueva venta"| C2A
   C2A --> C2B --> C2C
   C2C -->|"cada venta cobrada<br/>entra al historial"| C3
@@ -144,6 +145,7 @@ flowchart LR
     MU["MenuUsuario"]:::comp
     PN["PanelNotificaciones"]:::comp
     PP["PaginaPendiente<br/>lugar de cada pantalla"]:::comp
+    PF["Perfil<br/>C1.6 · A.6 · todos los roles"]:::comp
   end
 
   subgraph CAJERA["cajera/"]
@@ -277,6 +279,8 @@ flowchart LR
   EST --> GI
   EST --> ESV
   ESV --> HV & OS
+  SL --> PF
+  PF --> AUTH & CAJA
   SL --> COR
   COR --> TA & HCO & ME & TC & AT
   TA --> CTU
@@ -406,6 +410,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Cerrar turno e imprimir corte” abre el conteo por denominación (C10.4); si no cuentas por denominación se usa lo que escribiste en el arqueo. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
 
+**Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
+- Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
+- Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
+
 **Documentos impresos (C11):**
 - Cada vez que la app imprime, se abre la vista de impresión con el documento real: ticket de venta (Punto de venta, Ventas › Reimprimir), orden de servicio en ticket o carta (Nueva orden, Órdenes › Reimprimir orden), comprobante de entrega (Entrega de equipo), devolución con nota de crédito (Ventas › Devolución), recepción en garantía (Órdenes), corte de caja y retiro o ingreso de efectivo (Corte de caja).
 - “Imprimir” (o Enter) manda solo la hoja a la impresora del navegador, en rollo de 80 mm o en carta; Esc cierra sin tocar lo que está debajo.
@@ -519,7 +527,8 @@ frontend/src/
         ├── menu-lateral/            # 184 px · riel 72 px · cajón
         ├── menu-usuario/            # desplegable del avatar
         ├── panel-notificaciones/    # panel de la campana
-        └── pagina-pendiente/        # lugar temporal de cada pantalla por construir
+        ├── pagina-pendiente/        # lugar temporal de cada pantalla por construir
+        └── perfil/                  # C1.6 Mi perfil y cambiar contraseña (todos los roles)
 ```
 
 ## 6. Convenciones
@@ -668,6 +677,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Devolución | El importe devuelto incluye IVA, igual que el total (C3.3) | Figma pone $225.00 en el renglón (sin IVA) y $225.00 de total. |
 | Corte impreso | Los cortes cerrados en la app traen el desglose (entregas, anticipos, devoluciones, retiros, pagos e ingresos); los de prueba solo los totales | Figma muestra el desglose completo. |
 | Orden #1024 | Se le pusieron los datos de recepción de Figma (tipo, color, condición, anticipo de $300 en efectivo, contraseña K7M-4Q2) | Antes tenía $500 de anticipo. |
+| Mi perfil (C1.6) | Una sola pantalla para todos los roles; también resuelve A.6 (“Cambiar contraseña” del menú). Las filas de datos dependen del rol (el descuento máximo solo sale a la cajera) y la etiqueta suma el turno si la caja está abierta | Figma solo dibuja la de la cajera. |
+| Requisitos de contraseña | En Mi perfil son obligatorios 8 caracteres, mayúscula y número (como dice su aviso); el símbolo es opcional. En A.5 (primer ingreso) siguen siendo obligatorios los cuatro. Las reglas viven en `acceso/contrasena.ts` | Los dos diseños piden cosas distintas. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -677,11 +688,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] El contador “2” de Mensajes del jefe es fijo; debe venir de la API.
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
-- [ ] A.6 Cambiar contraseña y Mi perfil (ya tienen ruta en cada rol).
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1. La cajera (C1–C11) quedó completa salvo C1.6.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1. La cajera (C1–C11 y C1.6) quedó completa.
+- [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
 - [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
@@ -704,7 +715,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] La nota de crédito y el “cambio por otro” solo se registran; falta su flujo (saldo del cliente y nueva venta).
 - [ ] El inventario no baja al vender; “disponibles” es fijo en el catálogo de prueba.
 - [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
-- [ ] C1.6 Mi perfil y contraseña.
 - [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
 - [ ] El corte cierra el turno de la caja, pero no revisa que la cajera que cierra sea la que abrió.
 - [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta todavía usa su propio catálogo (`catalogo.datos.ts`, precios sin IVA); debe leer el inventario cuando exista la API.
@@ -947,3 +957,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - orden #1024 en ticket y en carta (816 × 1056, una hoja) con la contraseña K7M-4Q2; comprobante de entrega con $1,508.00 − $300.00 = $1,208.00 pagado hoy con tarjeta; recepción en garantía de #0998 con “20 días restantes”; devolución DEV-0013 con nota NC-0007; retiro RET-0031; corte C-0412 con su desglose
   - “Imprimir” manda un marco con solo la hoja (302 px, fuentes de la app, `@page` de 80 mm o carta); Esc cierra la vista y deja abierto el modal de abajo
   - a 360 px el ticket cabe y la carta se desplaza dentro de la vista; sin errores en consola
+
+### 8 nov 2026 · Cajera C1.6: Mi perfil · cajera completa
+- Hecho con `docs/diseno/03-cajera/01-inicio-y-apertura-de-caja.png` (pantalla 6), porque Figma seguía sin llamadas.
+- `PerfilComponent` en `sistema/perfil/`: “Mis datos” (usuario, teléfono, correo, descuento máximo, último acceso) y “Cambiar contraseña” con barras de seguridad y requisitos. Se usa para `perfil` y `cambiar-contrasena` en los cuatro roles, así que también quedó A.6.
+- `AuthService`: guarda la hora de inicio de sesión, da los datos del perfil y cambia la contraseña pidiendo la actual. Las reglas de contraseña pasaron a `acceso/contrasena.ts` y las comparte A.5.
+- Verificado:
+  - a 1440×900, dos tarjetas de 596 px en x 208 y 820 como en el PNG
+  - campos vacíos, contraseña débil (“Muy débil”), repetida distinta y actual incorrecta dan su error; “Shuri2027” da “Buena” con 3 barras y el símbolo pendiente; al guardar se limpian los campos y la contraseña anterior ya no sirve
+  - “Cambiar contraseña” enfoca la contraseña actual; con el jefe de técnicos (`jlopez`) la pantalla sale sin descuento; A.5 sigue funcionando con las reglas compartidas
+  - a 360 px las tarjetas se apilan sin scroll horizontal; sin errores en consola
