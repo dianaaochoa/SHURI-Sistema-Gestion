@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (C1.6 Mi perfil · cajera completa)
+- **Última actualización:** 8 nov 2026 (J1 Inicio del jefe de técnicos)
 
 ---
 
@@ -55,7 +55,8 @@ flowchart LR
     C11["C11 Documentos impresos<br/>ticket de venta · orden (ticket y carta) · entrega<br/>devolución · garantía · corte · retiro"]:::hecho
   end
   subgraph JEF["04 · Jefe de técnicos"]
-    J["J1–J11"]:::pendiente
+    J1["J1 Inicio<br/>J1.1 tablero de inicio · J1.2 notificaciones · J1.3 menú"]:::hecho
+    J["J2–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -84,6 +85,8 @@ flowchart LR
   C2C & C6 & C5 -.->|"lo cobrado en el turno"| C10
   C7 -.->|"pago a proveedor<br/>en efectivo"| C10
   C10 -->|"Abrir nuevo turno"| C1
+  C4 & C5 -.->|"órdenes, técnicos<br/>y garantías"| J1
+  J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
 ```
@@ -148,6 +151,10 @@ flowchart LR
     PF["Perfil<br/>C1.6 · A.6 · todos los roles"]:::comp
   end
 
+  subgraph JEFE["jefe/"]
+    IJ["InicioJefe<br/>J1.1"]:::comp
+    JD["jefe.datos.ts<br/>mensajes, preguntas y<br/>solicitudes de refacción"]:::serv
+  end
   subgraph CAJERA["cajera/"]
     IC["InicioCajera<br/>C1.1 · C1.2"]:::comp
     AT["AbrirTurno<br/>modal C1.3"]:::comp
@@ -308,7 +315,9 @@ flowchart LR
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
   IC & AT & ST --> FMT
-  GLB -.-> ACCESO & SISTEMA & CAJERA
+  SL --> IJ
+  IJ --> OS & JD & AUTH
+  GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
 ---
@@ -410,6 +419,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Cerrar turno e imprimir corte” abre el conteo por denominación (C10.4); si no cuentas por denominación se usa lo que escribiste en el arqueo. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
 
+**Inicio del jefe de técnicos (`/jefe/inicio`, usuario `jlopez`):**
+- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; mensajes de clientes, preguntas de los técnicos y solicitudes de refacción son de prueba (`jefe/jefe.datos.ts`) hasta J5 y J11.
+- Cada pendiente y cada indicador abre su módulo con el folio (`/jefe/por-cotizar?folio=1043`); por ahora esos módulos son páginas pendientes.
+- Las notificaciones de la campana (J1.2) son las de Figma.
+
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
 - Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
@@ -435,6 +449,9 @@ frontend/src/
     ├── app.routes.ts          # rutas + guardas; PANTALLAS = las ya construidas
     ├── compartido/
     │   └── formato.ts         # dinero, fechas, horas, duración, saludo
+    ├── jefe/                  # 04 · Jefe de técnicos
+    │   ├── jefe.datos.ts      # mensajes de clientes, preguntas de técnicos y solicitudes de refacción (de prueba)
+    │   └── inicio-jefe/       # J1.1
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -679,6 +696,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Orden #1024 | Se le pusieron los datos de recepción de Figma (tipo, color, condición, anticipo de $300 en efectivo, contraseña K7M-4Q2) | Antes tenía $500 de anticipo. |
 | Mi perfil (C1.6) | Una sola pantalla para todos los roles; también resuelve A.6 (“Cambiar contraseña” del menú). Las filas de datos dependen del rol (el descuento máximo solo sale a la cajera) y la etiqueta suma el turno si la caja está abierta | Figma solo dibuja la de la cajera. |
 | Requisitos de contraseña | En Mi perfil son obligatorios 8 caracteres, mayúscula y número (como dice su aviso); el símbolo es opcional. En A.5 (primer ingreso) siguen siendo obligatorios los cuatro. Las reglas viven en `acceso/contrasena.ts` | Los dos diseños piden cosas distintas. |
+| Inicio del jefe (J1) | Hecho con Figma (J1.1) y el PNG (J1.2) cuando se volvieron a acabar las llamadas. Las cifras se calculan con las órdenes de prueba: 12 abiertas, 2 por cotizar (1 fuera de tiempo), 1 garantía, 3 listos | Figma: 14, 2, 2, 2 y 2. |
+| Órdenes nuevas de prueba | #1041 (sin técnico), #1034 (por cotizar fuera de tiempo) y #0986 (garantía por dictaminar) para que J1 tenga sus casos | Aparecen también en Órdenes, Entrega y Clientes de la cajera. |
+| “Sin reparación · Confirmar” | No se incluyó: en la app la orden pasa a “Sin reparación” cuando el cliente rechaza, no hay un paso donde el jefe confirme | Figma J1.1 lo muestra para #1037. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -691,7 +711,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1. La cajera (C1–C11 y C1.6) quedó completa.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J2–J11. La cajera (C1–C11 y C1.6) y J1 quedaron completos.
+- [ ] El resumen del menú del jefe (“14 órdenes abiertas”) sigue fijo; debe usar el mismo conteo que J1.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
 - [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
@@ -967,3 +988,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - campos vacíos, contraseña débil (“Muy débil”), repetida distinta y actual incorrecta dan su error; “Shuri2027” da “Buena” con 3 barras y el símbolo pendiente; al guardar se limpian los campos y la contraseña anterior ya no sirve
   - “Cambiar contraseña” enfoca la contraseña actual; con el jefe de técnicos (`jlopez`) la pantalla sale sin descuento; A.5 sigue funcionando con las reglas compartidas
   - a 360 px las tarjetas se apilan sin scroll horizontal; sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J1: Inicio
+- Figma volvió a responder y J1.1 se tomó de su código de diseño; para J1.2 se agotaron otra vez las llamadas y se usó `docs/diseno/04-jefe-de-tecnicos/j1-inicio.png`. J1.3 (menú de usuario) ya existía.
+- `InicioJefeComponent`: saludo con la fecha, 5 indicadores que abren su módulo, “Requiere tu atención” (mensajes, preguntas de técnicos, por cotizar a tiempo y fuera de las 24 h, garantías por dictaminar, órdenes sin técnico y la primera refacción por pedir), carga por técnico (órdenes en el taller, en curso o en pausa) y “Hoy en el taller”.
+- Notificaciones del jefe actualizadas a las de Figma J1.2.
+- Verificado:
+  - a 1440×900, indicadores de 229 × 64, columnas de 772 y 420 px, panel de carga de 216 px y filas de 58 px como en Figma
+  - “#1034 · Samsung A54 · Por cotizar · fuera de tiempo: 31 h de 24 h”; Carlos “Ocupado” con 6 órdenes, Mariana “En pausa #1028”, Luis “Disponible”
+  - un pendiente lleva a `/jefe/por-cotizar?folio=1043`; la campana muestra las 4 nuevas de Figma
+  - a 1366×768 y 360 px sin scroll horizontal (en celular los indicadores van de dos en dos); sin errores en consola
