@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J1 Inicio del jefe de técnicos)
+- **Última actualización:** 8 nov 2026 (J2 Tablero de órdenes)
 
 ---
 
@@ -56,7 +56,8 @@ flowchart LR
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J1["J1 Inicio<br/>J1.1 tablero de inicio · J1.2 notificaciones · J1.3 menú"]:::hecho
-    J["J2–J11"]:::pendiente
+    J2["J2 Tablero de órdenes<br/>J2.1 tablero · J2.2 asignar técnico · J2.3 detalle<br/>J2.4 cargando · J2.5 sin conexión"]:::hecho
+    J["J3–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -86,6 +87,7 @@ flowchart LR
   C7 -.->|"pago a proveedor<br/>en efectivo"| C10
   C10 -->|"Abrir nuevo turno"| C1
   C4 & C5 -.->|"órdenes, técnicos<br/>y garantías"| J1
+  J1 -->|"Ir al tablero · Asignar"| J2
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -153,6 +155,10 @@ flowchart LR
 
   subgraph JEFE["jefe/"]
     IJ["InicioJefe<br/>J1.1"]:::comp
+    TB["Tablero<br/>J2.1 · J2.4 · J2.5"]:::comp
+    AS["AsignarTecnico<br/>modal J2.2"]:::comp
+    OJ["OrdenJefe<br/>J2.3"]:::comp
+    ET["etapas.ts<br/>columnas y SLA de 24 h"]:::serv
     JD["jefe.datos.ts<br/>mensajes, preguntas y<br/>solicitudes de refacción"]:::serv
   end
   subgraph CAJERA["cajera/"]
@@ -317,6 +323,11 @@ flowchart LR
   IC & AT & ST --> FMT
   SL --> IJ
   IJ --> OS & JD & AUTH
+  IJ --> ET
+  SL --> TB
+  TB --> AS & OJ
+  TB --> OS & ET & DIS
+  OJ --> SO
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
@@ -421,8 +432,14 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 
 **Inicio del jefe de técnicos (`/jefe/inicio`, usuario `jlopez`):**
 - Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; mensajes de clientes, preguntas de los técnicos y solicitudes de refacción son de prueba (`jefe/jefe.datos.ts`) hasta J5 y J11.
-- Cada pendiente y cada indicador abre su módulo con el folio (`/jefe/por-cotizar?folio=1043`); por ahora esos módulos son páginas pendientes.
+- Cada pendiente y cada indicador abre su módulo con el folio (`/jefe/por-cotizar?folio=1043`); salvo el tablero, esos módulos todavía son páginas pendientes.
 - Las notificaciones de la campana (J1.2) son las de Figma.
+
+**Tablero de órdenes (`/jefe/tablero-de-ordenes`, usuario `jlopez`):**
+- Seis columnas: Recibido (sin técnico), Diagnóstico, Por cotizar (el técnico ya envió diagnóstico), Por aprobar, En taller (en curso, en pausa, adicional y garantía) y Listo. Las urgentes y altas van primero.
+- Atrasada = más de 24 h desde que se recibió sin haberse cotizado (borde rojo). Los chips “1 atrasada” y “1 en pausa” filtran el tablero; también se filtra por texto, técnico y prioridad.
+- Clic en una tarjeta sin técnico abre “Asignar técnico” (J2.2): recomienda al de la especialidad del equipo con menos carga; con 5 órdenes o más dice “carga alta”. Las demás abren el detalle (`?folio=1028`) con Reasignar, Cambiar prioridad y notas internas.
+- Para ver J2.5 (sin conexión) apaga la red del navegador o, en consola, pon `enLinea` del `DispositivosService` en `false`; “Reintentar ahora” vuelve a revisar.
 
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
@@ -451,7 +468,11 @@ frontend/src/
     │   └── formato.ts         # dinero, fechas, horas, duración, saludo
     ├── jefe/                  # 04 · Jefe de técnicos
     │   ├── jefe.datos.ts      # mensajes de clientes, preguntas de técnicos y solicitudes de refacción (de prueba)
-    │   └── inicio-jefe/       # J1.1
+    │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
+    │   ├── inicio-jefe/       # J1.1
+    │   └── tablero/           # J2.1 · J2.4 · J2.5
+    │       ├── asignar-tecnico/   # J2.2 modal (también reasigna)
+    │       └── orden-jefe/        # J2.3 detalle de la orden
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -699,6 +720,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Inicio del jefe (J1) | Hecho con Figma (J1.1) y el PNG (J1.2) cuando se volvieron a acabar las llamadas. Las cifras se calculan con las órdenes de prueba: 12 abiertas, 2 por cotizar (1 fuera de tiempo), 1 garantía, 3 listos | Figma: 14, 2, 2, 2 y 2. |
 | Órdenes nuevas de prueba | #1041 (sin técnico), #1034 (por cotizar fuera de tiempo) y #0986 (garantía por dictaminar) para que J1 tenga sus casos | Aparecen también en Órdenes, Entrega y Clientes de la cajera. |
 | “Sin reparación · Confirmar” | No se incluyó: en la app la orden pasa a “Sin reparación” cuando el cliente rechaza, no hay un paso donde el jefe confirme | Figma J1.1 lo muestra para #1037. |
+| Tablero del jefe (J2) | Hecho con los PNG de `docs/diseno/04-jefe-de-tecnicos` (Figma sin llamadas). Las columnas salen del estado de la orden: “Por cotizar” de la app se parte en Recibido (sin técnico), Diagnóstico y Por cotizar (con diagnóstico) | El tiempo de cada tarjeta es el de su etapa; en las atrasadas, las horas desde que se recibió (“32 h”). |
+| Campos nuevos de la orden | `prioridad`, `prometida`, `diagnostico`, `pausa` y `notas` (internas) en `Orden`; `especialidad` en `Tecnico` | Los usará también el técnico (T1–T7). Las notas internas no las ve el cliente. |
+| Órdenes nuevas de prueba (J2) | #1040 Moto G84 y #1039 Redmi Note 12 en diagnóstico con Luis | Con ellas J1 marca 14 órdenes abiertas, como Figma. |
+| “Técnica: Mariana Vega” | El detalle dice “A cargo de: …” | No se adivina el género por el nombre. |
+| Tiempo trabajado y fotos | El resumen muestra prioridad en lugar de “Tiempo trabajado” y las fotos son espacios vacíos | No hay registro de tiempos ni fotos hasta que el técnico (T) y la API existan. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -711,7 +737,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J2–J11. La cajera (C1–C11 y C1.6) y J1 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J3–J11. La cajera (C1–C11 y C1.6), J1 y J2 quedaron completos.
+- [ ] Tablero: fotos reales, tiempo trabajado sin pausas y “Ver solicitud” (lleva a Refacciones, J11, aún pendiente). La prioridad y las asignaciones viven en memoria.
 - [ ] El resumen del menú del jefe (“14 órdenes abiertas”) sigue fijo; debe usar el mismo conteo que J1.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
 - [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
@@ -998,3 +1025,15 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - “#1034 · Samsung A54 · Por cotizar · fuera de tiempo: 31 h de 24 h”; Carlos “Ocupado” con 6 órdenes, Mariana “En pausa #1028”, Luis “Disponible”
   - un pendiente lleva a `/jefe/por-cotizar?folio=1043`; la campana muestra las 4 nuevas de Figma
   - a 1366×768 y 360 px sin scroll horizontal (en celular los indicadores van de dos en dos); sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J2: Tablero de órdenes
+- Figma sin llamadas disponibles: J2.1–J2.5 se tomaron de los PNG de `docs/diseno/04-jefe-de-tecnicos`.
+- `jefe/etapas.ts` reúne columnas, SLA de 24 h, atrasadas y tiempos; Inicio (J1) ahora lo usa también.
+- `TableroComponent` (J2.1 con filtros y chips, J2.4 tarjetas fantasma al cargar, J2.5 aviso sin conexión con el tablero atenuado), `AsignarTecnicoComponent` (J2.2, también para reasignar) y `OrdenJefeComponent` (J2.3, reutiliza el seguimiento de 6 pasos de la cajera).
+- `OrdenesService`: `asignar`, `cambiarPrioridad` y `agregarNota`; datos de prueba con diagnóstico, pausa (#1028, R-211) y fechas prometidas.
+- Verificado:
+  - a 1440×900, seis columnas como en Figma; #1034 con borde rojo y “32 h”, #1041 “Sin asignar · Asignar”
+  - asignar #1041 a Mariana con nota: pasa a Diagnóstico con “MV”, aviso de confirmación y la nota en el historial; desde `?folio=1041` se abre directo la asignación
+  - detalle #1028: “En pausa desde hace 3 h · Esperando refacción”, prioridad a Urgente y nota interna arriba del historial
+  - J2.5 a 1366×768: aviso rojo y “Reintentar ahora” lo quita al volver la red
+  - a 360 px sin scroll horizontal (las columnas se recorren de lado dentro del tablero); sin errores en consola
