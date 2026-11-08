@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (C10 Corte de caja)
+- **Última actualización:** 8 nov 2026 (C11 Documentos impresos · cajera completa)
 
 ---
 
@@ -52,7 +52,7 @@ flowchart LR
     C8["C8 Clientes<br/>C8.1 lista y ficha · C8.2 nuevo cliente<br/>C8.3 historial · C8.4 contraseña temporal"]:::hecho
     C9["C9 Estadísticas<br/>Hoy · Semana · Mes · Año"]:::hecho
     C10["C10 Corte de caja<br/>C10.1 turno · C10.2 historial · C10.3 retiro o ingreso<br/>C10.4 cerrar turno · C10.5 turno cerrado"]:::hecho
-    C["C11"]:::pendiente
+    C11["C11 Documentos impresos<br/>ticket de venta · orden (ticket y carta) · entrega<br/>devolución · garantía · corte · retiro"]:::hecho
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -83,6 +83,7 @@ flowchart LR
   C2C & C6 & C5 -.->|"lo cobrado en el turno"| C10
   C7 -.->|"pago a proveedor<br/>en efectivo"| C10
   C10 -->|"Abrir nuevo turno"| C1
+  C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
 ```
 
@@ -219,6 +220,11 @@ flowchart LR
       ME["MovimientoEfectivo<br/>C10.3"]:::comp
       TC["TurnoCerrado<br/>C10.5"]:::comp
     end
+    subgraph DOCG["documentos/"]
+      VI["VistaImpresion<br/>en el layout · Imprimir"]:::comp
+      TK["Ticket<br/>80 mm · 7 documentos"]:::comp
+      OC["OrdenCarta<br/>hoja carta"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
@@ -227,6 +233,7 @@ flowchart LR
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
   OS["OrdenesService<br/>órdenes, respuestas, garantías<br/>y bodega (simulado)"]:::serv
   INS["InventarioService<br/>productos, entradas, pedidos<br/>y ajustes (simulado)"]:::serv
+  DOS["DocumentosService<br/>qué se imprime y folios<br/>DEV- y NC-"]:::serv
   COS["CorteService<br/>movimientos y arqueo del turno,<br/>cortes anteriores (simulado)"]:::serv
   ESV["EstadisticasService<br/>historial de prueba por día<br/>+ ventas y órdenes de la app"]:::serv
   CLSV["ClientesService<br/>registro único: une clientes de<br/>caja, órdenes y ventas (simulado)"]:::serv
@@ -276,6 +283,12 @@ flowchart LR
   COR & TA & HCO & ME --> COS
   COS --> CAJA & HV & OS
   EN & PP2 --> COS
+  SL --> VI
+  VI --> TK & OC
+  VI --> DOS
+  OC --> CLSV
+  PDV & VEN & ORD & ENT & TA & HCO & ME & TC --> DOS
+  DOS --> DIS & HV & OS
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -393,6 +406,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Cerrar turno e imprimir corte” abre el conteo por denominación (C10.4); si no cuentas por denominación se usa lo que escribiste en el arqueo. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
 
+**Documentos impresos (C11):**
+- Cada vez que la app imprime, se abre la vista de impresión con el documento real: ticket de venta (Punto de venta, Ventas › Reimprimir), orden de servicio en ticket o carta (Nueva orden, Órdenes › Reimprimir orden), comprobante de entrega (Entrega de equipo), devolución con nota de crédito (Ventas › Devolución), recepción en garantía (Órdenes), corte de caja y retiro o ingreso de efectivo (Corte de caja).
+- “Imprimir” (o Enter) manda solo la hoja a la impresora del navegador, en rollo de 80 mm o en carta; Esc cierra sin tocar lo que está debajo.
+- Para ver la orden de #1024 como en Figma: Órdenes › #1024 › Reimprimir orden › Carta.
+- La impresora sigue simulada: con `localStorage.setItem('shuri.demo.impresora', 'falla')` no se abre la vista y aparecen los avisos de error de siempre.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -458,6 +477,11 @@ frontend/src/
     │   │   ├── historial-cortes/           # C10.2
     │   │   ├── movimiento-efectivo/        # C10.3
     │   │   └── turno-cerrado/              # C10.5
+    │   ├── documentos/        # C11
+    │   │   ├── documentos.service.ts       # documento en la vista, folios DEV- y NC-, datos del negocio
+    │   │   ├── ticket/                     # 7 tickets de 80 mm
+    │   │   ├── orden-carta/                # orden de servicio en hoja carta
+    │   │   └── vista-impresion/            # vista previa e Imprimir (marco oculto)
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -638,6 +662,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Turno cerrado (C10.5) | Aparece sobre Corte de caja al cerrar, con “Abrir nuevo turno” (C1.3), “Cerrar sesión” y “Ver el corte en el historial” | En Figma aparece sobre Punto de venta. |
 | Caja cerrada | “Turno actual” muestra un aviso con “Abrir turno” y “Ver historial”; los botones de retiro e ingreso se ocultan | Figma no lo muestra. |
 | Orden: anticipo y entrega | La orden guarda cómo se pagó el anticipo y cuánto y cómo se cobró al entregar (para el corte) | Antes solo guardaba el total. |
+| Diseño de C11 | Se tomó de `docs/diseno/03-cajera/11-documentos-impresos.png` (8 documentos) porque el MCP de Figma seguía sin llamadas | — |
+| Cuándo se ve un documento | Al imprimir se abre una vista previa con “Imprimir”; el navegador no puede mandar a una impresora térmica sin preguntar (salvo Chrome con `--kiosk-printing`) | Figma solo dibuja los documentos. |
+| QR | Recuadro con la palabra QR, como en Figma | Falta generar el QR de verdad (enlace al portal o a la factura). |
+| Devolución | El importe devuelto incluye IVA, igual que el total (C3.3) | Figma pone $225.00 en el renglón (sin IVA) y $225.00 de total. |
+| Corte impreso | Los cortes cerrados en la app traen el desglose (entregas, anticipos, devoluciones, retiros, pagos e ingresos); los de prueba solo los totales | Figma muestra el desglose completo. |
+| Orden #1024 | Se le pusieron los datos de recepción de Figma (tipo, color, condición, anticipo de $300 en efectivo, contraseña K7M-4Q2) | Antes tenía $500 de anticipo. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -651,7 +681,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C11.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1. La cajera (C1–C11) quedó completa salvo C1.6.
+- [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
@@ -905,3 +936,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - cierre contando $2,759.00 por denominación: faltante de −$30.00, pide comentario, a gerencia $1,759.00; C10.5 con corte #C-0412, el menú pasa a “Caja cerrada” y el corte queda primero en el historial
   - con la caja cerrada, la entrada de PED-0123 pagada en efectivo pide abrir el turno
   - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
+
+### 8 nov 2026 · Cajera C11: Documentos impresos
+- Figma seguía sin llamadas; C11 se hizo con `docs/diseno/03-cajera/11-documentos-impresos.png`, recortado en sus 8 documentos.
+- `DocumentosService` decide qué se imprime (pasa por la impresora simulada) y abre la vista de impresión, montada en el layout. Siete tickets de 80 mm (302 px) en un solo componente y la orden en hoja carta (816 × 1056 px) en otro. “Imprimir” copia la hoja con los estilos de la app a un marco oculto con `@page` de 80 mm o carta y lo imprime.
+- Las órdenes guardan su ficha de recepción (tipo, marca, modelo, color, condición, quién recibió y la contraseña temporal) y la garantía su condición al reingresar; los retiros e ingresos llevan folio (RET-0031, ING-0005…) y el corte su desglose.
+- Se cambiaron a documentos reales las impresiones de Punto de venta, Ventas, Órdenes, Nueva orden, Entrega y Corte de caja.
+- Verificado:
+  - ticket de V-00862 igual a Figma: subtotal $775.00, ahorro $25.00, IVA $124.00, total $899.00, cambio $101.00
+  - orden #1024 en ticket y en carta (816 × 1056, una hoja) con la contraseña K7M-4Q2; comprobante de entrega con $1,508.00 − $300.00 = $1,208.00 pagado hoy con tarjeta; recepción en garantía de #0998 con “20 días restantes”; devolución DEV-0013 con nota NC-0007; retiro RET-0031; corte C-0412 con su desglose
+  - “Imprimir” manda un marco con solo la hoja (302 px, fuentes de la app, `@page` de 80 mm o carta); Esc cierra la vista y deja abierto el modal de abajo
+  - a 360 px el ticket cabe y la carta se desplaza dentro de la vista; sin errores en consola
