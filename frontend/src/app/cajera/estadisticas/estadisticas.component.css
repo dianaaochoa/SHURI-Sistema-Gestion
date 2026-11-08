@@ -1,0 +1,54 @@
+.estadisticas { display: flex; flex-direction: column; gap: 16px; min-height: 100%; }
+.encabezado__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Figma: Hoy · Semana · Mes · Año */
+.periodo { display: flex; overflow: hidden; border: 1px solid var(--color-borde); border-radius: 8px; }
+.periodo button { height: 38px; padding: 0 16px; border: 0; background: var(--color-superficie); font: 600 14px var(--fuente); color: var(--color-marino); cursor: pointer; }
+.periodo .periodo--activo { background: var(--color-primario); color: var(--color-superficie); }
+
+.indicadores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.cifra { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); font-size: 11px; color: var(--color-texto-tenue); }
+.cifra strong { font-size: 26px; font-weight: 700; color: var(--color-marino); white-space: nowrap; }
+.cifra .exito { color: var(--color-exito); }
+.cifra span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cifra b { font-size: 13px; font-weight: 600; color: var(--color-marino); white-space: nowrap; }
+
+/* Figma: gráfica 792 px + estados 380 px; productos + métodos debajo */
+.rejilla { display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: auto 1fr; gap: 16px; }
+.tarjeta-est { display: flex; flex-direction: column; gap: 12px; padding: 20px 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.tarjeta-est h2 { font-size: 15px; font-weight: 600; color: var(--color-marino); }
+.nota { margin-top: -8px; font-size: 11px; color: var(--color-texto-tenue); }
+
+.muestra { display: inline-block; flex-shrink: 0; width: 10px; height: 10px; border-radius: 2px; }
+.apilada__parte--efectivo, .muestra--efectivo { background: var(--color-primario); }
+.apilada__parte--tarjeta, .muestra--tarjeta { background: #33b1bd; }
+.apilada__parte--transferencia, .muestra--transferencia { background: var(--color-menu-icono); }
+
+.estado-taller p { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: var(--color-texto-tenue); }
+.estado-taller strong { color: var(--color-marino); }
+.riel { display: block; height: 8px; border-radius: 999px; background: var(--color-neutro-suave); }
+.riel__relleno { display: block; height: 100%; border-radius: 999px; }
+
+.tabla-productos { align-self: start; overflow: hidden; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-marino); }
+th { height: 40px; padding: 0 16px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; color: var(--color-texto-secundario); }
+td { height: 44px; padding: 0 16px; border-top: 1px solid var(--color-borde); font-weight: 600; }
+.num { text-align: right; }
+.vacia { font-weight: 400; text-align: center; color: var(--color-texto-tenue); }
+
+.apilada { display: flex; gap: 2px; height: 14px; overflow: hidden; border-radius: 999px; background: var(--color-neutro-suave); }
+.apilada__parte { min-width: 4px; }
+.metodo { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--color-texto-tenue); }
+.metodo span { display: flex; align-items: center; gap: 8px; }
+.metodo strong { color: var(--color-marino); }
+
+@media (max-width: 1280px) {
+  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rejilla { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .indicadores { grid-template-columns: minmax(0, 1fr); }
+  .periodo button { padding: 0 12px; }
+}
