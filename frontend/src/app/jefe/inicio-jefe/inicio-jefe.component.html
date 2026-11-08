@@ -1,0 +1,64 @@
+<div class="inicio">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">{{ saludo }}</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo }}</p>
+    </div>
+    <a class="boton boton--contorno boton--40" routerLink="/jefe/tablero-de-ordenes">
+      <img src="assets/inventario/list-primario.svg" width="16" height="16" alt="" />Ir al tablero
+    </a>
+  </header>
+
+  <section class="indicadores" aria-label="Indicadores del taller">
+    @for (i of indicadores(); track i.titulo) {
+      <a class="indicador indicador--boton" [routerLink]="['/jefe', i.ruta]">
+        <p class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ i.detalle }}</p>
+        </div>
+      </a>
+    }
+  </section>
+
+  <div class="columnas">
+    <section class="panel atencion" aria-labelledby="titulo-atencion">
+      <h2 class="panel__titulo" id="titulo-atencion"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Requiere tu atención</h2>
+      @for (p of pendientes(); track $index) {
+        <a class="pendiente" [routerLink]="rutaDe(p)" [queryParams]="consulta(p)">
+          <span class="pendiente__icono pendiente__icono--{{ p.tono }}"><span class="icono" [style.--icono]="'url(assets/' + p.icono + '.svg)'"></span></span>
+          <span class="pendiente__texto"><strong>{{ p.titulo }}</strong><span>{{ p.detalle }}</span></span>
+          <span class="estado estado--{{ p.tono }}">{{ p.accion }}</span>
+          <img src="assets/cajera/chev-r.svg" width="14" height="14" alt="" />
+        </a>
+      } @empty {
+        <p class="vacio">Todo al día: no hay nada que requiera tu atención.</p>
+      }
+    </section>
+
+    <div class="lateral">
+      <section class="panel" aria-labelledby="titulo-carga">
+        <h2 class="panel__titulo" id="titulo-carga"><span class="icono" style="--icono: url(assets/menu/users.svg)"></span>Carga por técnico</h2>
+        @for (t of carga(); track t.iniciales) {
+          <div class="tecnico">
+            <div class="tecnico__fila">
+              <span class="tecnico__avatar" aria-hidden="true">{{ t.iniciales }}</span>
+              <span class="tecnico__texto"><strong>{{ t.nombre }}</strong><span>{{ t.detalle }}</span></span>
+              <span class="estado estado--{{ t.estado.tono }}">{{ t.estado.texto }}</span>
+            </div>
+            <span class="tecnico__riel" role="progressbar" [attr.aria-label]="'Carga de ' + t.nombre" [attr.aria-valuenow]="t.avance" aria-valuemin="0" aria-valuemax="100">
+              <span [class.ocupado]="t.estado.tono === 'advertencia'" [style.width.%]="t.avance"></span>
+            </span>
+          </div>
+        }
+      </section>
+
+      <section class="panel hoy" aria-labelledby="titulo-hoy">
+        <h2 class="panel__titulo" id="titulo-hoy"><span class="icono" style="--icono: url(assets/menu/chart.svg)"></span>Hoy en el taller</h2>
+        @for (h of hoy(); track h.texto) {
+          <p class="dato"><span>{{ h.texto }}</span><strong>{{ h.valor }}</strong></p>
+        }
+      </section>
+    </div>
+  </div>
+</div>

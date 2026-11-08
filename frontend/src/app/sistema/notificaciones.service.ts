@@ -29,10 +29,13 @@ const DEMO: Record<Rol, Omit<Notificacion, 'id'>[]> = {
     { titulo: 'El técnico necesita un dato', detalle: '#1029 · el PIN no funciona · Jorge ya le escribió por chat', leida: false, icono: 'menu/msg', tono: 'advertencia' },
     { titulo: 'Cliente aprobó por el portal', detalle: '#1031 · cobra el restante al entregar', leida: true, icono: 'menu/receipt', tono: 'info' },
   ],
+  // Figma J1.2
   'jefe-tecnicos': [
-    { titulo: 'Orden #1043 por cotizar', detalle: 'iPhone 14 · diagnóstico listo · hace 25 min', leida: false, icono: 'menu/receipt', tono: 'advertencia' },
-    { titulo: 'Nuevo mensaje de un cliente', detalle: 'Paola Cruz pregunta por #1031 · hace 12 min', leida: false, icono: 'menu/msg', tono: 'info' },
-    { titulo: 'Garantía #1024 por dictaminar', detalle: 'Galaxy S22 Ultra · reporte antes de las 13:00', leida: true, icono: 'menu/shield', tono: 'neutro' },
+    { titulo: 'Nuevo mensaje de María Hernández', detalle: '#1024 · “¿Tengo que llevar algo?” · hace 3 min', leida: false, icono: 'menu/msg', tono: 'info' },
+    { titulo: 'Diagnóstico listo para cotizar', detalle: '#1043 · iPhone 14 · Carlos Ruiz · hace 25 min', leida: false, icono: 'menu/receipt', tono: 'info' },
+    { titulo: 'Cliente aprobó el adicional', detalle: '#1029 · $530.00 · desde el portal', leida: false, icono: 'iconos/circle-check-sm', tono: 'exito' },
+    { titulo: 'PED-0123 llega hoy', detalle: 'Caja lo recibirá en el mostrador', leida: false, icono: 'menu/truck', tono: 'advertencia' },
+    { titulo: 'Garantía #0986 por dictaminar', detalle: 'Galaxy S22 Ultra · Carlos recomienda que no aplica', leida: true, icono: 'menu/shield', tono: 'neutro' },
   ],
   tecnico: [
     { titulo: 'Refacción entregada', detalle: 'Módulo USB-C S21 para #1029', leida: false, icono: 'menu/package', tono: 'exito' },

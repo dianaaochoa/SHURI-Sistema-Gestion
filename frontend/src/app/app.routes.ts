@@ -46,6 +46,8 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
   'cajera/clientes': () => import('./cajera/clientes/clientes.component').then((m) => m.ClientesComponent),
   'cajera/estadisticas': () => import('./cajera/estadisticas/estadisticas.component').then((m) => m.EstadisticasComponent),
   'cajera/corte-de-caja': () => import('./cajera/corte/corte.component').then((m) => m.CorteComponent),
+  // Jefe de técnicos
+  'jefe/inicio': () => import('./jefe/inicio-jefe/inicio-jefe.component').then((m) => m.InicioJefeComponent),
 };
 
 /** C1.6 Mi perfil (también A.6 Cambiar contraseña): la misma pantalla en todos los roles. */
