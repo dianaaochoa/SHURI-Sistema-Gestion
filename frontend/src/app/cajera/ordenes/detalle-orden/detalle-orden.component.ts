@@ -44,7 +44,7 @@ export class DetalleOrdenComponent {
   protected readonly etiqueta = computed(() => etiquetaEstado(this.orden()));
   protected readonly saldo = computed(() => saldo(this.orden()));
   protected readonly garantia = computed(() => garantiaRestante(this.orden()));
-  protected readonly enMostrador = computed(() => ['lista', 'sin-reparacion', 'vencida'].includes(this.orden().estado));
+  protected readonly enMostrador = computed(() => ['lista', 'sin-reparacion', 'vencida', 'garantia-lista'].includes(this.orden().estado));
 
   /** Fecha límite para recoger: 30 días desde el aviso de "Listo". */
   protected readonly limite = computed(() => {

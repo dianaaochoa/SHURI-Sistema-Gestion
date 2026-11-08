@@ -12,7 +12,9 @@ export type EstadoOrden =
   | 'sin-reparacion'
   | 'vencida'
   | 'bodega'
-  | 'terminada';
+  | 'garantia-lista'
+  | 'terminada'
+  | 'sin-reparar-entregada';
 
 export type Filtro = 'todas' | 'por-cotizar' | 'por-aprobar' | 'adicional' | 'en-taller' | 'listas' | 'garantia' | 'bodega';
 
@@ -61,7 +63,15 @@ export interface Orden {
   anticipo: number;
   /** ISO: cuándo se avisó "Listo". */
   listaDesde?: string;
-  entrega?: { fecha: string; por: string; pagado: number };
+  entrega?: { fecha: string; por: string; pagado: number; recogio?: string };
+  /** Accesorios que dejó el cliente al recibir (se devuelven en C6). */
+  accesorios?: string;
+  /** Lo que hizo el técnico (C6 "Trabajo realizado"). */
+  realizado?: string;
+  /** ISO: cuándo rechazó el presupuesto (C6.2). */
+  rechazo?: string;
+  /** Reingreso en garantía (C4.5 → C6.3). */
+  garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string };
   bodega?: { ubicacion: string; estante: string; enviado: string; por: string };
   historial: Evento[];
   /** Avisos y recordatorios al cliente (C4.6 "Intentos de contacto"). */
@@ -107,8 +117,13 @@ export const ESTADOS_ORDEN: Record<EstadoOrden, { texto: string; tono: string; p
   'sin-reparacion': { texto: 'Sin reparación', tono: 'peligro', paso: 5 },
   vencida: { texto: 'Vencido · por enviar', tono: 'peligro', paso: 5 },
   bodega: { texto: 'En bodega', tono: 'peligro', paso: 5 },
+  'garantia-lista': { texto: 'Garantía lista', tono: 'neutro', paso: 5 },
   terminada: { texto: 'Terminado', tono: 'info', paso: 7 },
+  'sin-reparar-entregada': { texto: 'Entregado sin reparar', tono: 'neutro', paso: 7 },
 };
+
+/** Estados que se entregan en C6 (en este orden aparecen las tarjetas). */
+export const ENTREGABLES: EstadoOrden[] = ['lista', 'garantia-lista', 'sin-reparacion', 'vencida', 'bodega'];
 
 export const FILTROS: { id: Filtro; texto: string; estados: EstadoOrden[] }[] = [
   { id: 'todas', texto: 'Todas', estados: [] },
@@ -116,8 +131,8 @@ export const FILTROS: { id: Filtro; texto: string; estados: EstadoOrden[] }[] = 
   { id: 'por-aprobar', texto: 'Por aprobar', estados: ['por-aprobar'] },
   { id: 'adicional', texto: 'Adicional', estados: ['adicional'] },
   { id: 'en-taller', texto: 'En taller', estados: ['en-taller', 'esperando-refaccion', 'en-garantia'] },
-  { id: 'listas', texto: 'Listas', estados: ['lista', 'sin-reparacion'] },
-  { id: 'garantia', texto: 'Garantía', estados: ['terminada', 'en-garantia'] },
+  { id: 'listas', texto: 'Listas', estados: ['lista', 'sin-reparacion', 'garantia-lista'] },
+  { id: 'garantia', texto: 'Garantía', estados: ['terminada', 'en-garantia', 'garantia-lista'] },
   { id: 'bodega', texto: 'Bodega', estados: ['vencida', 'bodega'] },
 ];
 
@@ -127,7 +142,7 @@ export const sumarDias = (iso: string, dias: number) => new Date(new Date(iso).g
 
 /** Días de garantía que le quedan a una orden entregada (0 si ya venció). */
 export function garantiaRestante(orden: Orden): number {
-  if (!orden.entrega) return 0;
+  if (!orden.entrega || orden.estado === 'sin-reparar-entregada') return 0;
   return Math.max(0, DIAS_GARANTIA - diasDesde(orden.entrega.fecha));
 }
 
@@ -139,7 +154,7 @@ export function etiquetaEstado(orden: Orden): string {
 
 /** Lo que falta por cobrar al entregar: presupuesto (y adicional aprobado) menos anticipo. */
 export function saldo(orden: Orden): number {
-  if (orden.estado === 'sin-reparacion' || !orden.presupuesto) return 0;
+  if (['sin-reparacion', 'garantia-lista', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return 0;
   return Math.max(0, redondear(orden.presupuesto.total - orden.anticipo));
 }
 
@@ -237,6 +252,8 @@ function ordenesDemo(): Orden[] {
       tecnico: tecnico('CR'),
       estado: 'lista',
       trabajo: 'Batería y limpieza de puerto',
+      accesorios: 'Funda transparente',
+      realizado: 'Cambio de batería. Pruebas de carga rápida (25 W) y de pantalla correctas.',
       presupuesto: { enviado: hace(10, '16:00'), descripcion: 'Batería y limpieza de puerto.', refacciones: 520, manoObra: 247.24, total: 890, aprobado: hace(9, '11:00') },
       listaDesde: hace(4, '17:45'),
       historial: [
@@ -245,6 +262,45 @@ function ordenesDemo(): Orden[] {
         ev(4, '17:30', 'Reparación terminada (CR)'),
         ev(4, '17:45', 'Aviso de “Listo” en el portal'),
       ],
+    },
+    {
+      ...base,
+      folio: '#1021',
+      recibido: hace(9, '11:30'),
+      cliente: { nombre: 'Pedro Núñez', telefono: '55 3344 5566', correo: 'pedro.nunez@gmail.com' },
+      equipo: 'Redmi 12C',
+      imei: '861122334455667',
+      tecnico: tecnico('CR'),
+      estado: 'lista',
+      trabajo: 'Limpieza por humedad',
+      accesorios: 'Ninguno',
+      realizado: 'Limpieza por humedad de carga. Pruebas de carga y autonomía correctas.',
+      presupuesto: { enviado: hace(9, '16:00'), descripcion: 'Limpieza por humedad.', refacciones: 600, manoObra: 425.86, total: 1190, aprobado: hace(8, '10:00') },
+      anticipo: 300,
+      listaDesde: hace(5, '17:45'),
+      historial: [ev(9, '11:30', 'Recibido por Ana Martínez'), ev(8, '10:00', 'Presupuesto aprobado en el portal'), ev(5, '17:45', 'Aviso de “Listo” en el portal')],
+    },
+    {
+      ...base,
+      folio: '#0991',
+      recibido: hace(25, '10:00'),
+      cliente: { nombre: 'Paola Cruz', telefono: '87 1777 2233', correo: 'paola.cruz@gmail.com' },
+      equipo: 'iPhone 13',
+      imei: '353300112233445',
+      tecnico: tecnico('MV'),
+      estado: 'garantia-lista',
+      trabajo: 'Cambio de pantalla',
+      accesorios: 'Ninguno',
+      presupuesto: { enviado: hace(24, '12:00'), descripcion: 'Cambio de pantalla.', refacciones: 1300, manoObra: 424.14, total: 2000, aprobado: hace(24, '15:00') },
+      listaDesde: hace(1, '16:30'),
+      entrega: { fecha: hace(20, '12:00'), por: 'Ana Martínez · Caja 01', pagado: 2000 },
+      garantia: {
+        recibida: hace(4, '11:00'),
+        falla: 'La pantalla parpadea en la parte inferior',
+        dictamen: 'Cubierta por garantía',
+        resolucion: 'Se reemplazó el flex de pantalla sin costo; la falla está relacionada con la reparación original.',
+      },
+      historial: [ev(25, '10:00', 'Recibido'), ev(20, '12:00', 'Entregado y pagado'), ev(4, '11:00', 'Recibido en garantía'), ev(1, '16:30', 'Garantía terminada (MV)')],
     },
     {
       ...base,
@@ -277,6 +333,9 @@ function ordenesDemo(): Orden[] {
       tecnico: tecnico('LO'),
       estado: 'sin-reparacion',
       trabajo: 'Sin reparación · placa dañada',
+      accesorios: 'Ninguno',
+      realizado: 'El equipo se devuelve sin reparar y en las mismas condiciones registradas en la orden: placa dañada por humedad. Solo se cobró la revisión.',
+      anticipo: 200,
       listaDesde: hace(1, '12:00'),
       historial: [ev(2, '13:00', 'Recibido por Ana Martínez'), ev(1, '11:40', 'Diagnóstico: placa dañada, no tiene reparación'), ev(1, '12:00', 'Aviso para recoger en el portal')],
     },
@@ -415,6 +474,7 @@ export class OrdenesService {
       tecnico: POR_ASIGNAR,
       estado: 'por-cotizar',
       trabajo: datos.falla.trim(),
+      accesorios: datos.accesorios || 'Ninguno',
       anticipo: datos.anticipo,
       historial,
       contactos: datos.cliente.correo ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
@@ -440,6 +500,7 @@ export class OrdenesService {
       return {
         ...o,
         estado: aprobo ? 'en-taller' : 'sin-reparacion',
+        rechazo: aprobo ? o.rechazo : ahoraIso(),
         presupuesto: o.presupuesto && aprobo ? { ...o.presupuesto, aprobado: ahoraIso() } : o.presupuesto,
         listaDesde: aprobo ? o.listaDesde : ahoraIso(),
         trabajo: aprobo ? o.trabajo : 'Sin reparación · el cliente no aprobó',
@@ -454,6 +515,7 @@ export class OrdenesService {
       ...o,
       estado: 'en-garantia',
       tecnico: tecnicoAsignado,
+      garantia: { recibida: ahoraIso(), falla: falla.trim(), dictamen: 'En revisión', resolucion: '' },
       historial: [...o.historial, { fecha: ahoraIso(), texto: `Recibido en garantía por ${cajera}: ${falla.trim()}` }],
     }));
   }
@@ -474,6 +536,42 @@ export class OrdenesService {
           : o,
       ),
     );
+  }
+
+  /**
+   * C6: entrega el equipo. Normal → "Terminado" con garantía desde hoy; sin reparar → "Entregado sin reparar";
+   * tras garantía → vuelve a "Terminado" sin reiniciar la garantía original.
+   */
+  entregar(folio: string, entrega: { recoge: string; pagado: number; metodo: string; cajera: string }): Orden | undefined {
+    const ahora = ahoraIso();
+    const por = `${entrega.cajera} · Caja 01`;
+    this.actualizar(folio, (o): Orden => {
+      const evento = (texto: string) => [...o.historial, { fecha: ahora, texto }];
+      const contactos = [...o.contactos, { fecha: ahora, texto: 'Aviso de entrega en el portal' }];
+      const pago = entrega.pagado > 0 ? ` · cobrados $${entrega.pagado.toFixed(2)} en ${entrega.metodo.toLowerCase()}` : '';
+      if (o.estado === 'garantia-lista') {
+        return { ...o, estado: 'terminada', historial: evento(`Entregado tras garantía a ${entrega.recoge}`), contactos };
+      }
+      if (o.estado === 'sin-reparacion') {
+        return {
+          ...o,
+          estado: 'sin-reparar-entregada',
+          entrega: { fecha: ahora, por, pagado: o.anticipo, recogio: entrega.recoge },
+          historial: evento(`Entregado sin reparar a ${entrega.recoge}`),
+          contactos,
+        };
+      }
+      const desdeBodega = o.estado === 'bodega' ? 'Sacado de bodega y entregado' : 'Entregado';
+      return {
+        ...o,
+        estado: 'terminada',
+        bodega: undefined,
+        entrega: { fecha: ahora, por, pagado: o.presupuesto?.total ?? o.anticipo + entrega.pagado, recogio: entrega.recoge },
+        historial: evento(`${desdeBodega} a ${entrega.recoge}${pago}`),
+        contactos,
+      };
+    });
+    return this.ordenes().find((o) => o.folio === folio);
   }
 
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */
