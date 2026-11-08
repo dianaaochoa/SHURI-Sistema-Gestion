@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 7 nov 2026 (C7 Inventario)
+- **Última actualización:** 7 nov 2026 (C8 Clientes)
 
 ---
 
@@ -49,7 +49,8 @@ flowchart LR
     C5["C5 Nueva orden<br/>C5.1 recepción · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
     C6["C6 Entrega de equipo<br/>C6.1 normal · C6.2 sin reparar · C6.3 garantía · C6.4 otra persona"]:::hecho
     C7["C7 Inventario<br/>C7.1 alta · C7.2 Excel · C7.3 entrada · C7.4 ajuste<br/>C7.5 pedido del jefe · C7.6 pago · C7.7 historial"]:::hecho
-    C["C8–C11"]:::pendiente
+    C8["C8 Clientes<br/>C8.1 lista y ficha · C8.2 nuevo cliente<br/>C8.3 historial · C8.4 contraseña temporal"]:::hecho
+    C["C9–C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -73,6 +74,8 @@ flowchart LR
   C4 -->|"Entregar equipo<br/>(con el folio)"| C6
   C6 -->|"la orden queda<br/>Terminado"| C4
   C7 -->|"llega la refacción:<br/>se aparta y la orden<br/>vuelve a En taller"| C4
+  C8 -->|"Nueva orden para<br/>este cliente"| C5
+  C5 & C4 & C3 -.->|"equipos y compras<br/>del cliente"| C8
   C1 -->|"Ir a corte de caja"| C
   BASE --> POR
 ```
@@ -192,6 +195,12 @@ flowchart LR
       MOV["Movimientos<br/>historial del producto"]:::comp
       PAG["Paginacion"]:::comp
     end
+    subgraph CLIG["clientes/"]
+      CLS["Clientes<br/>C8.1 lista"]:::comp
+      FC["FichaCliente<br/>portal, equipos y compras"]:::comp
+      HC["HistorialCliente<br/>C8.3"]:::comp
+      CT["ContrasenaTemporal<br/>C8.4"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
@@ -200,6 +209,7 @@ flowchart LR
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
   OS["OrdenesService<br/>órdenes, respuestas, garantías<br/>y bodega (simulado)"]:::serv
   INS["InventarioService<br/>productos, entradas, pedidos<br/>y ajustes (simulado)"]:::serv
+  CLSV["ClientesService<br/>registro único: une clientes de<br/>caja, órdenes y ventas (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
@@ -231,6 +241,11 @@ flowchart LR
   INV & CTL & AP & IE & EN & HE & AJ & AJS & MOV --> INS
   EN --> OS & CAJA & DIS
   PP2 --> CAJA
+  SL --> CLS
+  CLS --> FC & HC & CT & NC
+  CLS & FC & HC & NC & NO --> CLSV
+  CLSV --> OS & HV & CLI
+  HC & CT --> DIS
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -331,6 +346,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Importar: cualquier `.xlsx` muestra la vista previa de Figma (la lectura real de Excel llega con la API); un `.csv` con las columnas de la plantilla se lee de verdad. Exportar baja un CSV que abre Excel.
 - Entradas: PED-0123 llega hoy y se paga con efectivo de caja (C7.5 → C7.6). Al registrarla, el kit de sellos queda apartado para #1028 y esa orden pasa de “Esperando refacción” a “En taller”.
 
+**Clientes (`/cajera/clientes`):**
+- La lista junta los clientes de Punto de venta, los de las órdenes y los de las ventas (se reconocen por teléfono o nombre). “Equipos activos”, “Última visita” y “Total gastado” se calculan con Órdenes y Ventas.
+- María Hernández tiene el historial de Figma C8.3 (su equipo #1024 en taller y compras viejas de archivo).
+- “Generar contraseña temporal” abre C8.4 y cambia la ficha a “Temporal · enviada hoy…”. “Nueva orden para este cliente” abre la recepción con el cliente ya buscado (`/cajera/nueva-orden?cliente=55 1234 5678`).
+- Un teléfono o correo que ya tiene otro cliente no se puede registrar (prueba con `jorge.salinas@gmail.com`).
+
 ## 5. Estructura de carpetas
 
 ```
@@ -378,6 +399,12 @@ frontend/src/
     │   │   ├── historial-entradas/         # C7.7
     │   │   ├── ajuste-inventario/  ajustes/  # C7.4 y registro de ajustes
     │   │   └── movimientos/                # historial de un producto
+    │   ├── clientes/          # C8
+    │   │   ├── clientes.service.ts         # registro único, historial, resumen y contraseña temporal (simulado)
+    │   │   ├── clientes.component.*        # C8.1 lista (el alta y la edición usan ordenes/nuevo-cliente)
+    │   │   ├── ficha-cliente/              # panel derecho de C8.1
+    │   │   ├── historial-cliente/          # C8.3
+    │   │   └── contrasena-temporal/        # C8.4
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -544,6 +571,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Totales de entradas | Se calculan (ENT-0055 da $9,275.00 + IVA = $10,759.00) | Figma suma $9,725.00 / $11,281.00 con las mismas líneas. |
 | Resultado de importar | Dice qué cambia (“Actualiza costo y nombre”) | Figma dice “Actualiza precio” en ACC-001 aunque el precio no cambia. |
 | Entrada de mercancía | Se agregaron “Forma de pago” también en compra directa (el historial C7.7 muestra Crédito y Transferencia), “Diferencia con la factura” (alimenta el aviso del historial) y la opción “Registrar compra directa” para soltar un pedido | En C7.3 no aparecen. |
+| Diseño de C8 | Se tomó de `docs/diseno/03-cajera/08-clientes.png` (recortado por pantalla) porque el MCP de Figma seguía sin llamadas disponibles | Medidas comprobadas contra el PNG: buscador 420 px, filtro 200 px, tabla 792 px, ficha 400 px, filas de 52 px. |
+| Clientes de C8 | Los de Figma C8 (Lucía Torres, Elena Díaz, Pedro Ruiz) no se agregaron: sus teléfonos ya son de Laura Medina y Pedro Núñez en las órdenes. La lista sale de los datos que ya existen y sus cifras se calculan | En Figma, María tiene 6 compras y $3,240 gastados; aquí 4 compras y $2,938 (lo que suman sus ventas y pagos de prueba). |
+| Orden #1024 | Se agregó a Órdenes (María, Samsung S22 Ultra, en taller) para que su ficha muestre el equipo de Figma | Órdenes tiene ahora 16 órdenes de prueba. |
+| Correo en el alta | Sigue obligatorio, como en Nueva orden (C5.2): es el usuario del portal | En C8.2 la etiqueta no lleva asterisco. Sin correo, la ficha dice que no puede entrar al portal. |
+| Teléfono o correo repetido | El formulario de cliente (C5.2 y C8.2) no deja guardar un teléfono o correo de otro cliente | Figma no lo muestra. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -557,11 +589,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C8–C11.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C9–C11.
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
 - [ ] El anticipo de la orden nueva no entra todavía a la caja ni al corte; el PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
-- [ ] Los clientes nuevos se agregan a la lista de prueba en memoria; C8 Clientes debe guardarlos en la API.
+- [ ] Los clientes viven en memoria (`ClientesService`): altas, ediciones y contraseñas temporales se pierden al recargar. La contraseña temporal no se envía de verdad.
+- [ ] Algunos clientes de prueba tienen un teléfono en Punto de venta y otro en Órdenes (Laura Medina, Raúl Ortiz, Andrés Vega, Pedro Núñez): se unen por nombre. La API debe tener un solo registro con un id.
+- [ ] Editar un cliente no cambia los datos ya guardados en sus órdenes.
 - [ ] El cobro de la entrega no entra a la caja ni al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
 - [ ] “Entregar equipo” abre C6 con `?folio=`; C6 debe leerlo y marcar la orden como terminada al cobrar el saldo.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
@@ -767,3 +801,16 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - PED-0123: $340.00 + $54.40 = $394.40, entregado $400.00, cambio $5.60, caja de $7,180.00 a $6,785.60; ENT-0056 en el historial y #1028 “En taller”; la misma remisión no se puede registrar dos veces
   - importar `.csv` (comillas, `$80.00`, categoría inválida); ajustes de merma (−$1,208.00) y conteo físico (+2) con lector de código
   - a 1366×768 y 360 px sin scroll horizontal (en celular la tabla oculta foto, SKU, categoría, apartadas y stock; los cinco modales caben en 328 px)
+
+### 7 nov 2026 · Cajera C8: Clientes
+- El MCP de Figma siguió sin llamadas (plan Starter), así que C8 se construyó desde `docs/diseno/03-cajera/08-clientes.png`, recortado en sus 4 pantallas: C8.1 lista con ficha, C8.2 nuevo cliente, C8.3 historial y C8.4 contraseña temporal enviada.
+- `ClientesService`: un solo registro que une los clientes de Punto de venta, de las órdenes y de las ventas; calcula equipos activos (“1 en taller”, “1 listo”, “1 por aprobar”, “1 por devolver”…), última visita, visitas y total gastado, y arma el historial (compras, equipos y garantías). Nueva orden ahora busca en ese registro y guarda ahí sus clientes nuevos.
+- El formulario de cliente de C5.2 se reutilizó para C8.2 y para editar (con el texto de Clientes) y ahora rechaza teléfonos o correos que ya tiene otro cliente.
+- Nueva orden acepta `?cliente=` para abrir la recepción con el cliente ya buscado (“Nueva orden para este cliente”).
+- Verificado:
+  - a 1440×900, medidas como en el PNG (buscador 420 px, filtro 200 px, tabla 792 px, ficha 400 px, filas de 52 px, botón principal en y 815); historial de 860×695 (Figma 860×698) con las 8 filas de María
+  - contraseña temporal: modal C8.4 y la ficha cambia a “Temporal · enviada hoy…”; “Enviar por correo” avisa a dónde se mandó
+  - alta de Jorge Alberto Salinas Ruiz (datos de C8.2): con `jorge.salinas@gmail.com` avisa que ya es el usuario de Jorge Salinas; con otro correo se guarda y queda primero en la lista
+  - filtros por equipo listo, por aprobar y sin equipos; búsqueda por teléfono (4 dígitos o más)
+  - “Nueva orden para este cliente” abre la recepción con María elegida
+  - a 1366×768 y 360 px sin scroll horizontal; en celular la tabla oculta teléfono y última visita y, al tocar un cliente, baja a su ficha
