@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 7 nov 2026 (C9 Estadísticas)
+- **Última actualización:** 8 nov 2026 (C10 Corte de caja)
 
 ---
 
@@ -51,7 +51,8 @@ flowchart LR
     C7["C7 Inventario<br/>C7.1 alta · C7.2 Excel · C7.3 entrada · C7.4 ajuste<br/>C7.5 pedido del jefe · C7.6 pago · C7.7 historial"]:::hecho
     C8["C8 Clientes<br/>C8.1 lista y ficha · C8.2 nuevo cliente<br/>C8.3 historial · C8.4 contraseña temporal"]:::hecho
     C9["C9 Estadísticas<br/>Hoy · Semana · Mes · Año"]:::hecho
-    C["C10–C11"]:::pendiente
+    C10["C10 Corte de caja<br/>C10.1 turno · C10.2 historial · C10.3 retiro o ingreso<br/>C10.4 cerrar turno · C10.5 turno cerrado"]:::hecho
+    C["C11"]:::pendiente
   end
   subgraph JEF["04 · Jefe de técnicos"]
     J["J1–J11"]:::pendiente
@@ -78,7 +79,10 @@ flowchart LR
   C8 -->|"Nueva orden para<br/>este cliente"| C5
   C5 & C4 & C3 -.->|"equipos y compras<br/>del cliente"| C8
   C3 & C4 -.->|"ventas, entregas<br/>y presupuestos"| C9
-  C1 -->|"Ir a corte de caja"| C
+  C1 -->|"Ir a corte de caja"| C10
+  C2C & C6 & C5 -.->|"lo cobrado en el turno"| C10
+  C7 -.->|"pago a proveedor<br/>en efectivo"| C10
+  C10 -->|"Abrir nuevo turno"| C1
   BASE --> POR
 ```
 
@@ -207,6 +211,14 @@ flowchart LR
       EST["Estadisticas<br/>C9"]:::comp
       GI["GraficaIngresos<br/>barras con globo"]:::comp
     end
+    subgraph CORG["corte/"]
+      COR["Corte<br/>encabezado y pestañas"]:::comp
+      TA["TurnoActual<br/>C10.1 y arqueo"]:::comp
+      CTU["CerrarTurno<br/>C10.4 por denominación"]:::comp
+      HCO["HistorialCortes<br/>C10.2"]:::comp
+      ME["MovimientoEfectivo<br/>C10.3"]:::comp
+      TC["TurnoCerrado<br/>C10.5"]:::comp
+    end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
   CAT["catalogo.datos.ts"]:::serv
@@ -215,12 +227,13 @@ flowchart LR
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
   OS["OrdenesService<br/>órdenes, respuestas, garantías<br/>y bodega (simulado)"]:::serv
   INS["InventarioService<br/>productos, entradas, pedidos<br/>y ajustes (simulado)"]:::serv
+  COS["CorteService<br/>movimientos y arqueo del turno,<br/>cortes anteriores (simulado)"]:::serv
   ESV["EstadisticasService<br/>historial de prueba por día<br/>+ ventas y órdenes de la app"]:::serv
   CLSV["ClientesService<br/>registro único: une clientes de<br/>caja, órdenes y ventas (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
-  CAJA["CajaService<br/>turno y pagos a proveedor (simulado)"]:::serv
+  CAJA["CajaService<br/>turno, retiros, ingresos y<br/>pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
 
@@ -257,6 +270,12 @@ flowchart LR
   EST --> GI
   EST --> ESV
   ESV --> HV & OS
+  SL --> COR
+  COR --> TA & HCO & ME & TC & AT
+  TA --> CTU
+  COR & TA & HCO & ME --> COS
+  COS --> CAJA & HV & OS
+  EN & PP2 --> COS
   IC --> AT
   PDV --> BB & TT & CB & PT & AT
   PDV --> SC & AD & PV & VE & EI & SCX & AK
@@ -368,6 +387,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Reparaciones por estado” es lo que hay en el taller ahora mismo (no depende del periodo).
 - “Exportar” baja un CSV con todo lo que se ve.
 
+**Corte de caja (`/cajera/corte-de-caja`):**
+- “Turno actual” solo trae lo que pasó desde que se abrió el turno: ventas cobradas, anticipos de órdenes nuevas, entregas cobradas, pagos a proveedor, retiros, ingresos y devoluciones. Para probarlo: abre turno, cobra una venta en Punto de venta, entrega #1026 en efectivo y registra un retiro.
+- El efectivo esperado es fondo + lo cobrado en efectivo − retiros, pagos y devoluciones en efectivo. Lo mismo usan los retiros y el pago a proveedor de Inventario (C7.6): con la caja cerrada no se puede pagar en efectivo.
+- “Cerrar turno e imprimir corte” abre el conteo por denominación (C10.4); si no cuentas por denominación se usa lo que escribiste en el arqueo. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
+- “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -426,6 +451,13 @@ frontend/src/
     │   │   ├── estadisticas.service.ts     # suma por periodo, comparación y estados del taller
     │   │   ├── estadisticas.component.*    # indicadores, estados, productos y métodos de pago
     │   │   └── grafica-ingresos/           # barras de ventas y reparaciones
+    │   ├── corte/             # C10
+    │   │   ├── corte.service.ts            # movimientos y arqueo del turno, cerrar y cortes (simulado)
+    │   │   ├── corte.component.*           # encabezado, pestañas, caja cerrada y modales
+    │   │   ├── turno-actual/  cerrar-turno/  # C10.1 y C10.4
+    │   │   ├── historial-cortes/           # C10.2
+    │   │   ├── movimiento-efectivo/        # C10.3
+    │   │   └── turno-cerrado/              # C10.5
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
     │   │   ├── ventas.component.*          # C3.1 historial · C3.2 sin resultados
@@ -601,6 +633,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Cifras de C9 | Se calculan; el mes actual (noviembre) va en su día 7, así que es menor que el octubre de Figma. La comparación es contra el mismo tramo del periodo anterior (“+25 % vs octubre (1–7)”) | Figma: “+12 % vs septiembre”. |
 | Reparaciones por estado | Renglones según los estados reales de Órdenes: Por cotizar, Por aprobar, En taller, Listo para entregar, Vencidos y en bodega, En garantía | Figma tiene “Recibido” y “Diagnóstico”, que no existen como estados de la orden. |
 | Colores de la gráfica | Los de Figma (#087F91 y #33B1BD). El validador de la guía de gráficas dice que el par se distingue con daltonismo (ΔE 15) pero el turquesa claro tiene contraste 2.5:1 y los 3 colores de “Métodos de pago” quedan muy cerca: por eso hay leyenda, total bajo cada grupo, globo al pasar o enfocar, 2–4 px entre barras y los montos en lista junto a la barra apilada | Figma no tiene globo ni separación entre los segmentos. |
+| Diseño de C10 | Se tomó de `docs/diseno/03-cajera/10-corte-de-caja.png` (5 pantallas) porque el MCP de Figma seguía sin llamadas | — |
+| Cifras del turno | Se calculan con lo que pasó desde que se abrió el turno; recién abierto solo aparece la apertura | Figma muestra un turno con 23 ventas, 4 entregas y 3 anticipos. |
+| Turno cerrado (C10.5) | Aparece sobre Corte de caja al cerrar, con “Abrir nuevo turno” (C1.3), “Cerrar sesión” y “Ver el corte en el historial” | En Figma aparece sobre Punto de venta. |
+| Caja cerrada | “Turno actual” muestra un aviso con “Abrir turno” y “Ver historial”; los botones de retiro e ingreso se ocultan | Figma no lo muestra. |
+| Orden: anticipo y entrega | La orden guarda cómo se pagó el anticipo y cuánto y cómo se cobró al entregar (para el corte) | Antes solo guardaba el total. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -614,7 +651,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C10–C11.
+- [ ] Pantallas de cada rol: inicios de AD1, J1 y T1; resto de la cajera C11.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
@@ -638,10 +675,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
 - [ ] C1.6 Mi perfil y contraseña.
 - [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
-- [ ] Corte de caja (C10) debe llamar a `CajaService.cerrarTurno()`.
+- [ ] El corte cierra el turno de la caja, pero no revisa que la cajera que cierra sea la que abrió.
 - [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta todavía usa su propio catálogo (`catalogo.datos.ts`, precios sin IVA); debe leer el inventario cuando exista la API.
 - [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
-- [ ] El efectivo en caja para pagar a proveedores parte de $7,180.00 (dato de Figma); el corte (C10) debe calcularlo con fondo, ventas, retiros y pagos.
+- [ ] Retiros, ingresos, pagos a proveedor y cortes viven en memoria (el turno abierto sí queda en el navegador): al recargar con el turno abierto, el arqueo pierde esos movimientos.
 - [ ] Los pedidos del jefe son datos de prueba; deben venir de su módulo (J6). Avisar al técnico y al jefe solo se anota en el historial de la orden.
 - [ ] La foto del producto y la de la factura no se suben a ningún lado (la del producto solo se ve mientras dura la sesión).
 
@@ -855,3 +892,16 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 1440×900, gráfica de 812 px y estados de 380 px como en el PNG; barras de 36 px
   - Mes: $11,848 + $7,650 = $19,498 (lo que muestra Sem 1); Hoy usa las ventas reales de la app por bloque de horas
   - a 1366×768 y 360 px sin scroll horizontal en los cuatro periodos; sin errores en consola
+
+### 8 nov 2026 · Cajera C10: Corte de caja
+- Figma seguía sin llamadas; C10 se hizo con `docs/diseno/03-cajera/10-corte-de-caja.png`, recortado en sus 5 pantallas (C10.1 turno actual, C10.2 historial, C10.3 movimiento de efectivo, C10.4 cerrar turno, C10.5 turno cerrado).
+- `CorteService` arma los movimientos del turno abierto desde Ventas, Órdenes y la caja, separa efectivo, tarjeta y transferencia (los cobros mixtos por sus partes) y cierra el turno guardando el corte. `CajaService` ahora lleva retiros e ingresos además de los pagos a proveedor; el efectivo fijo de prueba ($7,180.00) que usaba C7.6 se quitó.
+- `OrdenesService` guarda el método del anticipo y lo cobrado al entregar, con su método.
+- Corregido durante la prueba: el aviso del retiro decía “quedan $2,289.00” (restaba dos veces porque leía el saldo después de registrar).
+- Verificado:
+  - a 1440×900, tabla de 772 px y arqueo de 420 px (C10.1), tabla de 812 px y detalle de 380 px (C10.2) como en el PNG; modales de 560, 760 y 520 px
+  - turno con fondo de $1,000.00, venta en efectivo de $899.00, venta mixta de $1,403.60 ($500.00 en efectivo), entrega de #1026 por $890.00 en efectivo y anticipo de $300.00 con tarjeta: efectivo esperado $3,289.00 y tarjeta $1,203.60, cuadrados a mano
+  - retiro de $500.00: con $5,000.00 avisa que en caja solo hay $3,289.00; registrado deja $2,789.00
+  - cierre contando $2,759.00 por denominación: faltante de −$30.00, pide comentario, a gerencia $1,759.00; C10.5 con corte #C-0412, el menú pasa a “Caja cerrada” y el corte queda primero en el historial
+  - con la caja cerrada, la entrada de PED-0123 pagada en efectivo pide abrir el turno
+  - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
