@@ -1,0 +1,22 @@
+:host { display: block; height: 100%; }
+.inventario { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+.inventario > .aviso { align-items: center; }
+.inventario__contenido { display: flex; flex: 1; flex-direction: column; gap: 16px; min-height: 0; }
+
+.encabezado__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.inventario__mes { gap: 8px; width: 170px; }
+
+/* Pestañas (Figma: texto 13 px y subrayado de 2 px) */
+.pestanas { display: flex; gap: 24px; overflow-x: auto; border-bottom: 1px solid var(--color-borde); scrollbar-width: none; }
+.pestanas__opcion { flex-shrink: 0; padding: 0 0 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: 500 13px var(--fuente); color: var(--color-texto-tenue); white-space: nowrap; cursor: pointer; }
+.pestanas__opcion:hover { color: var(--color-marino); }
+.pestanas__opcion--activa, .pestanas__opcion--activa:hover { border-bottom-color: var(--color-primario); font-weight: 600; color: var(--color-primario); }
+
+@media (max-width: 1280px) {
+  :host, .inventario { height: auto; }
+  .inventario__contenido { flex: none; }
+}
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+}

@@ -42,6 +42,7 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
   // C5 es un modal sobre la lista de órdenes: la misma pantalla lo abre al entrar por esta ruta.
   'cajera/nueva-orden': () => import('./cajera/ordenes/ordenes.component').then((m) => m.OrdenesComponent),
   'cajera/entrega-de-equipo': () => import('./cajera/entrega/entrega.component').then((m) => m.EntregaComponent),
+  'cajera/inventario': () => import('./cajera/inventario/inventario.component').then((m) => m.InventarioComponent),
 };
 
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */

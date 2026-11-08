@@ -574,6 +574,16 @@ export class OrdenesService {
     return this.ordenes().find((o) => o.folio === folio);
   }
 
+  /** C7.5 · Llegó la refacción de un pedido del jefe: queda apartada y la orden vuelve al taller. */
+  refaccionRecibida(folio: string, pieza: string, entrada: string): void {
+    const texto = `Llegó ${pieza} (${entrada}); queda apartada para esta orden`;
+    this.actualizar(folio, (o) => ({
+      ...o,
+      estado: o.estado === 'esperando-refaccion' ? 'en-taller' : o.estado,
+      historial: [...o.historial, { fecha: ahoraIso(), texto }],
+    }));
+  }
+
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */
   avisar(folio: string, texto: string): void {
     this.actualizar(folio, (o) => ({ ...o, contactos: [...o.contactos, { fecha: ahoraIso(), texto }], historial: [...o.historial, { fecha: ahoraIso(), texto }] }));
