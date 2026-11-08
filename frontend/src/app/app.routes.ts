@@ -45,6 +45,7 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
   'cajera/inventario': () => import('./cajera/inventario/inventario.component').then((m) => m.InventarioComponent),
   'cajera/clientes': () => import('./cajera/clientes/clientes.component').then((m) => m.ClientesComponent),
   'cajera/estadisticas': () => import('./cajera/estadisticas/estadisticas.component').then((m) => m.EstadisticasComponent),
+  'cajera/corte-de-caja': () => import('./cajera/corte/corte.component').then((m) => m.CorteComponent),
 };
 
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */

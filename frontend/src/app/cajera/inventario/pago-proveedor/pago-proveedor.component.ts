@@ -1,6 +1,7 @@
 import { Component, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { formatearDinero } from '../../../compartido/formato';
 import { CajaService } from '../../caja.service';
+import { CorteService } from '../../corte/corte.service';
 import { Pedido, redondear } from '../inventario.datos';
 
 /** C7.6 · Pago al proveedor en efectivo de caja (modal). */
@@ -95,7 +96,7 @@ export class PagoProveedorComponent implements OnInit {
 
   protected readonly dinero = formatearDinero;
   protected readonly nombreCaja = this.caja.turno()?.caja ?? this.caja.cajas[0];
-  protected readonly antes = this.caja.efectivoEnCaja;
+  protected readonly antes = inject(CorteService).efectivoEnCaja;
   protected readonly entregado = signal(0);
   protected readonly cambio = computed(() => Math.max(0, redondear(this.entregado() - this.total())));
   protected readonly intentado = signal(false);

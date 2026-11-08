@@ -61,9 +61,12 @@ export interface Orden {
   presupuesto?: Presupuesto;
   adicional?: Adicional;
   anticipo: number;
+  /** Cómo pagó el anticipo (efectivo, tarjeta o transferencia): lo usa el corte de caja (C10). */
+  metodoAnticipo?: string;
   /** ISO: cuándo se avisó "Listo". */
   listaDesde?: string;
-  entrega?: { fecha: string; por: string; pagado: number; recogio?: string };
+  /** `pagado` es lo que costó en total; `cobrado` y `metodo`, lo que entró a la caja al entregar (C10). */
+  entrega?: { fecha: string; por: string; pagado: number; recogio?: string; cobrado?: number; metodo?: string };
   /** Accesorios que dejó el cliente al recibir (se devuelven en C6). */
   accesorios?: string;
   /** Lo que hizo el técnico (C6 "Trabajo realizado"). */
@@ -491,6 +494,7 @@ export class OrdenesService {
       trabajo: datos.falla.trim(),
       accesorios: datos.accesorios || 'Ninguno',
       anticipo: datos.anticipo,
+      metodoAnticipo: datos.anticipo > 0 ? datos.metodoAnticipo.toLowerCase() : undefined,
       historial,
       contactos: datos.cliente.correo ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
     };
@@ -571,7 +575,7 @@ export class OrdenesService {
         return {
           ...o,
           estado: 'sin-reparar-entregada',
-          entrega: { fecha: ahora, por, pagado: o.anticipo, recogio: entrega.recoge },
+          entrega: { fecha: ahora, por, pagado: o.anticipo, recogio: entrega.recoge, cobrado: 0 },
           historial: evento(`Entregado sin reparar a ${entrega.recoge}`),
           contactos,
         };
@@ -581,7 +585,7 @@ export class OrdenesService {
         ...o,
         estado: 'terminada',
         bodega: undefined,
-        entrega: { fecha: ahora, por, pagado: o.presupuesto?.total ?? o.anticipo + entrega.pagado, recogio: entrega.recoge },
+        entrega: { fecha: ahora, por, pagado: o.presupuesto?.total ?? o.anticipo + entrega.pagado, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.metodo },
         historial: evento(`${desdeBodega} a ${entrega.recoge}${pago}`),
         contactos,
       };

@@ -19,8 +19,15 @@ export interface PagoProveedor {
   monto: number;
 }
 
+export interface MovimientoCaja {
+  fecha: string;
+  tipo: 'retiro' | 'ingreso';
+  monto: number;
+  motivo: string;
+  comentario: string;
+}
+
 const CLAVE_TURNO = 'shuri.turno';
-const EFECTIVO_DEMO = 7180;
 
 /**
  * Estado de la caja de la cajera (C1). Simulado mientras no exista la API.
@@ -43,17 +50,20 @@ export class CajaService {
     return turno ? `${turno.caja} · Turno abierto` : `${this.cajas[0]} · Caja cerrada`;
   });
 
-  /**
-   * Efectivo en el cajón para pagar a proveedores (C7.6). Arranca con el dato de Figma;
-   * el corte de caja (C10) lo calculará con fondo + ventas en efectivo − retiros − pagos.
-   */
   private readonly pagos = signal<PagoProveedor[]>([]);
   readonly pagosAProveedor = this.pagos.asReadonly();
-  readonly efectivoEnCaja = computed(() => EFECTIVO_DEMO - this.pagos().reduce((s, p) => s + p.monto, 0));
 
-  /** Sale del efectivo del turno y aparece en el corte como "Pagos a proveedor". */
+  /** Sale del efectivo del turno y aparece en el corte como "Pagos a proveedor" (C7.6). */
   pagarProveedor(pago: Omit<PagoProveedor, 'fecha'>): void {
     this.pagos.update((lista) => [...lista, { ...pago, fecha: new Date().toISOString() }]);
+  }
+
+  /** Retiros a gerencia e ingresos de efectivo (C10.3). */
+  private readonly movimientosCaja = signal<MovimientoCaja[]>([]);
+  readonly movimientos = this.movimientosCaja.asReadonly();
+
+  registrarMovimiento(movimiento: Omit<MovimientoCaja, 'fecha'>): void {
+    this.movimientosCaja.update((lista) => [...lista, { ...movimiento, fecha: new Date().toISOString() }]);
   }
 
   abrirTurno(datos: Omit<Turno, 'desde'>): void {
@@ -62,7 +72,7 @@ export class CajaService {
     guardar(turno);
   }
 
-  /** Lo usará el corte de caja (C10). */
+  /** Corte de caja (C10.4): la caja queda bloqueada hasta una nueva apertura. */
   cerrarTurno(): void {
     this.actual.set(null);
     guardar(null);

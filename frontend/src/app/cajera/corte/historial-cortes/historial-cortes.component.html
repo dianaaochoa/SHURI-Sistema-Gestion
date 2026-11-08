@@ -1,0 +1,65 @@
+<div class="indicadores">
+  <p class="cifra"><strong>{{ totales().cortes }}</strong><span><b>Cortes en el mes</b>{{ totales().cajas || 'Sin cortes' }} · {{ totales().turnos }} {{ totales().turnos === 1 ? 'turno' : 'turnos' }}</span></p>
+  <p class="cifra"><strong>{{ dinero(totales().cobrado, true) }}</strong><span><b>Total cobrado</b>Todos los métodos</span></p>
+  <p class="cifra"><strong [class.falta]="totales().diferencia < 0" [class.sobra]="totales().diferencia > 0">{{ conSigno(totales().diferencia) }}</strong><span><b>Diferencia acumulada</b>{{ totales().faltantes }} {{ totales().faltantes === 1 ? 'faltante' : 'faltantes' }} · {{ totales().sobrantes }} {{ totales().sobrantes === 1 ? 'sobrante' : 'sobrantes' }}</span></p>
+  <p class="cifra"><strong class="exito">{{ totales().cuadrados }}</strong><span><b>Cortes cuadrados</b>Sin diferencia</span></p>
+</div>
+
+<div class="columnas">
+  <section class="tabla-cortes" aria-label="Cortes">
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th class="h-turno">Turno</th><th>Cajera</th><th class="num h-esperado">Esperado</th><th class="num h-contado">Contado</th><th class="num">Diferencia</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        @for (c of lista(); track c.folio) {
+          <tr tabindex="0" [class.elegida]="c.folio === elegido()?.folio" [attr.aria-selected]="c.folio === elegido()?.folio" (click)="elegir(c)" (keydown.enter)="elegir(c)">
+            <td class="fuerte">{{ diaMes(c.hasta) }}</td>
+            <td class="h-turno tenue">{{ c.turno }}</td>
+            <td>{{ c.cajera }}</td>
+            <td class="num h-esperado tenue">{{ dinero(c.esperado) }}</td>
+            <td class="num h-contado tenue">{{ dinero(c.contado) }}</td>
+            <td class="num fuerte" [class.falta]="diferencia(c) < 0" [class.cuadra]="diferencia(c) === 0" [class.sobra]="diferencia(c) > 0">{{ conSigno(diferencia(c)) }}</td>
+            <td><span class="estado estado--{{ estado(c).tono }}">{{ estado(c).texto }}</span></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="7" class="vacia">No hay cortes en este mes{{ cajera() ? ' de ' + cajera() : '' }}.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  @if (elegido(); as c) {
+    <section class="detalle" aria-labelledby="titulo-corte">
+      <header class="detalle__encabezado">
+        <div>
+          <h2 id="titulo-corte">Corte del {{ diaMes(c.hasta) }} · {{ c.turno }}</h2>
+          <p>{{ c.cajera }} · {{ c.caja }} · {{ horario(c) }} · #{{ c.folio }}</p>
+        </div>
+        <span class="estado estado--{{ estado(c).tono }}">{{ estado(c).texto }}</span>
+      </header>
+      @if (mensaje(); as m) {
+        <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ m }}</p>
+      }
+      <p class="renglon"><span>Fondo inicial</span><strong>{{ dinero(c.fondo) }}</strong></p>
+      <p class="renglon"><span>Ventas de mostrador</span><strong>{{ dinero(c.ventas) }}</strong></p>
+      <p class="renglon"><span>Cobros de reparación</span><strong>{{ dinero(c.reparaciones) }}</strong></p>
+      <p class="renglon"><span>Retiros y pagos</span><strong>{{ c.retiros < 0 ? '− ' + dinero(-c.retiros) : dinero(c.retiros) }}</strong></p>
+      <hr />
+      <p class="renglon"><span>Efectivo esperado</span><strong>{{ dinero(c.esperado) }}</strong></p>
+      <p class="renglon"><span>Efectivo contado</span><strong>{{ dinero(c.contado) }}</strong></p>
+      <p class="renglon"><span>Tarjeta</span><strong>{{ dinero(c.tarjeta) }}</strong></p>
+      <p class="renglon"><span>Transferencias</span><strong>{{ dinero(c.transferencias) }}</strong></p>
+      <p class="renglon"><span>Entregado a gerencia</span><strong>{{ dinero(c.contado - c.fondoQueQueda) }}</strong></p>
+      <hr />
+      <p class="renglon renglon--dif" [class.falta]="diferencia(c) < 0" [class.sobra]="diferencia(c) > 0"><span>Diferencia</span><strong>{{ conSigno(diferencia(c)) }}</strong></p>
+      @if (c.comentario) {
+        <p class="comentario">Comentario: {{ c.comentario }}</p>
+      }
+      <span class="espacio"></span>
+      <button type="button" class="boton boton--contorno boton--44 boton--bloque" (click)="reimprimir(c)">
+        <img src="assets/ventas/printer-primario.svg" width="16" height="16" alt="" />Reimprimir corte
+      </button>
+    </section>
+  }
+</div>

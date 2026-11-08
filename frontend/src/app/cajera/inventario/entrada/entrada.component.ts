@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, computed, inject, output, signal, viewCh
 import { AuthService } from '../../../acceso/auth.service';
 import { formatearDinero } from '../../../compartido/formato';
 import { CajaService } from '../../caja.service';
+import { CorteService } from '../../corte/corte.service';
 import { OrdenesService } from '../../ordenes/ordenes.service';
 import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
 import { FORMAS_PAGO, FormaPago, IVA, LineaEntrada, PROVEEDORES, Pedido, redondear } from '../inventario.datos';
@@ -27,6 +28,7 @@ export class EntradaComponent implements OnInit {
   protected readonly inventario = inject(InventarioService);
   private readonly ordenes = inject(OrdenesService);
   private readonly caja = inject(CajaService);
+  private readonly corte = inject(CorteService);
   private readonly dispositivos = inject(DispositivosService);
   protected readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
   private readonly buscador = viewChild<ElementRef<HTMLInputElement>>('buscador');
@@ -169,7 +171,8 @@ export class EntradaComponent implements OnInit {
     if (!this.renglones().length) e['lineas'] = 'Agrega al menos un producto';
     else if (this.renglones().some((r) => !Number.isInteger(r.cantidad) || r.cantidad <= 0)) e['lineas'] = 'Cada cantidad debe ser de 1 pieza o más';
     else if (this.renglones().some((r) => !(r.costo > 0))) e['lineas'] = 'Falta el costo unitario de algún producto';
-    if (this.pago() === 'efectivo' && this.total() > this.caja.efectivoEnCaja()) e['pago'] = `En caja solo hay ${formatearDinero(this.caja.efectivoEnCaja())}`;
+    if (this.pago() === 'efectivo' && !this.caja.abierta()) e['pago'] = 'Abre el turno de caja para pagar en efectivo';
+    else if (this.pago() === 'efectivo' && this.total() > this.corte.efectivoEnCaja()) e['pago'] = `En caja solo hay ${formatearDinero(this.corte.efectivoEnCaja())}`;
     return e;
   });
 
