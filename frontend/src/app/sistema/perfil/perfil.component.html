@@ -1,0 +1,88 @@
+<div class="perfil">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Mi perfil</h1>
+      <p class="encabezado-pagina__subtitulo">Tus datos de acceso. Para cambiar tu rol o tu caja, pídeselo al administrador.</p>
+    </div>
+  </header>
+
+  <div class="columnas">
+    <section class="tarjeta-perfil" aria-labelledby="titulo-datos">
+      <h2 id="titulo-datos"><span class="icono" style="--icono: url(assets/menu/user.svg)"></span>Mis datos</h2>
+      <div class="persona">
+        <span class="persona__avatar" aria-hidden="true">{{ iniciales() }}</span>
+        <div>
+          <p class="persona__nombre">{{ sesion()?.nombre }}</p>
+          <span class="estado estado--neutro">{{ puesto() }}</span>
+        </div>
+      </div>
+      <dl class="datos">
+        <div><dt>Usuario</dt><dd>{{ perfil?.usuario ?? sesion()?.usuario }}</dd></div>
+        @if (perfil?.telefono) { <div><dt>Teléfono</dt><dd>{{ perfil!.telefono }}</dd></div> }
+        @if (perfil?.correo) { <div><dt>Correo</dt><dd>{{ perfil!.correo }}</dd></div> }
+        @if (perfil?.descuentoMaximo !== undefined) { <div><dt>Descuento máximo</dt><dd>{{ perfil!.descuentoMaximo }}% (lo define el administrador)</dd></div> }
+        <div><dt>Último acceso</dt><dd>{{ ultimoAcceso() }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="tarjeta-perfil" aria-labelledby="titulo-contrasena">
+      <h2 id="titulo-contrasena"><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Cambiar contraseña</h2>
+
+      @if (listo()) {
+        <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Contraseña cambiada. Se cerraron tus sesiones en otros equipos; aquí sigues dentro.</p>
+      }
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-actual">Contraseña actual</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="error('actual')">
+          <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+          <input id="perfil-actual" class="campo__input" type="password" autocomplete="current-password" [value]="actual()" (input)="escribir('actual', $any($event.target).value)" (keydown.enter)="guardar()" />
+        </div>
+        @if (error('actual'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-nueva">Nueva contraseña</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="error('nueva')">
+          <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+          <input id="perfil-nueva" class="campo__input" type="password" autocomplete="new-password" aria-describedby="perfil-seguridad" [value]="nueva()" (input)="escribir('nueva', $any($event.target).value)" (keydown.enter)="guardar()" />
+        </div>
+        @if (error('nueva'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+
+      <div class="seguridad" id="perfil-seguridad" [style.--nivel]="nivel().color">
+        <div class="seguridad__barras" aria-hidden="true">
+          @for (b of barras; track b) { <span [class.activa]="b <= puntaje()"></span> }
+        </div>
+        <p class="seguridad__nivel">Seguridad: <strong>{{ nueva() ? nivel().texto : '—' }}</strong></p>
+        <ul class="seguridad__requisitos">
+          @for (r of requisitos(); track r.texto) {
+            <li [class.cumple]="r.cumple">
+              <img [src]="r.cumple ? 'assets/iconos/circle-check-sm.svg' : 'assets/ordenes/x-gris.svg'" width="14" height="14" [attr.alt]="r.cumple ? 'Cumple:' : 'Falta:'" />{{ r.texto }}
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-repetida">Repite la nueva contraseña</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="error('repetida')">
+          <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+          <input id="perfil-repetida" class="campo__input" type="password" autocomplete="new-password" [value]="repetida()" (input)="escribir('repetida', $any($event.target).value)" (keydown.enter)="guardar()" />
+        </div>
+        @if (error('repetida'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+
+      <p class="aviso aviso--info">
+        <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+        Mínimo 8 caracteres, una mayúscula y un número. Al cambiarla se cierran tus sesiones en otros equipos.
+      </p>
+
+      <div class="acciones">
+        <button type="button" class="boton boton--primario boton--44" [disabled]="guardando()" (click)="guardar()">
+          <img src="assets/iconos/check-btn.svg" width="16" height="16" alt="" />{{ guardando() ? 'Guardando…' : 'Guardar contraseña' }}
+        </button>
+      </div>
+    </section>
+  </div>
+</div>

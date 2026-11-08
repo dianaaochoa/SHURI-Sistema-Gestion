@@ -3,13 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
-
-const REQUISITOS = [
-  { texto: 'Al menos 8 caracteres', cumple: (v: string) => v.length >= 8 },
-  { texto: 'Una letra mayúscula', cumple: (v: string) => /[A-ZÁÉÍÓÚÑ]/.test(v) },
-  { texto: 'Un número', cumple: (v: string) => /\d/.test(v) },
-  { texto: 'Un símbolo (!@#$)', cumple: (v: string) => /[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ\s]/.test(v) },
-];
+import { REQUISITOS } from '../contrasena';
 
 const NIVELES = [
   { etiqueta: 'Muy débil', color: 'var(--color-peligro)' },

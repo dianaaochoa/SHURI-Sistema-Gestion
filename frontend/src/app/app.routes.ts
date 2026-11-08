@@ -48,13 +48,17 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
   'cajera/corte-de-caja': () => import('./cajera/corte/corte.component').then((m) => m.CorteComponent),
 };
 
+/** C1.6 Mi perfil (también A.6 Cambiar contraseña): la misma pantalla en todos los roles. */
+const PERFIL = () => import('./sistema/perfil/perfil.component').then((m) => m.PerfilComponent);
+const DE_TODOS: Record<string, () => Promise<Type<unknown>>> = { perfil: PERFIL, 'cambiar-contrasena': PERFIL };
+
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
 function rutasDeRol(rol: Rol): Route {
   const { prefijo, grupos } = NAVEGACION[rol];
   const pantallas = [
     ...grupos.flatMap((grupo) => grupo.destinos),
-    { etiqueta: 'Mi perfil', ruta: 'perfil', figma: 'Menú de usuario' },
-    { etiqueta: 'Cambiar contraseña', ruta: 'cambiar-contrasena', figma: 'A.6' },
+    { etiqueta: 'Mi perfil', ruta: 'perfil', figma: 'C1.6' },
+    { etiqueta: 'Cambiar contraseña', ruta: 'cambiar-contrasena', figma: 'C1.6 / A.6' },
   ];
   return {
     path: prefijo,
@@ -64,7 +68,7 @@ function rutasDeRol(rol: Rol): Route {
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       ...pantallas.map((p) => ({
         path: p.ruta,
-        loadComponent: PANTALLAS[`${prefijo}/${p.ruta}`] ?? (() => Promise.resolve(PaginaPendienteComponent)),
+        loadComponent: PANTALLAS[`${prefijo}/${p.ruta}`] ?? DE_TODOS[p.ruta] ?? (() => Promise.resolve(PaginaPendienteComponent)),
         title: `${p.etiqueta} · SHURI`,
         data: { titulo: p.etiqueta, figma: p.figma },
       })),
