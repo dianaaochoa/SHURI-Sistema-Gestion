@@ -21,7 +21,16 @@ export type Filtro = 'todas' | 'por-cotizar' | 'por-aprobar' | 'adicional' | 'en
 export interface Tecnico {
   iniciales: string;
   nombre: string;
+  /** Para recomendar a quién asignar (J2.2). */
+  especialidad?: string;
 }
+
+export type Prioridad = 'normal' | 'alta' | 'urgente';
+export const PRIORIDADES: Record<Prioridad, { texto: string; tono: string }> = {
+  normal: { texto: 'Normal', tono: 'neutro' },
+  alta: { texto: 'Alta', tono: 'advertencia' },
+  urgente: { texto: 'Urgente', tono: 'peligro' },
+};
 
 export interface Evento {
   /** ISO */
@@ -77,6 +86,16 @@ export interface Orden {
   garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string };
   /** Lo que se capturó en la recepción (C5.1); lo usan la orden impresa y sus comprobantes (C11). */
   ficha?: FichaRecepcion;
+  /** Lo define el jefe al asignar (J2.2); sin valor = normal. */
+  prioridad?: Prioridad;
+  /** ISO: fecha prometida al cliente (J2.2). */
+  prometida?: string;
+  /** El técnico envió su diagnóstico: la orden pasa de "Diagnóstico" a "Por cotizar" en el tablero (J2). */
+  diagnostico?: { fecha: string; texto: string };
+  /** Orden en pausa (J2.3): desde cuándo y por qué. */
+  pausa?: { desde: string; motivo: string; detalle: string };
+  /** Notas internas del taller (no las ve el cliente). */
+  notas?: Evento[];
   bodega?: { ubicacion: string; estante: string; enviado: string; por: string };
   historial: Evento[];
   /** Avisos y recordatorios al cliente (C4.6 "Intentos de contacto"). */
@@ -116,9 +135,9 @@ export interface NuevaOrden {
 }
 
 export const TECNICOS: Tecnico[] = [
-  { iniciales: 'CR', nombre: 'Carlos Ruiz' },
-  { iniciales: 'MV', nombre: 'Mariana Vega' },
-  { iniciales: 'LO', nombre: 'Luis Ortega' },
+  { iniciales: 'CR', nombre: 'Carlos Ruiz', especialidad: 'Samsung' },
+  { iniciales: 'MV', nombre: 'Mariana Vega', especialidad: 'microsoldadura' },
+  { iniciales: 'LO', nombre: 'Luis Ortega', especialidad: 'iPhone' },
 ];
 
 /** Días para recoger antes de pasar a bodega y días de garantía (reglas de Figma C4). */
@@ -187,6 +206,14 @@ function hace(dias: number, hora = '10:00'): string {
 }
 
 const tecnico = (iniciales: string) => TECNICOS.find((t) => t.iniciales === iniciales)!;
+/** Hace `h` horas (para los tiempos cortos del tablero J2). */
+const horas = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+/** Fecha prometida de prueba: dentro de `dias` días a las 18:00. */
+const prometidaEn = (dias: number) => {
+  const fecha = new Date(Date.now() + dias * DIA);
+  fecha.setHours(18, 0, 0, 0);
+  return fecha.toISOString();
+};
 const ev = (dias: number, hora: string, texto: string): Evento => ({ fecha: hace(dias, hora), texto });
 
 function ordenesDemo(): Orden[] {
@@ -202,6 +229,8 @@ function ordenesDemo(): Orden[] {
       tecnico: tecnico('CR'),
       estado: 'por-cotizar',
       trabajo: 'No carga; revisar centro de carga',
+      diagnostico: { fecha: horas(0.4), texto: 'Batería al 68 % y flex de carga dañado; batería y flex sin stock' },
+      prometida: prometidaEn(1),
       historial: [ev(0, '09:30', 'Recibido por Ana Martínez')],
     },
     {
@@ -219,6 +248,31 @@ function ordenesDemo(): Orden[] {
     },
     {
       ...base,
+      // Figma J2.1: en diagnóstico.
+      folio: '#1040',
+      recibido: horas(6),
+      cliente: { nombre: 'Diego Ruiz', telefono: '55 1357 2468', correo: 'diego.ruiz@gmail.com' },
+      equipo: 'Moto G84',
+      imei: '359840001234567',
+      tecnico: tecnico('LO'),
+      estado: 'por-cotizar',
+      trabajo: 'Líneas en pantalla',
+      historial: [{ fecha: horas(6), texto: 'Recibido por Ana Martínez' }],
+    },
+    {
+      ...base,
+      folio: '#1039',
+      recibido: horas(8),
+      cliente: { nombre: 'Paula Gómez', telefono: '55 9753 1864', correo: 'paula.gomez@gmail.com' },
+      equipo: 'Redmi Note 12',
+      imei: '861234567890123',
+      tecnico: tecnico('LO'),
+      estado: 'por-cotizar',
+      trabajo: 'Batería dura poco',
+      historial: [{ fecha: horas(8), texto: 'Recibido por Ana Martínez' }],
+    },
+    {
+      ...base,
       // Figma J1.1: por cotizar fuera de tiempo (más de 24 h).
       folio: '#1034',
       recibido: hace(1, '07:30'),
@@ -228,6 +282,8 @@ function ordenesDemo(): Orden[] {
       tecnico: tecnico('LO'),
       estado: 'por-cotizar',
       trabajo: 'No enciende después de una caída',
+      diagnostico: { fecha: horas(2), texto: 'Micrófono y conector de placa dañados por el golpe' },
+      prioridad: 'alta',
       historial: [ev(1, '07:30', 'Recibido por Ana Martínez'), ev(0, '09:00', 'Diagnóstico en curso (LO)')],
     },
     {
@@ -307,7 +363,9 @@ function ordenesDemo(): Orden[] {
       estado: 'esperando-refaccion',
       trabajo: 'Cambio de batería',
       presupuesto: { enviado: hace(3, '16:00'), descripcion: 'Batería al 71 %. Cambio de batería.', refacciones: 420, manoObra: 140.34, total: 650, aprobado: hace(2, '09:15') },
-      historial: [ev(3, '12:10', 'Recibido por Ana Martínez'), ev(2, '09:15', 'Presupuesto aprobado en el portal'), ev(1, '13:00', 'Refacción pedida al proveedor')],
+      pausa: { desde: horas(3), motivo: 'Esperando refacción', detalle: 'Solicitud R-211: Kit de sellos iPhone 11 · sin stock, pedido al proveedor (llega mañana)' },
+      prometida: prometidaEn(1),
+      historial: [ev(3, '12:10', 'Recibido por Ana Martínez'), ev(2, '09:15', 'Presupuesto aprobado en el portal'), ev(1, '13:00', 'Refacción pedida al proveedor'), { fecha: horas(3), texto: 'Pausada por Mariana: esperando refacción' }],
     },
     {
       ...base,
@@ -679,6 +737,25 @@ export class OrdenesService {
       estado: o.estado === 'esperando-refaccion' ? 'en-taller' : o.estado,
       historial: [...o.historial, { fecha: ahoraIso(), texto }],
     }));
+  }
+
+  /** J2.2 · Asignar o reasignar técnico (el técnico recibe el aviso en su Inicio). */
+  asignar(folio: string, datos: { tecnico: Tecnico; prioridad: Prioridad; prometida: string; nota: string; por: string }): void {
+    this.actualizar(folio, (o) => {
+      const reasigna = o.tecnico !== POR_ASIGNAR && o.tecnico.iniciales !== datos.tecnico.iniciales;
+      const texto = `${reasigna ? 'Reasignada' : 'Asignada'} a ${datos.tecnico.nombre} por ${datos.por}`;
+      const notas = datos.nota.trim() ? [...(o.notas ?? []), { fecha: ahoraIso(), texto: `${datos.por}: ${datos.nota.trim()}` }] : o.notas;
+      return { ...o, tecnico: datos.tecnico, prioridad: datos.prioridad, prometida: datos.prometida, notas, historial: [...o.historial, { fecha: ahoraIso(), texto }] };
+    });
+  }
+
+  cambiarPrioridad(folio: string, prioridad: Prioridad, por: string): void {
+    this.actualizar(folio, (o) => ({ ...o, prioridad, historial: [...o.historial, { fecha: ahoraIso(), texto: `Prioridad ${PRIORIDADES[prioridad].texto.toLowerCase()} (${por})` }] }));
+  }
+
+  /** Nota interna del jefe o del técnico (J2.3). */
+  agregarNota(folio: string, texto: string, por: string): void {
+    this.actualizar(folio, (o) => ({ ...o, notas: [...(o.notas ?? []), { fecha: ahoraIso(), texto: `${por}: ${texto.trim()}` }] }));
   }
 
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */

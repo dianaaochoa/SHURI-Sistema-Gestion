@@ -1,0 +1,25 @@
+/* Figma J2.2: modal de 560 px */
+.modal { max-width: 560px; }
+.tecnicos { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; border: 0; }
+.tecnicos legend { margin-bottom: 12px; padding: 0; }
+.tecnico { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--color-borde); border-radius: 8px; cursor: pointer; }
+.tecnico:hover { border-color: var(--color-primario); }
+.tecnico--elegido { padding: 11px 15px; border: 2px solid var(--color-primario); background: var(--color-primario-suave); }
+.tecnico input { flex-shrink: 0; width: 18px; height: 18px; margin: 0; accent-color: var(--color-primario); }
+.tecnico__avatar { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 999px; background: var(--color-primario-suave); font-size: 9px; font-weight: 700; color: var(--color-primario); }
+.tecnico--elegido .tecnico__avatar { background: var(--color-superficie); }
+.tecnico__texto { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.tecnico__texto strong { font-size: 14px; font-weight: 500; color: var(--color-marino); }
+.tecnico__marca { font-size: 12px; font-weight: 600; color: var(--color-exito); }
+.tecnico__marca--actual { color: var(--color-texto-tenue); }
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.campo__control img { pointer-events: none; }
+/* Figma: el calendario va a la izquierda; el selector nativo se abre al hacer clic en el campo */
+input::-webkit-calendar-picker-indicator { display: none; }
+.boton .icono { width: 16px; height: 16px; }
+
+@media (max-width: 520px) {
+  .dos { grid-template-columns: 1fr; }
+  .tecnico { flex-wrap: wrap; }
+  .tecnico__marca { margin-left: 56px; }
+}

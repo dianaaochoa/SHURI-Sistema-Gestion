@@ -3,10 +3,9 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { saludoDelDia } from '../../compartido/formato';
 import { EstadoOrden, OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
+import { SLA_DIAGNOSTICO_H, atrasada, etapaDe, horasDesde } from '../etapas';
 import { MENSAJES_SIN_RESPONDER, PREGUNTAS_TECNICOS, SOLICITUDES_REFACCION } from '../jefe.datos';
 
-/** Horas para cotizar una orden recibida (SLA de Figma J1.1: "26 h de 24 h"). */
-const SLA_COTIZAR_H = 24;
 /** En el taller: recibidas y no entregadas (sin contar las vencidas ni las de bodega). */
 const EN_TALLER: EstadoOrden[] = ['por-cotizar', 'por-aprobar', 'adicional', 'en-taller', 'esperando-refaccion', 'en-garantia', 'lista', 'garantia-lista', 'sin-reparacion'];
 
@@ -30,7 +29,6 @@ function hace(iso: string): string {
   return h < 24 ? `hace ${h} h` : `hace ${Math.floor(h / 24)} ${Math.floor(h / 24) === 1 ? 'día' : 'días'}`;
 }
 
-const horasDesde = (iso: string) => (Date.now() - new Date(iso).getTime()) / 3_600_000;
 const esHoy = (iso?: string) => !!iso && new Date(iso).toDateString() === new Date().toDateString();
 
 /** J1.1 · Inicio del jefe de técnicos (J1.2 notificaciones y J1.3 menú de usuario están en el menú lateral). */
@@ -55,8 +53,10 @@ export class InicioJefeComponent {
   })();
 
   private readonly enTaller = computed(() => this.ordenes().filter((o) => EN_TALLER.includes(o.estado)));
-  private readonly porCotizar = computed(() => this.ordenes().filter((o) => o.estado === 'por-cotizar' && o.tecnico !== POR_ASIGNAR));
-  private readonly atrasadas = computed(() => this.porCotizar().filter((o) => horasDesde(o.recibido) > SLA_COTIZAR_H));
+  /** Con diagnóstico, esperando que el jefe cotice (columna "Por cotizar" de J2). */
+  private readonly porCotizar = computed(() => this.ordenes().filter((o) => etapaDe(o) === 'por-cotizar'));
+  /** Más de 24 h sin cotizar (recibidas, en diagnóstico o por cotizar). */
+  private readonly atrasadas = computed(() => this.ordenes().filter((o) => o.tecnico !== POR_ASIGNAR && atrasada(o)));
   private readonly garantias = computed(() => this.ordenes().filter((o) => o.estado === 'en-garantia'));
   private readonly sinTecnico = computed(() => this.ordenes().filter((o) => o.tecnico === POR_ASIGNAR && EN_TALLER.includes(o.estado)));
 
@@ -79,14 +79,14 @@ export class InicioJefeComponent {
       detalle: `${p.detalle} · ${hace(p.fecha)}`, accion: 'Escribir', ruta: 'mensajes',
     })),
     ...this.porCotizar()
-      .filter((o) => horasDesde(o.recibido) <= SLA_COTIZAR_H)
+      .filter((o) => !atrasada(o))
       .map((o) => ({
         icono: 'menu/receipt', tono: 'info' as Tono, titulo: `${o.folio} · ${o.equipo} · Por cotizar`,
-        detalle: `${o.tecnico.nombre.split(' ')[0]} · recibido ${hace(o.recibido)} · ${o.trabajo.toLowerCase()}`, accion: 'Cotizar', ruta: 'por-cotizar', folio: o.folio,
+        detalle: `${o.tecnico.nombre.split(' ')[0]} envió diagnóstico ${hace(o.diagnostico!.fecha)} · ${o.diagnostico!.texto.charAt(0).toLowerCase()}${o.diagnostico!.texto.slice(1)}`, accion: 'Cotizar', ruta: 'por-cotizar', folio: o.folio,
       })),
     ...this.atrasadas().map((o) => ({
-      icono: 'cajera/clock', tono: 'peligro' as Tono, titulo: `${o.folio} · ${o.equipo} · Por cotizar`,
-      detalle: `Fuera de tiempo: ${Math.floor(horasDesde(o.recibido))} h de ${SLA_COTIZAR_H} h de SLA`, accion: 'Atrasada', ruta: 'por-cotizar', folio: o.folio,
+      icono: 'cajera/clock', tono: 'peligro' as Tono, titulo: `${o.folio} · ${o.equipo} · ${o.diagnostico ? 'Por cotizar' : 'En diagnóstico'}`,
+      detalle: `Fuera de tiempo: ${Math.floor(horasDesde(o.recibido))} h de ${SLA_DIAGNOSTICO_H} h de SLA`, accion: 'Atrasada', ruta: o.diagnostico ? 'por-cotizar' : 'tablero-de-ordenes', folio: o.folio,
     })),
     ...this.garantias().map((o) => ({
       icono: 'menu/shield', tono: 'advertencia' as Tono, titulo: `${o.folio} · ${o.equipo} · Garantía`,
