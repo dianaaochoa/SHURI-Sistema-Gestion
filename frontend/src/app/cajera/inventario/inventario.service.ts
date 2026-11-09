@@ -87,6 +87,24 @@ export class InventarioService {
     return this.productos().find((p) => p.sku.toUpperCase() === t || p.codigoBarras === t);
   }
 
+  /** J3.2 · Aparta piezas para una orden (reemplaza lo que ya tuviera apartado esa orden). */
+  apartar(sku: string, cantidad: number, folio: string): void {
+    this.productos.update((lista) =>
+      lista.map((p) => (p.sku === sku ? { ...p, apartados: [...p.apartados.filter((a) => a.folio !== folio), { cantidad, folio }] } : p)),
+    );
+  }
+
+  /** Piezas que puede usar una orden: stock menos lo apartado para otras órdenes. */
+  paraOrden(sku: string, folio: string): number {
+    const p = this.buscar(sku);
+    return p ? Math.max(0, p.stock - p.apartados.filter((a) => a.folio !== folio).reduce((s, a) => s + a.cantidad, 0)) : 0;
+  }
+
+  /** Fecha de llegada del pedido al proveedor que trae esa pieza (C7.5), si hay uno. */
+  llegada(sku: string): string | null {
+    return this.pedidos().find((p) => p.lineas.some((l) => l.sku === sku))?.llega ?? null;
+  }
+
   // ---------- Alta y edición (C7.1) ----------
   guardar(producto: ProductoInventario, skuOriginal: string | null): void {
     this.productos.update((lista) =>

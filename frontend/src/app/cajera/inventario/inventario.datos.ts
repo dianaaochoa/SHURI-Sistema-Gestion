@@ -65,7 +65,7 @@ export const PRODUCTOS_DEMO: ProductoInventario[] = [
   p({ sku: 'ACC-052', nombre: 'Funda uso rudo transparente', categoria: 'Accesorios', proveedor: 'Importadora Celular GDL', codigoBarras: '7501000000526', costo: 70, precio: 200, stock: 18, minimo: 6, foto: foto(7) }),
   p({ sku: 'REF-IP11-BAT', nombre: 'Batería iPhone 11', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000612', costo: 210, precio: 480, stock: 2, minimo: 3, foto: foto(3), ubicacion: 'Cajón R-3' }),
   p({ sku: 'REF-IP11-SEL', nombre: 'Kit de sellos iPhone 11', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000629', costo: 120, precio: 260, stock: 0, minimo: 0, foto: null, ubicacion: 'Cajón R-4' }),
-  p({ sku: 'REF-IP14-FLX', nombre: 'Conector flex batería iPhone 14', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000711', costo: 95, precio: 240, stock: 0, minimo: 0, foto: null, ubicacion: 'Cajón R-4' }),
+  p({ sku: 'REF-IP14-FLX', nombre: 'Conector flex batería iPhone 14', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000711', costo: 180, precio: 400, stock: 0, minimo: 0, foto: null, ubicacion: 'Cajón R-4' }),
 ];
 
 // ---------- Pedidos del jefe de técnicos (C7.5) ----------
@@ -186,7 +186,7 @@ export const AJUSTES_DEMO: Ajuste[] = [
 
 export const PEDIDOS_DEMO: Pedido[] = [
   { folio: 'PED-0123', proveedor: 'Refacciones Móviles del Centro', pago: 'efectivo', llega: haceDias(0, '13:00'), jefe: JEFE_TECNICOS, lineas: [{ sku: 'REF-IP11-SEL', cantidad: 1, costo: 120, orden: '#1028' }, { sku: 'CON-007', cantidad: 10, costo: 22 }] },
-  { folio: 'PED-0124', proveedor: 'Refacciones Móviles del Centro', pago: 'transferencia', llega: haceDias(-1, '12:00'), jefe: JEFE_TECNICOS, lineas: [{ sku: 'REF-IP14-FLX', cantidad: 2, costo: 95, orden: '#1043' }] },
+  { folio: 'PED-0124', proveedor: 'Refacciones Móviles del Centro', pago: 'transferencia', llega: haceDias(-1, '12:00'), jefe: JEFE_TECNICOS, lineas: [{ sku: 'REF-IP14-FLX', cantidad: 2, costo: 180, orden: '#1043' }] },
 ];
 
 export function redondear(importe: number): number {

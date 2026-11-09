@@ -38,6 +38,20 @@ export interface Evento {
   texto: string;
 }
 
+/** Renglón de un presupuesto (J3): refacción del inventario, mano de obra o concepto escrito a mano. */
+export interface Concepto {
+  tipo: 'refaccion' | 'mano-obra' | 'otro';
+  descripcion: string;
+  sku?: string;
+  cantidad: number;
+  /** Costo unitario interno, sin IVA (0 en mano de obra). Solo lo ve el taller. */
+  costo: number;
+  /** Precio unitario al cliente, IVA incluido. */
+  precio: number;
+  /** "1 h 30 min · nivel medio" */
+  detalle?: string;
+}
+
 export interface Presupuesto {
   /** ISO */
   enviado: string;
@@ -48,7 +62,14 @@ export interface Presupuesto {
   total: number;
   /** ISO de la aprobación (si ya se aprobó). */
   aprobado?: string;
+  /** Lo que armó el jefe en J3.2. */
+  conceptos?: Concepto[];
+  descuento?: number;
+  vigenciaDias?: number;
 }
+
+/** Importe al cliente de una lista de conceptos (IVA incluido). */
+export const importeConceptos = (lista: Concepto[]) => redondear(lista.reduce((s, c) => s + c.cantidad * c.precio, 0));
 
 export interface Adicional {
   enviado: string;
@@ -90,8 +111,14 @@ export interface Orden {
   prioridad?: Prioridad;
   /** ISO: fecha prometida al cliente (J2.2). */
   prometida?: string;
-  /** El técnico envió su diagnóstico: la orden pasa de "Diagnóstico" a "Por cotizar" en el tablero (J2). */
-  diagnostico?: { fecha: string; texto: string };
+  /** El técnico envió su diagnóstico: la orden pasa de "Diagnóstico" a "Por cotizar" en el tablero (J2) y el jefe la cotiza (J3.2). */
+  diagnostico?: { fecha: string; texto: string; resumen?: string; causa?: string; dificultad?: string; nota?: string; conceptos?: Concepto[] };
+  /** El técnico reporta que no tiene reparación; el jefe lo confirma (J3.3). */
+  sinReparacion?: { fecha: string; motivo: string; texto: string };
+  /** Daño encontrado durante la reparación; el jefe lo re-cotiza (J3.4). */
+  danoAdicional?: { fecha: string; texto: string; urgente: boolean; conceptos: Concepto[] };
+  /** Cobro de revisión de un equipo sin reparación (J3.3). Sin valor: la revisión es el anticipo. */
+  revision?: { cobrar: boolean; monto: number };
   /** Orden en pausa (J2.3): desde cuándo y por qué. */
   pausa?: { desde: string; motivo: string; detalle: string };
   /** Notas internas del taller (no las ve el cliente). */
@@ -192,6 +219,7 @@ export function etiquetaEstado(orden: Orden): string {
 
 /** Lo que falta por cobrar al entregar: presupuesto (y adicional aprobado) menos anticipo. */
 export function saldo(orden: Orden): number {
+  if (orden.estado === 'sin-reparacion' && orden.revision?.cobrar) return Math.max(0, redondear(orden.revision.monto - orden.anticipo));
   if (['sin-reparacion', 'garantia-lista', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return 0;
   return Math.max(0, redondear(orden.presupuesto.total - orden.anticipo));
 }
@@ -229,7 +257,21 @@ function ordenesDemo(): Orden[] {
       tecnico: tecnico('CR'),
       estado: 'por-cotizar',
       trabajo: 'No carga; revisar centro de carga',
-      diagnostico: { fecha: horas(0.4), texto: 'Batería al 68 % y flex de carga dañado; batería y flex sin stock' },
+      // Figma J3.2
+      diagnostico: {
+        fecha: horas(0.4),
+        resumen: 'Conector de batería desprendido; batería inflada',
+        texto: 'La placa no recibe carga: conector de batería desprendido por el golpe y batería inflada. Pantalla y cámaras funcionan al alimentar con fuente.',
+        causa: 'golpe / caída',
+        dificultad: 'media',
+        nota: 'Recomiendo cambiar batería; el flex se puede pedir para mañana.',
+        conceptos: [
+          { tipo: 'refaccion', descripcion: 'Batería iPhone 14', sku: 'REF-IP14-BAT', cantidad: 1, costo: 380, precio: 850 },
+          { tipo: 'refaccion', descripcion: 'Conector flex de batería', sku: 'REF-IP14-FLX', cantidad: 1, costo: 180, precio: 400 },
+          { tipo: 'mano-obra', descripcion: 'Mano de obra', cantidad: 1, costo: 0, precio: 580, detalle: '1 h 30 min · nivel medio' },
+        ],
+      },
+      anticipo: 300,
       prometida: prometidaEn(1),
       historial: [ev(0, '09:30', 'Recibido por Ana Martínez')],
     },
@@ -273,6 +315,21 @@ function ordenesDemo(): Orden[] {
     },
     {
       ...base,
+      // Figma J3.3: el técnico reporta que no tiene reparación; el jefe lo confirma.
+      folio: '#1038',
+      recibido: hace(1, '16:20'),
+      cliente: { nombre: 'Héctor Navarro', telefono: '55 4433 2211', correo: 'hector.navarro@gmail.com' },
+      equipo: 'Xiaomi Mi 11 Lite',
+      imei: '864512003344556',
+      tecnico: tecnico('LO'),
+      estado: 'por-cotizar',
+      trabajo: 'No enciende',
+      anticipo: 300,
+      sinReparacion: { fecha: horas(1.5), motivo: 'Daño en placa irreparable', texto: 'La placa tiene un corto en la línea de alimentación del procesador. No hay pieza de reemplazo.' },
+      historial: [ev(1, '16:20', 'Recibido por Ana Martínez'), { fecha: horas(1.5), texto: 'Luis reportó: sin reparación' }],
+    },
+    {
+      ...base,
       // Figma J1.1: por cotizar fuera de tiempo (más de 24 h).
       folio: '#1034',
       recibido: hace(1, '07:30'),
@@ -282,7 +339,14 @@ function ordenesDemo(): Orden[] {
       tecnico: tecnico('LO'),
       estado: 'por-cotizar',
       trabajo: 'No enciende después de una caída',
-      diagnostico: { fecha: horas(2), texto: 'Micrófono y conector de placa dañados por el golpe' },
+      diagnostico: {
+        fecha: horas(2),
+        resumen: 'Micrófono inferior dañado; flex de carga ok',
+        texto: 'Micrófono inferior y conector de placa dañados por el golpe. El flex de carga está bien.',
+        causa: 'golpe / caída',
+        dificultad: 'baja',
+        conceptos: [{ tipo: 'mano-obra', descripcion: 'Mano de obra', cantidad: 1, costo: 0, precio: 350, detalle: '45 min · nivel bajo' }],
+      },
       prioridad: 'alta',
       historial: [ev(1, '07:30', 'Recibido por Ana Martínez'), ev(0, '09:00', 'Diagnóstico en curso (LO)')],
     },
@@ -393,7 +457,17 @@ function ordenesDemo(): Orden[] {
         falla: 'No carga; la conexión USB-C es intermitente. El equipo enciende y la pantalla funciona.',
         contrasena: 'K7M-4Q2',
       },
-      historial: [ev(3, '10:40', 'Recibido por Ana Martínez'), ev(2, '10:05', 'Presupuesto aprobado en el portal'), ev(1, '12:00', 'En reparación (LO)')],
+      // Figma J3.4: Luis encontró un daño adicional que el jefe re-cotiza.
+      danoAdicional: {
+        fecha: horas(1),
+        texto: 'El flex de la cámara frontal está roto; la cámara frontal no enciende.',
+        urgente: false,
+        conceptos: [
+          { tipo: 'refaccion', descripcion: 'Flex de cámara frontal S22 Ultra', sku: 'REF-S22-FCAM', cantidad: 1, costo: 160, precio: 380 },
+          { tipo: 'mano-obra', descripcion: 'Mano de obra adicional', cantidad: 1, costo: 0, precio: 150, detalle: '30 min · nivel bajo' },
+        ],
+      },
+      historial: [ev(3, '10:40', 'Recibido por Ana Martínez'), ev(2, '10:05', 'Presupuesto aprobado en el portal'), ev(1, '12:00', 'En reparación (LO)'), { fecha: horas(1), texto: 'Luis reportó daño adicional' }],
     },
     {
       ...base,
@@ -711,7 +785,7 @@ export class OrdenesService {
         return {
           ...o,
           estado: 'sin-reparar-entregada',
-          entrega: { fecha: ahora, por, pagado: o.anticipo, recogio: entrega.recoge, cobrado: 0 },
+          entrega: { fecha: ahora, por, pagado: o.revision ? (o.revision.cobrar ? o.revision.monto : 0) : o.anticipo, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.pagado > 0 ? entrega.metodo : undefined },
           historial: evento(`Entregado sin reparar a ${entrega.recoge}`),
           contactos,
         };
@@ -756,6 +830,80 @@ export class OrdenesService {
   /** Nota interna del jefe o del técnico (J2.3). */
   agregarNota(folio: string, texto: string, por: string): void {
     this.actualizar(folio, (o) => ({ ...o, notas: [...(o.notas ?? []), { fecha: ahoraIso(), texto: `${por}: ${texto.trim()}` }] }));
+  }
+
+  /** J3.2 · Envía el presupuesto al portal (P2.4); la orden queda "Por aprobar". */
+  enviarPresupuesto(folio: string, datos: { conceptos: Concepto[]; descuento: number; mensaje: string; vigenciaDias: number; entrega: string; por: string }): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const refaccionesPublico = importeConceptos(datos.conceptos.filter((c) => c.tipo !== 'mano-obra'));
+      const total = redondear(importeConceptos(datos.conceptos) - datos.descuento);
+      const refacciones = redondear(refaccionesPublico / 1.16);
+      const texto = `Presupuesto de $${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })} enviado al portal por ${datos.por}`;
+      return {
+        ...o,
+        estado: 'por-aprobar',
+        prometida: datos.entrega || o.prometida,
+        presupuesto: {
+          enviado: ahora,
+          descripcion: datos.mensaje.trim(),
+          refacciones,
+          manoObra: redondear(total / 1.16 - refacciones),
+          total,
+          conceptos: datos.conceptos,
+          descuento: datos.descuento,
+          vigenciaDias: datos.vigenciaDias,
+        },
+        historial: [...o.historial, { fecha: ahora, texto }],
+        contactos: [...o.contactos, { fecha: ahora, texto: 'Presupuesto publicado en el portal' }],
+      };
+    });
+  }
+
+  /** J3.2 / J3.3 · La orden vuelve al técnico con una pregunta: regresa a "Diagnóstico" en el tablero. */
+  regresarAlTecnico(folio: string, pregunta: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      diagnostico: undefined,
+      sinReparacion: undefined,
+      notas: [...(o.notas ?? []), { fecha: ahora, texto: `${por}: ${pregunta.trim()}` }],
+      historial: [...o.historial, { fecha: ahora, texto: `Regresada a ${o.tecnico.nombre} con dudas (${por})` }],
+    }));
+  }
+
+  /** J3.3 · Confirma que el equipo no tiene reparación: pasa a entrega sin reparar (C6.2). */
+  confirmarSinReparacion(folio: string, datos: { mensaje: string; cobrar: boolean; monto: number; por: string }): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      estado: 'sin-reparacion',
+      trabajo: `Sin reparación · ${(o.sinReparacion?.motivo ?? 'sin pieza de reemplazo').toLowerCase()}`,
+      realizado: datos.mensaje.trim(),
+      revision: { cobrar: datos.cobrar, monto: datos.cobrar ? datos.monto : 0 },
+      listaDesde: ahora,
+      historial: [
+        ...o.historial,
+        { fecha: ahora, texto: `Sin reparación confirmada por ${datos.por} · ${datos.cobrar ? `revisión de $${datos.monto.toFixed(2)}` : 'sin cobro de revisión'}` },
+      ],
+      contactos: [...o.contactos, { fecha: ahora, texto: 'Aviso para recoger en el portal' }],
+    }));
+  }
+
+  /** J3.4 · Envía al portal solo lo nuevo; lo autorizado sigue en curso. */
+  enviarRecotizacion(folio: string, conceptos: Concepto[], por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const monto = importeConceptos(conceptos);
+      return {
+        ...o,
+        estado: 'adicional',
+        adicional: { enviado: ahora, descripcion: `${o.danoAdicional?.texto ?? ''} Se agrega: ${conceptos.map((c) => c.descripcion.charAt(0).toLowerCase() + c.descripcion.slice(1)).join(' y ')}.`.trim(), monto },
+        danoAdicional: undefined,
+        historial: [...o.historial, { fecha: ahora, texto: `Re-cotización de $${monto.toFixed(2)} enviada al portal por ${por}` }],
+        contactos: [...o.contactos, { fecha: ahora, texto: 'Re-cotización publicada en el portal' }],
+      };
+    });
   }
 
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */

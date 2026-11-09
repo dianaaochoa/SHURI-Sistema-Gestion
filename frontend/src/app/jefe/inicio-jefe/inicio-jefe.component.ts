@@ -82,12 +82,24 @@ export class InicioJefeComponent {
       .filter((o) => !atrasada(o))
       .map((o) => ({
         icono: 'menu/receipt', tono: 'info' as Tono, titulo: `${o.folio} · ${o.equipo} · Por cotizar`,
-        detalle: `${o.tecnico.nombre.split(' ')[0]} envió diagnóstico ${hace(o.diagnostico!.fecha)} · ${o.diagnostico!.texto.charAt(0).toLowerCase()}${o.diagnostico!.texto.slice(1)}`, accion: 'Cotizar', ruta: 'por-cotizar', folio: o.folio,
+        detalle: `${o.tecnico.nombre.split(' ')[0]} envió diagnóstico ${hace(o.diagnostico!.fecha)} · ${minuscula(o.diagnostico!.resumen ?? o.diagnostico!.texto)}`, accion: 'Cotizar', ruta: 'por-cotizar', folio: o.folio,
       })),
     ...this.atrasadas().map((o) => ({
       icono: 'cajera/clock', tono: 'peligro' as Tono, titulo: `${o.folio} · ${o.equipo} · ${o.diagnostico ? 'Por cotizar' : 'En diagnóstico'}`,
       detalle: `Fuera de tiempo: ${Math.floor(horasDesde(o.recibido))} h de ${SLA_DIAGNOSTICO_H} h de SLA`, accion: 'Atrasada', ruta: o.diagnostico ? 'por-cotizar' : 'tablero-de-ordenes', folio: o.folio,
     })),
+    ...this.ordenes()
+      .filter((o) => o.sinReparacion)
+      .map((o) => ({
+        icono: 'cajera/alert', tono: 'peligro' as Tono, titulo: `${o.folio} · ${o.equipo} · Sin reparación`,
+        detalle: `${o.tecnico.nombre.split(' ')[0]} reportó: ${minuscula(o.sinReparacion!.motivo)} · ${hace(o.sinReparacion!.fecha)}`, accion: 'Confirmar', ruta: 'por-cotizar', folio: o.folio,
+      })),
+    ...this.ordenes()
+      .filter((o) => o.danoAdicional)
+      .map((o) => ({
+        icono: 'menu/wrench', tono: 'advertencia' as Tono, titulo: `${o.folio} · ${o.equipo} · Daño adicional`,
+        detalle: `${o.tecnico.nombre.split(' ')[0]}: ${minuscula(o.danoAdicional!.texto)} · ${hace(o.danoAdicional!.fecha)}`, accion: 'Re-cotizar', ruta: 'por-cotizar', folio: o.folio,
+      })),
     ...this.garantias().map((o) => ({
       icono: 'menu/shield', tono: 'advertencia' as Tono, titulo: `${o.folio} · ${o.equipo} · Garantía`,
       detalle: o.garantia?.dictamen && o.garantia.dictamen !== 'En revisión' ? o.garantia.dictamen : `${o.garantia?.falla ?? ''} · en revisión`, accion: 'Dictaminar', ruta: 'garantias', folio: o.folio,
@@ -147,3 +159,5 @@ function duracion(min: number): string {
   if (h >= 24) return `${Math.floor(h / 24)} d ${h % 24} h`;
   return h ? `${h} h ${Math.round(min % 60)} min` : `${Math.round(min)} min`;
 }
+
+const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);

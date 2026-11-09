@@ -1,0 +1,39 @@
+.por-cotizar { display: flex; flex-direction: column; gap: 16px; }
+
+/* Figma J3.1: 4 indicadores de 290 × 64 */
+.indicadores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.indicador > span:last-child { display: flex; flex-direction: column; }
+.indicador--activo { border-color: var(--color-primario); }
+.valor--peligro { color: var(--color-peligro); }
+.valor--advertencia { color: var(--color-advertencia); }
+.valor--primario { color: var(--color-primario); }
+
+.pestanas { display: flex; gap: 24px; border-bottom: 1px solid var(--color-borde); overflow-x: auto; }
+.pestana { flex-shrink: 0; padding: 0 2px 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: 14px; color: var(--color-texto-tenue); cursor: pointer; }
+.pestana--activa { border-bottom-color: var(--color-primario); font-weight: 600; color: var(--color-primario); }
+
+.tabla { overflow-x: auto; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-marino); }
+th { padding: 14px 16px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap; }
+td { padding: 16px; border-top: 1px solid var(--color-borde); }
+tbody tr { cursor: pointer; }
+tbody tr:hover, tbody tr:focus-visible { background: var(--color-primario-suave); outline: 0; }
+.t-folio { font-weight: 700; }
+.t-detalle { min-width: 220px; }
+.estado--plano { background: none; }
+.enlace-accion { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primario); cursor: pointer; }
+.vacio { color: var(--color-texto-tenue); cursor: default; }
+.aviso--advertencia { align-items: center; }
+
+@media (max-width: 1100px) {
+  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .t-equipo, .t-tecnico { display: none; }
+}
+
+@media (max-width: 600px) {
+  .indicadores { gap: 8px; }
+  .indicador { gap: 10px; padding: 10px 12px; white-space: normal; }
+  .t-tiempo, .t-estado { display: none; }
+  th, td { padding: 12px 10px; }
+  .t-detalle { min-width: 0; }
+}

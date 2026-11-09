@@ -788,3 +788,37 @@ input {
   color: var(--color-texto-tenue);
   white-space: nowrap;
 }
+
+/* ---------- Opción con radio (Figma J2.2 "Técnico", J3.3 "Cobro de revisión") ---------- */
+
+.opcion-radio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.opcion-radio:hover { border-color: var(--color-primario); }
+.opcion-radio--elegida { padding: 11px 15px; border: 2px solid var(--color-primario); background: var(--color-primario-suave); }
+.opcion-radio input { flex-shrink: 0; width: 18px; height: 18px; margin: 0; accent-color: var(--color-primario); }
+.opcion-radio__texto { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.opcion-radio__texto strong { font-size: 14px; font-weight: 500; color: var(--color-marino); }
+
+/* ---------- Foto pendiente (hasta que existan las fotos reales) ---------- */
+
+.foto-vacia {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--color-neutro-suave);
+  color: var(--color-texto-tenue);
+}
+
+.foto-vacia .icono { width: 16px; height: 16px; }

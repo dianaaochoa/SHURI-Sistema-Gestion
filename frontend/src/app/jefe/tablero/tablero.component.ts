@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { Orden, OrdenesService, POR_ASIGNAR, PRIORIDADES, Prioridad, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { DispositivosService } from '../../cajera/punto-de-venta/dispositivos.service';
-import { ETAPAS, SLA_DIAGNOSTICO_H, atrasada, etapaDe, inicioEtapa, tiempoEn } from '../etapas';
+import { ETAPAS, SLA_DIAGNOSTICO_H, atrasada, etapaDe, inicioEtapa, pendienteDeCotizar, tiempoEn } from '../etapas';
 import { AsignarTecnicoComponent, Asignacion } from './asignar-tecnico/asignar-tecnico.component';
 import { OrdenJefeComponent } from './orden-jefe/orden-jefe.component';
 
@@ -76,6 +76,8 @@ export class TableroComponent implements OnInit {
 
   /** Renglón corto bajo el cliente (Figma: "Diagnóstico listo", "$1,150 enviado", "Avisado al cliente"). */
   protected nota(o: Orden): string {
+    if (o.sinReparacion) return 'Reporte: sin reparación';
+    if (o.danoAdicional) return 'Daño adicional reportado';
     switch (etapaDe(o)) {
       case 'por-cotizar':
         return 'Diagnóstico listo';
@@ -91,6 +93,8 @@ export class TableroComponent implements OnInit {
   /** Etiqueta de la esquina: qué toca hacer con la orden. */
   protected etiqueta(o: Orden): { texto: string; tono: string } | null {
     if (atrasada(o)) return { texto: 'Atrasada', tono: 'peligro' };
+    if (o.sinReparacion) return { texto: 'Confirmar', tono: 'peligro' };
+    if (o.danoAdicional) return { texto: 'Re-cotizar', tono: 'advertencia' };
     switch (o.estado) {
       case 'esperando-refaccion':
         return { texto: 'En pausa', tono: 'neutro' };
@@ -135,7 +139,9 @@ export class TableroComponent implements OnInit {
       return;
     }
     this.aviso.set(null);
-    this.router.navigate([], { queryParams: { folio: o.folio.replace('#', '') } });
+    // Lo que toca cotizar, confirmar o re-cotizar se resuelve en Por cotizar (J3).
+    if (pendienteDeCotizar(o)) this.router.navigate(['/jefe/por-cotizar'], { queryParams: { folio: o.folio.replace('#', '') } });
+    else this.router.navigate([], { queryParams: { folio: o.folio.replace('#', '') } });
   }
 
   protected volver(): void {

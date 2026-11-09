@@ -28,8 +28,13 @@ const METODOS: { id: MetodoSimple; texto: string; icono: string }[] = [
         <p class="renglon"><span>Costo extra por daño nuevo</span><strong>{{ dinero(0) }}</strong></p>
       }
       @case ('sin-reparar') {
-        <p class="renglon"><span>Revisión y diagnóstico</span><strong>{{ dinero(o.anticipo) }}</strong></p>
-        <p class="renglon"><span>Anticipo recibido el {{ diaMes(o.recibido) }}</span><strong>− {{ dinero(o.anticipo) }}</strong></p>
+        <p class="renglon"><span>Revisión y diagnóstico</span><strong>{{ revision() ? dinero(revision()) : 'Sin costo' }}</strong></p>
+        @if (o.anticipo) {
+          <p class="renglon"><span>Anticipo recibido el {{ diaMes(o.recibido) }}</span><strong>− {{ dinero(o.anticipo) }}</strong></p>
+        }
+        @if (devolver()) {
+          <p class="renglon"><span>Anticipo a devolver</span><strong>{{ dinero(devolver()) }}</strong></p>
+        }
       }
       @default {
         <p class="renglon"><span>Total del trabajo (IVA incluido)</span><strong>{{ dinero(o.presupuesto?.total ?? 0) }}</strong></p>
@@ -108,6 +113,12 @@ export class CobroEntregaComponent {
   protected readonly dinero = formatearDinero;
   protected readonly diaMes = diaMes;
   protected readonly restante = computed(() => saldo(this.orden()));
+  /** Revisión de un equipo sin reparación: la que fijó el jefe (J3.3) o, en las anteriores, el anticipo. */
+  protected readonly revision = computed(() => {
+    const o = this.orden();
+    return o.revision ? (o.revision.cobrar ? o.revision.monto : 0) : o.anticipo;
+  });
+  protected readonly devolver = computed(() => (this.tipo() === 'sin-reparar' ? Math.max(0, this.orden().anticipo - this.revision()) : 0));
 
   protected readonly consecuencia = computed(() => {
     const o = this.orden();
@@ -115,6 +126,8 @@ export class CobroEntregaComponent {
       return 'Al confirmar se imprime el comprobante de entrega de garantía y el seguimiento del portal pasa a “Terminado tras garantía”. La garantía original no se reinicia.';
     }
     if (this.tipo() === 'sin-reparar') {
+      if (this.devolver()) return `Devuelve ${this.dinero(this.devolver())} del anticipo al cliente. Al confirmar se imprime el comprobante de devolución sin reparación y el folio se cierra como “Entregado sin reparar”. No genera garantía.`;
+      if (this.restante() > 0) return 'Al confirmar se cobra la revisión, se imprime el comprobante de devolución sin reparación y el folio se cierra como “Entregado sin reparar”. No genera garantía.';
       return 'No hay saldo. Al confirmar se imprime el comprobante de devolución sin reparación y el folio se cierra como “Entregado sin reparar”. No genera garantía.';
     }
     if (this.otraPersona()) {
@@ -126,7 +139,7 @@ export class CobroEntregaComponent {
 
   protected readonly textoBoton = computed(() => {
     if (this.tipo() === 'garantia') return 'Entregar equipo de garantía';
-    if (this.tipo() === 'sin-reparar') return 'Entregar sin reparar';
+    if (this.tipo() === 'sin-reparar') return this.restante() > 0 ? `Cobrar ${this.dinero(this.restante())} y entregar sin reparar` : 'Entregar sin reparar';
     return this.restante() > 0 ? `Cobrar ${this.dinero(this.restante())} y entregar` : 'Entregar equipo';
   });
 }

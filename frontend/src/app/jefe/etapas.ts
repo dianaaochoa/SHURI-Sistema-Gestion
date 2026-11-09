@@ -57,10 +57,15 @@ export function inicioEtapa(o: Orden): string {
 
 export const horasDesde = (iso: string) => (Date.now() - new Date(iso).getTime()) / 3_600_000;
 
-/** Pasó más de 24 h sin cotizar. */
+/** Pasó más de 24 h sin cotizar (las reportadas sin reparación ya esperan al jefe, no al técnico). */
 export function atrasada(o: Orden): boolean {
   const e = etapaDe(o);
-  return (e === 'recibido' || e === 'diagnostico' || e === 'por-cotizar') && horasDesde(o.recibido) > SLA_DIAGNOSTICO_H;
+  return !o.sinReparacion && (e === 'recibido' || e === 'diagnostico' || e === 'por-cotizar') && horasDesde(o.recibido) > SLA_DIAGNOSTICO_H;
+}
+
+/** Lo que el jefe resuelve en Por cotizar (J3): cotizar, confirmar sin reparación o re-cotizar. */
+export function pendienteDeCotizar(o: Orden): boolean {
+  return !!o.sinReparacion || !!o.danoAdicional || etapaDe(o) === 'por-cotizar';
 }
 
 /** "25 min", "6 h", "1 día" (Figma J2.1). Las atrasadas se dicen en horas ("26 h"). */
