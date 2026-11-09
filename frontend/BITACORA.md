@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J8 Equipos terminados)
+- **Última actualización:** 8 nov 2026 (J9 Configuración del taller)
 
 ---
 
@@ -63,7 +63,8 @@ flowchart LR
     J6["J6 Inventario del taller<br/>refacciones y consumibles con costos"]:::hecho
     J7["J7 Técnicos<br/>carga, desempeño del mes y órdenes por técnico"]:::hecho
     J8["J8 Equipos terminados<br/>J8.1 en bodega · más de 30 días · entregados<br/>J8.2 política de bodega"]:::hecho
-    J["J9–J11"]:::pendiente
+    J9["J9 Configuración del taller<br/>tabulador de mano de obra · tiempos · garantía · bodega"]:::hecho
+    J["J10–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -108,6 +109,7 @@ flowchart LR
   J6 -->|"Pedir · Ver pedido"| J5
   J7 -->|"Ver · Reasignar"| J2
   J8 -->|"almacenaje: caja lo cobra<br/>al entregar"| C6
+  J9 -.->|"SLA, vigencia, revisión,<br/>mano de obra y almacenaje"| J2 & J3 & J8
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -201,7 +203,9 @@ flowchart LR
     CG["carga.ts · desempeno.ts<br/>estado del técnico y<br/>cifras del mes (prueba)"]:::serv
     ET8["Terminados<br/>J8.1"]:::comp
     PB["PoliticaBodega<br/>modal J8.2"]:::comp
-    ET["etapas.ts<br/>columnas y SLA de 24 h"]:::serv
+    CF["Configuracion<br/>J9"]:::comp
+    CFS["ConfiguracionTallerService<br/>tabulador y bitácora de cambios"]:::serv
+    ET["etapas.ts<br/>columnas y SLA (J9)"]:::serv
     JD["jefe.datos.ts<br/>mensajes y preguntas"]:::serv
   end
   subgraph CAJERA["cajera/"]
@@ -300,6 +304,7 @@ flowchart LR
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
   CAJA["CajaService<br/>turno, retiros, ingresos y<br/>pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
+  RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
   GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
 
   APP --> RUT
@@ -395,6 +400,10 @@ flowchart LR
   SL --> ET8
   ET8 --> PB
   ET8 & PB --> OS
+  SL --> CF
+  CF --> CFS
+  CFS --> RT9
+  ET & PB --> RT9
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
@@ -541,6 +550,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - En bodega: todo lo que espera a su dueño (listos, garantías listas, sin reparación y los que caja ya mandó a bodega), del más antiguo al más nuevo. Más de 30 días: los que ya pasan del plazo. Entregados: los de los últimos 30 días.
 - “Reenviar” manda un recordatorio al portal. “Aplicar política” (J8.2) calcula el almacenaje ($20 por día después de 30) y deja elegir: cobrarlo al entregar (Entrega C6 lo suma al saldo), enviar último aviso o perdonarlo.
 
+**Configuración del taller (`/jefe/configuracion`, usuario `jlopez`):**
+- Tabulador de mano de obra (Editar en cada nivel, Agregar nivel) y reglas: SLA de diagnóstico, vigencia del presupuesto, garantía, días sin cobro en bodega, almacenaje por día y qué pasa a los 90 días. “Guardar cambios” anota cada cambio en “Últimos cambios”.
+- Al guardar, el tablero y Por cotizar usan el SLA nuevo, el cotizador pone la mano de obra según el nivel del técnico (“nivel medio” → precio de Medio), la revisión sin reparación usa el nivel “Revisión / diagnóstico” y la política de bodega usa los días y el precio por día. Las pantallas toman el valor nuevo al volver a abrirse.
+
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
 - Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
@@ -565,7 +578,8 @@ frontend/src/
 └── app/
     ├── app.routes.ts          # rutas + guardas; PANTALLAS = las ya construidas
     ├── compartido/
-    │   └── formato.ts         # dinero, fechas, horas, duración, saludo
+    │   ├── formato.ts         # dinero, fechas, horas, duración, saludo
+    │   └── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
     ├── jefe/                  # 04 · Jefe de técnicos
     │   ├── jefe.datos.ts      # mensajes de clientes y preguntas de técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
@@ -598,9 +612,11 @@ frontend/src/
     │   ├── tecnicos/          # J7 (Reasignar usa el modal de J2.2)
     │   │   ├── carga.ts           # órdenes, en curso o en pausa y estado del técnico (también J1)
     │   │   └── desempeno.ts       # terminadas, promedio y % de garantías del mes (de prueba)
-    │   └── terminados/        # J8.1 en bodega · más de 30 días · entregados
-    │       ├── avisos.ts          # avisos para recoger que recibió el cliente
-    │       └── politica-bodega/   # J8.2 cobrar almacenaje, último aviso o perdonar
+    │   ├── terminados/        # J8.1 en bodega · más de 30 días · entregados
+    │   │   ├── avisos.ts          # avisos para recoger que recibió el cliente
+    │   │   └── politica-bodega/   # J8.2 cobrar almacenaje, último aviso o perdonar
+    │   └── configuracion/     # J9 tabulador de mano de obra y reglas del taller
+    │       └── configuracion.service.ts  # niveles, precio por nivel y bitácora de cambios
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -855,7 +871,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Tiempo trabajado y fotos | El resumen muestra prioridad en lugar de “Tiempo trabajado” y las fotos son espacios vacíos | No hay registro de tiempos ni fotos hasta que el técnico (T) y la API existan. |
 | Por cotizar (J3) | Hecho con los PNG de `docs/diseno/04-jefe-de-tecnicos/j3-cotizar.png` (Figma sin llamadas) | Figma usa #1029 para la re-cotización; aquí es #1024 porque #1029 ya está enviada (la usa la cajera en C4.8). |
 | Conceptos del presupuesto | `Concepto` (refacción, mano de obra u otro) con costo interno y precio al público con IVA. El presupuesto guarda conceptos, descuento y vigencia; `refacciones` y `manoObra` se siguen guardando sin IVA para C4 y los documentos | El técnico sugiere los conceptos en su diagnóstico (`diagnostico.conceptos`, `danoAdicional.conceptos`). |
-| Cobro de revisión | $300 fijo (`COBRO_REVISION`) hasta que exista Configuración (J9). La orden guarda `revision` y `saldo()` la cobra al entregar si el anticipo no alcanza | Las órdenes sin reparación anteriores siguen cobrando el anticipo como revisión. |
+| Cobro de revisión | El precio del nivel “Revisión / diagnóstico” del tabulador (J9, $300 de inicio). La orden guarda `revision` y `saldo()` la cobra al entregar si el anticipo no alcanza | Las órdenes sin reparación anteriores siguen cobrando el anticipo como revisión. |
 | Precios del flex de iPhone 14 | Inventario: costo $180 y precio $400, como Figma J3.2 | Antes $95 y $240. |
 | Garantías (J4) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j4-garantias.png` (Figma sin llamadas). Figma usa #1024 y #1002; aquí #0986 (la de J1) y #1002 | #1006 queda en revisión y #1010 en reparación para llenar las pestañas. |
 | Reporte y dictamen de garantía | `garantia.reporte` (lo que manda el técnico) y `garantia.decision` (aplica, con costo o sin reparar); `garantia.dictamen` sigue siendo el texto corto que usan Entrega (C6.3) y el Inicio | Sin `recibio` se entiende que el cliente la pidió desde el portal. |
@@ -867,7 +883,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Inventario del taller (J6) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j6-inventario.png` (Figma sin llamadas). Las cifras salen del inventario de prueba: 13 refacciones y consumibles de 22 productos | Figma: 286 de 3,450. La paginación es la de C7 (25, 50 o 100 por página). |
 | Técnicos (J7) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j7-tecnicos.png` (Figma sin llamadas). Carga y tabla salen de las órdenes; el desempeño del mes es de prueba (`desempeno.ts`) porque aún no hay registro de tiempos | Con las órdenes de prueba de J3–J5, Carlos y Luis salen “Ocupado” con 7 órdenes y Mariana “Disponible”; Figma: 5, 4 y 3. |
 | Equipos terminados (J8) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j8-equipos-terminados.png` (Figma sin llamadas). “En bodega” es lo que espera a su dueño en el taller; incluye los estados “Vencido” y “En bodega” de caja (C4.7) | Con las órdenes de prueba: 10 en bodega, 5 de más de 30 días y ninguna entregada esta semana (Figma: 4, 1 y 7). |
-| Almacenaje | `Orden.almacenaje` (días, monto, quién y si se perdonó). `saldo()` lo suma en los estados por entregar y el panel de cobro de Entrega lo muestra | $20 por día y resguardo a los 90 días son fijos hasta Configuración (J9). |
+| Almacenaje | `Orden.almacenaje` (días, monto, quién y si se perdonó). `saldo()` lo suma en los estados por entregar y el panel de cobro de Entrega lo muestra | Días sin cobro, precio por día y qué pasa a los 90 días salen de Configuración (J9). |
+| Configuración del taller (J9) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j9-configuracion.png` (Figma sin llamadas; su columna “Editar” sale cortada). Las reglas viven en `REGLAS_TALLER` (objeto simple, no señal) para que `atrasada()` y la política las lean sin inyectar nada | La garantía y los días para recoger de caja (C4, C6) siguen con sus constantes; se unificarán al conectar la API (AD9.4 las cambia también). |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -880,7 +897,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J9–J11. La cajera (C1–C11 y C1.6), J1 a J8 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J10–J11. La cajera (C1–C11 y C1.6), J1 a J9 quedaron completos.
+- [ ] Configuración (J9): se guarda en memoria; caja todavía usa sus constantes de garantía (30 días) y plazo para recoger (30 días).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
@@ -1245,3 +1263,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - política de #0961: “6 días × $20.00 = $120.00”; al cobrar, la tabla dice “Almacenaje $120.00” y en Entrega (cajera) el restante sube de $420.00 a $540.00 con el renglón “Almacenaje (6 días)”
   - “Reenviar” de #1026 anota el recordatorio; Entregados cambia columnas (Entregado, Recogió, Cobrado)
   - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J9: Configuración del taller
+- Figma sin llamadas: J9 se tomó del PNG `docs/diseno/04-jefe-de-tecnicos/j9-configuracion.png`.
+- `compartido/reglas-taller.ts` (`REGLAS_TALLER`) y `ConfiguracionTallerService` (niveles, `precioDe`, `guardar` con bitácora). `SLA_DIAGNOSTICO_H`, `COBRO_REVISION`, `ALMACENAJE_POR_DIA` y `DIAS_RESGUARDO` se cambiaron por lecturas de las reglas; el cotizador (J3.2) y la re-cotización (J3.4) ponen la mano de obra con el tabulador.
+- Verificado:
+  - a 1440×900, como Figma: cinco niveles ($150, $300, $580, $650 y $300), 24 h, 7 días, 30 días, la entrega, 30 días, $20 / día y resguardo
+  - Medio a $600, SLA a 48 h y almacenaje a $25 → “3 cambios guardados” y la lista de últimos cambios; luego, sin recargar: Por cotizar dice 48 h y #1034 pasa a “A tiempo”, la mano de obra de #1043 sale en $600.00 y la política de #0961 da 6 días × $25.00 = $150.00
+  - a 1366×768 y 360 px sin scroll horizontal (la tabla del tabulador se recorre dentro de su caja); sin errores en consola
