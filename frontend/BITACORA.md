@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J7 Técnicos)
+- **Última actualización:** 8 nov 2026 (J8 Equipos terminados)
 
 ---
 
@@ -62,7 +62,8 @@ flowchart LR
     J5["J5 Refacciones<br/>J5.1 solicitudes · J5.2 pedir · J5.3 devolución<br/>J5.4 pedidos a proveedor · J5.5 nuevo pedido"]:::hecho
     J6["J6 Inventario del taller<br/>refacciones y consumibles con costos"]:::hecho
     J7["J7 Técnicos<br/>carga, desempeño del mes y órdenes por técnico"]:::hecho
-    J["J8–J11"]:::pendiente
+    J8["J8 Equipos terminados<br/>J8.1 en bodega · más de 30 días · entregados<br/>J8.2 política de bodega"]:::hecho
+    J["J9–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -106,6 +107,7 @@ flowchart LR
   C7 -.->|"mismo catálogo<br/>y entrada de mercancía"| J6
   J6 -->|"Pedir · Ver pedido"| J5
   J7 -->|"Ver · Reasignar"| J2
+  J8 -->|"almacenaje: caja lo cobra<br/>al entregar"| C6
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -197,6 +199,8 @@ flowchart LR
     VR["VerProducto<br/>modal J6"]:::comp
     TQ["Tecnicos<br/>J7"]:::comp
     CG["carga.ts · desempeno.ts<br/>estado del técnico y<br/>cifras del mes (prueba)"]:::serv
+    ET8["Terminados<br/>J8.1"]:::comp
+    PB["PoliticaBodega<br/>modal J8.2"]:::comp
     ET["etapas.ts<br/>columnas y SLA de 24 h"]:::serv
     JD["jefe.datos.ts<br/>mensajes y preguntas"]:::serv
   end
@@ -388,6 +392,9 @@ flowchart LR
   SL --> TQ
   TQ --> CG & OS & AS
   IJ --> CG
+  SL --> ET8
+  ET8 --> PB
+  ET8 & PB --> OS
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
@@ -530,6 +537,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - La tabla muestra sus órdenes en el taller con etapa, tiempo en la etapa, fecha prometida y si va a tiempo. “Ver” abre el detalle del tablero; “Reasignar” (las que están en pausa) abre el modal de J2.2.
 - Terminadas, promedio y % de garantías son de prueba (escala de Figma) más lo que la app entregó ese mes.
 
+**Equipos terminados (`/jefe/equipos-terminados`, usuario `jlopez`):**
+- En bodega: todo lo que espera a su dueño (listos, garantías listas, sin reparación y los que caja ya mandó a bodega), del más antiguo al más nuevo. Más de 30 días: los que ya pasan del plazo. Entregados: los de los últimos 30 días.
+- “Reenviar” manda un recordatorio al portal. “Aplicar política” (J8.2) calcula el almacenaje ($20 por día después de 30) y deja elegir: cobrarlo al entregar (Entrega C6 lo suma al saldo), enviar último aviso o perdonarlo.
+
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
 - Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
@@ -570,7 +581,7 @@ frontend/src/
     │   │   ├── regresar-tecnico/  # J3.2 · J3.3 la orden vuelve a Diagnóstico
     │   │   ├── sin-reparacion/    # J3.3
     │   │   └── recotizacion/      # J3.4
-    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1, J4.1, J5, J6 y J7
+    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1, J4.1, J5, J6, J7 y J8
     │   ├── garantias/         # J4.1 lista por etapa
     │   │   ├── garantia.ts        # etapa, vencimiento, días usados y recomendación
     │   │   ├── dictamen-garantia/ # J4.2 reparación original, cliente y reporte del técnico
@@ -584,9 +595,12 @@ frontend/src/
     │   │   └── ver-pedido/        # J5.4 "Ver"
     │   ├── inventario-taller/ # J6 (reusa paginación y entrada de mercancía de C7, y el nuevo pedido de J5.5)
     │   │   └── ver-producto/      # J6 "Ver": apartados y movimientos
-    │   └── tecnicos/          # J7 (Reasignar usa el modal de J2.2)
-    │       ├── carga.ts           # órdenes, en curso o en pausa y estado del técnico (también J1)
-    │       └── desempeno.ts       # terminadas, promedio y % de garantías del mes (de prueba)
+    │   ├── tecnicos/          # J7 (Reasignar usa el modal de J2.2)
+    │   │   ├── carga.ts           # órdenes, en curso o en pausa y estado del técnico (también J1)
+    │   │   └── desempeno.ts       # terminadas, promedio y % de garantías del mes (de prueba)
+    │   └── terminados/        # J8.1 en bodega · más de 30 días · entregados
+    │       ├── avisos.ts          # avisos para recoger que recibió el cliente
+    │       └── politica-bodega/   # J8.2 cobrar almacenaje, último aviso o perdonar
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -852,6 +866,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Indicadores del Inicio | “Refacciones” cuenta las 3 solicitudes pendientes | Figma: 2. |
 | Inventario del taller (J6) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j6-inventario.png` (Figma sin llamadas). Las cifras salen del inventario de prueba: 13 refacciones y consumibles de 22 productos | Figma: 286 de 3,450. La paginación es la de C7 (25, 50 o 100 por página). |
 | Técnicos (J7) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j7-tecnicos.png` (Figma sin llamadas). Carga y tabla salen de las órdenes; el desempeño del mes es de prueba (`desempeno.ts`) porque aún no hay registro de tiempos | Con las órdenes de prueba de J3–J5, Carlos y Luis salen “Ocupado” con 7 órdenes y Mariana “Disponible”; Figma: 5, 4 y 3. |
+| Equipos terminados (J8) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j8-equipos-terminados.png` (Figma sin llamadas). “En bodega” es lo que espera a su dueño en el taller; incluye los estados “Vencido” y “En bodega” de caja (C4.7) | Con las órdenes de prueba: 10 en bodega, 5 de más de 30 días y ninguna entregada esta semana (Figma: 4, 1 y 7). |
+| Almacenaje | `Orden.almacenaje` (días, monto, quién y si se perdonó). `saldo()` lo suma en los estados por entregar y el panel de cobro de Entrega lo muestra | $20 por día y resguardo a los 90 días son fijos hasta Configuración (J9). |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -864,7 +880,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J8–J11. La cajera (C1–C11 y C1.6), J1 a J7 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J9–J11. La cajera (C1–C11 y C1.6), J1 a J8 quedaron completos.
+- [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
 - [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
@@ -1219,3 +1236,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 1440×900, tres tarjetas con estado, orden en curso y cuatro cifras; la tabla marca #1034 “Atrasada” y #1028 “En pausa · Reasignar”
   - clic en Mariana deja solo #1010 (Garantía) y #1028; octubre cambia el subtítulo y las cifras; reasignar #1028 a Luis la quita de Mariana
   - el Inicio sigue igual con la regla compartida; a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J8: Equipos terminados
+- Figma sin llamadas: J8.1 y J8.2 se tomaron del PNG `docs/diseno/04-jefe-de-tecnicos/j8-equipos-terminados.png` recortado en dos marcos.
+- `TerminadosComponent` (indicadores, tres pestañas, “Reenviar” y “Ver”) y `PoliticaBodegaComponent` (cobrar, último aviso o perdonar). `OrdenesService.aplicarAlmacenaje`; `saldo()` y el cobro de Entrega (C6) suman el almacenaje.
+- Verificado:
+  - a 1440×900, 10 equipos en bodega del más antiguo (#0939, 57 días en rojo) al más nuevo; #1037 “Sin reparación”, #0991 “Garantía”
+  - política de #0961: “6 días × $20.00 = $120.00”; al cobrar, la tabla dice “Almacenaje $120.00” y en Entrega (cajera) el restante sube de $420.00 a $540.00 con el renglón “Almacenaje (6 días)”
+  - “Reenviar” de #1026 anota el recordatorio; Entregados cambia columnas (Entregado, Recogió, Cobrado)
+  - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
