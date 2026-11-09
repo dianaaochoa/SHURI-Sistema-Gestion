@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J9 Configuración del taller)
+- **Última actualización:** 8 nov 2026 (J10 Versión celular del jefe)
 
 ---
 
@@ -31,6 +31,7 @@ flowchart LR
 
   subgraph SHELL["Estructura de la app"]
     MENU["Menú lateral 184 px<br/>+ riel 72 px + cajón celular"]:::hecho
+    MOV["Jefe en celular (J10)<br/>barra superior + barra inferior"]:::hecho
     USR["Menú de usuario"]:::hecho
     NOT["Panel de notificaciones"]:::hecho
   end
@@ -64,7 +65,8 @@ flowchart LR
     J7["J7 Técnicos<br/>carga, desempeño del mes y órdenes por técnico"]:::hecho
     J8["J8 Equipos terminados<br/>J8.1 en bodega · más de 30 días · entregados<br/>J8.2 política de bodega"]:::hecho
     J9["J9 Configuración del taller<br/>tabulador de mano de obra · tiempos · garantía · bodega"]:::hecho
-    J["J10–J11"]:::pendiente
+    J10["J10 Versión celular<br/>barra superior con campana · 6 destinos abajo"]:::hecho
+    J["J11 Mensajes"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -110,6 +112,7 @@ flowchart LR
   J7 -->|"Ver · Reasignar"| J2
   J8 -->|"almacenaje: caja lo cobra<br/>al entregar"| C6
   J9 -.->|"SLA, vigencia, revisión,<br/>mano de obra y almacenaje"| J2 & J3 & J8
+  J10 -.->|"en celular"| J1 & J2 & J3 & J4 & J5
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -168,6 +171,7 @@ flowchart LR
 
   subgraph SISTEMA["sistema/"]
     SL["SistemaLayout<br/>barra celular + contenido"]:::comp
+    NM["NavegacionMovil<br/>J10 · 6 destinos del jefe"]:::comp
     ML["MenuLateral<br/>184 / 72 / cajón"]:::comp
     MU["MenuUsuario"]:::comp
     PN["PanelNotificaciones"]:::comp
@@ -310,6 +314,7 @@ flowchart LR
   APP --> RUT
   RUT --> LAY --> IS & OC & CC
   RUT --> SL --> ML --> MU & PN
+  SL --> NM & PN
   ML --> ST
   SL --> PP & IC & PDV & VEN
   VEN --> DV & DEV
@@ -705,7 +710,8 @@ frontend/src/
     └── sistema/
         ├── navegacion.ts            # menú de cada rol (fuente única de menú y rutas)
         ├── notificaciones.service.ts# avisos de la campana (simulado)
-        ├── sistema-layout/          # menú + contenido; barra superior en celular
+        ├── sistema-layout/          # menú + contenido; barra superior en celular (la del jefe con campana, J10)
+        ├── navegacion-movil/        # J10 barra inferior del jefe en celular
         ├── menu-lateral/            # 184 px · riel 72 px · cajón
         ├── menu-usuario/            # desplegable del avatar
         ├── panel-notificaciones/    # panel de la campana
@@ -772,7 +778,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Estilos | CSS propio con tokens de Figma, sin Tailwind ni Angular Material | `frontend/README.md` menciona “Tailwind CSS / Angular Material”, pero ninguno está instalado. Con CSS propio se copia el diseño de Figma tal cual. Pendiente acordarlo con el equipo. |
 | Destino activo en el riel | Fondo `marino-activo` + ícono cian, igual que en el menú de 184 px | El componente “Navegación lateral · Ancho=72” usa fondo `primario`, pero las pantallas a 1366 px usan el mismo estilo que el menú ancho. Se siguieron las pantallas. |
 | Fijar el riel abierto | Al pasar el mouse, el riel muestra “Fijar abierto”; en 184 px dice “Contraer”. La preferencia se guarda en `localStorage`. | Figma muestra “Contraer” pero no cómo volver a expandir. |
-| Menú en celular | Cajón de 260 px con barra superior (☰ SHURI) | Figma solo tiene versión celular para el jefe (J10) y tablet para el técnico (T7); se hará cuando se construyan esas pantallas. |
+| Menú en celular | Cajón de 260 px con barra superior (☰ SHURI). El jefe (J10) tiene su propia barra superior (logo, “Jefe de técnicos”, campana) y barra inferior con Inicio, Mensajes, Tablero, Cotizar, Garantías y Refacc.; tocar el logo abre el cajón con el resto (Inventario, Técnicos, Configuración, perfil y salir) | Figma J10 no muestra cómo llegar a esos destinos en celular. La tablet del técnico (T7) queda para T. |
 | Avisos de la campana | Datos de prueba por rol; los del técnico son los de T1.2 | No hay API todavía. |
 | Menú de usuario de la cajera | “Turno abierto desde HH:MM” como línea informativa (no clicable) | Así aparece en C1.5; Figma no indica a dónde lleva. |
 | Pantallas no construidas | `PaginaPendiente` con título, saludo en Inicio y clave de Figma | Permite navegar todo el menú desde ya. |
@@ -885,6 +891,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Equipos terminados (J8) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j8-equipos-terminados.png` (Figma sin llamadas). “En bodega” es lo que espera a su dueño en el taller; incluye los estados “Vencido” y “En bodega” de caja (C4.7) | Con las órdenes de prueba: 10 en bodega, 5 de más de 30 días y ninguna entregada esta semana (Figma: 4, 1 y 7). |
 | Almacenaje | `Orden.almacenaje` (días, monto, quién y si se perdonó). `saldo()` lo suma en los estados por entregar y el panel de cobro de Entrega lo muestra | Días sin cobro, precio por día y qué pasa a los 90 días salen de Configuración (J9). |
 | Configuración del taller (J9) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j9-configuracion.png` (Figma sin llamadas; su columna “Editar” sale cortada). Las reglas viven en `REGLAS_TALLER` (objeto simple, no señal) para que `atrasada()` y la política las lean sin inyectar nada | La garantía y los días para recoger de caja (C4, C6) siguen con sus constantes; se unificarán al conectar la API (AD9.4 las cambia también). |
+| Versión celular del jefe (J10) | Hecha con el PNG `docs/diseno/04-jefe-de-tecnicos/j10-version-celular.png`. Las pantallas J2–J9 ya se adaptaban a 360 px; J10 agrega el marco (barras) y el Inicio compacto (2 × 2 indicadores, total de órdenes en el subtítulo) | El dictamen y el pedido de Figma J10 son J4.2 y J5.2 apilados; Mensajes llega con J11. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -895,9 +902,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
-- [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
+- [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J10–J11. La cajera (C1–C11 y C1.6), J1 a J9 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J11. La cajera (C1–C11 y C1.6), J1 a J10 quedaron completos.
 - [ ] Configuración (J9): se guarda en memoria; caja todavía usa sus constantes de garantía (30 días) y plazo para recoger (30 días).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
@@ -1271,3 +1278,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 1440×900, como Figma: cinco niveles ($150, $300, $580, $650 y $300), 24 h, 7 días, 30 días, la entrega, 30 días, $20 / día y resguardo
   - Medio a $600, SLA a 48 h y almacenaje a $25 → “3 cambios guardados” y la lista de últimos cambios; luego, sin recargar: Por cotizar dice 48 h y #1034 pasa a “A tiempo”, la mano de obra de #1043 sale en $600.00 y la política de #0961 da 6 días × $25.00 = $150.00
   - a 1366×768 y 360 px sin scroll horizontal (la tabla del tabulador se recorre dentro de su caja); sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J10: Versión celular
+- Hecha con el PNG `docs/diseno/04-jefe-de-tecnicos/j10-version-celular.png` (cuatro pantallas de 390 px).
+- `SistemaLayoutComponent`: si la sesión es del jefe, en celular muestra barra superior (logo y nombre que abren el cajón, campana con el panel de notificaciones) y `NavegacionMovilComponent` abajo; el contenido deja 80 px para la barra. Los demás roles siguen con ☰.
+- Inicio (J1) en celular: subtítulo “18 órdenes abiertas · 3 técnicos en turno”, cuatro indicadores 2 × 2 con el número arriba y pendientes en tarjetas con su acción (sin flecha).
+- Verificado:
+  - a 390 × 844 como Figma J10.1; la campana abre el panel (de 16 a 374 px) y se cierra al tocar fuera; el logo abre el cajón; “Garantías” abajo lleva a `/jefe/garantias` y queda marcada
+  - a 360 px el dictamen deja “Publicar dictamen” arriba de la barra (703 px contra 736 px) y el pedido J5.2 se abre encima de la barra; sin scroll horizontal
+  - a 1440 × 900 y 1366 × 768 no aparece ninguna barra y el Inicio sigue con sus cinco indicadores
