@@ -21,6 +21,8 @@ return new class extends Migration
         foreach ($this->views() as $sql) {
             DB::unprepared($sql);
         }
+        // migrate:fresh drops tables and views but not procedures, so recreate it
+        DB::unprepared('DROP PROCEDURE IF EXISTS sp_process_storage');
         DB::unprepared($this->procedure());
     }
 
