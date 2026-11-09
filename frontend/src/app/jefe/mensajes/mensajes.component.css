@@ -1,0 +1,50 @@
+:host { display: block; height: 100%; }
+.mensajes { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+
+.no-disponible strong { font-weight: 600; }
+
+/* Figma J11.1: lista de 330 px, chat y orden de 290 px */
+.bandeja { display: flex; flex: 1; min-height: 0; overflow: hidden; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.conversaciones { display: flex; flex-shrink: 0; flex-direction: column; width: 330px; border-right: 1px solid var(--color-borde); }
+.conversaciones__cabeza { display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 0; border-bottom: 1px solid var(--color-borde); }
+.buscar { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 8px; background: var(--color-fondo); }
+.buscar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 13px; color: var(--color-marino); }
+.pestanas { display: flex; gap: 20px; }
+.pestana { padding: 0 0 8px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: 13px; color: var(--color-texto-tenue); cursor: pointer; }
+.pestana--activa { border-bottom-color: var(--color-primario); font-weight: 600; color: var(--color-primario); }
+.lista { flex: 1; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.lista__vacia { padding: 16px; font-size: 13px; color: var(--color-texto-tenue); }
+.item { display: flex; gap: 12px; width: 100%; padding: 14px 16px; border: 0; border-bottom: 1px solid var(--color-borde); background: none; font: inherit; text-align: left; cursor: pointer; }
+.item:hover, .item--elegido { background: var(--color-primario-suave); }
+.avatar-chat { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; background: var(--color-primario-suave); font-size: 12px; font-weight: 700; color: var(--color-primario); }
+.item--elegido .avatar-chat { background: var(--color-superficie); }
+.item__texto { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 12px; }
+.item__fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.item__fila strong { font-size: 13px; font-weight: 600; color: var(--color-marino); }
+.item__fila small { flex-shrink: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.item__folio { color: var(--color-primario); }
+.item__vista { overflow: hidden; color: var(--color-texto-tenue); text-overflow: ellipsis; white-space: nowrap; }
+.item__vista--nueva { color: var(--color-marino); }
+.item__insignia { display: flex; flex-shrink: 0; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--color-primario); font-size: 10px; font-weight: 700; color: var(--color-superficie); }
+
+.chat { display: flex; flex: 1; min-width: 0; }
+.resumen { flex-shrink: 0; width: 290px; border-left: 1px solid var(--color-borde); }
+.vacio { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; }
+.vacio__icono { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 999px; background: var(--color-exito-suave); color: var(--color-exito); }
+.vacio__icono .icono { width: 28px; height: 28px; }
+.vacio h2 { font-size: 20px; color: var(--color-marino); }
+.vacio p { max-width: 380px; font-size: 13px; color: var(--color-texto-tenue); }
+
+@media (max-width: 1280px) {
+  .resumen { display: none; }
+}
+
+/* J11.4: en celular, la lista o el chat (uno a la vez) */
+@media (max-width: 768px) {
+  :host { height: calc(100vh - 160px); }
+  .encabezado-pagina { flex-wrap: wrap; }
+  .conversaciones { width: 100%; border-right: 0; }
+  .vacio { display: none; }
+  .mensajes--chat .encabezado-pagina, .mensajes--chat .no-disponible, .mensajes--chat .conversaciones { display: none; }
+  .mensajes--chat .bandeja { border: 0; border-radius: 0; }
+}

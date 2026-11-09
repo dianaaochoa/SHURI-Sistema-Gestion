@@ -1,0 +1,149 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal alta" role="dialog" aria-modal="true" aria-labelledby="titulo-alta" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-alta">{{ edicion ? 'Editar producto' : 'Alta de producto' }}</h2>
+        <p class="modal__subtitulo">{{ edicion ? 'Los cambios de precio se reflejan en Punto de venta al guardar' : 'Se agrega al catálogo y queda disponible en Punto de venta' }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/inventario/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    @if (ultimo(); as texto) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ texto }}</p>
+    }
+
+    <div class="alta__superior">
+      <label class="foto" [class.foto--con-imagen]="foto">
+        <input type="file" accept="image/*" class="oculto" (change)="elegirFoto($event)" />
+        @if (foto) {
+          <img class="foto__imagen" [src]="foto" alt="Foto del producto" />
+          <span class="foto__texto foto__texto--sobre">Cambiar foto</span>
+        } @else {
+          <img src="assets/inventario/image-primario.svg" width="24" height="24" alt="" />
+          <span class="foto__texto">Subir foto</span>
+        }
+      </label>
+      <div class="alta__identidad">
+        <div class="rejilla rejilla--2">
+          <div class="campo">
+            <label class="campo__etiqueta" for="alta-sku">Código / SKU *</label>
+            <div class="campo__control campo__control--40" [class.campo__control--error]="error('sku')">
+              <img src="assets/inventario/barcode.svg" width="16" height="16" alt="" />
+              <input #campoSku id="alta-sku" class="campo__input" autocomplete="off" maxlength="20" [placeholder]="sugerenciaSku" [(ngModel)]="sku" />
+            </div>
+            @if (error('sku'); as e) { <p class="campo__error">{{ e }}</p> }
+          </div>
+          <div class="campo">
+            <label class="campo__etiqueta" for="alta-barras">Código de barras</label>
+            <div class="campo__control campo__control--40" [class.campo__control--error]="error('barras')">
+              <img src="assets/inventario/barcode.svg" width="16" height="16" alt="" />
+              <input id="alta-barras" class="campo__input" autocomplete="off" inputmode="numeric" maxlength="14" placeholder="Escanéalo" [(ngModel)]="codigoBarras" (keydown.enter)="$event.preventDefault()" />
+            </div>
+            @if (error('barras'); as e) { <p class="campo__error">{{ e }}</p> }
+          </div>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="alta-nombre">Nombre del producto *</label>
+          <div class="campo__control campo__control--40" [class.campo__control--error]="error('nombre')">
+            <input id="alta-nombre" class="campo__input" autocomplete="off" maxlength="80" placeholder="Ej. Protector de cámara iPhone 15 Pro" [(ngModel)]="nombre" />
+          </div>
+          @if (error('nombre'); as e) { <p class="campo__error">{{ e }}</p> }
+        </div>
+      </div>
+    </div>
+
+    <div class="rejilla rejilla--3">
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-categoria">Categoría *</label>
+        <div class="campo__control campo__control--40">
+          <select id="alta-categoria" class="campo__input campo__select" [(ngModel)]="categoria">
+            @for (c of categorias; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </div>
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-proveedor">Proveedor</label>
+        <div class="campo__control campo__control--40">
+          <select id="alta-proveedor" class="campo__input campo__select" [(ngModel)]="proveedor">
+            @for (p of proveedores; track p) { <option [value]="p">{{ p }}</option> }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </div>
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-unidad">Unidad</label>
+        <div class="campo__control campo__control--40">
+          <select id="alta-unidad" class="campo__input campo__select" [(ngModel)]="unidad">
+            @for (u of unidades; track u) { <option [value]="u">{{ u }}</option> }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </div>
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-costo">Costo unitario (sin IVA) *</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="error('costo')">
+          <span class="moneda">$</span>
+          <input id="alta-costo" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" [ngModel]="costo()" (ngModelChange)="costo.set($event)" />
+        </div>
+        @if (error('costo'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-precio">Precio de venta (IVA incl.) *</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="error('precio')">
+          <span class="moneda">$</span>
+          <input id="alta-precio" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" [ngModel]="precio()" (ngModelChange)="precio.set($event)" />
+        </div>
+        @if (error('precio'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+      <div class="campo">
+        <span class="campo__etiqueta">Margen</span>
+        @if (margen(); as m) {
+          <p class="margen" [class.margen--negativo]="m.importe < 0">{{ m.porcentaje }} % · {{ dinero(m.importe) }}</p>
+        } @else {
+          <p class="margen margen--vacio">Escribe costo y precio</p>
+        }
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-stock">{{ edicion ? 'Stock actual' : 'Stock inicial *' }}</label>
+        <div class="campo__control campo__control--40" [class.campo__control--fijo]="edicion" [class.campo__control--error]="error('stock')">
+          <input id="alta-stock" class="campo__input" type="number" inputmode="numeric" min="0" step="1" placeholder="0" [disabled]="edicion" [(ngModel)]="stock" />
+        </div>
+        @if (error('stock'); as e) { <p class="campo__error">{{ e }}</p> }
+        @if (edicion) { <p class="nota">Cambia con entradas o ajustes</p> }
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-minimo">Stock mínimo (alerta)</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="error('minimo')">
+          <input id="alta-minimo" class="campo__input" type="number" inputmode="numeric" min="0" step="1" placeholder="0" [(ngModel)]="minimo" />
+        </div>
+        @if (error('minimo'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="alta-ubicacion">Ubicación</label>
+        <div class="campo__control campo__control--40">
+          <input id="alta-ubicacion" class="campo__input" autocomplete="off" maxlength="40" placeholder="Ej. Vitrina 2 · Charola B" [(ngModel)]="ubicacion" />
+        </div>
+      </div>
+    </div>
+
+    <p class="aviso aviso--info">
+      <img src="assets/inventario/alert-primario.svg" width="16" height="16" alt="" />
+      Las refacciones dadas de alta aquí también aparecen en el Cotizador del jefe de técnicos.
+    </p>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      @if (!edicion) {
+        <button type="button" class="boton boton--contorno boton--44" (click)="guardar(true)">Guardar y agregar otro</button>
+      }
+      <button type="button" class="boton boton--primario boton--44" (click)="guardar(false)">
+        <img src="assets/inventario/check-blanco.svg" width="16" height="16" alt="" />{{ edicion ? 'Guardar cambios' : 'Guardar producto' }}
+      </button>
+    </div>
+  </section>
+</div>

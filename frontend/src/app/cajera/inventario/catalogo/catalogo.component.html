@@ -1,0 +1,134 @@
+<div class="herramientas">
+  <label class="campo__control campo__control--40 herramientas__buscar">
+    <img src="assets/inventario/search.svg" width="16" height="16" alt="" />
+    <input
+      class="campo__input"
+      type="search"
+      autocomplete="off"
+      placeholder="Buscar nombre, SKU o código de barras"
+      aria-label="Buscar producto"
+      [value]="busqueda()"
+      (input)="cambiar(busqueda.set, $any($event.target).value)"
+    />
+  </label>
+  <label class="campo__control campo__control--40 herramientas__select">
+    <img src="assets/inventario/chev-d.svg" width="16" height="16" alt="" />
+    <select class="campo__input campo__select" aria-label="Categoría" [value]="categoria()" (change)="cambiar(categoria.set, $any($event.target).value)">
+      <option value="">Todas las categorías</option>
+      @for (c of categorias; track c) {
+        <option [value]="c" [selected]="c === categoria()">{{ c }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo__control campo__control--40 herramientas__select">
+    <img src="assets/inventario/chev-d.svg" width="16" height="16" alt="" />
+    <select class="campo__input campo__select" aria-label="Proveedor" [value]="proveedor()" (change)="cambiar(proveedor.set, $any($event.target).value)">
+      <option value="">Todos los proveedores</option>
+      @for (p of proveedores; track p) {
+        <option [value]="p" [selected]="p === proveedor()">{{ p }}</option>
+      }
+    </select>
+  </label>
+  <div class="filtros">
+    <button type="button" class="boton boton--contorno boton--40" [attr.aria-expanded]="filtrosAbiertos()" (click)="filtrosAbiertos.set(!filtrosAbiertos())">
+      <img src="assets/inventario/sliders-primario.svg" width="16" height="16" alt="" />Filtros
+      @if (filtrosExtra()) {
+        <span class="filtros__conteo">{{ filtrosExtra() }}</span>
+      }
+    </button>
+    @if (filtrosAbiertos()) {
+      <div class="popover filtros__panel">
+        <label class="casilla"><input type="checkbox" [checked]="soloApartadas()" (change)="cambiar(soloApartadas.set, $any($event.target).checked)" />Con piezas apartadas para reparaciones</label>
+        <label class="casilla"><input type="checkbox" [checked]="soloUsoInterno()" (change)="cambiar(soloUsoInterno.set, $any($event.target).checked)" />Solo de uso interno del taller</label>
+        <button type="button" class="enlace" (click)="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+    }
+  </div>
+  <span class="herramientas__espacio"></span>
+  <button type="button" class="boton-icono" title="Exportar a Excel" aria-label="Exportar a Excel" (click)="exportar()">
+    <img src="assets/inventario/file-down.svg" width="20" height="20" alt="" />
+  </button>
+  <button type="button" class="boton-icono" title="Importar desde Excel" aria-label="Importar desde Excel" (click)="importar.emit()">
+    <img src="assets/inventario/file-up.svg" width="20" height="20" alt="" />
+  </button>
+</div>
+
+<div class="resumen">
+  <button type="button" class="estado estado--info" [class.resumen--activo]="resumen() === 'todos'" [attr.aria-pressed]="resumen() === 'todos'" (click)="elegirResumen('todos')">Todos los productos</button>
+  <button type="button" class="estado estado--peligro" [class.resumen--activo]="resumen() === 'bajo'" [attr.aria-pressed]="resumen() === 'bajo'" (click)="elegirResumen('bajo')">Stock bajo: {{ stockBajo() }}</button>
+  <button type="button" class="estado estado--advertencia" [class.resumen--activo]="resumen() === 'agotado'" [attr.aria-pressed]="resumen() === 'agotado'" (click)="elegirResumen('agotado')">Sin existencias: {{ sinExistencias() }}</button>
+  <span class="herramientas__espacio"></span>
+  <p class="resumen__excel">
+    Excel: <button type="button" (click)="exportar()">exportar ↓</button> · <button type="button" (click)="importar.emit()">importar ↑</button>
+  </p>
+</div>
+
+<section class="tabla-inventario" aria-label="Productos">
+  <div class="tabla-inventario__desplazable">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th class="c-check"><span class="casilla"><input type="checkbox" aria-label="Seleccionar todos" [checked]="todosElegidos()" (change)="alternarTodos($any($event.target).checked)" /></span></th>
+          <th class="c-foto">Foto</th>
+          <th class="c-sku">SKU</th>
+          <th class="c-nombre">
+            <button type="button" class="ordenar" (click)="ordenar()">Nombre {{ orden() === 'asc' ? '↑' : orden() === 'desc' ? '↓' : '↕' }}</button>
+          </th>
+          <th class="c-categoria">Categoría</th>
+          <th class="c-centro c-stock">Stock</th>
+          <th class="c-derecha c-apartadas">Apartadas</th>
+          <th class="c-derecha">Disponible</th>
+          <th class="c-derecha">Precio Venta</th>
+          <th class="c-centro">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of visibles(); track p.sku) {
+          <tr [class.elegida]="seleccion().includes(p.sku)">
+            <td class="c-check"><span class="casilla"><input type="checkbox" [attr.aria-label]="'Seleccionar ' + p.nombre" [checked]="seleccion().includes(p.sku)" (change)="alternar(p.sku)" /></span></td>
+            <td class="c-foto">
+              @if (p.foto) {
+                <img class="miniatura" [src]="p.foto" width="36" height="36" alt="" />
+              } @else {
+                <span class="miniatura miniatura--vacia"><img src="assets/inventario/image-primario.svg" width="16" height="16" alt="" /></span>
+              }
+            </td>
+            <td class="c-sku">{{ p.sku }}</td>
+            <td class="c-nombre">
+              <span class="nombre">{{ p.nombre }}</span>
+              <span class="nombre__sku">{{ p.sku }}</span>
+            </td>
+            <td class="c-categoria">{{ p.categoria }}</td>
+            <td class="c-centro c-stock" [class.c-agotado]="tono(p) === 'advertencia'"><span class="estado estado--{{ tono(p) }} pastilla">{{ p.stock }} uds.</span></td>
+            <td class="c-derecha c-apartadas">
+              @if (textoApartadas(p); as texto) {
+                <span class="apartadas">{{ texto }}</span>
+              } @else {
+                <span class="vacio">—</span>
+              }
+            </td>
+            <td class="c-derecha"><strong class="disponible" [class.disponible--cero]="!disponible(p)">{{ disponible(p) }}</strong></td>
+            <td class="c-derecha"><strong class="precio">{{ dinero(p.precio) }}</strong></td>
+            <td class="c-centro">
+              <span class="acciones">
+                <button type="button" title="Editar" [attr.aria-label]="'Editar ' + p.nombre" (click)="editar.emit(p)"><img src="assets/inventario/pencil.svg" width="16" height="16" alt="" /></button>
+                <button type="button" title="Movimientos" [attr.aria-label]="'Movimientos de ' + p.nombre" (click)="movimientos.emit(p.sku)"><img src="assets/inventario/history.svg" width="16" height="16" alt="" /></button>
+              </span>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="10" class="sin-productos">No hay productos con esos filtros.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-paginacion [total]="filtrados().length" [(pagina)]="pagina" [(porPagina)]="porPagina">
+    @if (seleccion().length) {
+      · <strong>{{ seleccion().length }} {{ seleccion().length === 1 ? 'seleccionado' : 'seleccionados' }}</strong>
+      <button type="button" class="enlace" (click)="seleccion.set([])">Quitar selección</button>
+    }
+  </app-paginacion>
+</section>

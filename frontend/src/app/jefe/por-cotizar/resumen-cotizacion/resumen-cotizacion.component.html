@@ -1,0 +1,56 @@
+<section class="panel resumen" aria-labelledby="titulo-total">
+  <h2 class="panel__titulo" id="titulo-total"><span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>Total para el cliente</h2>
+
+  <p class="renglon"><span>Refacciones</span><strong>{{ dinero(refacciones()) }}</strong></p>
+  <p class="renglon"><span>Mano de obra</span><strong>{{ dinero(manoObra()) }}</strong></p>
+  <label class="renglon">
+    <span>Descuento</span>
+    <span class="descuento">−&nbsp;$<input type="number" min="0" step="0.01" aria-label="Descuento en pesos" [value]="descuento().toFixed(2)" (change)="cambiarDescuento($any($event.target).value)" /></span>
+  </label>
+  <hr />
+  <p class="renglon"><span>Total · IVA incluido</span><strong>{{ dinero(total()) }}</strong></p>
+  @if (orden().anticipo) {
+    <p class="renglon"><span>Anticipo recibido</span><strong>− {{ dinero(orden().anticipo) }}</strong></p>
+  }
+  <p class="renglon"><span>Restante al entregar</span><strong>{{ dinero(restante()) }}</strong></p>
+
+  <p class="utilidad" [class.utilidad--baja]="utilidad().importe <= 0">
+    <strong>Utilidad estimada: {{ dinero(utilidad().importe) }} · {{ utilidad().porcentaje }}%</strong><span>Solo tú la ves</span>
+  </p>
+
+  <div class="dos">
+    <label class="campo">
+      <span class="campo__etiqueta">Entrega estimada</span>
+      <span class="campo__control campo__control--40">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <input class="campo__input" type="date" [value]="entregaElegida()" (click)="$any($event.target).showPicker?.()" (input)="entrega.set($any($event.target).value)" />
+      </span>
+    </label>
+    <label class="campo">
+      <span class="campo__etiqueta">Vigencia</span>
+      <span class="campo__control campo__control--40">
+        <select class="campo__input campo__select" (change)="vigencia.set(+$any($event.target).value)">
+          @for (d of vigencias; track d) {
+            <option [value]="d" [selected]="d === vigencia()">{{ d }} días</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+    </label>
+  </div>
+
+  <label class="campo">
+    <span class="campo__etiqueta">Mensaje para el cliente</span>
+    <textarea class="mensaje" rows="3" maxlength="400" [value]="mensajeElegido()" (input)="mensaje.set($any($event.target).value)"></textarea>
+  </label>
+
+  <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Se publica en el portal del cliente (P2.4) y caja recibe aviso. Las piezas en stock quedan apartadas.</p>
+
+  @if (falta(); as mensaje) {
+    <p class="falta" role="status">{{ mensaje }}</p>
+  }
+  <button type="button" class="boton boton--primario enviar" [disabled]="!!falta()" (click)="confirmar()">
+    <span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Enviar presupuesto al cliente
+  </button>
+  <button type="button" class="regresar" (click)="regresar.emit()"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Regresar al técnico con dudas</button>
+</section>

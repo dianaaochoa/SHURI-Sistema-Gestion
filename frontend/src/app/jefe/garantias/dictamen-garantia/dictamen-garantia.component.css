@@ -1,0 +1,37 @@
+:host { display: block; height: 100%; }
+.dictamen { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+.icono { width: 16px; height: 16px; }
+.panel__titulo .icono { color: var(--color-primario); }
+
+.encabezado { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.encabezado__texto { min-width: 0; }
+.encabezado__estados { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.volver { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 600; color: var(--color-primario); cursor: pointer; }
+
+/* Figma J4.2: principal de 752 px y dictamen de 440 px */
+.columnas { display: flex; flex: 1; gap: 16px; min-height: 0; }
+.principal { display: flex; flex: 1; flex-direction: column; gap: 16px; min-width: 0; }
+.lateral { flex-shrink: 0; width: 440px; }
+.panel { gap: 12px; }
+.reporte { flex: 1; }
+.datos { display: flex; flex-direction: column; gap: 12px; margin: 0; }
+.datos div { display: flex; justify-content: space-between; gap: 16px; font-size: 12px; }
+.datos dt { flex-shrink: 0; color: var(--color-texto-tenue); }
+.datos dd { margin: 0; font-weight: 600; text-align: right; color: var(--color-marino); }
+.cita { font-size: 14px; color: var(--color-marino); }
+.nota { font-size: 12px; color: var(--color-texto-tenue); }
+.fotos { display: flex; gap: 8px; }
+.foto-vacia--grande { width: 52px; height: 52px; }
+
+@media (max-width: 1280px) {
+  :host, .dictamen { height: auto; }
+  .columnas { flex-direction: column; }
+  .lateral { width: auto; }
+}
+
+@media (max-width: 600px) {
+  .encabezado { flex-direction: column; }
+  .encabezado__estados { margin-top: 0; }
+  .datos div { flex-direction: column; gap: 2px; }
+  .datos dd { text-align: left; }
+}

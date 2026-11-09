@@ -1,0 +1,218 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal nueva" role="dialog" aria-modal="true" aria-labelledby="titulo-nueva" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-nueva">Recepción de taller</h2>
+        <p class="modal__subtitulo">Nueva orden {{ folio() }} · {{ hoy }} · Caja 01 · {{ cajera() }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/pdv/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <!-- A · Cliente -->
+    <section class="seccion" aria-labelledby="seccion-a">
+      <h3 class="seccion__titulo" id="seccion-a">
+        <span class="seccion__letra">A</span>Datos del cliente
+        <span class="seccion__ayuda">Busca por teléfono, nombre o correo y presiona Enter</span>
+      </h3>
+      <label class="campo__control campo__control--40 nueva__buscar" [class.campo__control--error]="error('cliente')">
+        <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+        <input
+          id="buscar-cliente"
+          class="campo__input"
+          type="search"
+          autocomplete="off"
+          placeholder="Ej. 55 1234 5678, María Hernández o maria@correo.com"
+          aria-label="Buscar cliente por teléfono, nombre o correo"
+          [value]="busqueda()"
+          (input)="busqueda.set($any($event.target).value)"
+          (keydown.enter)="$event.preventDefault(); $event.stopPropagation(); buscar()"
+        />
+      </label>
+
+      @if (cliente(); as c) {
+        <div class="nueva__estado">
+          <span class="estado estado--exito">Cliente encontrado · datos cargados</span>
+          <button type="button" class="enlace" (click)="modalCliente.set('editar')">
+            <img src="assets/ordenes/lapiz-primario.svg" width="14" height="14" alt="" />Editar cliente
+          </button>
+        </div>
+        <div class="resumen">
+          <p class="resumen__nombre">{{ c.nombre }}</p>
+          <p>{{ c.telefono }}{{ c.correo ? ' · ' + c.correo : '' }}</p>
+          @if (direccion(c.direccion); as d) {
+            <p class="resumen__tenue">{{ d }}</p>
+          }
+        </div>
+      } @else if (coincidencias().length) {
+        <p class="nueva__ayuda">{{ coincidencias().length }} clientes coinciden con “{{ buscado() }}”. Elige uno:</p>
+        <div class="coincidencias">
+          @for (c of coincidencias().slice(0, 5); track c.id) {
+            <button type="button" class="coincidencia" (click)="elegirCliente(c)">
+              <strong>{{ c.nombre }}</strong><span>{{ c.telefono }}{{ c.correo ? ' · ' + c.correo : '' }}</span>
+            </button>
+          }
+        </div>
+      } @else {
+        @if (sinResultados()) {
+          <div class="nueva__estado">
+            <span class="estado estado--peligro">Sin resultados para “{{ buscado() }}”</span>
+            <button type="button" class="enlace" (click)="modalCliente.set('nuevo')">Registrar cliente nuevo</button>
+          </div>
+        } @else if (error('cliente')) {
+          <p class="campo__error">Busca al cliente o regístralo antes de guardar la orden.</p>
+        }
+        <div class="resumen resumen--vacio">
+          <p>Los datos del cliente se llenarán al {{ sinResultados() ? 'guardar el registro' : 'buscarlo' }}</p>
+          <p class="resumen__tenue">Nombre · teléfono · correo · dirección</p>
+        </div>
+      }
+    </section>
+
+    <!-- B · Equipo -->
+    <section class="seccion" aria-labelledby="seccion-b">
+      <h3 class="seccion__titulo" id="seccion-b">
+        <span class="seccion__letra">B</span>Equipo y condición física
+        <span class="seccion__ayuda">Tipo, marca y modelo se escriben libremente (con sugerencias)</span>
+      </h3>
+      <div class="rejilla rejilla--4">
+        <div class="campo">
+          <label class="campo__etiqueta" for="tipo">Tipo de equipo *</label>
+          <div class="campo__control campo__control--40" [class.campo__control--error]="error('tipo')">
+            <input id="tipo" class="campo__input" list="lista-tipos" autocomplete="off" placeholder="Ej. teléfono, tablet, laptop" [(ngModel)]="tipo" />
+          </div>
+          <datalist id="lista-tipos">
+            @for (t of tipos; track t) {
+              <option [value]="t"></option>
+            }
+          </datalist>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="marca">Marca *</label>
+          <div class="campo__control campo__control--40" [class.campo__control--error]="error('marca')">
+            <input id="marca" class="campo__input" list="lista-marcas" autocomplete="off" placeholder="Ej. Samsung, Apple, Motorola" [(ngModel)]="marca" />
+          </div>
+          <datalist id="lista-marcas">
+            @for (m of marcas; track m) {
+              <option [value]="m"></option>
+            }
+          </datalist>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="modelo">Modelo *</label>
+          <div class="campo__control campo__control--40" [class.campo__control--error]="error('modelo')">
+            <input id="modelo" class="campo__input" list="lista-modelos" autocomplete="off" placeholder="Ej. Galaxy S22 Ultra" [(ngModel)]="modelo" />
+          </div>
+          <datalist id="lista-modelos">
+            @for (m of modelosDe(marca); track m) {
+              <option [value]="m"></option>
+            }
+          </datalist>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="color">Color</label>
+          <div class="campo__control campo__control--40">
+            <input id="color" class="campo__input" autocomplete="off" placeholder="Ej. negro" [(ngModel)]="color" />
+          </div>
+        </div>
+      </div>
+      <div class="rejilla rejilla--3">
+        <div class="campo">
+          <label class="campo__etiqueta" for="imei">IMEI / número de serie</label>
+          <div class="campo__control campo__control--40">
+            <img src="assets/ordenes/barcode-gris.svg" width="16" height="16" alt="" />
+            <input id="imei" class="campo__input" autocomplete="off" maxlength="20" placeholder="15 dígitos o serie" [(ngModel)]="imei" />
+          </div>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="pin">Contraseña / PIN (no se imprime)</label>
+          <div class="campo__control campo__control--40">
+            <input id="pin" class="campo__input" autocomplete="off" placeholder="Opcional" [(ngModel)]="pin" />
+          </div>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="accesorios-orden">Accesorios que deja</label>
+          <div class="campo__control campo__control--40">
+            <input id="accesorios-orden" class="campo__input" autocomplete="off" placeholder="Ej. funda, cargador, SIM" [(ngModel)]="accesorios" />
+          </div>
+        </div>
+      </div>
+      <div class="rejilla rejilla--2">
+        <div class="campo">
+          <label class="campo__etiqueta" for="falla-orden">Falla reportada por el cliente *</label>
+          <textarea id="falla-orden" class="nueva__area" [class.nueva__area--error]="error('falla')" rows="2" placeholder="Describe lo que reporta el cliente…" [(ngModel)]="falla"></textarea>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="condicion-orden">Condición física al recibir *</label>
+          <textarea id="condicion-orden" class="nueva__area" [class.nueva__area--error]="error('condicion')" rows="2" placeholder="Describe golpes, rayones, piezas faltantes…" [(ngModel)]="condicion"></textarea>
+        </div>
+      </div>
+      @if (error('tipo') || error('marca') || error('modelo') || error('falla') || error('condicion')) {
+        <p class="campo__error">Completa los campos marcados: el técnico y el cliente los verán en la orden.</p>
+      }
+    </section>
+
+    <!-- C · Anticipo y portal -->
+    <section class="seccion" aria-labelledby="seccion-c">
+      <h3 class="seccion__titulo" id="seccion-c"><span class="seccion__letra">C</span>Anticipo y acceso al portal</h3>
+      <div class="rejilla rejilla--3 rejilla--abajo">
+        <div class="campo">
+          <label class="campo__etiqueta" for="anticipo">Anticipo / costo de revisión *</label>
+          <div class="campo__control campo__control--40" [class.campo__control--error]="error('anticipo')">
+            <input
+              id="anticipo"
+              class="campo__input"
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="$0.00"
+              [value]="anticipo ?? ''"
+              (input)="anticipo = leerNumero($any($event.target).value)"
+            />
+          </div>
+        </div>
+        <div class="campo">
+          <label class="campo__etiqueta" for="metodo-anticipo">Método de pago</label>
+          <div class="campo__control campo__control--40">
+            <select id="metodo-anticipo" class="campo__input campo__select" [(ngModel)]="metodo">
+              @for (m of metodos; track m) {
+                <option [value]="m">{{ m }}</option>
+              }
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </div>
+        </div>
+        <div class="campo">
+          <span class="campo__etiqueta">Contraseña temporal del portal (se imprime y se envía por correo)</span>
+          <div class="nueva__contrasena">
+            <div class="campo__control campo__control--40 campo__control--fijo">
+              <span class="campo__input" aria-live="polite">{{ contrasena() }}</span>
+            </div>
+            <button type="button" class="enlace" (click)="contrasena.set(generarContrasena())">
+              <img src="assets/ordenes/lapiz-primario.svg" width="14" height="14" alt="" />Regenerar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="nueva__pie">
+      <p class="nueva__ayuda">Se imprime la orden de servicio (carta) y el ticket térmico con estos mismos datos.</p>
+      <div class="modal__acciones">
+        <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+        <button type="button" class="boton boton--primario boton--44" (click)="guardar()">
+          <img src="assets/pdv/printer.svg" width="16" height="16" alt="" />Registrar e imprimir orden
+        </button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+@if (modalCliente()) {
+  <app-nuevo-cliente
+    [inicial]="modalCliente() === 'editar' ? cliente() : null"
+    [busqueda]="modalCliente() === 'nuevo' ? buscado() : ''"
+    (cerrar)="modalCliente.set(null)"
+    (guardado)="clienteGuardado($event)"
+  />
+}

@@ -1,0 +1,136 @@
+<div class="inicio">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">{{ saludo() }}</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo() }}</p>
+    </div>
+    @if (turno()) {
+      <p class="turno turno--abierto">
+        <img src="assets/cajera/clock.svg" width="16" height="16" alt="" />{{ estadoTurno() }}
+      </p>
+    } @else {
+      <p class="turno turno--cerrado">
+        <img src="assets/cajera/lock.svg" width="16" height="16" alt="" />Caja cerrada · sin turno abierto
+      </p>
+    }
+  </header>
+
+  @if (!turno()) {
+    <section class="caja-cerrada">
+      <span class="caja-cerrada__icono"><img src="assets/cajera/lock-grande.svg" width="22" height="22" alt="" /></span>
+      <div class="caja-cerrada__texto">
+        <h2>Tu caja está cerrada</h2>
+        <p>
+          Cuenta el fondo inicial para abrir el turno. Mientras tanto puedes consultar órdenes, clientes e
+          inventario, pero no cobrar ni entregar equipos.
+        </p>
+      </div>
+      <button type="button" class="boton caja-cerrada__boton" (click)="abrirTurno.set(true)">
+        <img src="assets/cajera/unlock.svg" width="16" height="16" alt="" />Abrir turno de caja
+      </button>
+    </section>
+  }
+
+  <nav class="accesos" aria-label="Accesos rápidos">
+    @for (acceso of accesos; track acceso.tecla) {
+      @if (acceso.requiereCaja && !turno()) {
+        <span class="acceso acceso--bloqueado" aria-disabled="true" title="Abre el turno de caja para usarlo">
+          <span class="acceso__icono"><img [src]="'assets/cajera/' + acceso.icono + '.svg'" width="20" height="20" alt="" /></span>
+          <span class="acceso__etiqueta">{{ acceso.etiqueta }}</span>
+          <kbd class="tecla">{{ acceso.tecla }}</kbd>
+        </span>
+      } @else {
+        <a class="acceso" [routerLink]="['/cajera', acceso.ruta]">
+          <span class="acceso__icono"><img [src]="'assets/cajera/' + acceso.icono + '.svg'" width="20" height="20" alt="" /></span>
+          <span class="acceso__etiqueta">{{ acceso.etiqueta }}</span>
+          <kbd class="tecla">{{ acceso.tecla }}</kbd>
+        </a>
+      }
+    }
+  </nav>
+
+  <section class="indicadores" aria-label="Indicadores del turno">
+    @for (indicador of indicadores(); track indicador.titulo) {
+      <div class="indicador">
+        <p
+          class="indicador__valor"
+          [class.indicador__valor--conteo]="indicador.conteo"
+          [class.indicador__valor--exito]="indicador.tono === 'exito'"
+          [class.indicador__valor--tenue]="indicador.tono === 'tenue'"
+        >
+          {{ indicador.valor }}
+        </p>
+        <div>
+          <p class="indicador__titulo">{{ indicador.titulo }}</p>
+          <p class="indicador__detalle">{{ indicador.detalle }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="pendientes" aria-label="Pendientes">
+    @for (columna of columnas(); track $index) {
+      <div class="pendientes__columna">
+        @for (panel of columna; track panel.titulo) {
+          <article class="panel">
+            @switch (panel.tipo) {
+              @case ('lista') {
+                <header class="panel__encabezado">
+                  <h2 class="panel__titulo">
+                    <img [src]="'assets/cajera/' + panel.icono + '.svg'" width="16" height="16" alt="" />{{ panel.titulo }}
+                  </h2>
+                  <span class="estado" [class]="'estado--' + panel.insignia.tono">{{ panel.insignia.valor }}</span>
+                </header>
+                @for (fila of panel.filas; track fila.titulo) {
+                  <a class="fila" [routerLink]="['/cajera', fila.ruta]">
+                    <span class="fila__texto">
+                      <strong>{{ fila.titulo }}</strong>
+                      <span>{{ fila.detalle }}</span>
+                    </span>
+                    @if (fila.estado) {
+                      <span class="estado" [class]="'estado--' + fila.estado.tono">{{ fila.estado.texto }}</span>
+                    }
+                    @if (fila.monto) {
+                      <span class="fila__monto">{{ fila.monto }}</span>
+                    }
+                    <img src="assets/cajera/chev-r.svg" width="14" height="14" alt="" />
+                  </a>
+                }
+                <a class="enlace panel__enlace" [routerLink]="['/cajera', panel.enlace.ruta]">
+                  <img src="assets/cajera/chev-r-primario.svg" width="14" height="14" alt="" />{{ panel.enlace.texto }}
+                </a>
+              }
+              @case ('corte') {
+                <h2 class="panel__titulo panel__titulo--suelto">
+                  <img src="assets/cajera/titulo-wallet.svg" width="16" height="16" alt="" />{{ panel.titulo }}
+                </h2>
+                <dl class="corte">
+                  @for (fila of panel.filas; track fila.etiqueta) {
+                    <div class="corte__fila">
+                      <dt>{{ fila.etiqueta }}</dt>
+                      <dd [class.corte__valor--exito]="fila.exito">{{ fila.valor }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
+              @case ('avisos') {
+                <h2 class="panel__titulo panel__titulo--suelto">
+                  <img src="assets/cajera/alert.svg" width="16" height="16" alt="" />{{ panel.titulo }}
+                </h2>
+                @for (aviso of panel.avisos; track aviso) {
+                  <p class="aviso aviso--advertencia">
+                    <img src="assets/cajera/alert.svg" width="16" height="16" alt="" />{{ aviso }}
+                  </p>
+                }
+              }
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+</div>
+
+@if (abrirTurno()) {
+  <app-abrir-turno (cerrar)="abrirTurno.set(false)" />
+}

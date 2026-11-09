@@ -1,0 +1,39 @@
+<section class="panel tu-dictamen" aria-labelledby="titulo-dictamen">
+  <h2 class="panel__titulo" id="titulo-dictamen"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Tu dictamen</h2>
+
+  <div class="opciones" role="radiogroup" aria-labelledby="titulo-dictamen">
+    @for (op of opciones; track op.id) {
+      <label class="opcion-radio" [class.opcion-radio--elegida]="op.id === tipo()">
+        <input type="radio" name="dictamen" [checked]="op.id === tipo()" [disabled]="!reporte()" (change)="elegir(op.id)" />
+        <span class="opcion-radio__texto"><strong>{{ op.texto }}</strong><span>{{ op.detalle }}</span></span>
+      </label>
+    }
+  </div>
+
+  @if (tipo() === 'con-costo') {
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Concepto</span>
+        <textarea class="texto texto--corto" rows="2" maxlength="120" [value]="conceptoElegido()" (input)="concepto.set($any($event.target).value)"></textarea>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Costo extra</span>
+        <span class="campo__control campo__control--40 costo">$<input class="campo__input" type="number" min="0" step="0.01" [value]="costoElegido().toFixed(2)" (change)="costo.set(+$any($event.target).value || 0)" /></span>
+      </label>
+    </div>
+  }
+
+  <label class="campo">
+    <span class="campo__etiqueta">Dictamen técnico para el cliente *</span>
+    <textarea class="texto" rows="3" maxlength="500" [value]="textoElegido()" (input)="texto.set($any($event.target).value)"></textarea>
+  </label>
+
+  <p class="aviso aviso--info"><img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />{{ consecuencia() }}</p>
+
+  @if (falta(); as mensaje) {
+    <p class="falta" role="status">{{ mensaje }}</p>
+  }
+  <button type="button" class="boton boton--primario publicar" [disabled]="!!falta()" (click)="publicar()">
+    <span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Publicar dictamen
+  </button>
+</section>

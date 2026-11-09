@@ -1,0 +1,191 @@
+<div class="pdv">
+  <app-barra-busqueda (agregado)="aviso.set(null)" (cobrar)="abrir('cobro')" (temporal)="abrirTemporal($event)" />
+
+  <div class="area">
+    @if (!dispositivos.enLinea()) {
+      <app-aviso-sin-conexion />
+    }
+    @if (aviso(); as mensaje) {
+      <p class="aviso aviso--exito" role="status">
+        <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}
+      </p>
+    }
+
+    <section class="ticket" aria-label="Ticket de venta">
+      <header class="ticket__encabezado">
+        <div>
+          <h1 class="ticket__folio">{{ venta.vacia() ? 'Venta nueva' : 'Venta ' + venta.folio() }}</h1>
+          <p class="ticket__resumen">
+            {{ venta.articulos() }} {{ venta.articulos() === 1 ? 'artículo' : 'artículos' }}
+            @if (!venta.vacia()) {
+              · {{ venta.lineas().length }} {{ venta.lineas().length === 1 ? 'concepto' : 'conceptos' }}
+            }
+            · Precios antes de IVA
+          </p>
+        </div>
+        <div class="ticket__acciones">
+          @if (venta.vacia()) {
+            <button
+              type="button"
+              class="boton boton--contorno boton--40"
+              [disabled]="!dispositivos.enLinea()"
+              [attr.title]="dispositivos.enLinea() ? null : 'Búsqueda de clientes no disponible sin conexión'"
+              (click)="abrir('cliente')"
+            >
+              <img src="assets/pdv/user-round.svg" width="16" height="16" alt="" />{{ venta.etiquetaCliente() }}
+            </button>
+            <a class="boton boton--secundario boton--40 ticket__volver" routerLink="/cajera/inicio">Volver atrás</a>
+          } @else {
+            <button type="button" class="boton boton--contorno boton--40" (click)="abrir('espera')">
+              <img src="assets/pdv/pause.svg" width="16" height="16" alt="" />En espera ({{ venta.pausadas().length }})
+            </button>
+            <button type="button" class="boton boton--contorno boton--40" (click)="abrirTemporal()">
+              <img src="assets/pdv/plus.svg" width="16" height="16" alt="" />Producto temporal
+            </button>
+            <button type="button" class="boton boton--contorno boton--40" [class.ticket__con-descuento]="venta.descuentoVenta()" (click)="abrir('descuento')">
+              <img src="assets/pdv/percent.svg" width="16" height="16" alt="" />Descuento
+              @if (venta.descuentoVenta(); as d) {
+                ({{ d.modo === '%' ? d.valor + ' %' : dinero(d.valor) }})
+              }
+            </button>
+            <button
+              type="button"
+              class="boton boton--contorno boton--40 ticket__cliente"
+              [disabled]="!dispositivos.enLinea()"
+              [attr.title]="dispositivos.enLinea() ? null : 'Búsqueda de clientes no disponible sin conexión'"
+              (click)="abrir('cliente')"
+            >
+              <img src="assets/pdv/user-round.svg" width="16" height="16" alt="" />{{ venta.etiquetaCliente() }}
+            </button>
+          }
+        </div>
+      </header>
+
+      @if (venta.vacia()) {
+        <div class="vacio">
+          <span class="vacio__ilustracion"><img src="assets/pdv/shopping-cart.svg" width="56" height="56" alt="" /></span>
+          <p class="vacio__titulo">Escanea un producto o búscalo arriba</p>
+          <p class="vacio__texto">Busca por nombre, SKU o código de barras.</p>
+          <span class="estado estado--info">Escáner listo · F2 para buscar</span>
+        </div>
+      } @else {
+        <div class="ticket__cuerpo">
+          <app-tabla-ticket />
+        </div>
+      }
+
+      <footer class="cobro" [class.cobro--vacio]="venta.vacia()">
+        <div class="cobro__totales">
+          <div class="cobro__base">
+            <p>Subtotal <strong>{{ dinero(venta.subtotal()) }}</strong></p>
+            <p>IVA 16% <strong>{{ dinero(venta.iva()) }}</strong></p>
+          </div>
+          <div class="cobro__total">
+            <span>TOTAL MXN</span>
+            <strong>{{ dinero(venta.total()) }}</strong>
+          </div>
+        </div>
+        <div class="cobro__acciones">
+          @if (venta.vacia()) {
+            <button type="button" class="boton boton--contorno boton--40 cobro__espera" (click)="abrir('espera')">
+              <img src="assets/pdv/pause.svg" width="16" height="16" alt="" />En espera ({{ venta.pausadas().length }})
+            </button>
+          } @else {
+            <a class="boton boton--secundario cobro__boton-56" routerLink="/cajera/inicio">Volver atrás</a>
+          }
+          <button type="button" class="boton boton--secundario cobro__boton-56 cobro__boton-168" [disabled]="venta.vacia()" (click)="abrir('pausar')">
+            Pausar Venta
+          </button>
+          <button
+            type="button"
+            class="boton boton--peligro cobro__boton-56 cobro__boton-168"
+            [disabled]="venta.vacia()"
+            (click)="abrir('cancelar')"
+          >
+            Cancelar Venta
+          </button>
+          <button type="button" class="boton boton--primario cobro__cobrar" [disabled]="venta.vacia()" (click)="abrir('cobro')">
+            <img src="assets/pdv/credit-card-blanco.svg" width="16" height="16" alt="" />Cobrar [Enter]
+          </button>
+        </div>
+      </footer>
+    </section>
+
+    <nav class="atajos" aria-label="Atajos de teclado">
+      <img src="assets/pdv/keyboard.svg" width="16" height="16" alt="" />
+      @for (atajo of atajos; track atajo.tecla) {
+        <span class="atajos__item">
+          <kbd class="tecla">{{ atajo.tecla }}</kbd>{{ atajo.accion }}
+        </span>
+      }
+      <button type="button" class="enlace atajos__todos" (click)="abrir('atajos')">? Ver todos los atajos</button>
+    </nav>
+  </div>
+</div>
+
+@if (!caja.abierta()) {
+  <app-abrir-turno (cerrar)="alCerrarAbrirTurno()" />
+}
+
+@switch (modal()) {
+  @case ('cobro') {
+    <app-cobro
+      [folio]="venta.folio()"
+      [total]="venta.total()"
+      [articulos]="venta.articulos()"
+      [cliente]="venta.cliente()"
+      (cerrar)="cerrarModal()"
+      (confirmar)="confirmarCobro($event)"
+    />
+  }
+  @case ('temporal') {
+    <app-producto-temporal
+      [codigo]="venta.codigoTemporal()"
+      [nombreInicial]="datosTemporal().nombre"
+      [precioInicial]="datosTemporal().precio"
+      (cerrar)="cerrarModal()"
+      (agregado)="agregarTemporal($event)"
+    />
+  }
+  @case ('cliente') {
+    <app-seleccionar-cliente (cerrar)="cerrarModal()" />
+  }
+  @case ('descuento') {
+    <app-aplicar-descuento (cerrar)="cerrarModal()" />
+  }
+  @case ('pausar') {
+    <app-pausar-venta (cerrar)="cerrarModal()" (pausada)="alPausar($event)" />
+  }
+  @case ('espera') {
+    <app-ventas-en-espera (cerrar)="cerrarModal()" (retomada)="alRetomar($event)" />
+  }
+  @case ('impresora') {
+    <app-error-impresora
+      [venta]="ticketFallido()!"
+      [correo]="ticketFallido()!.cliente.correo"
+      [intentos]="intentosImpresion()"
+      (reintentar)="reintentarImpresion()"
+      (enviarCorreo)="enviarTicketPorCorreo()"
+      (continuar)="cerrarModal()"
+    />
+  }
+  @case ('atajos') {
+    <app-atajos-teclado (cerrar)="cerrarModal()" />
+  }
+  @case ('cancelar') {
+    <div class="modal-fondo" (click)="cerrarModal()">
+      <section class="modal confirmar" role="alertdialog" aria-modal="true" aria-labelledby="titulo-cancelar" (click)="$event.stopPropagation()">
+        <div>
+          <h2 class="modal__titulo" id="titulo-cancelar">¿Cancelar la venta {{ venta.folio() }}?</h2>
+          <p class="modal__subtitulo">
+            Se quitarán {{ venta.articulos() }} {{ venta.articulos() === 1 ? 'artículo' : 'artículos' }} del ticket. No se cobra nada.
+          </p>
+        </div>
+        <div class="modal__acciones">
+          <button type="button" class="boton boton--contorno boton--44" (click)="cerrarModal()">Seguir vendiendo</button>
+          <button type="button" class="boton boton--peligro boton--44" (click)="cancelarVenta()">Cancelar venta</button>
+        </div>
+      </section>
+    </div>
+  }
+}

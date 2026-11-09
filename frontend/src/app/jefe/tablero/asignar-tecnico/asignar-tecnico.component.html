@@ -1,0 +1,64 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-asignar" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); confirmar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-asignar">{{ reasigna() ? 'Reasignar técnico' : 'Asignar técnico' }} · {{ orden().folio }}</h2>
+        <p class="modal__subtitulo">{{ orden().cliente.nombre }} · {{ orden().equipo }} · {{ orden().ficha?.falla || orden().trabajo }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <fieldset class="tecnicos">
+      <legend class="campo__etiqueta">Técnico *</legend>
+      @for (o of opciones(); track o.tecnico.iniciales) {
+        <label class="tecnico" [class.tecnico--elegido]="o.tecnico.iniciales === tecnico()">
+          <input type="radio" name="tecnico" [value]="o.tecnico.iniciales" [checked]="o.tecnico.iniciales === tecnico()" (change)="elegido.set(o.tecnico.iniciales)" />
+          <span class="tecnico__avatar" aria-hidden="true">{{ o.tecnico.iniciales }}</span>
+          <span class="tecnico__texto"><strong>{{ o.tecnico.nombre }}</strong><span>{{ o.detalle }}</span></span>
+          @if (o.recomendado) {
+            <span class="tecnico__marca">Recomendado</span>
+          } @else if (o.actual) {
+            <span class="tecnico__marca tecnico__marca--actual">Asignado ahora</span>
+          }
+        </label>
+      }
+    </fieldset>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Prioridad</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="prioridad.set($any($event.target).value)">
+            @for (p of prioridades; track p[0]) {
+              <option [value]="p[0]" [selected]="p[0] === prioridadElegida()">{{ p[1].texto }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Fecha prometida al cliente</span>
+        <span class="campo__control campo__control--40">
+          <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+          <input class="campo__input" type="datetime-local" required [value]="prometidaElegida()" (click)="$any($event.target).showPicker?.()" (input)="prometida.set($any($event.target).value)" />
+        </span>
+      </label>
+    </div>
+
+    <label class="campo">
+      <span class="campo__etiqueta">Nota para el técnico</span>
+      <span class="campo__control campo__control--40">
+        <input class="campo__input" type="text" maxlength="200" placeholder="Opcional: algo que deba saber antes de empezar" [value]="nota()" (input)="nota.set($any($event.target).value)" />
+      </span>
+    </label>
+
+    <p class="aviso aviso--info"><img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />El técnico recibe el aviso en su Inicio. Puedes reasignar la orden después desde su detalle.</p>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44" [disabled]="!valido()">
+        <span class="icono" style="--icono: url(assets/menu/users.svg)"></span>{{ reasigna() ? 'Reasignar' : 'Asignar' }} a {{ nombre() }}
+      </button>
+    </div>
+  </form>
+</div>

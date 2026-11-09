@@ -1,0 +1,75 @@
+@if (abierta() === 'cotizar' && orden(); as o) {
+  <app-cotizar-orden [orden]="o" (volver)="cerrar()" (enviado)="cerrar($event)" (regresar)="regresando.set(o)" />
+} @else {
+  <div class="lista-pagina">
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Por cotizar</h1>
+        <p class="encabezado-pagina__subtitulo">Diagnósticos que enviaron los técnicos. Pon precios y envía el presupuesto al cliente.</p>
+      </div>
+    </header>
+
+    <section class="indicadores" aria-label="Resumen">
+      @for (i of indicadores(); track i.vista) {
+        <button type="button" class="indicador indicador--boton" [class.indicador--activo]="i.vista === vista()" (click)="elegir(i.vista)">
+          <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+          <span>
+            <span class="indicador__titulo">{{ i.titulo }}</span>
+            <span class="indicador__detalle">{{ i.detalle }}</span>
+          </span>
+        </button>
+      }
+    </section>
+
+    <nav class="pestanas" aria-label="Vistas">
+      @for (p of pestanas(); track p.id) {
+        <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" [attr.aria-current]="p.id === vista() ? 'page' : null" (click)="elegir(p.id)">
+          {{ p.texto }} ({{ p.cuenta }})
+        </button>
+      }
+    </nav>
+
+    @if (aviso(); as mensaje) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+    }
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Folio</th><th>Cliente</th><th class="t-equipo">Equipo</th><th>{{ columnaDetalle() }}</th>
+            <th class="t-tecnico">Técnico</th><th class="t-tiempo">{{ columnaTiempo() }}</th><th class="t-estado">Estado</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of renglones(); track r.orden.folio) {
+            <tr tabindex="0" (click)="abrir(r.orden)" (keydown.enter)="abrir(r.orden)">
+              <td class="t-folio">{{ r.orden.folio }}</td>
+              <td>{{ r.orden.cliente.nombre }}</td>
+              <td class="t-equipo">{{ r.orden.equipo }}</td>
+              <td class="t-detalle">{{ r.detalle }}</td>
+              <td class="t-tecnico">{{ tecnicoCorto(r.orden) }}</td>
+              <td class="t-tiempo">{{ r.tiempo }}</td>
+              <td class="t-estado"><span class="estado estado--{{ r.estado.tono }}" [class.estado--plano]="r.estado.plano">{{ r.estado.texto }}</span></td>
+              <td><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); abrir(r.orden)">{{ r.accion }}</button></td>
+            </tr>
+          } @empty {
+            <tr><td class="vacio" colspan="8">Nada pendiente aquí.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="aviso aviso--advertencia"><img src="assets/cajera/clock.svg" width="16" height="16" alt="" />El SLA de diagnóstico y cotización es de {{ sla }} h desde la recepción. Las órdenes atrasadas aparecen primero.</p>
+  </div>
+}
+
+@if (abierta() === 'sin-reparacion' && orden(); as o) {
+  <app-sin-reparacion [orden]="o" (cerrar)="cerrar()" (confirmado)="cerrar($event)" (regresar)="regresando.set(o)" />
+}
+@if (abierta() === 're-cotizacion' && orden(); as o) {
+  <app-recotizacion [orden]="o" (cerrar)="cerrar()" (enviado)="cerrar($event)" />
+}
+@if (regresando(); as o) {
+  <app-regresar-tecnico [orden]="o" (cerrar)="regresando.set(null)" (enviar)="regresar($event)" />
+}

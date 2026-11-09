@@ -1,0 +1,71 @@
+<div class="lista-pagina">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Equipos terminados</h1>
+      <p class="encabezado-pagina__subtitulo">Equipos listos o sin reparación que esperan a su dueño. La entrega se cobra en caja.</p>
+    </div>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen">
+    @for (i of indicadores(); track i.titulo) {
+      <button type="button" class="indicador indicador--boton" (click)="elegir(i.vista)">
+        <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+        <span>
+          <span class="indicador__titulo">{{ i.titulo }}</span>
+          <span class="indicador__detalle">{{ i.detalle }}</span>
+        </span>
+      </button>
+    }
+  </section>
+
+  <nav class="pestanas" aria-label="Vistas">
+    @for (p of pestanas(); track p.id) {
+      <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" [attr.aria-current]="p.id === vista() ? 'page' : null" (click)="elegir(p.id)">{{ p.texto }}</button>
+    }
+  </nav>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  <div class="tabla">
+    <table>
+      <thead>
+        @if (vista() === 'entregados') {
+          <tr><th>Folio</th><th>Cliente</th><th class="t-equipo">Equipo</th><th>Resultado</th><th class="t-tecnico">Técnico</th><th class="t-tiempo">Entregado</th><th class="t-original">Recogió</th><th class="t-vence">Cobrado</th><th>Acción</th></tr>
+        } @else {
+          <tr><th>Folio</th><th>Cliente</th><th class="t-equipo">Equipo</th><th>Resultado</th><th class="t-tecnico">Técnico</th><th class="t-tiempo">Listo desde</th><th>Días en bodega</th><th class="t-original">Aviso</th><th>Acción</th></tr>
+        }
+      </thead>
+      <tbody>
+        @for (f of filas(); track f.orden.folio) {
+          <tr class="fija">
+            <td class="t-folio">{{ f.orden.folio }}</td>
+            <td>{{ f.orden.cliente.nombre }}</td>
+            <td class="t-equipo">{{ f.orden.equipo }}</td>
+            <td><span class="estado estado--{{ f.resultado.tono }}">{{ f.resultado.texto }}</span></td>
+            <td class="t-tecnico">{{ f.tecnico }}</td>
+            @if (vista() === 'entregados') {
+              <td class="t-tiempo">{{ f.entregado }}</td>
+              <td class="t-original">{{ f.recogio }}</td>
+              <td class="t-vence">{{ f.cobrado }}</td>
+            } @else {
+              <td class="t-tiempo">{{ f.listo }}</td>
+              <td [class.vencido]="f.vencido">{{ f.dias }}@if (f.politica) {<small>{{ f.politica }}</small>}</td>
+              <td class="t-original">{{ f.aviso }}</td>
+            }
+            <td><button type="button" class="enlace-accion" (click)="accion(f.orden, f.accion)">{{ f.accion }}</button></td>
+          </tr>
+        } @empty {
+          <tr><td class="vacio" colspan="9">No hay equipos aquí.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="aviso aviso--advertencia"><img src="assets/inventario/alert-advertencia.svg" width="16" height="16" alt="" />Según las cláusulas, después de {{ limite }} días en bodega se cobra almacenaje o el equipo pasa a resguardo. El cliente lo vio en su portal al quedar listo.</p>
+</div>
+
+@if (aplicando(); as o) {
+  <app-politica-bodega [orden]="o" (cerrar)="aplicando.set(null)" (aplicada)="aplicado($event)" />
+}

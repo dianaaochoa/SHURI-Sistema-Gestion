@@ -1,0 +1,92 @@
+<div class="cotizar">
+  <header class="encabezado">
+    <div class="encabezado__texto">
+      <button type="button" class="volver" (click)="volver.emit()"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Volver a Por cotizar</button>
+      <h1 class="encabezado-pagina__titulo">{{ titulo() }}</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo() }}</p>
+    </div>
+    <span class="estado estado--peligro">{{ atrasada() ? 'Atrasada' : 'Por cotizar' }}</span>
+  </header>
+
+  <div class="columnas">
+    <div class="principal">
+      <section class="panel diagnostico" aria-labelledby="titulo-diagnostico">
+        <h2 class="panel__titulo" id="titulo-diagnostico"><span class="icono" style="--icono: url(assets/inventario/search.svg)"></span>Diagnóstico del técnico · solo lectura</h2>
+        <p class="diagnostico__texto">{{ orden().diagnostico?.texto }}</p>
+        <div class="diagnostico__pie">
+          @for (n of [1, 2, 3]; track n) {
+            <span class="foto-vacia" role="img" [attr.aria-label]="'Foto del diagnóstico ' + n"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
+          }
+          <p class="diagnostico__datos">
+            @if (orden().diagnostico?.causa) {
+              <span>Causa: {{ orden().diagnostico?.causa }} · Dificultad: {{ orden().diagnostico?.dificultad }}</span>
+            }
+            @if (orden().diagnostico?.nota) {
+              <span>Nota: “{{ orden().diagnostico?.nota }}”</span>
+            }
+          </p>
+        </div>
+      </section>
+
+      <section class="panel conceptos" aria-labelledby="titulo-conceptos">
+        <h2 class="panel__titulo" id="titulo-conceptos"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Conceptos del presupuesto</h2>
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr><th>Concepto</th><th>Cant.</th><th>Costo interno</th><th>Precio público</th><th>Importe</th><th><span class="oculto">Quitar</span></th></tr>
+            </thead>
+            <tbody>
+              @for (c of renglones(); track i; let i = $index) {
+                <tr>
+                  <td class="t-concepto"><div class="t-concepto__caja">
+                    @if (c.tipo === 'otro') {
+                      <input class="entrada entrada--texto" type="text" placeholder="Describe el concepto" aria-label="Concepto" [value]="c.descripcion" (input)="cambiar(i, 'descripcion', $any($event.target).value)" />
+                    } @else {
+                      <strong>{{ c.descripcion }}</strong>
+                    }
+                    <span class="t-concepto__detalle">
+                      @if (c.sku) {
+                        {{ c.sku }}
+                      }
+                      @if (c.existencia; as e) {
+                        <span class="estado estado--{{ e.tono }}">{{ e.texto }}</span>
+                      }
+                      @if (c.detalle) {
+                        {{ c.detalle }}
+                      }
+                    </span>
+                  </div></td>
+                  <td><input class="entrada" type="number" min="1" step="1" aria-label="Cantidad" [value]="c.cantidad" (change)="cambiar(i, 'cantidad', $any($event.target).value)" /></td>
+                  <td>
+                    @if (c.tipo === 'mano-obra') {
+                      —
+                    } @else if (c.tipo === 'otro') {
+                      <input class="entrada" type="number" min="0" step="0.01" aria-label="Costo interno" [value]="c.costo.toFixed(2)" (change)="cambiar(i, 'costo', $any($event.target).value)" />
+                    } @else {
+                      {{ dinero(c.costo) }}
+                    }
+                  </td>
+                  <td><input class="entrada" type="number" min="0" step="0.01" aria-label="Precio público" [value]="c.precio.toFixed(2)" (change)="cambiar(i, 'precio', $any($event.target).value)" /></td>
+                  <td class="t-importe">{{ dinero(c.importe) }}</td>
+                  <td><button type="button" class="quitar" [attr.aria-label]="'Quitar ' + (c.descripcion || 'concepto')" (click)="quitar(i)"><img src="assets/inventario/x-peligro.svg" width="16" height="16" alt="" /></button></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="vacio">Sin conceptos. Agrega refacciones o mano de obra.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="agregar">
+          <button type="button" class="enlace" (click)="agregando.set(true)"><img src="assets/pdv/plus-14-primario.svg" width="14" height="14" alt="" />Agregar refacción del inventario</button>
+          <button type="button" class="enlace" (click)="agregarManual()"><img src="assets/pdv/plus-14-primario.svg" width="14" height="14" alt="" />Agregar concepto manual</button>
+        </div>
+      </section>
+    </div>
+
+    <app-resumen-cotizacion class="lateral" [orden]="orden()" [conceptos]="conceptos()" (enviar)="enviar($event)" (regresar)="regresar.emit()" />
+  </div>
+</div>
+
+@if (agregando()) {
+  <app-agregar-refaccion [folio]="orden().folio" (cerrar)="agregando.set(false)" (elegir)="agregarRefaccion($event)" />
+}

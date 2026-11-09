@@ -1,0 +1,103 @@
+<form class="tarjeta" [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+  <span class="tarjeta__icono">
+    <img src="assets/iconos/lock-lg.svg" width="26" height="26" alt="" />
+  </span>
+  <div class="tarjeta__encabezado">
+    <h1 class="tarjeta__titulo">Crea tu nueva contraseña</h1>
+    <p class="tarjeta__descripcion">
+      Entraste con una contraseña temporal. Por seguridad, crea una propia para continuar; la temporal deja de
+      funcionar.
+    </p>
+  </div>
+
+  <div class="campo">
+    <label class="campo__etiqueta" for="nueva">Nueva contraseña *</label>
+    <div class="campo__control" [class.campo__control--error]="nuevaInvalida">
+      <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+      <input
+        id="nueva"
+        class="campo__input"
+        formControlName="nueva"
+        [type]="verNueva() ? 'text' : 'password'"
+        autocomplete="new-password"
+        aria-describedby="indicador-contrasena"
+      />
+      <button
+        type="button"
+        class="campo__boton-icono"
+        [class.campo__boton-icono--activo]="verNueva()"
+        [attr.aria-label]="verNueva() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+        [attr.aria-pressed]="verNueva()"
+        (click)="verNueva.set(!verNueva())"
+      >
+        <img src="assets/iconos/eye-a5.svg" width="16" height="16" alt="" />
+      </button>
+    </div>
+    @if (nuevaInvalida) {
+      <span class="campo__error">
+        {{ formulario.controls.nueva.hasError('required') ? 'Escribe tu nueva contraseña.' : 'Tu contraseña aún no cumple todos los requisitos.' }}
+      </span>
+    }
+  </div>
+
+  <div class="campo">
+    <label class="campo__etiqueta" for="repetida">Repite la nueva contraseña *</label>
+    <div class="campo__control" [class.campo__control--error]="repetidaInvalida">
+      <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+      <input
+        id="repetida"
+        class="campo__input"
+        formControlName="repetida"
+        [type]="verRepetida() ? 'text' : 'password'"
+        autocomplete="new-password"
+      />
+      <button
+        type="button"
+        class="campo__boton-icono"
+        [class.campo__boton-icono--activo]="verRepetida()"
+        [attr.aria-label]="verRepetida() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+        [attr.aria-pressed]="verRepetida()"
+        (click)="verRepetida.set(!verRepetida())"
+      >
+        <img src="assets/iconos/eye-a5.svg" width="16" height="16" alt="" />
+      </button>
+    </div>
+    @if (repetidaInvalida) {
+      <span class="campo__error">
+        {{ formulario.controls.repetida.hasError('required') ? 'Repite tu nueva contraseña.' : 'Las contraseñas no coinciden.' }}
+      </span>
+    }
+  </div>
+
+  <div class="indicador" id="indicador-contrasena" [style.--nivel-color]="nivel().color">
+    <div class="indicador__barras">
+      @for (barra of barras; track barra) {
+        <span class="indicador__barra" [class.indicador__barra--activa]="barra <= puntaje()"></span>
+      }
+    </div>
+    <p class="indicador__nivel">
+      Seguridad: <strong>{{ nivel().etiqueta }}</strong>
+    </p>
+    <ul class="indicador__requisitos">
+      @for (requisito of requisitos(); track requisito.texto) {
+        <li [class.cumple]="requisito.cumple">
+          @if (requisito.cumple) {
+            <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="Cumple:" />
+          } @else {
+            <span class="indicador__pendiente" aria-hidden="true"></span>
+          }
+          {{ requisito.texto }}
+        </li>
+      }
+    </ul>
+  </div>
+
+  <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">
+    <img src="assets/iconos/check-btn.svg" width="16" height="16" alt="" />
+    {{ enviando() ? 'Guardando…' : 'Guardar y entrar' }}
+  </button>
+  <button type="button" class="enlace" (click)="salir()">
+    <img src="assets/iconos/undo.svg" width="14" height="14" alt="" />
+    Salir sin guardar
+  </button>
+</form>

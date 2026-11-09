@@ -1,0 +1,34 @@
+.cierre { max-width: 760px; }
+
+.conteos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.conteo { width: 100%; overflow: hidden; border: 1px solid var(--color-borde); border-collapse: separate; border-spacing: 0; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--color-marino); }
+.conteo th { height: 40px; padding: 0 16px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; color: var(--color-texto-secundario); }
+.conteo td { height: 34px; padding: 0 16px; border-top: 1px solid var(--color-borde); }
+.c-cantidad { width: 80px; text-align: center !important; }
+.c-importe { text-align: right !important; }
+.c-cantidad input { width: 52px; height: 26px; padding: 0 4px; border: 1px solid var(--color-borde); border-radius: 6px; font: 600 13px var(--fuente); text-align: center; color: var(--color-marino); appearance: textfield; }
+.c-cantidad input::-webkit-inner-spin-button { appearance: none; }
+.c-cantidad input:focus { border-color: var(--color-primario); outline: none; }
+
+.totales { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.totales p { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 8px; background: var(--color-fondo); font-size: 12px; color: var(--color-texto-secundario); }
+.totales strong { font-size: 20px; font-weight: 700; color: var(--color-marino); }
+.dif { background: var(--color-exito-suave) !important; color: var(--color-exito) !important; }
+.dif strong { color: inherit; }
+.dif--falta { background: var(--color-advertencia-suave) !important; color: var(--color-advertencia) !important; }
+.dif--sobra { background: var(--color-primario-suave) !important; color: var(--color-primario) !important; }
+
+.campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.campo__control { gap: 6px; }
+.moneda { font-size: 14px; color: var(--color-texto-tenue); }
+.area { min-height: 40px; padding: 8px 12px; border: 1px solid var(--color-borde); border-radius: 8px; font: 14px var(--fuente); color: var(--color-marino); resize: vertical; }
+.area:focus { outline: none; border-color: var(--color-primario); }
+.area--error { border-color: var(--color-peligro); }
+.nota { font-size: 11px; color: var(--color-texto-tenue); }
+.boton .icono { width: 16px; height: 16px; }
+
+@media (max-width: 640px) {
+  .conteos, .campos { grid-template-columns: minmax(0, 1fr); }
+  .totales { grid-template-columns: minmax(0, 1fr); }
+  .modal__acciones .boton { flex: 1 1 auto; }
+}

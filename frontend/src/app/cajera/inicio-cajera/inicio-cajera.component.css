@@ -1,0 +1,135 @@
+/* Panel, fila, indicador, estado y tecla vienen de styles.css (componentes de Figma). */
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.inicio {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+}
+
+/* ---------- Estado del turno (encabezado) ---------- */
+
+.turno {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.turno--abierto { background: var(--color-exito-suave); color: var(--color-exito); }
+.turno--cerrado { background: var(--color-peligro-suave); color: var(--color-peligro); }
+
+/* ---------- Aviso caja cerrada (C1.2) ---------- */
+
+.caja-cerrada {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  background: var(--color-marino);
+}
+
+.caja-cerrada__icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--color-marino-activo);
+}
+
+.caja-cerrada__texto { flex: 1; min-width: 0; }
+.caja-cerrada__texto h2 { font-size: 18px; color: var(--color-superficie); }
+.caja-cerrada__texto p { max-width: 700px; margin-top: 4px; font-size: 13px; line-height: 19px; color: var(--color-menu-icono); }
+.caja-cerrada__boton { background: var(--color-acento); color: var(--color-marino); }
+.caja-cerrada__boton:hover { background: var(--color-acento-brillante); }
+
+/* ---------- Accesos rápidos e indicadores ---------- */
+
+.accesos,
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.indicadores { gap: 16px; }
+
+.acceso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+a.acceso:hover { border-color: var(--color-primario); }
+.acceso--bloqueado { opacity: 0.45; cursor: not-allowed; }
+
+.acceso__icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--color-primario-suave);
+}
+
+.acceso__etiqueta { flex: 1; font-size: 14px; font-weight: 600; color: var(--color-marino); }
+.tecla { font-family: inherit; }
+
+/* ---------- Pendientes: 3 columnas de 2 paneles que llenan la altura ---------- */
+
+.pendientes {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pendientes__columna { display: flex; flex-direction: column; gap: 16px; }
+.pendientes .panel { flex: 1; min-height: 180px; }
+.panel__titulo--suelto { margin-bottom: 2px; }
+
+.corte { display: flex; flex-direction: column; gap: 8px; margin: 0; font-size: 12px; }
+.corte__fila { display: flex; justify-content: space-between; gap: 12px; }
+.corte dt { color: var(--color-texto-tenue); }
+.corte dd { margin: 0; font-weight: 600; text-align: right; color: var(--color-marino); }
+.corte dd.corte__valor--exito { color: var(--color-exito); }
+
+.panel .aviso + .aviso { margin-top: 2px; }
+
+/* ---------- Pantallas más angostas ---------- */
+
+@media (max-width: 1180px) {
+  .pendientes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 960px) {
+  .accesos, .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .caja-cerrada { flex-wrap: wrap; }
+}
+
+@media (max-width: 640px) {
+  .encabezado-pagina { flex-direction: column; align-items: flex-start; }
+  .accesos, .indicadores, .pendientes { grid-template-columns: minmax(0, 1fr); }
+  .tecla { display: none; }
+  .caja-cerrada__boton { width: 100%; }
+}

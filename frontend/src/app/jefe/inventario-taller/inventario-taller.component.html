@@ -1,0 +1,108 @@
+@if (vista() === 'entrada') {
+  <div class="lista-pagina">
+    <header class="encabezado-pagina">
+      <div>
+        <button type="button" class="volver" (click)="ir(null)"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Volver al inventario</button>
+        <h1 class="encabezado-pagina__titulo">Entrada de mercancía</h1>
+        <p class="encabezado-pagina__subtitulo">La misma que registra caja (C7.3). El stock y el costo promedio se actualizan al guardar.</p>
+      </div>
+    </header>
+    <app-entrada (registrada)="entradaRegistrada($event)" (aviso)="aviso.set($event)" />
+  </div>
+} @else {
+  <div class="lista-pagina">
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Inventario del taller</h1>
+        <p class="encabezado-pagina__subtitulo">Mismo catálogo que caja (almacén) filtrado en Refacciones y consumibles · Costos visibles solo para jefatura</p>
+      </div>
+      <div class="acciones-encabezado">
+        <button type="button" class="boton boton--contorno boton--40" (click)="ir('entrada')"><span class="icono icono--16" style="--icono: url(assets/pdv/plus.svg)"></span>Entrada de mercancía</button>
+        <button type="button" class="boton boton--primario boton--40" (click)="pedidoNuevo.set(true)"><span class="icono icono--16" style="--icono: url(assets/menu/cart.svg)"></span>Pedido a proveedor</button>
+      </div>
+    </header>
+
+    <section class="indicadores" aria-label="Resumen">
+      @for (i of indicadores(); track i.titulo) {
+        <div class="indicador">
+          <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+          <span>
+            <span class="indicador__titulo">{{ i.titulo }}</span>
+            <span class="indicador__detalle">{{ i.detalle }}</span>
+          </span>
+        </div>
+      }
+    </section>
+
+    <div class="herramientas">
+      <label class="campo__control campo__control--40 herramientas__buscar">
+        <img src="assets/inventario/search.svg" width="16" height="16" alt="" />
+        <input class="campo__input" type="search" autocomplete="off" placeholder="Buscar nombre, SKU o modelo…" aria-label="Buscar refacción" [value]="busqueda()" (input)="filtrar('busqueda', $any($event.target).value)" />
+      </label>
+      <label class="campo__control campo__control--40 herramientas__filtro">
+        <select class="campo__input campo__select" aria-label="Categoría" (change)="filtrar('categoria', $any($event.target).value)">
+          <option value="" [selected]="!categoria()">Todas las categorías</option>
+          @for (c of categorias; track c) {
+            <option [value]="c" [selected]="c === categoria()">{{ c }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </label>
+      <label class="campo__control campo__control--40 herramientas__filtro">
+        <select class="campo__input campo__select" aria-label="Marca" (change)="filtrar('marca', $any($event.target).value)">
+          <option value="" [selected]="!marca()">Todas las marcas</option>
+          @for (m of marcas(); track m) {
+            <option [value]="m" [selected]="m === marca()">{{ m }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </label>
+    </div>
+
+    @if (aviso(); as mensaje) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+    }
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>SKU</th><th>Refacción</th><th class="t-tiempo">Stock</th><th class="t-original">Apartadas</th><th>Disponible</th>
+            <th class="t-tiempo">Mínimo</th><th class="t-equipo">Costo</th><th class="t-tecnico">Precio venta</th><th>Estado</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of visibles(); track f.producto.sku) {
+            <tr class="fija">
+              <td class="t-folio">{{ f.producto.sku }}</td>
+              <td class="t-detalle">{{ f.producto.nombre }}</td>
+              <td class="t-tiempo">{{ f.producto.stock }}</td>
+              <td class="t-original" [class.apartada]="f.apartadas">{{ f.apartadoTexto || '—' }}</td>
+              <td class="disponible" [class.disponible--cero]="!f.disponible">{{ f.disponible }}</td>
+              <td class="t-tiempo">{{ f.producto.minimo }}</td>
+              <td class="t-equipo">{{ dinero(f.producto.costo) }}</td>
+              <td class="t-tecnico">{{ dinero(f.producto.precio) }}</td>
+              <td><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
+              <td><button type="button" class="enlace-accion" (click)="accion(f.producto, f.estado)">{{ f.estado.accion }}</button></td>
+            </tr>
+          } @empty {
+            <tr><td class="vacio" colspan="10">Sin coincidencias con la búsqueda y los filtros.</td></tr>
+          }
+        </tbody>
+      </table>
+      <app-paginacion [total]="filtrados().length" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+    </div>
+
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>Caja ve el mismo stock, apartadas y disponible (sin costos). Lo apartado para una orden no se puede vender en el punto de venta.</p>
+  </div>
+}
+
+@if (pidiendo(); as p) {
+  <app-nuevo-pedido [inicial]="p" (cerrar)="pidiendo.set(null)" (registrado)="terminado($event)" />
+}
+@if (pedidoNuevo()) {
+  <app-nuevo-pedido (cerrar)="pedidoNuevo.set(false)" (registrado)="terminado($event)" />
+}
+@if (viendo(); as p) {
+  <app-ver-producto [producto]="p" (cerrar)="viendo.set(null)" (pedir)="viendo.set(null); pidiendo.set(p)" />
+}

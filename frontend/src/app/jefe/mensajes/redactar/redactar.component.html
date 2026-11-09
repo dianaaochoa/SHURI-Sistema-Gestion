@@ -1,0 +1,32 @@
+<footer class="redactar">
+  <div class="atajos">
+    <div class="rapidas">
+      <button type="button" class="atajo" [class.atajo--activo]="rapidasAbiertas()" [attr.aria-expanded]="rapidasAbiertas()" (click)="rapidasAbiertas.set(!rapidasAbiertas())">
+        <span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Respuestas rápidas
+      </button>
+      @if (rapidasAbiertas()) {
+        <div class="popover rapidas__menu" role="menu">
+          <p class="rapidas__titulo">RESPUESTAS RÁPIDAS</p>
+          @for (r of servicio.rapidas(); track $index) {
+            <button type="button" role="menuitem" class="rapida" (click)="usarRapida(r)"><strong>{{ r.titulo }}</strong><span>{{ r.texto }}</span></button>
+          }
+          <a class="rapidas__editar" routerLink="/jefe/configuracion"><span class="icono" style="--icono: url(assets/menu/settings.svg)"></span>Editar respuestas rápidas (Configuración)</a>
+        </div>
+      }
+    </div>
+    <button type="button" class="atajo" [disabled]="!puedeCompartir()" (click)="compartir.emit()"><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Compartir estado</button>
+    <button type="button" class="atajo" (click)="foto.emit()"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span>Foto del avance</button>
+  </div>
+  <div class="chips">
+    @for (r of servicio.rapidas().slice(0, 3); track $index) {
+      <button type="button" class="chip" (click)="usarRapida(r)">{{ r.titulo }}</button>
+    }
+  </div>
+  <div class="escribir">
+    <button type="button" class="escribir__foto" aria-label="Enviar foto del avance" (click)="foto.emit()"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></button>
+    <textarea rows="1" [placeholder]="'Escribe tu respuesta a ' + nombre() + '…'" aria-label="Respuesta" [value]="texto()" (input)="texto.set($any($event.target).value)" (keydown)="alTeclear($event)"></textarea>
+    <button type="button" class="boton boton--primario boton--40 enviar" [disabled]="!texto().trim()" (click)="mandar()">
+      <span class="icono" style="--icono: url(assets/iconos/send.svg)"></span><span class="enviar__texto">Enviar</span>
+    </button>
+  </div>
+</footer>

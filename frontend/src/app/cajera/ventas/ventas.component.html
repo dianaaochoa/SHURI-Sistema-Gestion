@@ -1,0 +1,226 @@
+<div class="ventas">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Ventas</h1>
+      <p class="encabezado-pagina__subtitulo">Historial de todas las ventas del negocio · Consulta, reimprime o inicia una devolución.</p>
+    </div>
+    <div class="periodo">
+      <div class="periodo__opciones" role="radiogroup" aria-label="Periodo">
+        @for (opcion of periodos; track opcion.id) {
+          <button
+            type="button"
+            role="radio"
+            [class.periodo__opcion--activa]="periodo() === opcion.id"
+            [attr.aria-checked]="periodo() === opcion.id"
+            (click)="elegirPeriodo(opcion.id)"
+          >
+            {{ opcion.texto }}
+          </button>
+        }
+      </div>
+      <div class="periodo__fechas">
+        <button type="button" class="campo__control campo__control--40 periodo__campo" (click)="elegirPeriodo('rango')">
+          <img src="assets/ventas/calendar.svg" width="16" height="16" alt="" />{{ textoRango() }}
+        </button>
+        @if (eligiendoRango()) {
+          <div class="popover periodo__rango">
+            <label class="campo">
+              <span class="campo__etiqueta">Desde</span>
+              <span class="campo__control campo__control--40">
+                <input class="campo__input" type="date" [max]="hasta()" [value]="desde()" (change)="desde.set($any($event.target).value)" />
+              </span>
+            </label>
+            <label class="campo">
+              <span class="campo__etiqueta">Hasta</span>
+              <span class="campo__control campo__control--40">
+                <input class="campo__input" type="date" [min]="desde()" [value]="hasta()" (change)="hasta.set($any($event.target).value)" />
+              </span>
+            </label>
+            <button type="button" class="boton boton--primario boton--40" (click)="eligiendoRango.set(false)">Listo</button>
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status">
+      <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}
+    </p>
+  }
+
+  <section class="indicadores" aria-label="Resumen del periodo">
+    <div class="indicador">
+      <span class="indicador__valor indicador__valor--conteo">{{ indicadores().cobradas }}</span>
+      <div>
+        <p class="indicador__titulo">Ventas cobradas</p>
+        <p class="indicador__detalle">{{ nombrePeriodo()[0] }} · ticket promedio {{ dinero(indicadores().promedio, true) }}</p>
+      </div>
+    </div>
+    <div class="indicador">
+      <span class="indicador__valor">{{ dinero(indicadores().total, true) }}</span>
+      <div>
+        <p class="indicador__titulo">Total vendido</p>
+        <p class="indicador__detalle">IVA incluido</p>
+      </div>
+    </div>
+    <div class="indicador">
+      <span class="indicador__valor indicador__valor--conteo indicador__valor--peligro">{{ indicadores().devoluciones }}</span>
+      <div>
+        <p class="indicador__titulo">Devoluciones</p>
+        <p class="indicador__detalle">−{{ dinero(indicadores().reembolsos) }} reembolsados</p>
+      </div>
+    </div>
+    <div class="indicador">
+      <span class="indicador__valor indicador__valor--conteo indicador__valor--tenue">{{ indicadores().canceladas }}</span>
+      <div>
+        <p class="indicador__titulo">Canceladas</p>
+        <p class="indicador__detalle">Antes de entregar mercancía</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="filtros">
+    <label class="campo__control campo__control--40 filtros__buscar">
+      <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+      <input
+        class="campo__input"
+        type="search"
+        placeholder="Buscar folio, cliente o producto"
+        aria-label="Buscar folio, cliente o producto"
+        autocomplete="off"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+      />
+    </label>
+    <span class="campo__control campo__control--40">
+      <select class="campo__input campo__select" aria-label="Cajera" [(ngModel)]="cajera" (ngModelChange)="filtrar()">
+        <option value="">Todas las cajeras</option>
+        @for (nombre of cajeras; track nombre) {
+          <option [value]="nombre">{{ nombre }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+    <span class="campo__control campo__control--40">
+      <select class="campo__input campo__select" aria-label="Método de pago" [(ngModel)]="metodo" (ngModelChange)="filtrar()">
+        <option value="">Todos los métodos</option>
+        @for (m of metodos; track m[0]) {
+          <option [value]="m[0]">{{ m[1] }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+    <span class="campo__control campo__control--40">
+      <select class="campo__input campo__select" aria-label="Estado" [(ngModel)]="estado" (ngModelChange)="filtrar()">
+        <option value="">Todos los estados</option>
+        @for (e of listaEstados; track e[0]) {
+          <option [value]="e[0]">{{ e[1].texto }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+  </div>
+
+  @if (seleccionada(); as venta) {
+    <div class="columnas">
+      <div class="historial" #tabla>
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Folio</th>
+              <th class="col-fecha">Fecha</th>
+              <th>Cliente</th>
+              <th class="col-articulos">Artículos</th>
+              <th class="col-metodo">Método</th>
+              <th class="col-total">Total</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of filtradas(); track v.folio) {
+              <tr
+                tabindex="0"
+                [attr.data-folio]="v.folio"
+                [attr.aria-selected]="v.folio === venta.folio"
+                [class.tabla__fila--elegida]="v.folio === venta.folio"
+                (click)="elegir(v)"
+                (keydown.enter)="elegir(v)"
+                (keydown.arrowdown)="moverSeleccion($event, 1)"
+                (keydown.arrowup)="moverSeleccion($event, -1)"
+              >
+                <td class="col-folio">{{ v.folio }}</td>
+                <td class="col-fecha tenue">{{ fecha(v.fecha) }}</td>
+                <td>{{ v.cliente.nombre }}</td>
+                <td class="col-articulos tenue">{{ articulos(v) }}</td>
+                <td class="col-metodo tenue">{{ nombresMetodo[v.metodo] }}</td>
+                <td class="col-total">{{ dinero(v.total) }}</td>
+                <td><span class="estado estado--{{ estados[v.estado].tono }}">{{ estados[v.estado].texto }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-detalle-venta
+        class="columnas__detalle"
+        [venta]="venta"
+        (reimprimir)="reimprimir(venta)"
+        (enviar)="enviar(venta)"
+        (cancelar)="modal.set('cancelar')"
+        (devolver)="modal.set('devolucion')"
+      />
+    </div>
+  } @else {
+    <!-- C3.2 · Sin resultados -->
+    <div class="sin-resultados">
+      <span class="sin-resultados__icono"><img src="assets/ventas/search.svg" width="20" height="20" alt="" /></span>
+      <p class="sin-resultados__titulo">No hay ventas que coincidan</p>
+      <p class="sin-resultados__texto">
+        @if (busqueda().trim()) {
+          No encontramos ventas con “{{ busqueda().trim() }}” {{ nombrePeriodo()[1] }}.
+        } @else {
+          No hay ventas con estos filtros {{ nombrePeriodo()[1] }}.
+        }
+        Prueba con otro producto, el folio del ticket o amplía el rango de fechas.
+      </p>
+      <div class="sin-resultados__acciones">
+        @if (hayFiltros()) {
+          <button type="button" class="boton boton--contorno" (click)="limpiarFiltros()">
+            <img src="assets/pdv/x-primario.svg" width="14" height="14" alt="" />Limpiar filtros
+          </button>
+        }
+        @if (periodo() !== 'anio') {
+          <button type="button" class="boton boton--contorno" (click)="verTodoElAnio()">
+            <img src="assets/ventas/calendar-primario.svg" width="14" height="14" alt="" />Ver todo el año
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+@if (seleccionada(); as venta) {
+  @switch (modal()) {
+    @case ('devolucion') {
+      <app-devolucion [venta]="venta" (cerrar)="modal.set(null)" (confirmar)="confirmarDevolucion($event)" />
+    }
+    @case ('cancelar') {
+      <div class="modal-fondo" (click)="modal.set(null)">
+        <section class="modal confirmar" role="alertdialog" aria-modal="true" aria-labelledby="titulo-cancelar-venta" (click)="$event.stopPropagation()">
+          <div>
+            <h2 class="modal__titulo" id="titulo-cancelar-venta">¿Cancelar la venta {{ venta.folio }}?</h2>
+            <p class="modal__subtitulo">
+              Se regresan {{ dinero(venta.total) }} al cliente y {{ articulos(venta) }} {{ articulos(venta) === 1 ? 'artículo vuelve' : 'artículos vuelven' }}
+              al inventario. Úsalo solo si todavía no se entregó la mercancía.
+            </p>
+          </div>
+          <div class="modal__acciones">
+            <button type="button" class="boton boton--contorno boton--44" (click)="modal.set(null)">No cancelar</button>
+            <button type="button" class="boton boton--peligro boton--44" (click)="confirmarCancelacion()">Cancelar venta</button>
+          </div>
+        </section>
+      </div>
+    }
+  }
+}

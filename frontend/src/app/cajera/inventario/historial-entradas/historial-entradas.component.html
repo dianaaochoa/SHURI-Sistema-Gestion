@@ -1,0 +1,90 @@
+<div class="tabla-entradas">
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th><th>Folio entrada</th><th class="h-proveedor">Proveedor</th><th>Documento</th><th class="h-pedido">Pedido</th>
+        <th class="h-num">Piezas</th><th>Total</th><th>Pago</th><th class="h-recibio">Recibió</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (e of lista(); track e.folio) {
+        <tr>
+          <td class="h-fuerte">{{ fechaCorta(e.fecha) }}</td>
+          <td>{{ e.folio }}</td>
+          <td class="h-proveedor">{{ e.proveedor }}</td>
+          <td>{{ e.documento }}</td>
+          <td class="h-pedido">{{ e.pedido ?? '—' }}</td>
+          <td class="h-num">{{ piezas(e) }}</td>
+          <td>{{ dinero(e.total) }}</td>
+          <td><span class="estado estado--{{ formas[e.pago].tono }}">{{ formas[e.pago].corto }}</span></td>
+          <td class="h-recibio">{{ e.recibio }}</td>
+          <td><button type="button" class="enlace h-fuerte" (click)="ver(e)">Ver</button></td>
+        </tr>
+      } @empty {
+        <tr><td colspan="10" class="vacia">No hay entradas registradas en este mes.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (lista().length) {
+  <p class="totales">
+    {{ lista().length }} {{ lista().length === 1 ? 'entrada' : 'entradas' }} · {{ dinero(totales().total) }} en mercancía
+    @if (totales().efectivo) { · {{ dinero(totales().efectivo) }} pagados con efectivo de caja }
+  </p>
+}
+
+@for (e of notas(); track e.folio) {
+  <p class="aviso aviso--advertencia"><img src="assets/inventario/alert-advertencia.svg" width="16" height="16" alt="" />{{ e.folio }} · {{ e.nota }}</p>
+}
+
+@if (detalle(); as e) {
+  <div class="modal-fondo" (click)="detalle.set(null)">
+    <section class="modal detalle" role="dialog" aria-modal="true" aria-labelledby="titulo-entrada" (click)="$event.stopPropagation()">
+      <header class="modal__encabezado">
+        <div>
+          <h2 class="modal__titulo" id="titulo-entrada">{{ e.folio }} · {{ e.documento }}</h2>
+          <p class="modal__subtitulo">{{ e.proveedor }}{{ e.pedido ? ' · ' + e.pedido : ' · compra directa' }} · {{ fechaCorta(e.fecha) }} · recibió {{ e.recibio }}</p>
+        </div>
+        <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="detalle.set(null)">
+          <img src="assets/inventario/x.svg" width="20" height="20" alt="" />
+        </button>
+      </header>
+      @if (mensaje(); as m) {
+        <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ m }}</p>
+      }
+      <div class="lineas">
+        <table>
+          <thead><tr><th>SKU</th><th>Producto</th><th class="h-num">Cant.</th><th class="h-num">Costo</th><th class="h-num">Importe</th></tr></thead>
+          <tbody>
+            @for (l of e.lineas; track $index) {
+              <tr>
+                <td class="h-tenue">{{ l.sku }}</td>
+                <td>{{ l.nombre }}@if (l.orden) { <span class="h-tenue"> · aparta {{ l.orden }}</span> }</td>
+                <td class="h-num">{{ l.cantidad }}</td>
+                <td class="h-num">{{ dinero(l.costo) }}</td>
+                <td class="h-num h-fuerte">{{ dinero(l.cantidad * l.costo) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="cifras">
+        <p><span>Subtotal (sin IVA)</span><strong>{{ dinero(e.subtotal) }}</strong></p>
+        <p><span>IVA 16 %</span><strong>{{ dinero(e.iva) }}</strong></p>
+        <p class="cifras__total"><span>Total</span><strong>{{ dinero(e.total) }}</strong></p>
+        <p><span>Pago</span><span class="estado estado--{{ formas[e.pago].tono }}">{{ formas[e.pago].corto }}</span></p>
+        <p><span>Foto de la factura</span><strong>{{ e.fotoFactura ? 'Adjunta' : 'Sin foto' }}</strong></p>
+      </div>
+      @if (e.nota) {
+        <p class="aviso aviso--advertencia"><img src="assets/inventario/alert-advertencia.svg" width="16" height="16" alt="" />{{ e.nota }}</p>
+      }
+      <div class="modal__acciones">
+        <button type="button" class="boton boton--contorno boton--44" (click)="reimprimir(e)">
+          <img src="assets/ventas/printer-primario.svg" width="16" height="16" alt="" />Reimprimir comprobante
+        </button>
+        <button type="button" class="boton boton--primario boton--44" (click)="detalle.set(null)">Listo</button>
+      </div>
+    </section>
+  </div>
+}

@@ -1,0 +1,199 @@
+.acceso {
+  display: grid;
+  grid-template-columns: 760fr 680fr;
+  min-height: 100vh;
+}
+
+/* ---------- Panel de marca ---------- */
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 56px 64px clamp(48px, 15.8vh, 142px);
+  overflow: hidden;
+  background: linear-gradient(138.4deg, #17374e 14.3%, #08616e 85.7%);
+  color: var(--color-superficie);
+}
+
+.panel__elipse {
+  position: absolute;
+  pointer-events: none;
+}
+
+.panel__elipse--1 { top: -140px; right: -220px; }
+.panel__elipse--2 { bottom: -120px; left: -180px; }
+.panel__elipse--3 { bottom: 20px; right: -60px; }
+
+.marca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.marca__logo {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+}
+
+.marca__logo img {
+  position: absolute;
+  top: -25.2%;
+  left: -47%;
+  width: 200%;
+  height: 200%;
+  max-width: none;
+}
+
+.marca__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--color-menu-icono);
+}
+
+.marca__texto strong {
+  font-size: 19px;
+  color: var(--color-superficie);
+}
+
+.panel__mensaje {
+  position: relative;
+  margin-top: clamp(40px, 16.25vh, 146px);
+}
+
+.panel__titulo {
+  max-width: 560px;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 48px;
+}
+
+.panel__descripcion {
+  max-width: 520px;
+  margin-top: 20px;
+  font-size: 16px;
+  line-height: 24px;
+  color: #cfe3ea;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+/* Tarjetas flotantes de ejemplo */
+
+.escena {
+  position: relative;
+  height: 148px;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.flotante {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-superficie);
+  border-radius: 14px;
+  box-shadow: var(--sombra-flotante);
+  white-space: nowrap;
+}
+
+.flotante--cobros { top: 0; left: 316px; }
+.flotante--orden { top: 80px; left: 0; }
+
+.flotante__icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.flotante__icono--primario { background: var(--color-primario-suave); }
+.flotante__icono--exito { background: var(--color-exito-suave); }
+
+.flotante__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--color-texto-tenue);
+}
+
+.flotante__texto strong {
+  font-size: 14px;
+  color: var(--color-marino);
+}
+
+.estado-listo {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-exito);
+  background: var(--color-exito-suave);
+  border-radius: 8px;
+}
+
+/* ---------- Columna del formulario ---------- */
+
+.contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 24px;
+}
+
+.contenido__pie {
+  font-size: 11px;
+  color: var(--color-placeholder);
+  text-align: center;
+}
+
+.marca--compacta {
+  display: none;
+}
+
+@media (max-height: 760px) {
+  .escena { display: none; }
+}
+
+@media (max-width: 960px) {
+  .acceso { grid-template-columns: 1fr; }
+  .panel { display: none; }
+  .contenido { justify-content: flex-start; padding: 32px 16px; }
+  .marca--compacta { display: flex; align-self: center; margin-bottom: 8px; }
+  .marca--compacta .marca__texto { color: var(--color-texto-tenue); }
+  .marca--compacta .marca__texto strong { color: var(--color-marino); }
+}

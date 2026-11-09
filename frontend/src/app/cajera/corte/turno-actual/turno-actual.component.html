@@ -1,0 +1,58 @@
+<div class="indicadores">
+  <p class="cifra"><strong>{{ dinero(r().fondo, true) }}</strong><span><b>Fondo inicial</b>Al abrir el turno</span></p>
+  <p class="cifra"><strong>{{ dinero(r().ventas, true) }}</strong><span><b>Ventas de mostrador</b>{{ r().numVentas }} {{ r().numVentas === 1 ? 'venta' : 'ventas' }}</span></p>
+  <p class="cifra"><strong>{{ dinero(r().reparaciones, true) }}</strong><span><b>Cobros de reparación</b>{{ r().numEntregas }} {{ r().numEntregas === 1 ? 'entrega' : 'entregas' }} + {{ r().numAnticipos }} {{ r().numAnticipos === 1 ? 'anticipo' : 'anticipos' }}</span></p>
+  <p class="cifra"><strong [class.negativo]="r().retiros < 0">{{ dinero(r().retiros, true) }}</strong><span><b>Retiros y pagos</b>{{ detalleRetiros() }}</span></p>
+</div>
+
+<div class="columnas">
+  <section class="tabla-turno" aria-label="Movimientos del turno">
+    <table>
+      <thead><tr><th>Hora</th><th>Concepto</th><th class="t-metodo">Método</th><th class="num">Monto</th></tr></thead>
+      <tbody>
+        @for (m of movimientos(); track $index) {
+          <tr>
+            <td class="t-hora">{{ hora(m.fecha) }}</td>
+            <td class="t-concepto"><span>{{ m.concepto }}</span></td>
+            <td class="t-metodo">{{ metodos[m.metodo] }}</td>
+            <td class="num t-monto">{{ dinero(m.monto) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <section class="arqueo" aria-labelledby="titulo-arqueo">
+    <h2 id="titulo-arqueo"><img src="assets/pdv/cash.svg" width="18" height="18" alt="" />Arqueo de efectivo</h2>
+    <p class="renglon"><span>Efectivo esperado en caja</span><strong>{{ dinero(r().esperado) }}</strong></p>
+    <p class="renglon"><span>Tarjeta (terminal)</span><strong>{{ dinero(r().tarjeta) }}</strong></p>
+    <p class="renglon"><span>Transferencias</span><strong>{{ dinero(r().transferencias) }}</strong></p>
+    <hr />
+    <div class="campo">
+      <label class="campo__etiqueta" for="arqueo-contado">Efectivo contado *</label>
+      <div class="campo__control campo__control--40 contado">
+        <span class="moneda">$</span>
+        <input id="arqueo-contado" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Cuenta el efectivo del cajón" [value]="contado() ?? ''" (input)="contado.set($any($event.target).value === '' ? null : +$any($event.target).value)" />
+      </div>
+    </div>
+    @if (diferencia() !== null) {
+      <p class="diferencia" [class.diferencia--falta]="diferencia()! < 0" [class.diferencia--sobra]="diferencia()! > 0" aria-live="polite">
+        <span>Diferencia{{ diferencia()! < 0 ? ' (faltante)' : diferencia()! > 0 ? ' (sobrante)' : ' · cuadra' }}</span>
+        <strong>{{ diferencia()! > 0 ? '+' : '' }}{{ dinero(diferencia()!) }}</strong>
+      </p>
+    }
+    <div class="campo">
+      <label class="campo__etiqueta" for="arqueo-comentario">Comentario del corte</label>
+      <textarea id="arqueo-comentario" class="area" rows="2" placeholder="Obligatorio si hay diferencia" [value]="comentario()" (input)="comentario.set($any($event.target).value)"></textarea>
+    </div>
+    <span class="espacio"></span>
+    <p class="nota">Al cerrar el turno se imprime el corte y la caja queda bloqueada hasta una nueva apertura.</p>
+    <button type="button" class="boton boton--primario boton--44 boton--bloque" (click)="modal.set(true)">
+      <img src="assets/pdv/printer.svg" class="blanco" width="16" height="16" alt="" />Cerrar turno e imprimir corte
+    </button>
+  </section>
+</div>
+
+@if (modal()) {
+  <app-cerrar-turno [esperado]="r().esperado" [contadoInicial]="contado()" [comentarioInicial]="comentario()" (cerrar)="modal.set(false)" (confirmar)="cerrar($event)" />
+}

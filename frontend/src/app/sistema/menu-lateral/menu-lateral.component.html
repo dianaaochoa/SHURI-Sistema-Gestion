@@ -1,0 +1,100 @@
+<nav
+  class="menu"
+  aria-label="Menú principal"
+  [class.menu--desplegado]="contraido() && desplegado()"
+  [class.menu--movil-abierto]="abiertoMovil()"
+  (mouseenter)="desplegado.set(true)"
+  (mouseleave)="desplegado.set(abierto() !== null)"
+>
+  <div class="marca">
+    <span class="marca__logo"><img src="assets/acceso/logo-shuri.png" alt="" /></span>
+    <span class="marca__texto">
+      <strong>SHURI</strong>
+      <span>Reparación y venta</span>
+    </span>
+  </div>
+
+  <p class="menu__resumen" [class.menu__resumen--alerta]="cajaCerrada()">{{ resumen() }}</p>
+
+  <div class="menu__grupos">
+    @for (grupo of navegacion().grupos; track $index) {
+      <div class="grupo">
+        @if (grupo.titulo) {
+          <p class="grupo__titulo">{{ grupo.titulo }}</p>
+        }
+        @for (destino of grupo.destinos; track destino.ruta) {
+          <a
+            class="destino"
+            [routerLink]="'/' + navegacion().prefijo + '/' + destino.ruta"
+            routerLinkActive="destino--activo"
+            [attr.title]="contraido() ? destino.etiqueta : null"
+            (click)="cerrar.emit()"
+          >
+            <span class="icono" [style.--icono]="'url(assets/menu/' + destino.icono + '.svg)'"></span>
+            <span class="destino__etiqueta">{{ destino.etiqueta }}</span>
+            @if (insignia(destino); as n) {
+              <span class="destino__insignia" [attr.aria-label]="n + ' sin responder'">{{ n }}</span>
+            }
+          </a>
+        }
+      </div>
+    }
+  </div>
+
+  <button
+    type="button"
+    class="menu__contraer"
+    [attr.aria-label]="contraido() ? 'Fijar menú abierto' : 'Contraer menú'"
+    (click)="alternarContraido()"
+  >
+    <span class="icono" [style.--icono]="'url(assets/menu/panel.svg)'"></span>
+    <span>{{ contraido() ? 'Fijar abierto' : 'Contraer' }}</span>
+  </button>
+
+  <div class="menu__pie" #pie>
+    <button
+      type="button"
+      class="usuario"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="abierto() === 'usuario'"
+      (click)="alternar('usuario')"
+    >
+      <span class="avatar">{{ iniciales() }}</span>
+      <span class="usuario__texto">
+        <strong>{{ sesion()?.nombre }}</strong>
+        <span>{{ sesion()?.puesto }}</span>
+      </span>
+    </button>
+
+    <button
+      type="button"
+      class="campana"
+      [class.campana--abierta]="abierto() === 'notificaciones'"
+      [attr.aria-label]="'Notificaciones: ' + notificaciones.nuevas().length + ' nuevas'"
+      [attr.aria-expanded]="abierto() === 'notificaciones'"
+      (click)="alternar('notificaciones')"
+    >
+      @if (notificaciones.nuevas().length) {
+        <img src="assets/menu/campana-aviso.svg" width="28" height="28" alt="" />
+      } @else {
+        <span class="icono" [style.--icono]="'url(assets/menu/bell.svg)'"></span>
+      }
+    </button>
+
+    @if (abierto() === 'usuario') {
+      <app-menu-usuario
+        class="flotante flotante--usuario"
+        [prefijo]="'/' + navegacion().prefijo"
+        (elegir)="abierto.set(null); cerrar.emit()"
+        (cerrarSesion)="cerrarSesion()"
+      />
+    }
+    @if (abierto() === 'notificaciones') {
+      <app-panel-notificaciones class="flotante flotante--notificaciones" />
+    }
+  </div>
+</nav>
+
+@if (confirmarSalida()) {
+  <app-salir-con-turno (cancelar)="confirmarSalida.set(false)" (irACorte)="irACorte()" (salirSinCerrar)="salir()" />
+}
