@@ -24,7 +24,11 @@ const METODOS: { id: MetodoSimple; texto: string; icono: string }[] = [
 
     @switch (tipo()) {
       @case ('garantia') {
-        <p class="renglon"><span>Mano de obra y refacción</span><strong>Cubierto</strong></p>
+        @if (o.garantia?.decision?.tipo === 'sin-reparar') {
+          <p class="renglon"><span>Reparación</span><strong>No aplica · sin reparar</strong></p>
+        } @else {
+          <p class="renglon"><span>Mano de obra y refacción</span><strong>Cubierto</strong></p>
+        }
         <p class="renglon"><span>Costo extra por daño nuevo</span><strong>{{ dinero(0) }}</strong></p>
       }
       @case ('sin-reparar') {

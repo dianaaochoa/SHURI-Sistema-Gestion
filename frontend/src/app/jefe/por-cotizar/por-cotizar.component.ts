@@ -25,7 +25,7 @@ interface Renglon {
   standalone: true,
   imports: [CotizarOrdenComponent, SinReparacionComponent, RecotizacionComponent, RegresarTecnicoComponent],
   templateUrl: './por-cotizar.component.html',
-  styleUrl: './por-cotizar.component.css',
+  styleUrl: '../lista-pagina.css',
 })
 export class PorCotizarComponent implements OnInit {
   private readonly servicio = inject(OrdenesService);

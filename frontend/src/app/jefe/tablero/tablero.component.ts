@@ -4,6 +4,7 @@ import { AuthService } from '../../acceso/auth.service';
 import { Orden, OrdenesService, POR_ASIGNAR, PRIORIDADES, Prioridad, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { DispositivosService } from '../../cajera/punto-de-venta/dispositivos.service';
 import { ETAPAS, SLA_DIAGNOSTICO_H, atrasada, etapaDe, inicioEtapa, pendienteDeCotizar, tiempoEn } from '../etapas';
+import { etapaGarantia } from '../garantias/garantia';
 import { AsignarTecnicoComponent, Asignacion } from './asignar-tecnico/asignar-tecnico.component';
 import { OrdenJefeComponent } from './orden-jefe/orden-jefe.component';
 
@@ -101,7 +102,7 @@ export class TableroComponent implements OnInit {
       case 'adicional':
         return { texto: 'Adicional', tono: 'advertencia' };
       case 'en-garantia':
-        return { texto: 'Garantía', tono: 'advertencia' };
+        return etapaGarantia(o) === 'por-dictaminar' ? { texto: 'Dictaminar', tono: 'advertencia' } : { texto: 'Garantía', tono: 'advertencia' };
       case 'en-taller':
         return { texto: 'En curso', tono: 'info' };
       case 'sin-reparacion':
@@ -141,6 +142,7 @@ export class TableroComponent implements OnInit {
     this.aviso.set(null);
     // Lo que toca cotizar, confirmar o re-cotizar se resuelve en Por cotizar (J3).
     if (pendienteDeCotizar(o)) this.router.navigate(['/jefe/por-cotizar'], { queryParams: { folio: o.folio.replace('#', '') } });
+    else if (etapaGarantia(o) === 'por-dictaminar') this.router.navigate(['/jefe/garantias'], { queryParams: { folio: o.folio.replace('#', '') } });
     else this.router.navigate([], { queryParams: { folio: o.folio.replace('#', '') } });
   }
 

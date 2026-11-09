@@ -1,7 +1,7 @@
 @if (abierta() === 'cotizar' && orden(); as o) {
   <app-cotizar-orden [orden]="o" (volver)="cerrar()" (enviado)="cerrar($event)" (regresar)="regresando.set(o)" />
 } @else {
-  <div class="por-cotizar">
+  <div class="lista-pagina">
     <header class="encabezado-pagina">
       <div>
         <h1 class="encabezado-pagina__titulo">Por cotizar</h1>

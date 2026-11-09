@@ -1,0 +1,54 @@
+<div class="dictamen">
+  <header class="encabezado">
+    <div class="encabezado__texto">
+      <button type="button" class="volver" (click)="volver.emit()"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Volver a Garantías</button>
+      <h1 class="encabezado-pagina__titulo">Dictamen de garantía · {{ orden().folio }}</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo() }}</p>
+    </div>
+    <div class="encabezado__estados">
+      <span class="estado" [class.estado--advertencia]="!enRevision()" [class.estado--neutro]="enRevision()">{{ enRevision() ? 'En revisión' : 'Por dictaminar' }}</span>
+      <span class="estado estado--exito">{{ usados() }} de {{ diasGarantia }} días</span>
+    </div>
+  </header>
+
+  <div class="columnas">
+    <div class="principal">
+      <section class="panel" aria-labelledby="titulo-original">
+        <h2 class="panel__titulo" id="titulo-original"><span class="icono" style="--icono: url(assets/inventario/history.svg)"></span>Reparación original</h2>
+        <dl class="datos">
+          @for (d of original(); track d.texto) {
+            <div><dt>{{ d.texto }}</dt><dd>{{ d.valor }}</dd></div>
+          }
+        </dl>
+      </section>
+
+      <section class="panel" aria-labelledby="titulo-cliente">
+        <h2 class="panel__titulo" id="titulo-cliente"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Lo que reporta el cliente</h2>
+        <p class="cita">“{{ orden().garantia?.falla }}”</p>
+        @if (orden().garantia?.condicion) {
+          <p class="nota">Condición al recibir: {{ orden().garantia?.condicion }}</p>
+        }
+      </section>
+
+      <section class="panel reporte" aria-labelledby="titulo-reporte">
+        <h2 class="panel__titulo" id="titulo-reporte"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>Reporte del técnico</h2>
+        @if (reporte(); as filas) {
+          <dl class="datos">
+            @for (d of filas; track d.texto) {
+              <div><dt>{{ d.texto }}</dt><dd>{{ d.valor }}</dd></div>
+            }
+          </dl>
+          <div class="fotos">
+            @for (n of [1, 2, 3]; track n) {
+              <span class="foto-vacia foto-vacia--grande" role="img" [attr.aria-label]="'Foto del técnico ' + n"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
+            }
+          </div>
+        } @else {
+          <p class="nota">{{ orden().tecnico.nombre }} todavía está revisando el equipo. Podrás dictaminar cuando mande su reporte.</p>
+        }
+      </section>
+    </div>
+
+    <app-tu-dictamen class="lateral" [orden]="orden()" (publicado)="publicado.emit($event)" />
+  </div>
+</div>

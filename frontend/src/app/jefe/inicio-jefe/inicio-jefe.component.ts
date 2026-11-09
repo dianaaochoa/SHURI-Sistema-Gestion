@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { saludoDelDia } from '../../compartido/formato';
 import { EstadoOrden, OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
+import { etapaGarantia, recomendacion } from '../garantias/garantia';
 import { SLA_DIAGNOSTICO_H, atrasada, etapaDe, horasDesde } from '../etapas';
 import { MENSAJES_SIN_RESPONDER, PREGUNTAS_TECNICOS, SOLICITUDES_REFACCION } from '../jefe.datos';
 
@@ -57,7 +58,7 @@ export class InicioJefeComponent {
   private readonly porCotizar = computed(() => this.ordenes().filter((o) => etapaDe(o) === 'por-cotizar'));
   /** Más de 24 h sin cotizar (recibidas, en diagnóstico o por cotizar). */
   private readonly atrasadas = computed(() => this.ordenes().filter((o) => o.tecnico !== POR_ASIGNAR && atrasada(o)));
-  private readonly garantias = computed(() => this.ordenes().filter((o) => o.estado === 'en-garantia'));
+  private readonly garantias = computed(() => this.ordenes().filter((o) => etapaGarantia(o) === 'por-dictaminar'));
   private readonly sinTecnico = computed(() => this.ordenes().filter((o) => o.tecnico === POR_ASIGNAR && EN_TALLER.includes(o.estado)));
 
   protected readonly indicadores = computed(() => [
@@ -102,7 +103,7 @@ export class InicioJefeComponent {
       })),
     ...this.garantias().map((o) => ({
       icono: 'menu/shield', tono: 'advertencia' as Tono, titulo: `${o.folio} · ${o.equipo} · Garantía`,
-      detalle: o.garantia?.dictamen && o.garantia.dictamen !== 'En revisión' ? o.garantia.dictamen : `${o.garantia?.falla ?? ''} · en revisión`, accion: 'Dictaminar', ruta: 'garantias', folio: o.folio,
+      detalle: `${o.tecnico.nombre.split(' ')[0]} recomienda: ${minuscula(recomendacion(o)?.texto ?? '')} · ${hace(o.garantia!.reporte!.fecha)}`, accion: 'Dictaminar', ruta: 'garantias', folio: o.folio,
     })),
     ...this.sinTecnico().map((o) => ({
       icono: 'menu/users', tono: 'neutro' as Tono, titulo: `${o.folio} · ${o.equipo} · Recibido`,

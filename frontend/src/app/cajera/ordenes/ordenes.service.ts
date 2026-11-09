@@ -103,8 +103,8 @@ export interface Orden {
   realizado?: string;
   /** ISO: cuándo rechazó el presupuesto (C6.2). */
   rechazo?: string;
-  /** Reingreso en garantía (C4.5 → C6.3). */
-  garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string };
+  /** Reingreso en garantía (C4.5 → J4 → C6.3). Sin `recibio` = la pidió el cliente desde el portal. */
+  garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string; reporte?: ReporteGarantia; decision?: DecisionGarantia };
   /** Lo que se capturó en la recepción (C5.1); lo usan la orden impresa y sus comprobantes (C11). */
   ficha?: FichaRecepcion;
   /** Lo define el jefe al asignar (J2.2); sin valor = normal. */
@@ -127,6 +127,33 @@ export interface Orden {
   historial: Evento[];
   /** Avisos y recordatorios al cliente (C4.6 "Intentos de contacto"). */
   contactos: Evento[];
+}
+
+/** Lo que encontró el técnico al revisar un equipo en garantía (J4.2 "Reporte del técnico"). */
+export interface ReporteGarantia {
+  fecha: string;
+  hallazgo: string;
+  /** "No, daño posterior a la entrega" */
+  relacion: string;
+  malUso: string;
+  trabajo: string;
+  recomienda: 'aplica' | 'no-aplica';
+  /** "humedad posterior", "pieza defectuosa" */
+  motivo: string;
+  /** Costo sugerido si no aplica (IVA incluido). */
+  costo?: number;
+}
+
+export type TipoDictamen = 'aplica' | 'con-costo' | 'sin-reparar';
+
+/** Dictamen del jefe (J4.2): se publica en el portal del cliente. */
+export interface DecisionGarantia {
+  fecha: string;
+  tipo: TipoDictamen;
+  texto: string;
+  concepto?: string;
+  costo?: number;
+  por: string;
 }
 
 export interface FichaRecepcion {
@@ -352,6 +379,79 @@ function ordenesDemo(): Orden[] {
     },
     {
       ...base,
+      // Figma J4.1: garantía que el técnico recomienda aplicar.
+      folio: '#1002',
+      recibido: hace(16, '11:00'),
+      cliente: { nombre: 'Diego Torres', telefono: '55 3141 5926', correo: 'diego.torres@gmail.com' },
+      equipo: 'iPhone 13',
+      imei: '353113000222333',
+      tecnico: tecnico('CR'),
+      estado: 'en-garantia',
+      trabajo: 'Puerto de carga',
+      presupuesto: { enviado: hace(16, '15:00'), descripcion: 'Cambio de puerto de carga.', refacciones: 420, manoObra: 182.07, total: 698.4, aprobado: hace(16, '17:00') },
+      listaDesde: hace(14, '13:00'),
+      entrega: { fecha: hace(13, '12:00'), por: 'Ana Martínez · Caja 01', pagado: 698.4 },
+      garantia: {
+        recibida: hace(1, '12:00'),
+        falla: 'Carga solo si muevo el cable.',
+        dictamen: 'Carlos recomienda: aplica (pieza defectuosa)',
+        resolucion: '',
+        recibio: 'Ana Martínez',
+        reporte: {
+          fecha: hace(0, '09:20'),
+          hallazgo: 'Puerto flojo; soldadura del conector fracturada',
+          relacion: 'Sí, es la pieza que se cambió',
+          malUso: 'Ninguna',
+          trabajo: 'Reemplazo del puerto de carga',
+          recomienda: 'aplica',
+          motivo: 'pieza defectuosa',
+        },
+      },
+      historial: [ev(16, '11:00', 'Recibido'), ev(13, '12:00', 'Entregado y pagado'), ev(1, '12:00', 'Recibido en garantía por Ana Martínez'), ev(0, '09:20', 'Carlos envió su reporte de garantía')],
+    },
+    {
+      ...base,
+      // J4.1 "En revisión": el técnico todavía no manda su reporte.
+      folio: '#1006',
+      recibido: hace(19, '10:30'),
+      cliente: { nombre: 'Ricardo Peña', telefono: '55 2718 2818', correo: 'ricardo.pena@gmail.com' },
+      equipo: 'Moto G72',
+      imei: '359720004445556',
+      tecnico: tecnico('LO'),
+      estado: 'en-garantia',
+      trabajo: 'Cambio de micrófono',
+      presupuesto: { enviado: hace(19, '14:00'), descripcion: 'Cambio de micrófono inferior.', refacciones: 180, manoObra: 164.83, total: 400, aprobado: hace(19, '16:00') },
+      listaDesde: hace(17, '12:00'),
+      entrega: { fecha: hace(16, '13:00'), por: 'Ana Martínez · Caja 01', pagado: 400 },
+      garantia: { recibida: horas(3), falla: 'En llamadas no me escuchan bien.', dictamen: 'En revisión', resolucion: '' },
+      historial: [ev(19, '10:30', 'Recibido'), ev(16, '13:00', 'Entregado y pagado'), { fecha: horas(3), texto: 'Garantía solicitada desde el portal' }],
+    },
+    {
+      ...base,
+      // J4.1 "En reparación": garantía aplicada, el técnico la está reparando.
+      folio: '#1010',
+      recibido: hace(22, '09:45'),
+      cliente: { nombre: 'Andrea Salas', telefono: '55 1618 0339', correo: 'andrea.salas@gmail.com' },
+      equipo: 'iPhone 12',
+      imei: '353912001234987',
+      tecnico: tecnico('MV'),
+      estado: 'en-garantia',
+      trabajo: 'Cambio de batería',
+      presupuesto: { enviado: hace(22, '13:00'), descripcion: 'Cambio de batería.', refacciones: 380, manoObra: 136.21, total: 598.8, aprobado: hace(22, '15:00') },
+      listaDesde: hace(20, '12:00'),
+      entrega: { fecha: hace(19, '17:00'), por: 'Luis Peña · Caja 01', pagado: 598.8 },
+      garantia: {
+        recibida: hace(2, '11:00'),
+        falla: 'La batería se descarga en medio día.',
+        dictamen: 'Cubierta por garantía',
+        resolucion: '',
+        reporte: { fecha: hace(2, '15:00'), hallazgo: 'Batería con celda defectuosa', relacion: 'Sí, es la batería que se cambió', malUso: 'Ninguna', trabajo: 'Reemplazo de batería', recomienda: 'aplica', motivo: 'pieza defectuosa' },
+        decision: { fecha: hace(2, '16:10'), tipo: 'aplica', texto: 'La batería que instalamos salió defectuosa. Se cambia sin costo con el mismo folio.', por: 'Jorge López' },
+      },
+      historial: [ev(22, '09:45', 'Recibido'), ev(19, '17:00', 'Entregado y pagado'), ev(2, '11:00', 'Garantía solicitada desde el portal'), ev(2, '16:10', 'Garantía aplicada por Jorge López: se repara sin costo')],
+    },
+    {
+      ...base,
       // Figma J1.1: garantía que espera el dictamen del jefe.
       folio: '#0986',
       recibido: hace(27, '11:00'),
@@ -366,9 +466,20 @@ function ordenesDemo(): Orden[] {
       entrega: { fecha: hace(24, '12:00'), por: 'Ana Martínez · Caja 01', pagado: 800 },
       garantia: {
         recibida: hace(0, '10:15'),
-        falla: 'Dejó de cargar otra vez',
+        falla: 'El equipo volvió a dejar de cargar desde ayer.',
         dictamen: 'Carlos recomienda: no aplica (humedad posterior)',
         resolucion: '',
+        // Figma J4.2: reporte del técnico listo para dictaminar.
+        reporte: {
+          fecha: hace(0, '12:40'),
+          hallazgo: 'Humedad en el puerto con corrosión reciente',
+          relacion: 'No, daño posterior a la entrega',
+          malUso: 'Humedad · indicador activado',
+          trabajo: 'Limpieza y reemplazo del puerto',
+          recomienda: 'no-aplica',
+          motivo: 'humedad posterior',
+          costo: 450,
+        },
       },
       historial: [ev(27, '11:00', 'Recibido'), ev(24, '12:00', 'Entregado y pagado'), ev(0, '10:15', 'Recibido en garantía'), ev(0, '12:40', 'Carlos revisó: humedad posterior a la entrega')],
     },
@@ -902,6 +1013,38 @@ export class OrdenesService {
         danoAdicional: undefined,
         historial: [...o.historial, { fecha: ahora, texto: `Re-cotización de $${monto.toFixed(2)} enviada al portal por ${por}` }],
         contactos: [...o.contactos, { fecha: ahora, texto: 'Re-cotización publicada en el portal' }],
+      };
+    });
+  }
+
+  /**
+   * J4.2 · Publica el dictamen de garantía. Aplica: el técnico repara sin costo. Con costo: el cliente decide en su portal (P3.2).
+   * Sin reparar: pasa a "Garantía lista" para que caja lo entregue (C6.3).
+   */
+  dictaminarGarantia(folio: string, datos: { tipo: TipoDictamen; texto: string; concepto?: string; costo?: number; por: string }): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      if (!o.garantia) return o;
+      const decision: DecisionGarantia = { fecha: ahora, tipo: datos.tipo, texto: datos.texto.trim(), por: datos.por };
+      if (datos.tipo === 'con-costo') Object.assign(decision, { concepto: datos.concepto?.trim(), costo: datos.costo });
+      const dictamen = {
+        aplica: 'Cubierta por garantía',
+        'con-costo': `No aplica · reparación con costo de $${(datos.costo ?? 0).toFixed(2)}`,
+        'sin-reparar': 'No aplica · se devuelve sin reparar',
+      }[datos.tipo];
+      const texto = {
+        aplica: `Garantía aplicada por ${datos.por}: se repara sin costo`,
+        'con-costo': `Garantía no aplica (${datos.por}): se ofreció ${datos.concepto?.trim().toLowerCase() ?? 'la reparación'} por $${(datos.costo ?? 0).toFixed(2)}`,
+        'sin-reparar': `Garantía no aplica (${datos.por}): se devuelve sin reparar`,
+      }[datos.tipo];
+      const sinReparar = datos.tipo === 'sin-reparar';
+      return {
+        ...o,
+        estado: sinReparar ? 'garantia-lista' : o.estado,
+        listaDesde: sinReparar ? ahora : o.listaDesde,
+        garantia: { ...o.garantia, dictamen, resolucion: sinReparar ? datos.texto.trim() : o.garantia.resolucion, decision },
+        historial: [...o.historial, { fecha: ahora, texto }],
+        contactos: [...o.contactos, { fecha: ahora, texto: 'Dictamen de garantía publicado en el portal' }],
       };
     });
   }

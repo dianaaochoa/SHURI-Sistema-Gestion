@@ -1,0 +1,63 @@
+@if (orden(); as o) {
+  <app-dictamen-garantia [orden]="o" (volver)="cerrar()" (publicado)="cerrar($event)" />
+} @else {
+  <div class="lista-pagina">
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Garantías</h1>
+        <p class="encabezado-pagina__subtitulo">Tú decides si la garantía aplica. El técnico revisa el equipo y te manda su reporte.</p>
+      </div>
+    </header>
+
+    <section class="indicadores" aria-label="Resumen">
+      @for (i of indicadores(); track i.titulo) {
+        <button type="button" class="indicador indicador--boton" [class.indicador--activo]="i.vista === vista()" (click)="elegir(i.vista)">
+          <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+          <span>
+            <span class="indicador__titulo">{{ i.titulo }}</span>
+            <span class="indicador__detalle">{{ i.detalle }}</span>
+          </span>
+        </button>
+      }
+    </section>
+
+    <nav class="pestanas" aria-label="Vistas">
+      @for (p of pestanas(); track p.id) {
+        <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" [attr.aria-current]="p.id === vista() ? 'page' : null" (click)="elegir(p.id)">{{ p.texto }}</button>
+      }
+    </nav>
+
+    @if (aviso(); as mensaje) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+    }
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Folio</th><th>Cliente</th><th class="t-equipo">Equipo</th><th class="t-original">Reparación original</th>
+            <th>{{ columnaRecomendacion() }}</th><th class="t-tecnico">Técnico</th><th class="t-vence">Vence</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of renglones(); track r.orden.folio) {
+            <tr tabindex="0" (click)="abrir(r.orden)" (keydown.enter)="abrir(r.orden)">
+              <td class="t-folio">{{ r.orden.folio }}</td>
+              <td>{{ r.orden.cliente.nombre }}</td>
+              <td class="t-equipo">{{ r.orden.equipo }}</td>
+              <td class="t-original">{{ r.original }}</td>
+              <td><span class="estado estado--{{ r.recomendacion.tono }}">{{ r.recomendacion.texto }}</span></td>
+              <td class="t-tecnico">{{ tecnicoCorto(r.orden) }}</td>
+              <td class="t-vence">{{ r.vence }}</td>
+              <td><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); abrir(r.orden)">{{ r.accion }}</button></td>
+            </tr>
+          } @empty {
+            <tr><td class="vacio" colspan="8">No hay garantías en esta etapa.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>El dictamen se publica en el portal del cliente. Si no aplica, puedes ofrecer la reparación con costo extra; el cliente acepta o rechaza.</p>
+  </div>
+}
