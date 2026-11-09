@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { Orden, OrdenesService } from '../../cajera/ordenes/ordenes.service';
 import { formatearDinero } from '../../compartido/formato';
-import { SLA_DIAGNOSTICO_H, atrasada, etapaDe, horasDesde, tiempoEn } from '../etapas';
+import { slaDiagnostico, atrasada, etapaDe, horasDesde, tiempoEn } from '../etapas';
 import { CotizarOrdenComponent } from './cotizar-orden/cotizar-orden.component';
 import { RecotizacionComponent } from './recotizacion/recotizacion.component';
 import { RegresarTecnicoComponent } from './regresar-tecnico/regresar-tecnico.component';
@@ -32,7 +32,7 @@ export class PorCotizarComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly ruta = inject(ActivatedRoute);
   protected readonly jefe = inject(AuthService).sesion()?.nombre ?? '';
-  protected readonly sla = SLA_DIAGNOSTICO_H;
+  protected readonly sla = slaDiagnostico();
 
   protected readonly vista = signal<Vista>('por-cotizar');
   private readonly folio = signal<string | null>(null);

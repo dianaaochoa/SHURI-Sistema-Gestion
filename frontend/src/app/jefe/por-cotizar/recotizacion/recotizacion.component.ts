@@ -3,6 +3,7 @@ import { AuthService } from '../../../acceso/auth.service';
 import { InventarioService } from '../../../cajera/inventario/inventario.service';
 import { Concepto, Orden, OrdenesService, importeConceptos } from '../../../cajera/ordenes/ordenes.service';
 import { formatearDinero } from '../../../compartido/formato';
+import { ConfiguracionTallerService } from '../../configuracion/configuracion.service';
 import { diaMes, existencia } from '../existencia';
 
 /** J3.4 · Re-cotización: el cliente decide solo sobre lo nuevo; lo autorizado sigue en curso. */
@@ -16,6 +17,7 @@ export class RecotizacionComponent implements OnInit {
   private readonly servicio = inject(OrdenesService);
   private readonly inventario = inject(InventarioService);
   private readonly jefe = inject(AuthService).sesion()?.nombre ?? '';
+  private readonly configuracion = inject(ConfiguracionTallerService);
 
   readonly orden = input.required<Orden>();
   readonly cerrar = output<void>();
@@ -25,7 +27,9 @@ export class RecotizacionComponent implements OnInit {
   protected readonly conceptos = signal<Concepto[]>([]);
 
   ngOnInit(): void {
-    this.conceptos.set((this.orden().danoAdicional?.conceptos ?? []).map((c) => ({ ...c })));
+    this.conceptos.set(
+      (this.orden().danoAdicional?.conceptos ?? []).map((c) => (c.tipo === 'mano-obra' ? { ...c, precio: this.configuracion.precioDe(`${c.descripcion} ${c.detalle ?? ''}`) ?? c.precio } : { ...c })),
+    );
   }
 
   protected readonly tecnico = computed(() => this.orden().tecnico.nombre.split(' ')[0]);

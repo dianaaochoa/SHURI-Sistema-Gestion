@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DIAS_PARA_RECOGER, ENTREGABLES, Orden, OrdenesService, diasDesde } from '../../cajera/ordenes/ordenes.service';
+import { ENTREGABLES, Orden, OrdenesService, diasDesde } from '../../cajera/ordenes/ordenes.service';
+import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { formatearDinero } from '../../compartido/formato';
 import { diaMes } from '../por-cotizar/existencia';
 import { avisosDe } from './avisos';
@@ -25,7 +26,8 @@ export class TerminadosComponent implements OnInit {
   protected readonly vista = signal<Vista>('bodega');
   protected readonly aviso = signal<string | null>(null);
   protected readonly aplicando = signal<Orden | null>(null);
-  protected readonly limite = DIAS_PARA_RECOGER;
+  /** Días sin cobro en bodega (Configuración J9). */
+  protected readonly limite = REGLAS_TALLER.diasSinCobro;
 
   /** Esperan a su dueño en el mostrador o en bodega (lo que caja entrega en C6). */
   private readonly enBodega = computed(() =>
@@ -34,7 +36,7 @@ export class TerminadosComponent implements OnInit {
       .filter((o) => ENTREGABLES.includes(o.estado))
       .sort((a, b) => (a.listaDesde ?? a.recibido).localeCompare(b.listaDesde ?? b.recibido)),
   );
-  private readonly vencidos = computed(() => this.enBodega().filter((o) => this.dias(o) > DIAS_PARA_RECOGER));
+  private readonly vencidos = computed(() => this.enBodega().filter((o) => this.dias(o) > this.limite));
   private readonly entregados = computed(() =>
     this.servicio
       .ordenes()
@@ -47,14 +49,14 @@ export class TerminadosComponent implements OnInit {
     return [
       { vista: 'bodega' as Vista, valor: this.enBodega().filter((o) => o.estado === 'lista' || o.estado === 'garantia-lista').length, tono: 'exito', titulo: 'Listos para entregar', detalle: 'Cliente avisado' },
       { vista: 'bodega' as Vista, valor: this.enBodega().filter((o) => o.estado === 'sin-reparacion').length, tono: 'advertencia', titulo: 'Sin reparación', detalle: 'Por recoger' },
-      { vista: 'vencidos' as Vista, valor: this.vencidos().length, tono: 'peligro', titulo: `Más de ${DIAS_PARA_RECOGER} días`, detalle: 'Aplicar política de bodega' },
+      { vista: 'vencidos' as Vista, valor: this.vencidos().length, tono: 'peligro', titulo: `Más de ${this.limite} días`, detalle: 'Aplicar política de bodega' },
       { vista: 'entregados' as Vista, valor: semana, tono: '', titulo: 'Entregados', detalle: 'Esta semana' },
     ];
   });
 
   protected readonly pestanas = computed(() => [
     { id: 'bodega' as Vista, texto: `En bodega (${this.enBodega().length})` },
-    { id: 'vencidos' as Vista, texto: `Más de ${DIAS_PARA_RECOGER} días (${this.vencidos().length})` },
+    { id: 'vencidos' as Vista, texto: `Más de ${this.limite} días (${this.vencidos().length})` },
     { id: 'entregados' as Vista, texto: 'Entregados' },
   ]);
 
@@ -70,13 +72,13 @@ export class TerminadosComponent implements OnInit {
         tecnico: corto(o.tecnico.nombre),
         listo: o.listaDesde ? (diasDesde(o.listaDesde) === 0 ? 'Hoy' : diaMes(o.listaDesde)) : '—',
         dias: `${dias} ${dias === 1 ? 'día' : 'días'}`,
-        vencido: dias > DIAS_PARA_RECOGER,
+        vencido: dias > this.limite,
         aviso: avisos.length > 1 ? `${avisos.length} avisos` : avisos.length ? `Portal ${diaMes(avisos[0].fecha)}` : 'Portal',
         politica: o.almacenaje ? (o.almacenaje.perdonado ? 'Perdonado' : `Almacenaje ${formatearDinero(o.almacenaje.monto)}`) : null,
         entregado: entregado ? diaMes(o.entrega!.fecha) : '',
         recogio: entregado ? (o.entrega!.recogio ?? o.cliente.nombre) : '',
         cobrado: entregado ? formatearDinero(o.entrega!.cobrado ?? o.entrega!.pagado) : '',
-        accion: entregado ? 'Ver' : dias > DIAS_PARA_RECOGER ? 'Aplicar política' : 'Reenviar',
+        accion: entregado ? 'Ver' : dias > this.limite ? 'Aplicar política' : 'Reenviar',
       };
     });
   });

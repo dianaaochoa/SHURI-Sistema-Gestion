@@ -1,4 +1,5 @@
 import { Orden, POR_ASIGNAR } from '../cajera/ordenes/ordenes.service';
+import { REGLAS_TALLER } from '../compartido/reglas-taller';
 
 /** Columnas del tablero del jefe (Figma J2.1). */
 export type Etapa = 'recibido' | 'diagnostico' | 'por-cotizar' | 'por-aprobar' | 'en-taller' | 'listo';
@@ -12,8 +13,8 @@ export const ETAPAS: { id: Etapa; texto: string; color: string }[] = [
   { id: 'listo', texto: 'Listo', color: 'var(--color-exito)' },
 ];
 
-/** Horas para tener el diagnóstico desde que se recibe (SLA de Figma J2: 24 h). */
-export const SLA_DIAGNOSTICO_H = 24;
+/** Horas para tener el diagnóstico desde que se recibe (SLA de Figma J2: 24 h; se cambia en Configuración J9). */
+export const slaDiagnostico = () => REGLAS_TALLER.slaDiagnosticoH;
 
 /**
  * En qué columna va la orden. Las vencidas, en bodega y entregadas ya no están en el taller.
@@ -60,7 +61,7 @@ export const horasDesde = (iso: string) => (Date.now() - new Date(iso).getTime()
 /** Pasó más de 24 h sin cotizar (las reportadas sin reparación ya esperan al jefe, no al técnico). */
 export function atrasada(o: Orden): boolean {
   const e = etapaDe(o);
-  return !o.sinReparacion && (e === 'recibido' || e === 'diagnostico' || e === 'por-cotizar') && horasDesde(o.recibido) > SLA_DIAGNOSTICO_H;
+  return !o.sinReparacion && (e === 'recibido' || e === 'diagnostico' || e === 'por-cotizar') && horasDesde(o.recibido) > slaDiagnostico();
 }
 
 /** Lo que el jefe resuelve en Por cotizar (J3): cotizar, confirmar sin reparación o re-cotizar. */

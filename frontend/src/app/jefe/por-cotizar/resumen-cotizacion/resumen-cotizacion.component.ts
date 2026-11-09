@@ -2,6 +2,7 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { InventarioService } from '../../../cajera/inventario/inventario.service';
 import { Concepto, Orden, importeConceptos } from '../../../cajera/ordenes/ordenes.service';
 import { formatearDinero } from '../../../compartido/formato';
+import { REGLAS_TALLER } from '../../../compartido/reglas-taller';
 import { diaMes } from '../existencia';
 
 export interface DatosEnvio {
@@ -12,7 +13,7 @@ export interface DatosEnvio {
   entrega: string;
 }
 
-const VIGENCIAS = [3, 7, 15];
+const VIGENCIAS = [3, 7, 15, 30];
 
 /** J3.2 · "Total para el cliente": totales, utilidad (solo el jefe), entrega, vigencia, mensaje y envío. */
 @Component({
@@ -33,7 +34,7 @@ export class ResumenCotizacionComponent {
   protected readonly vigencias = VIGENCIAS;
 
   protected readonly descuento = signal(0);
-  protected readonly vigencia = signal(7);
+  protected readonly vigencia = signal(REGLAS_TALLER.vigenciaDias);
   protected readonly entrega = signal<string | null>(null);
   protected readonly mensaje = signal<string | null>(null);
 

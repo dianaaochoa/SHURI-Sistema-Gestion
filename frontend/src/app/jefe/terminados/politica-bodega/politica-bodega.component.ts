@@ -1,13 +1,11 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { AuthService } from '../../../acceso/auth.service';
-import { DIAS_PARA_RECOGER, Orden, OrdenesService, diasDesde } from '../../../cajera/ordenes/ordenes.service';
+import { Orden, OrdenesService, diasDesde } from '../../../cajera/ordenes/ordenes.service';
+import { DESPUES_RESGUARDO, REGLAS_TALLER } from '../../../compartido/reglas-taller';
 import { formatearDinero } from '../../../compartido/formato';
 import { diaMes } from '../../por-cotizar/existencia';
 import { avisosDe } from '../avisos';
 
-/** Cláusulas de bodega (Figma J8.2; luego vendrán de Configuración J9). */
-export const ALMACENAJE_POR_DIA = 20;
-export const DIAS_RESGUARDO = 90;
 
 type Decision = 'cobrar' | 'avisar' | 'perdonar';
 
@@ -37,13 +35,15 @@ export class PoliticaBodegaComponent {
 
   protected readonly dinero = formatearDinero;
   protected readonly diaMesDe = diaMes;
-  protected readonly limite = DIAS_PARA_RECOGER;
-  protected readonly porDia = ALMACENAJE_POR_DIA;
-  protected readonly resguardo = DIAS_RESGUARDO;
+  /** Cláusulas de bodega (Configuración J9). */
+  protected readonly limite = REGLAS_TALLER.diasSinCobro;
+  protected readonly porDia = REGLAS_TALLER.almacenajeDia;
+  protected readonly resguardo = REGLAS_TALLER.diasResguardo;
+  protected readonly despues = DESPUES_RESGUARDO[REGLAS_TALLER.despuesResguardo].charAt(0).toLowerCase() + DESPUES_RESGUARDO[REGLAS_TALLER.despuesResguardo].slice(1);
 
   protected readonly dias = computed(() => diasDesde(this.orden().listaDesde ?? this.orden().recibido));
-  protected readonly diasCobro = computed(() => Math.max(0, this.dias() - DIAS_PARA_RECOGER));
-  protected readonly monto = computed(() => this.diasCobro() * ALMACENAJE_POR_DIA);
+  protected readonly diasCobro = computed(() => Math.max(0, this.dias() - this.limite));
+  protected readonly monto = computed(() => this.diasCobro() * this.porDia);
   protected readonly avisos = computed(() => avisosDe(this.orden()));
   protected readonly ultimo = computed(() => {
     const a = this.avisos().at(-1);

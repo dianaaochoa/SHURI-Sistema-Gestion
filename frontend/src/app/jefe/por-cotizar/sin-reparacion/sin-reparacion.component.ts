@@ -2,9 +2,7 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { AuthService } from '../../../acceso/auth.service';
 import { Orden, OrdenesService } from '../../../cajera/ordenes/ordenes.service';
 import { formatearDinero } from '../../../compartido/formato';
-
-/** Lo que se cobra por revisar un equipo que no tiene reparación (Figma J3.3; luego vendrá de Configuración J9). */
-export const COBRO_REVISION = 300;
+import { REGLAS_TALLER } from '../../../compartido/reglas-taller';
 
 /** J3.3 · Confirmar equipo sin reparación. */
 @Component({
@@ -35,7 +33,8 @@ export class SinReparacionComponent {
   readonly regresar = output<void>();
 
   protected readonly dinero = formatearDinero;
-  protected readonly cobro = COBRO_REVISION;
+  /** El nivel "Revisión / diagnóstico" del tabulador (Configuración J9). */
+  protected readonly cobro = REGLAS_TALLER.revision;
 
   protected readonly mensaje = signal<string | null>(null);
   protected readonly mensajeElegido = computed(() => this.mensaje() ?? `${this.orden().sinReparacion?.texto ?? ''} Se devuelve armado, como llegó.`.trim());
@@ -44,19 +43,19 @@ export class SinReparacionComponent {
   /** Qué pasa con el anticipo en cada opción. */
   protected readonly detalleCobrar = computed(() => {
     const anticipo = this.orden().anticipo;
-    if (anticipo >= COBRO_REVISION) {
-      const sobra = anticipo - COBRO_REVISION;
+    if (anticipo >= this.cobro) {
+      const sobra = anticipo - this.cobro;
       return `Queda cubierto con el anticipo · ${sobra ? `se devuelven ${formatearDinero(sobra)}` : `saldo ${formatearDinero(0)}`}`;
     }
-    return anticipo ? `Se usa el anticipo · saldo ${formatearDinero(COBRO_REVISION - anticipo)} al entregar` : `Se cobra ${formatearDinero(COBRO_REVISION)} al entregar`;
+    return anticipo ? `Se usa el anticipo · saldo ${formatearDinero(this.cobro - anticipo)} al entregar` : `Se cobra ${formatearDinero(this.cobro)} al entregar`;
   });
   protected readonly detalleNoCobrar = computed(() => (this.orden().anticipo ? 'Se devuelve el anticipo en caja' : 'El cliente no paga nada'));
 
   protected confirmar(): void {
     const o = this.orden();
     if (!this.mensajeElegido().trim()) return;
-    this.servicio.confirmarSinReparacion(o.folio, { mensaje: this.mensajeElegido(), cobrar: this.cobrar(), monto: COBRO_REVISION, por: this.jefe });
-    const cobro = this.cobrar() ? `revisión de ${formatearDinero(COBRO_REVISION)}` : 'sin cobro de revisión';
+    this.servicio.confirmarSinReparacion(o.folio, { mensaje: this.mensajeElegido(), cobrar: this.cobrar(), monto: this.cobro, por: this.jefe });
+    const cobro = this.cobrar() ? `revisión de ${formatearDinero(this.cobro)}` : 'sin cobro de revisión';
     this.confirmado.emit(`${o.folio} confirmada sin reparación · ${cobro} · ${o.cliente.nombre.split(' ')[0]} recibe el aviso para recoger y caja la ve en Entrega`);
   }
 }

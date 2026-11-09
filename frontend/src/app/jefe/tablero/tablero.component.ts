@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { Orden, OrdenesService, POR_ASIGNAR, PRIORIDADES, Prioridad, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { DispositivosService } from '../../cajera/punto-de-venta/dispositivos.service';
-import { ETAPAS, SLA_DIAGNOSTICO_H, atrasada, etapaDe, inicioEtapa, pendienteDeCotizar, tiempoEn } from '../etapas';
+import { ETAPAS, slaDiagnostico, atrasada, etapaDe, inicioEtapa, pendienteDeCotizar, tiempoEn } from '../etapas';
 import { etapaGarantia } from '../garantias/garantia';
 import { AsignarTecnicoComponent, Asignacion } from './asignar-tecnico/asignar-tecnico.component';
 import { OrdenJefeComponent } from './orden-jefe/orden-jefe.component';
@@ -28,7 +28,7 @@ export class TableroComponent implements OnInit {
   protected readonly etapas = ETAPAS;
   protected readonly tecnicos = TECNICOS;
   protected readonly prioridades = Object.entries(PRIORIDADES) as [Prioridad, (typeof PRIORIDADES)[Prioridad]][];
-  protected readonly sla = SLA_DIAGNOSTICO_H;
+  protected readonly sla = slaDiagnostico();
 
   /** J2.4: la primera carga (la API tardará; aquí se simula un instante). */
   protected readonly cargando = signal(true);

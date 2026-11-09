@@ -5,6 +5,7 @@ import { InventarioService } from '../../../cajera/inventario/inventario.service
 import { Concepto, Orden, OrdenesService } from '../../../cajera/ordenes/ordenes.service';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import { atrasada, tiempoEn } from '../../etapas';
+import { ConfiguracionTallerService } from '../../configuracion/configuracion.service';
 import { AgregarRefaccionComponent } from '../agregar-refaccion/agregar-refaccion.component';
 import { existencia } from '../existencia';
 import { DatosEnvio, ResumenCotizacionComponent } from '../resumen-cotizacion/resumen-cotizacion.component';
@@ -21,6 +22,7 @@ export class CotizarOrdenComponent implements OnInit {
   private readonly servicio = inject(OrdenesService);
   private readonly inventario = inject(InventarioService);
   private readonly jefe = inject(AuthService).sesion()?.nombre ?? '';
+  private readonly configuracion = inject(ConfiguracionTallerService);
 
   readonly orden = input.required<Orden>();
   readonly volver = output<void>();
@@ -33,7 +35,10 @@ export class CotizarOrdenComponent implements OnInit {
 
   ngOnInit(): void {
     // Se parte de lo que sugirió el técnico; el jefe pone los precios finales.
-    this.conceptos.set((this.orden().diagnostico?.conceptos ?? []).map((c) => ({ ...c })));
+    // La mano de obra toma el precio del tabulador según el nivel que eligió el técnico (Configuración J9).
+    this.conceptos.set(
+      (this.orden().diagnostico?.conceptos ?? []).map((c) => (c.tipo === 'mano-obra' ? { ...c, precio: this.configuracion.precioDe(`${c.descripcion} ${c.detalle ?? ''}`) ?? c.precio } : { ...c })),
+    );
   }
 
   protected readonly titulo = computed(() => {

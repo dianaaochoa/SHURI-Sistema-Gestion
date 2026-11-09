@@ -4,7 +4,7 @@ import { AuthService } from '../../../acceso/auth.service';
 import { ESTADOS_ORDEN, Orden, OrdenesService, PRIORIDADES, Prioridad } from '../../../cajera/ordenes/ordenes.service';
 import { SeguimientoOrdenComponent } from '../../../cajera/ordenes/seguimiento-orden/seguimiento-orden.component';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
-import { SLA_DIAGNOSTICO_H, atrasada, horasDesde, tiempoEn } from '../../etapas';
+import { slaDiagnostico, atrasada, horasDesde, tiempoEn } from '../../etapas';
 
 /** J2.3 · Detalle de la orden para el jefe: seguimiento, pausa, resumen, fotos e historial con notas internas. */
 @Component({
@@ -54,7 +54,7 @@ export class OrdenJefeComponent {
   });
 
   protected readonly atraso = computed(() =>
-    atrasada(this.orden()) ? `Fuera de tiempo: ${Math.floor(horasDesde(this.orden().recibido))} h de ${SLA_DIAGNOSTICO_H} h para diagnosticar y cotizar.` : null,
+    atrasada(this.orden()) ? `Fuera de tiempo: ${Math.floor(horasDesde(this.orden().recibido))} h de ${slaDiagnostico()} h para diagnosticar y cotizar.` : null,
   );
 
   protected readonly resumen = computed(() => {

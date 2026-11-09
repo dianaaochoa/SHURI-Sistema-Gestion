@@ -4,7 +4,7 @@ import { AuthService } from '../../acceso/auth.service';
 import { saludoDelDia } from '../../compartido/formato';
 import { OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { etapaGarantia, recomendacion } from '../garantias/garantia';
-import { SLA_DIAGNOSTICO_H, atrasada, etapaDe, horasDesde } from '../etapas';
+import { slaDiagnostico, atrasada, etapaDe, horasDesde } from '../etapas';
 import { MENSAJES_SIN_RESPONDER, PREGUNTAS_TECNICOS } from '../jefe.datos';
 import { RefaccionesService } from '../refacciones/refacciones.service';
 import { EN_TALLER, cargaTecnico } from '../tecnicos/carga';
@@ -89,7 +89,7 @@ export class InicioJefeComponent {
       })),
     ...this.atrasadas().map((o) => ({
       icono: 'cajera/clock', tono: 'peligro' as Tono, titulo: `${o.folio} · ${o.equipo} · ${o.diagnostico ? 'Por cotizar' : 'En diagnóstico'}`,
-      detalle: `Fuera de tiempo: ${Math.floor(horasDesde(o.recibido))} h de ${SLA_DIAGNOSTICO_H} h de SLA`, accion: 'Atrasada', ruta: o.diagnostico ? 'por-cotizar' : 'tablero-de-ordenes', folio: o.folio,
+      detalle: `Fuera de tiempo: ${Math.floor(horasDesde(o.recibido))} h de ${slaDiagnostico()} h de SLA`, accion: 'Atrasada', ruta: o.diagnostico ? 'por-cotizar' : 'tablero-de-ordenes', folio: o.folio,
     })),
     ...this.ordenes()
       .filter((o) => o.sinReparacion)
