@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J10 Versión celular del jefe)
+- **Última actualización:** 8 nov 2026 (J11 Mensajes de clientes · jefe de técnicos completo)
 
 ---
 
@@ -66,7 +66,7 @@ flowchart LR
     J8["J8 Equipos terminados<br/>J8.1 en bodega · más de 30 días · entregados<br/>J8.2 política de bodega"]:::hecho
     J9["J9 Configuración del taller<br/>tabulador de mano de obra · tiempos · garantía · bodega"]:::hecho
     J10["J10 Versión celular<br/>barra superior con campana · 6 destinos abajo"]:::hecho
-    J["J11 Mensajes"]:::pendiente
+    J["J11 Mensajes de clientes<br/>J11.1 chat · J11.2 respuestas rápidas · J11.3 todo respondido<br/>J11.4 celular · J11.5 no disponible hoy"]:::hecho
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -210,7 +210,12 @@ flowchart LR
     CF["Configuracion<br/>J9"]:::comp
     CFS["ConfiguracionTallerService<br/>tabulador y bitácora de cambios"]:::serv
     ET["etapas.ts<br/>columnas y SLA (J9)"]:::serv
-    JD["jefe.datos.ts<br/>mensajes y preguntas"]:::serv
+    JD["jefe.datos.ts<br/>preguntas de los técnicos"]:::serv
+    MSJ["Mensajes<br/>J11.1 · J11.3 · J11.5"]:::comp
+    CH["Chat<br/>J11.1 · J11.4"]:::comp
+    RDC["Redactar<br/>J11.2 respuestas rápidas"]:::comp
+    RO["ResumenOrden<br/>panel de la orden"]:::comp
+    MS["MensajesService<br/>conversaciones, respuestas<br/>rápidas y disponible (simulado)"]:::serv
   end
   subgraph CAJERA["cajera/"]
     IC["InicioCajera<br/>C1.1 · C1.2"]:::comp
@@ -315,6 +320,7 @@ flowchart LR
   RUT --> LAY --> IS & OC & CC
   RUT --> SL --> ML --> MU & PN
   SL --> NM & PN
+  NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
   VEN --> DV & DEV
@@ -376,6 +382,11 @@ flowchart LR
   IC & AT & ST --> FMT
   SL --> IJ
   IJ --> OS & JD & AUTH
+  IJ --> MS
+  SL --> MSJ
+  MSJ --> CH & RO & MS
+  CH --> RDC --> MS
+  CF --> MS
   IJ --> ET
   SL --> TB
   TB --> AS & OJ
@@ -512,7 +523,7 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
 
 **Inicio del jefe de técnicos (`/jefe/inicio`, usuario `jlopez`):**
-- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; mensajes de clientes y preguntas de los técnicos son de prueba (`jefe/jefe.datos.ts`) hasta J11; las solicitudes de refacción salen de `RefaccionesService` (J5).
+- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; las preguntas de los técnicos son de prueba (`jefe/jefe.datos.ts`); los mensajes de clientes salen de `MensajesService` (J11) y las solicitudes de refacción de `RefaccionesService` (J5).
 - Cada pendiente y cada indicador abre su módulo con el folio (`/jefe/por-cotizar?folio=1043`); salvo el tablero, esos módulos todavía son páginas pendientes.
 - Las notificaciones de la campana (J1.2) son las de Figma.
 
@@ -559,6 +570,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Tabulador de mano de obra (Editar en cada nivel, Agregar nivel) y reglas: SLA de diagnóstico, vigencia del presupuesto, garantía, días sin cobro en bodega, almacenaje por día y qué pasa a los 90 días. “Guardar cambios” anota cada cambio en “Últimos cambios”.
 - Al guardar, el tablero y Por cotizar usan el SLA nuevo, el cotizador pone la mano de obra según el nivel del técnico (“nivel medio” → precio de Medio), la revisión sin reparación usa el nivel “Revisión / diagnóstico” y la política de bodega usa los días y el precio por día. Las pantallas toman el valor nuevo al volver a abrirse.
 
+**Mensajes de clientes (`/jefe/mensajes`, usuario `jlopez`):**
+- Sin responder, Todos y Resueltos. En escritorio se abre la primera sin responder; con todo respondido se ve “Todo respondido”. El contador del menú y el Inicio salen de las conversaciones sin responder.
+- En el chat: respuestas rápidas (se editan en Configuración), compartir el estado de la orden, foto del avance, Enter para enviar y “Resuelto”. El panel derecho muestra la orden y su acción (dictaminar, cotizar, re-cotizar o ver orden).
+- “Disponible hoy” apagado muestra el aviso de lo que verán los clientes. En celular la lista y el chat van por separado, con tira de la orden y respuestas rápidas como chips.
+
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
 - Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
@@ -586,7 +602,7 @@ frontend/src/
     │   ├── formato.ts         # dinero, fechas, horas, duración, saludo
     │   └── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
     ├── jefe/                  # 04 · Jefe de técnicos
-    │   ├── jefe.datos.ts      # mensajes de clientes y preguntas de técnicos (de prueba)
+    │   ├── jefe.datos.ts      # preguntas de los técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
     │   ├── inicio-jefe/       # J1.1
     │   ├── tablero/           # J2.1 · J2.4 · J2.5
@@ -620,8 +636,14 @@ frontend/src/
     │   ├── terminados/        # J8.1 en bodega · más de 30 días · entregados
     │   │   ├── avisos.ts          # avisos para recoger que recibió el cliente
     │   │   └── politica-bodega/   # J8.2 cobrar almacenaje, último aviso o perdonar
-    │   └── configuracion/     # J9 tabulador de mano de obra y reglas del taller
-    │       └── configuracion.service.ts  # niveles, precio por nivel y bitácora de cambios
+    │   ├── configuracion/     # J9 tabulador de mano de obra y reglas del taller
+    │   │   └── configuracion.service.ts  # niveles, precio por nivel y bitácora de cambios
+    │   └── mensajes/          # J11.1 · J11.3 · J11.5 lista, vacío y "no disponible hoy"
+    │       ├── mensajes.service.ts  # conversaciones, respuestas rápidas y disponible (de prueba)
+    │       ├── estado-orden.ts    # estado de la orden en el chat y acción del panel
+    │       ├── chat/              # J11.1 · J11.4 conversación
+    │       ├── redactar/          # J11.2 respuestas rápidas, compartir estado, foto y mensaje
+    │       └── resumen-orden/     # panel derecho con la orden
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -892,19 +914,22 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Almacenaje | `Orden.almacenaje` (días, monto, quién y si se perdonó). `saldo()` lo suma en los estados por entregar y el panel de cobro de Entrega lo muestra | Días sin cobro, precio por día y qué pasa a los 90 días salen de Configuración (J9). |
 | Configuración del taller (J9) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j9-configuracion.png` (Figma sin llamadas; su columna “Editar” sale cortada). Las reglas viven en `REGLAS_TALLER` (objeto simple, no señal) para que `atrasada()` y la política las lean sin inyectar nada | La garantía y los días para recoger de caja (C4, C6) siguen con sus constantes; se unificarán al conectar la API (AD9.4 las cambia también). |
 | Versión celular del jefe (J10) | Hecha con el PNG `docs/diseno/04-jefe-de-tecnicos/j10-version-celular.png`. Las pantallas J2–J9 ya se adaptaban a 360 px; J10 agrega el marco (barras) y el Inicio compacto (2 × 2 indicadores, total de órdenes en el subtítulo) | El dictamen y el pedido de Figma J10 son J4.2 y J5.2 apilados; Mensajes llega con J11. |
+| Mensajes de clientes (J11) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j11-mensajes-de-clientes.png` (Figma sin llamadas). Las conversaciones usan órdenes de la app: María (#1024) tiene un daño adicional en lugar de la garantía de Figma | Las respuestas rápidas se editan en Configuración (J9, nueva sección) y se guardan al escribir. |
+| Interruptor | Clase global `.interruptor` (Figma J11 “Disponible hoy”) | Para reusar en otros “sí/no”. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
 
 - [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
 - [ ] El texto de resumen bajo la marca (“Caja 01 · Turno abierto”, “14 órdenes abiertas”…) es fijo en `navegacion.ts`; debe venir de la API.
-- [ ] El contador “2” de Mensajes del jefe es fijo; debe venir de la API.
+- [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J11. La cajera (C1–C11 y C1.6), J1 a J10 quedaron completos.
+- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T1–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos.
+- [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria; caja todavía usa sus constantes de garantía (30 días) y plazo para recoger (30 días).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
@@ -1287,3 +1312,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 390 × 844 como Figma J10.1; la campana abre el panel (de 16 a 374 px) y se cierra al tocar fuera; el logo abre el cajón; “Garantías” abajo lleva a `/jefe/garantias` y queda marcada
   - a 360 px el dictamen deja “Publicar dictamen” arriba de la barra (703 px contra 736 px) y el pedido J5.2 se abre encima de la barra; sin scroll horizontal
   - a 1440 × 900 y 1366 × 768 no aparece ninguna barra y el Inicio sigue con sus cinco indicadores
+
+### 8 nov 2026 · Jefe de técnicos J11: Mensajes de clientes (jefe completo)
+- Figma sin llamadas: J11.1–J11.5 se tomaron del PNG `docs/diseno/04-jefe-de-tecnicos/j11-mensajes-de-clientes.png`.
+- `MensajesService` (conversaciones, pendientes por conversación, respuestas rápidas y disponible) y `MensajesComponent` con `ChatComponent`, `RedactarComponent` y `ResumenOrdenComponent`. El menú lateral, la barra inferior de J10 y el Inicio (J1) leen las conversaciones sin responder; los mensajes de prueba de `jefe.datos.ts` se quitaron. Configuración (J9) tiene la sección de respuestas rápidas.
+- Verificado:
+  - a 1440×900 como Figma J11.1: María (#1024) abierta con su estado compartido y el panel “Orden #1024 · En taller · daño adicional” con “Re-cotizar”
+  - respuesta rápida “Qué traer” y enviar → Sin responder (1) y el menú marca 1; compartir estado agrega la tarjeta; Resuelto la pasa a Resueltos; contestar a Andrés con Enter deja Sin responder (0) y quita el contador; volver a Mensajes muestra “Todo respondido”; apagar “Disponible hoy” muestra el aviso
+  - a 390 px: lista sola; al abrir, chat con tira de la orden, chips y la barra de escribir arriba de la barra inferior; volver regresa a la lista
+  - a 1366×768 con el panel de la orden; editar una respuesta rápida en Configuración se ve en el chat; sin errores en consola
