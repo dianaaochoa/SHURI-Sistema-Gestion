@@ -63,6 +63,9 @@ export class InicioJefeComponent {
   private readonly garantias = computed(() => this.ordenes().filter((o) => etapaGarantia(o) === 'por-dictaminar'));
   private readonly sinTecnico = computed(() => this.ordenes().filter((o) => o.tecnico === POR_ASIGNAR && EN_TALLER.includes(o.estado)));
 
+  /** Figma J10: en celular el total de órdenes va en el subtítulo. */
+  protected readonly subtituloMovil = computed(() => `${this.enTaller().length} órdenes abiertas · ${TECNICOS.length} técnicos en turno`);
+
   protected readonly indicadores = computed(() => [
     { valor: this.enTaller().length, tono: '', titulo: 'Órdenes abiertas', detalle: 'En el taller', ruta: 'tablero-de-ordenes' },
     { valor: this.porCotizar().length, tono: 'peligro', titulo: 'Por cotizar', detalle: this.atrasadas().length ? `${this.atrasadas().length} fuera de tiempo` : 'Todas a tiempo', ruta: 'por-cotizar' },

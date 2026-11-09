@@ -2,9 +2,10 @@
   <header class="encabezado-pagina">
     <div>
       <h1 class="encabezado-pagina__titulo">{{ saludo }}</h1>
-      <p class="encabezado-pagina__subtitulo">{{ subtitulo }}</p>
+      <p class="encabezado-pagina__subtitulo solo-escritorio">{{ subtitulo }}</p>
+      <p class="encabezado-pagina__subtitulo solo-movil">{{ subtituloMovil() }}</p>
     </div>
-    <a class="boton boton--contorno boton--40" routerLink="/jefe/tablero-de-ordenes">
+    <a class="boton boton--contorno boton--40 solo-escritorio" routerLink="/jefe/tablero-de-ordenes">
       <img src="assets/inventario/list-primario.svg" width="16" height="16" alt="" />Ir al tablero
     </a>
   </header>
@@ -29,7 +30,7 @@
           <span class="pendiente__icono pendiente__icono--{{ p.tono }}"><span class="icono" [style.--icono]="'url(assets/' + p.icono + '.svg)'"></span></span>
           <span class="pendiente__texto"><strong>{{ p.titulo }}</strong><span>{{ p.detalle }}</span></span>
           <span class="estado estado--{{ p.tono }}">{{ p.accion }}</span>
-          <img src="assets/cajera/chev-r.svg" width="14" height="14" alt="" />
+          <img class="solo-escritorio" src="assets/cajera/chev-r.svg" width="14" height="14" alt="" />
         </a>
       } @empty {
         <p class="vacio">Todo al día: no hay nada que requiera tu atención.</p>

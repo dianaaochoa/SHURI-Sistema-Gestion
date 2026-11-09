@@ -46,14 +46,15 @@
   .lateral { width: auto; }
 }
 
-@media (max-width: 768px) {
-  .encabezado-pagina { flex-wrap: wrap; }
-  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pendiente .estado { display: none; }
-}
+.solo-movil { display: none; }
 
-@media (max-width: 480px) {
-  .indicadores { gap: 8px; }
-  .indicador { gap: 10px; padding: 10px 12px; white-space: normal; }
-  .indicador:last-child { grid-column: 1 / -1; }
+/* Figma J10: 2 × 2 indicadores (número arriba) y el total de órdenes en el subtítulo */
+@media (max-width: 768px) {
+  .solo-escritorio { display: none; }
+  .solo-movil { display: block; }
+  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .indicador:first-child, .indicador__detalle { display: none; }
+  .indicador { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; white-space: normal; }
+  .atencion { padding: 0; border: 0; background: none; }
+  .pendiente { background: var(--color-superficie); }
 }
