@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\UserSessionController;
 use App\Http\Controllers\Api\Auth\CustomerAuthController;
 use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\Auth\StaffAuthController;
+use App\Http\Controllers\Api\Auth\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,6 +23,8 @@ Route::prefix('v1')->group(function () {
     // ── Public ──────────────────────────────────────────────────────────
     Route::middleware('throttle:login')->group(function () {
         Route::post('auth/login', [StaffAuthController::class, 'login']);
+        Route::post('auth/2fa/verify', [TwoFactorController::class, 'verify'])->name('auth.2fa.verify');
+        Route::post('auth/2fa/resend', [TwoFactorController::class, 'resend'])->name('auth.2fa.resend');
         Route::post('portal/login', [CustomerAuthController::class, 'login']);
     });
 

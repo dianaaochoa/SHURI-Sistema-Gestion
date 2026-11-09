@@ -35,6 +35,8 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('Password123'),
             'must_change_password' => false,
+            // The DB default is true; tests opt in with withTwoFactor()
+            'two_factor_enabled' => false,
             'is_active' => true,
             'remember_token' => Str::random(10),
         ];
@@ -64,6 +66,12 @@ class UserFactory extends Factory
     public function withTemporaryPassword(): static
     {
         return $this->state(['must_change_password' => true]);
+    }
+
+    /** Asks for the email code after the password (MFA). */
+    public function withTwoFactor(): static
+    {
+        return $this->state(['two_factor_enabled' => true]);
     }
 
     public function inactive(): static

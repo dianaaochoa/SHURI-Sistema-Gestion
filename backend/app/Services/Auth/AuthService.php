@@ -28,10 +28,14 @@ class AuthService
         private readonly SettingsService $settings,
         private readonly AuditService $audit,
         private readonly SessionService $sessions,
+        private readonly TwoFactorService $twoFactor,
     ) {}
 
     /**
+     * Password first; if MFA applies, sends the email code instead of a token.
+     *
      * @return array{account: User, token: string, expires_at: Carbon}
+     *                                                                 |array{mfa_required: true, challenge_id: string, expires_at: Carbon, email_hint: string}
      */
     public function loginStaff(string $login, string $password, ?string $deviceName): array
     {
@@ -39,11 +43,17 @@ class AuthService
             ->where(fn ($q) => $q->where('email', $login)->orWhere('username', $login))
             ->first();
 
-        return $this->attempt(
-            $user, $password, $deviceName, self::STAFF,
+        $user = $this->verifyCredentials(
+            $user, $password,
             $this->settings->int('staff_max_attempts', 5),
             $this->settings->int('staff_lock_minutes', 15),
         );
+
+        if ($this->twoFactor->requiredFor($user)) {
+            return ['mfa_required' => true] + $this->twoFactor->start($user, $deviceName);
+        }
+
+        return $this->completeLogin($user, self::STAFF, $deviceName);
     }
 
     /**
@@ -53,8 +63,8 @@ class AuthService
     {
         $customer = Customer::where('email', $email)->first();
 
-        return $this->attempt(
-            $customer, $password, $deviceName, self::CUSTOMER,
+        $customer = $this->verifyCredentials(
+            $customer, $password,
             $this->settings->int('portal_max_attempts', 5),
             $this->settings->int('portal_lock_minutes', 15),
             function (Customer $customer) {
@@ -66,6 +76,8 @@ class AuthService
                 }
             },
         );
+
+        return $this->completeLogin($customer, self::CUSTOMER, $deviceName);
     }
 
     public function logout(Authenticatable $account): void
@@ -111,17 +123,35 @@ class AuthService
     }
 
     /**
+     * Opens the session once every factor was verified.
+     *
      * @return array{account: User|Customer, token: string, expires_at: Carbon}
      */
-    private function attempt(
+    public function completeLogin(User|Customer $account, string $ability, ?string $deviceName): array
+    {
+        $account->forceFill(['last_login_at' => now()])->save();
+
+        $token = $this->sessions->issue($account, $ability, $deviceName);
+
+        $this->auditFor($account, 'login', 'Inicio de sesión');
+
+        return [
+            'account' => $account,
+            'token' => $token->plainTextToken,
+            'expires_at' => $this->sessions->expiresAt($token),
+        ];
+    }
+
+    /**
+     * First factor: password + lockout. Returns the account when correct.
+     */
+    private function verifyCredentials(
         User|Customer|null $account,
         string $password,
-        ?string $deviceName,
-        string $ability,
         int $maxAttempts,
         int $lockMinutes,
         ?callable $afterPasswordCheck = null,
-    ): array {
+    ): User|Customer {
         if (! $account || ! $account->is_active || ! $account->password) {
             // Same work as a real check so response time does not reveal valid emails
             static $dummyHash = null;
@@ -141,21 +171,9 @@ class AuthService
             $afterPasswordCheck($account);
         }
 
-        $account->forceFill([
-            'failed_attempts' => 0,
-            'locked_until' => null,
-            'last_login_at' => now(),
-        ])->save();
+        $account->forceFill(['failed_attempts' => 0, 'locked_until' => null])->save();
 
-        $token = $this->sessions->issue($account, $ability, $deviceName);
-
-        $this->auditFor($account, 'login', 'Inicio de sesión');
-
-        return [
-            'account' => $account,
-            'token' => $token->plainTextToken,
-            'expires_at' => $this->sessions->expiresAt($token),
-        ];
+        return $account;
     }
 
     private function registerFailure(User|Customer $account, int $maxAttempts, int $lockMinutes): never

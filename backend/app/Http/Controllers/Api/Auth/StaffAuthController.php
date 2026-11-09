@@ -26,7 +26,19 @@ class StaffAuthController extends Controller
             $request->validated('device_name'),
         );
 
+        // Password OK but MFA applies: Angular shows the "enter code" screen
+        if ($result['mfa_required'] ?? false) {
+            return response()->json([
+                'mfa_required' => true,
+                'challenge_id' => $result['challenge_id'],
+                'expires_at' => $result['expires_at']->toIso8601String(),
+                'email_hint' => $result['email_hint'],
+                'message' => "Te enviamos un código de 6 dígitos a {$result['email_hint']}.",
+            ]);
+        }
+
         return response()->json([
+            'mfa_required' => false,
             'token' => $result['token'],
             'token_type' => 'Bearer',
             'expires_at' => $result['expires_at']->toIso8601String(),

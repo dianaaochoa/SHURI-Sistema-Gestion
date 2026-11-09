@@ -14,6 +14,8 @@ class Kernel extends ConsoleKernel
     {
         // Delete Sanctum tokens that expired more than 24 h ago
         $schedule->command('sanctum:prune-expired --hours=24')->daily();
+        // Delete old MFA challenges (models using the Prunable trait)
+        $schedule->command('model:prune')->daily();
     }
 
     /**

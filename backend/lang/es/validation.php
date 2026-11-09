@@ -6,6 +6,7 @@ return [
     'confirmed' => 'La confirmación de :attribute no coincide.',
     'date' => 'El campo :attribute no es una fecha válida.',
     'different' => 'La :attribute debe ser diferente a la contraseña actual.',
+    'digits' => 'El :attribute debe tener :digits dígitos.',
     'email' => 'El campo :attribute debe ser un correo válido.',
     'exists' => 'El :attribute seleccionado no existe.',
     'in' => 'El valor de :attribute no es válido.',
@@ -27,6 +28,9 @@ return [
         'uncompromised' => 'La :attribute apareció en una filtración de datos. Elige otra.',
     ],
     'required' => 'El campo :attribute es obligatorio.',
+    'size' => [
+        'string' => 'El :attribute no es válido.',
+    ],
     'string' => 'El campo :attribute debe ser texto.',
     'unique' => 'El :attribute ya está registrado.',
 
