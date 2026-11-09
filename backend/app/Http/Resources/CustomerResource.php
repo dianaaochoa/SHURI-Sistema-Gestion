@@ -24,6 +24,7 @@ class CustomerResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'must_change_password' => $this->must_change_password,
+            'has_security_question' => $this->security_answer_hash !== null,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
         ];
     }

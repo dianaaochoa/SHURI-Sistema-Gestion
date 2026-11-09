@@ -3,20 +3,18 @@
 namespace App\Services\Auth;
 
 use App\Mail\TwoFactorCodeMail;
-use App\Models\SentEmail;
 use App\Models\TwoFactorChallenge;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\MailService;
 use App\Services\SettingsService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 /**
  * Multi-factor authentication for staff: after the password, a 6-digit
@@ -31,6 +29,7 @@ class TwoFactorService
         private readonly SettingsService $settings,
         private readonly AuditService $audit,
         private readonly Request $request,
+        private readonly MailService $mailer,
     ) {}
 
     public function requiredFor(User $user): bool
@@ -185,24 +184,13 @@ class TwoFactorService
 
     private function send(User $user, string $code): void
     {
-        $mail = new TwoFactorCodeMail($user->name, $code, $this->codeMinutes());
+        $sent = $this->mailer->send(
+            new TwoFactorCodeMail($user->name, $code, $this->codeMinutes()),
+            $user,
+            'two_factor_code',
+        );
 
-        $log = SentEmail::create([
-            'recipient' => $user->email,
-            'user_id' => $user->id,
-            'type' => 'two_factor_code',
-            'subject' => $mail->subjectLine(),
-            'status' => 'pending',
-            'attempts' => 1,
-        ]);
-
-        try {
-            Mail::to($user->email)->send($mail);
-            $log->update(['status' => 'sent', 'sent_at' => now()]);
-        } catch (Throwable $e) {
-            report($e);
-            $log->update(['status' => 'failed', 'error' => Str::limit($e->getMessage(), 490)]);
-
+        if (! $sent) {
             throw new HttpResponseException(response()->json([
                 'message' => 'No pudimos enviar el código a tu correo. Intenta de nuevo en unos minutos.',
                 'code' => 'MAIL_FAILED',

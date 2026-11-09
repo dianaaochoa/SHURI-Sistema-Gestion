@@ -35,6 +35,8 @@ class User extends Authenticatable
         'authorization_code',
         'must_change_password',
         'two_factor_enabled',
+        'security_question',
+        'security_answer_hash',
         'password_reset_requested_at',
         'chat_available',
         'unavailable_until',
@@ -49,6 +51,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'authorization_code',
+        'security_answer_hash',
         'remember_token',
     ];
 

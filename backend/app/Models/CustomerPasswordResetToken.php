@@ -11,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CustomerPasswordResetToken extends Model
 {
     protected $table = 'customer_password_reset_tokens';
+
     const UPDATED_AT = null;
 
     protected $fillable = [
         'customer_id',
         'token_hash',
+        'question_attempts',
         'expires_at',
         'used_at',
     ];

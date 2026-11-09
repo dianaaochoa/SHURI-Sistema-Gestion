@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\SettingsService;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // One password policy for change, reset and temporary passwords (RNF-01)
+        Password::defaults(fn () => Password::min(8)->letters()->mixedCase()->numbers());
     }
 }

@@ -31,6 +31,8 @@ class StaffUserResource extends JsonResource
             'max_discount_pct' => (float) $this->max_discount_pct,
             'cash_register_id' => $this->cash_register_id,
             'must_change_password' => $this->must_change_password,
+            'has_security_question' => $this->security_answer_hash !== null,
+            'two_factor_enabled' => $this->two_factor_enabled,
             'chat_available' => $this->chat_available,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
         ];

@@ -57,6 +57,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Angular SPA: links in emails (password recovery) point here. First URL of FRONTEND_URL.
+    'frontend_url' => rtrim(explode(',', (string) env('FRONTEND_URL', 'http://localhost:4200'))[0], '/'),
+
     'asset_url' => env('ASSET_URL'),
 
     /*

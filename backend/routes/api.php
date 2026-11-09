@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\UserSessionController;
 use App\Http\Controllers\Api\Auth\CustomerAuthController;
+use App\Http\Controllers\Api\Auth\PasswordRecoveryController;
 use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\Auth\StaffAuthController;
 use App\Http\Controllers\Api\Auth\TwoFactorController;
@@ -26,13 +27,26 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/2fa/verify', [TwoFactorController::class, 'verify'])->name('auth.2fa.verify');
         Route::post('auth/2fa/resend', [TwoFactorController::class, 'resend'])->name('auth.2fa.resend');
         Route::post('portal/login', [CustomerAuthController::class, 'login']);
+
+        // Password recovery: email link + security question (staff and portal)
+        foreach (['auth' => 'staff', 'portal' => 'customer'] as $prefix => $actor) {
+            Route::post("{$prefix}/password/forgot", [PasswordRecoveryController::class, 'forgot'])
+                ->defaults('actor', $actor)->name("{$prefix}.password.forgot");
+            Route::post("{$prefix}/password/verify-token", [PasswordRecoveryController::class, 'verifyToken'])
+                ->defaults('actor', $actor)->name("{$prefix}.password.verify-token");
+            Route::post("{$prefix}/password/reset", [PasswordRecoveryController::class, 'reset'])
+                ->defaults('actor', $actor)->name("{$prefix}.password.reset");
+        }
     });
+
+    Route::get('security-questions', [PasswordRecoveryController::class, 'questions']);
 
     // ── Staff (Admin, Head technician, Technician, Cashier) ────────────
     Route::middleware(['auth:sanctum', 'actor:staff'])->group(function () {
         Route::get('auth/me', [StaffAuthController::class, 'me']);
         Route::post('auth/logout', [StaffAuthController::class, 'logout']);
         Route::put('auth/password', [StaffAuthController::class, 'changePassword']);
+        Route::put('auth/security-question', [PasswordRecoveryController::class, 'setQuestion']);
 
         // Multi-session: my active sessions
         Route::get('auth/sessions', [SessionController::class, 'index']);
@@ -57,6 +71,7 @@ Route::prefix('v1')->group(function () {
         Route::get('me', [CustomerAuthController::class, 'me']);
         Route::post('logout', [CustomerAuthController::class, 'logout']);
         Route::put('password', [CustomerAuthController::class, 'changePassword']);
+        Route::put('security-question', [PasswordRecoveryController::class, 'setQuestion']);
 
         Route::get('sessions', [SessionController::class, 'index']);
         Route::delete('sessions', [SessionController::class, 'destroyOthers']);

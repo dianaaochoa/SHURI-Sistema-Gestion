@@ -30,6 +30,8 @@ class Customer extends Authenticatable
         'notes',
         'password',
         'must_change_password',
+        'security_question',
+        'security_answer_hash',
         'temporary_password_expires_at',
         'temporary_password_encrypted',
         'password_changed_at',
@@ -45,6 +47,7 @@ class Customer extends Authenticatable
     protected $hidden = [
         'password',
         'temporary_password_encrypted',
+        'security_answer_hash',
         'remember_token',
     ];
 
