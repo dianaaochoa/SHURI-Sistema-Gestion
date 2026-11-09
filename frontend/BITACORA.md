@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J3 Por cotizar)
+- **Última actualización:** 8 nov 2026 (J4 Garantías)
 
 ---
 
@@ -58,7 +58,8 @@ flowchart LR
     J1["J1 Inicio<br/>J1.1 tablero de inicio · J1.2 notificaciones · J1.3 menú"]:::hecho
     J2["J2 Tablero de órdenes<br/>J2.1 tablero · J2.2 asignar técnico · J2.3 detalle<br/>J2.4 cargando · J2.5 sin conexión"]:::hecho
     J3["J3 Por cotizar<br/>J3.1 lista · J3.2 cotizar orden<br/>J3.3 sin reparación · J3.4 re-cotización"]:::hecho
-    J["J4–J11"]:::pendiente
+    J4["J4 Garantías<br/>J4.1 lista por etapa · J4.2 dictamen"]:::hecho
+    J["J5–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -93,6 +94,9 @@ flowchart LR
   J3 -->|"presupuesto y re-cotización<br/>quedan Por aprobar"| C4
   J3 -->|"sin reparación:<br/>se entrega en C6.2"| C6
   J3 -.->|"aparta piezas<br/>en stock"| C7
+  C4 -->|"recibir en garantía<br/>(C4.5)"| J4
+  J1 & J2 -->|"Dictaminar"| J4
+  J4 -->|"sin reparar: se entrega<br/>en C6.3"| C6
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -170,6 +174,10 @@ flowchart LR
     SR["SinReparacion<br/>modal J3.3"]:::comp
     RE["Recotizacion<br/>modal J3.4"]:::comp
     RT["RegresarTecnico<br/>modal J3.2 · J3.3"]:::comp
+    GA["Garantias<br/>J4.1"]:::comp
+    DG["DictamenGarantia<br/>J4.2"]:::comp
+    TD["TuDictamen<br/>J4.2 aplica · con costo · sin reparar"]:::comp
+    GT["garantia.ts<br/>etapas y vencimiento"]:::serv
     ET["etapas.ts<br/>columnas y SLA de 24 h"]:::serv
     JD["jefe.datos.ts<br/>mensajes, preguntas y<br/>solicitudes de refacción"]:::serv
   end
@@ -345,6 +353,10 @@ flowchart LR
   CO --> RZ & AR
   PC & SR & RE --> OS
   CO & RZ & AR & RE --> INS
+  SL --> GA
+  GA --> DG --> TD
+  GA & TD --> OS
+  GA & DG --> GT
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
@@ -466,6 +478,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Re-cotizar” (#1024) abre J3.4: al enviar, la orden queda “Cargo adicional” para que el cliente decida.
 - “Regresar al técnico” deja la pregunta como nota interna y la orden vuelve a “Diagnóstico” en el tablero.
 
+**Garantías (`/jefe/garantias`, usuario `jlopez`):**
+- Etapas: En revisión (el técnico no manda su reporte), Por dictaminar (ya lo mandó), En reparación (ya dictaminaste y el equipo sigue en el taller) y Cerradas (lista para entregar o entregada). La tasa es garantías pedidas en 30 días entre equipos entregados en 30 días (con el historial de prueba de Estadísticas).
+- “Dictaminar” (`?folio=0986`) abre J4.2. La opción sugerida es la que recomienda el técnico y el texto para el cliente se arma con su hallazgo (se puede editar).
+- Aplica: el equipo pasa a “En reparación”. Con costo: queda en reparación esperando que el cliente acepte en su portal (P3.2). Sin reparar: queda “Garantía lista” y caja lo entrega en C6.3 como “No aplica · sin reparar”.
+
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
 - Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
@@ -498,14 +515,19 @@ frontend/src/
     │   ├── tablero/           # J2.1 · J2.4 · J2.5
     │   │   ├── asignar-tecnico/   # J2.2 modal (también reasigna)
     │   │   └── orden-jefe/        # J2.3 detalle de la orden
-    │   └── por-cotizar/       # J3.1 lista con pestañas
-    │       ├── existencia.ts      # "3 en stock · se aparta" / "Sin stock · llega 9 nov"
-    │       ├── cotizar-orden/     # J3.2 diagnóstico y conceptos
-    │       ├── resumen-cotizacion/  # J3.2 total, utilidad, entrega, vigencia y envío
-    │       ├── agregar-refaccion/ # J3.2 buscar en el inventario
-    │       ├── regresar-tecnico/  # J3.2 · J3.3 la orden vuelve a Diagnóstico
-    │       ├── sin-reparacion/    # J3.3
-    │       └── recotizacion/      # J3.4
+    │   ├── por-cotizar/       # J3.1 lista con pestañas
+    │   │   ├── existencia.ts      # "3 en stock · se aparta" / "Sin stock · llega 9 nov"
+    │   │   ├── cotizar-orden/     # J3.2 diagnóstico y conceptos
+    │   │   ├── resumen-cotizacion/  # J3.2 total, utilidad, entrega, vigencia y envío
+    │   │   ├── agregar-refaccion/ # J3.2 buscar en el inventario
+    │   │   ├── regresar-tecnico/  # J3.2 · J3.3 la orden vuelve a Diagnóstico
+    │   │   ├── sin-reparacion/    # J3.3
+    │   │   └── recotizacion/      # J3.4
+    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1 y J4.1
+    │   └── garantias/         # J4.1 lista por etapa
+    │       ├── garantia.ts        # etapa, vencimiento, días usados y recomendación
+    │       ├── dictamen-garantia/ # J4.2 reparación original, cliente y reporte del técnico
+    │       └── tu-dictamen/       # J4.2 aplica · con costo · sin reparar
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -762,6 +784,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Conceptos del presupuesto | `Concepto` (refacción, mano de obra u otro) con costo interno y precio al público con IVA. El presupuesto guarda conceptos, descuento y vigencia; `refacciones` y `manoObra` se siguen guardando sin IVA para C4 y los documentos | El técnico sugiere los conceptos en su diagnóstico (`diagnostico.conceptos`, `danoAdicional.conceptos`). |
 | Cobro de revisión | $300 fijo (`COBRO_REVISION`) hasta que exista Configuración (J9). La orden guarda `revision` y `saldo()` la cobra al entregar si el anticipo no alcanza | Las órdenes sin reparación anteriores siguen cobrando el anticipo como revisión. |
 | Precios del flex de iPhone 14 | Inventario: costo $180 y precio $400, como Figma J3.2 | Antes $95 y $240. |
+| Garantías (J4) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j4-garantias.png` (Figma sin llamadas). Figma usa #1024 y #1002; aquí #0986 (la de J1) y #1002 | #1006 queda en revisión y #1010 en reparación para llenar las pestañas. |
+| Reporte y dictamen de garantía | `garantia.reporte` (lo que manda el técnico) y `garantia.decision` (aplica, con costo o sin reparar); `garantia.dictamen` sigue siendo el texto corto que usan Entrega (C6.3) y el Inicio | Sin `recibio` se entiende que el cliente la pidió desde el portal. |
+| Órdenes abiertas en el Inicio | Con las garantías de prueba nuevas el Inicio marca 18 órdenes abiertas | Figma: 14. |
+| CSS compartido de listas | `jefe/lista-pagina.css` lo usan Por cotizar y Garantías | Antes era `por-cotizar.component.css`. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -774,7 +800,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J4–J11. La cajera (C1–C11 y C1.6), J1, J2 y J3 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J5–J11. La cajera (C1–C11 y C1.6), J1, J2, J3 y J4 quedaron completos.
+- [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5). El anticipo a devolver en C6.2 todavía no sale de la caja en el corte.
 - [ ] Tablero: fotos reales, tiempo trabajado sin pausas y “Ver solicitud” (lleva a Refacciones, J11, aún pendiente). La prioridad y las asignaciones viven en memoria.
 - [ ] El resumen del menú del jefe (“14 órdenes abiertas”) sigue fijo; debe usar el mismo conteo que J1.
@@ -1086,3 +1113,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - cotizar #1043: batería “3 en stock · se aparta”, flex “Sin stock · llega 9 nov”; al agregar el adhesivo del inventario el total sube a $1,890.00; al enviar queda “Por aprobar”, 2 piezas apartadas y la pestaña Enviados pasa a 3
   - #1038 sin cobrar revisión: “Sin reparación” y en Entrega “Sin costo · Anticipo a devolver $300.00”; #1024 re-cotizada por $530.00 queda “Cargo adicional”; #1034 regresada a Luis con la pregunta como nota
   - a 1366×768 y 360 px sin scroll horizontal (la tabla de conceptos se recorre dentro de su caja); sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J4: Garantías
+- Figma sin llamadas: J4.1 y J4.2 se tomaron del PNG `docs/diseno/04-jefe-de-tecnicos/j4-garantias.png` recortado en dos marcos.
+- `GarantiasComponent` (J4.1) con indicadores, pestañas por etapa y tabla; `DictamenGarantiaComponent` (J4.2) y `TuDictamenComponent` (las tres opciones y la publicación). Los estilos de lista se comparten con Por cotizar.
+- `OrdenesService`: `ReporteGarantia`, `DecisionGarantia` y `dictaminarGarantia`; #0986 trae el reporte de Figma y se agregaron #1002, #1006 y #1010.
+- El Inicio (J1) cuenta solo las garantías por dictaminar y dice qué recomienda el técnico; el tablero marca “Dictaminar” y lleva a J4.2. Entrega (C6.3) muestra “No aplica · sin reparar” cuando corresponde.
+- Verificado:
+  - a 1440×900, J4.1: 2 por dictaminar, 1 en revisión, 1 en reparación y tasa de 7 % (Figma 8 %); #0986 “No aplica · humedad posterior”, #1002 “Aplica · pieza defectuosa”
+  - J4.2 de #0986 como Figma (“23 de 30 días”, reporte y costo de $450.00); al publicar con costo pasa a En reparación
+  - #1002 devuelto sin reparar: “Garantía lista” y aparece en Cerradas junto a #0991
+  - a 1366×768 y 360 px sin scroll horizontal; Por cotizar sigue igual con el CSS compartido; sin errores en consola
