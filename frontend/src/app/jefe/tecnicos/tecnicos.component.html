@@ -1,0 +1,67 @@
+<div class="lista-pagina">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Técnicos</h1>
+      <p class="encabezado-pagina__subtitulo">Carga actual y desempeño de {{ mesTexto() }} · SHURI</p>
+    </div>
+    <label class="campo__control campo__control--40 mes">
+      <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+      <select class="campo__input campo__select" aria-label="Mes del desempeño" (change)="mes.set($any($event.target).value)">
+        @for (m of meses; track m.clave) {
+          <option [value]="m.clave" [selected]="m.clave === mes()">{{ m.corto }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </label>
+  </header>
+
+  <section class="tarjetas" aria-label="Técnicos">
+    @for (c of tarjetas(); track c.tecnico.iniciales) {
+      <button type="button" class="tarjeta" [class.tarjeta--elegida]="filtro() === c.tecnico.iniciales" [attr.aria-pressed]="filtro() === c.tecnico.iniciales" (click)="alternarFiltro(c.tecnico.iniciales)">
+        <span class="tarjeta__fila">
+          <span class="avatar-tecnico" aria-hidden="true">{{ c.tecnico.iniciales }}</span>
+          <span class="tarjeta__nombre"><strong>{{ c.tecnico.nombre }}</strong><span>Técnico · Turno 9:00–18:00</span></span>
+          <span class="estado estado--{{ c.estado.tono }}">{{ c.estado.texto }}</span>
+        </span>
+        <span class="tarjeta__actual">{{ c.actual }}</span>
+        <span class="cifras">
+          @for (x of c.cifras; track x.texto) {
+            <span class="cifra"><strong>{{ x.valor }}</strong><span>{{ x.texto }}</span></span>
+          }
+        </span>
+      </button>
+    }
+  </section>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  <div class="tabla">
+    <table>
+      <thead>
+        <tr><th>Técnico</th><th>Orden</th><th class="t-equipo">Equipo</th><th>Etapa</th><th class="t-tiempo">Tiempo en etapa</th><th class="t-original">Prometido</th><th class="t-estado">Estado</th><th>Acción</th></tr>
+      </thead>
+      <tbody>
+        @for (f of filas(); track f.orden.folio) {
+          <tr class="fija">
+            <td class="t-nombre">{{ f.orden.tecnico.nombre }}</td>
+            <td>{{ f.orden.folio }}</td>
+            <td class="t-equipo">{{ f.orden.equipo }}</td>
+            <td><span class="estado estado--{{ f.etapa.tono }}">{{ f.etapa.texto }}</span></td>
+            <td class="t-tiempo">{{ f.tiempo }}</td>
+            <td class="t-original">{{ f.prometido }}</td>
+            <td class="t-estado"><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
+            <td><button type="button" class="enlace-accion" (click)="accion(f.orden, f.accion)">{{ f.accion }}</button></td>
+          </tr>
+        } @empty {
+          <tr><td class="vacio" colspan="8">Sin órdenes en el taller.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@if (reasignando(); as o) {
+  <app-asignar-tecnico [orden]="o" (cerrar)="reasignando.set(null)" (asignar)="reasignado($event)" />
+}

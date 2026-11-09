@@ -2,14 +2,14 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { saludoDelDia } from '../../compartido/formato';
-import { EstadoOrden, OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
+import { OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { etapaGarantia, recomendacion } from '../garantias/garantia';
 import { SLA_DIAGNOSTICO_H, atrasada, etapaDe, horasDesde } from '../etapas';
 import { MENSAJES_SIN_RESPONDER, PREGUNTAS_TECNICOS } from '../jefe.datos';
 import { RefaccionesService } from '../refacciones/refacciones.service';
+import { EN_TALLER, cargaTecnico } from '../tecnicos/carga';
 
 /** En el taller: recibidas y no entregadas (sin contar las vencidas ni las de bodega). */
-const EN_TALLER: EstadoOrden[] = ['por-cotizar', 'por-aprobar', 'adicional', 'en-taller', 'esperando-refaccion', 'en-garantia', 'lista', 'garantia-lista', 'sin-reparacion'];
 
 type Tono = 'info' | 'peligro' | 'advertencia' | 'neutro';
 
@@ -125,10 +125,7 @@ export class InicioJefeComponent {
   /** Carga por técnico: órdenes en el taller de cada uno, la que trae en curso o en pausa. */
   protected readonly carga = computed(() =>
     TECNICOS.map((t) => {
-      const suyas = this.enTaller().filter((o) => o.tecnico.iniciales === t.iniciales);
-      const enCurso = suyas.find((o) => ['en-taller', 'adicional', 'en-garantia', 'por-cotizar'].includes(o.estado));
-      const enPausa = !enCurso ? suyas.find((o) => o.estado === 'esperando-refaccion') : undefined;
-      const estado = suyas.length >= 5 ? { texto: 'Ocupado', tono: 'advertencia' } : enPausa ? { texto: 'En pausa', tono: 'neutro' } : { texto: 'Disponible', tono: 'exito' };
+      const { suyas, enCurso, enPausa, estado } = cargaTecnico(t, this.ordenes());
       const detalle = [`${suyas.length} ${suyas.length === 1 ? 'orden' : 'órdenes'}`, enCurso ? `en curso ${enCurso.folio}` : enPausa ? `en pausa ${enPausa.folio}` : 'sin orden en curso'].join(' · ');
       return { ...t, detalle, estado, avance: Math.min(100, (suyas.length / 6) * 100) };
     }),
