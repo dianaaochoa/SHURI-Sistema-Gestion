@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J4 Garantías)
+- **Última actualización:** 8 nov 2026 (J5 Refacciones)
 
 ---
 
@@ -59,7 +59,8 @@ flowchart LR
     J2["J2 Tablero de órdenes<br/>J2.1 tablero · J2.2 asignar técnico · J2.3 detalle<br/>J2.4 cargando · J2.5 sin conexión"]:::hecho
     J3["J3 Por cotizar<br/>J3.1 lista · J3.2 cotizar orden<br/>J3.3 sin reparación · J3.4 re-cotización"]:::hecho
     J4["J4 Garantías<br/>J4.1 lista por etapa · J4.2 dictamen"]:::hecho
-    J["J5–J11"]:::pendiente
+    J5["J5 Refacciones<br/>J5.1 solicitudes · J5.2 pedir · J5.3 devolución<br/>J5.4 pedidos a proveedor · J5.5 nuevo pedido"]:::hecho
+    J["J6–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -97,6 +98,9 @@ flowchart LR
   C4 -->|"recibir en garantía<br/>(C4.5)"| J4
   J1 & J2 -->|"Dictaminar"| J4
   J4 -->|"sin reparar: se entrega<br/>en C6.3"| C6
+  J1 -->|"Pedir"| J5
+  J5 -->|"pedidos por recibir"| C7
+  C7 -.->|"llega: se aparta<br/>para la orden"| J5
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -178,8 +182,14 @@ flowchart LR
     DG["DictamenGarantia<br/>J4.2"]:::comp
     TD["TuDictamen<br/>J4.2 aplica · con costo · sin reparar"]:::comp
     GT["garantia.ts<br/>etapas y vencimiento"]:::serv
+    RF["Refacciones<br/>J5.1 · J5.4"]:::comp
+    PS["PedirSolicitud<br/>modal J5.2"]:::comp
+    RD["RecibirDevolucion<br/>modal J5.3"]:::comp
+    NP["NuevoPedido<br/>modal J5.5"]:::comp
+    VP["VerPedido<br/>modal J5.4"]:::comp
+    RS["RefaccionesService<br/>solicitudes, devoluciones<br/>e historial (simulado)"]:::serv
     ET["etapas.ts<br/>columnas y SLA de 24 h"]:::serv
-    JD["jefe.datos.ts<br/>mensajes, preguntas y<br/>solicitudes de refacción"]:::serv
+    JD["jefe.datos.ts<br/>mensajes y preguntas"]:::serv
   end
   subgraph CAJERA["cajera/"]
     IC["InicioCajera<br/>C1.1 · C1.2"]:::comp
@@ -357,6 +367,12 @@ flowchart LR
   GA --> DG --> TD
   GA & TD --> OS
   GA & DG --> GT
+  SL --> RF
+  RF --> PS & RD & NP & VP
+  RF & PS & RD & NP --> RS
+  RS --> INS & OS
+  RF & PS & NP & VP --> INS
+  IJ --> RS
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
@@ -460,7 +476,7 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
 
 **Inicio del jefe de técnicos (`/jefe/inicio`, usuario `jlopez`):**
-- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; mensajes de clientes, preguntas de los técnicos y solicitudes de refacción son de prueba (`jefe/jefe.datos.ts`) hasta J5 y J11.
+- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; mensajes de clientes y preguntas de los técnicos son de prueba (`jefe/jefe.datos.ts`) hasta J11; las solicitudes de refacción salen de `RefaccionesService` (J5).
 - Cada pendiente y cada indicador abre su módulo con el folio (`/jefe/por-cotizar?folio=1043`); salvo el tablero, esos módulos todavía son páginas pendientes.
 - Las notificaciones de la campana (J1.2) son las de Figma.
 
@@ -482,6 +498,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Etapas: En revisión (el técnico no manda su reporte), Por dictaminar (ya lo mandó), En reparación (ya dictaminaste y el equipo sigue en el taller) y Cerradas (lista para entregar o entregada). La tasa es garantías pedidas en 30 días entre equipos entregados en 30 días (con el historial de prueba de Estadísticas).
 - “Dictaminar” (`?folio=0986`) abre J4.2. La opción sugerida es la que recomienda el técnico y el texto para el cliente se arma con su hallazgo (se puede editar).
 - Aplica: el equipo pasa a “En reparación”. Con costo: queda en reparación esperando que el cliente acepte en su portal (P3.2). Sin reparar: queda “Garantía lista” y caja lo entrega en C6.3 como “No aplica · sin reparar”.
+
+**Refacciones (`/jefe/refacciones`, usuario `jlopez`):**
+- Solicitudes: lo que piden los técnicos. Con stock: “Entregar” (sale del inventario y se anota en la orden) o “Rechazar”. Sin stock: “Pedir a proveedor” (J5.2); si es de una re-cotización sin aprobar dice “Pedir si aprueba” y avisa antes de pedir. Las devoluciones (#1037) se reciben nuevas, abiertas o dañadas (J5.3).
+- Al pedir, el pedido sale con folio PED (sigue a PED-0124), aparece en Inventario de la cajera como “Pedido del jefe” (C7.5) y, si la orden está en el taller, se pausa “Esperando refacción”.
+- Pedidos a proveedor (J5.4): pendientes (Pedido, En camino si llega hoy, Atrasado) y recibidos por caja (Recibido o Recibido parcial con “Reclamar”). “Nuevo pedido” (J5.5) sirve para surtir stock o varias órdenes.
+- Desde el Inicio, “Pedir” abre directo el pedido de esa solicitud (`?folio=1040`).
 
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
@@ -509,7 +531,7 @@ frontend/src/
     ├── compartido/
     │   └── formato.ts         # dinero, fechas, horas, duración, saludo
     ├── jefe/                  # 04 · Jefe de técnicos
-    │   ├── jefe.datos.ts      # mensajes de clientes, preguntas de técnicos y solicitudes de refacción (de prueba)
+    │   ├── jefe.datos.ts      # mensajes de clientes y preguntas de técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
     │   ├── inicio-jefe/       # J1.1
     │   ├── tablero/           # J2.1 · J2.4 · J2.5
@@ -523,11 +545,18 @@ frontend/src/
     │   │   ├── regresar-tecnico/  # J3.2 · J3.3 la orden vuelve a Diagnóstico
     │   │   ├── sin-reparacion/    # J3.3
     │   │   └── recotizacion/      # J3.4
-    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1 y J4.1
-    │   └── garantias/         # J4.1 lista por etapa
-    │       ├── garantia.ts        # etapa, vencimiento, días usados y recomendación
-    │       ├── dictamen-garantia/ # J4.2 reparación original, cliente y reporte del técnico
-    │       └── tu-dictamen/       # J4.2 aplica · con costo · sin reparar
+    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1, J4.1 y J5
+    │   ├── garantias/         # J4.1 lista por etapa
+    │   │   ├── garantia.ts        # etapa, vencimiento, días usados y recomendación
+    │   │   ├── dictamen-garantia/ # J4.2 reparación original, cliente y reporte del técnico
+    │   │   └── tu-dictamen/       # J4.2 aplica · con costo · sin reparar
+    │   └── refacciones/       # J5.1 solicitudes · J5.4 pedidos · devoluciones · historial
+    │       ├── refacciones.service.ts  # solicitudes de los técnicos, devoluciones e historial (de prueba)
+    │       ├── pedido.ts          # formas de pago, quién recibe y fechas de los pedidos
+    │       ├── pedir-solicitud/   # J5.2
+    │       ├── recibir-devolucion/  # J5.3
+    │       ├── nuevo-pedido/      # J5.5
+    │       └── ver-pedido/        # J5.4 "Ver"
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -788,6 +817,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Reporte y dictamen de garantía | `garantia.reporte` (lo que manda el técnico) y `garantia.decision` (aplica, con costo o sin reparar); `garantia.dictamen` sigue siendo el texto corto que usan Entrega (C6.3) y el Inicio | Sin `recibio` se entiende que el cliente la pidió desde el portal. |
 | Órdenes abiertas en el Inicio | Con las garantías de prueba nuevas el Inicio marca 18 órdenes abiertas | Figma: 14. |
 | CSS compartido de listas | `jefe/lista-pagina.css` lo usan Por cotizar y Garantías | Antes era `por-cotizar.component.css`. |
+| Refacciones (J5) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j5-refacciones.png` (Figma sin llamadas). Figma pide el flex del iPhone 14 en R-213, pero ese ya está pedido en PED-0124; aquí R-213 es el conector de carga del Moto G84 (#1040) y R-215 el flex de cámara de #1024 | Productos nuevos de prueba: conector Moto G84, flex de cámara S22 Ultra y batería Huawei P30 (la devolución de #1037). |
+| Pedidos del jefe | Siguen en `InventarioService.pedidos` (los mismos que recibe caja en C7.5) con `recibe`, `nota` y `creado`; los recibidos se leen de las entradas con pedido. `Entrada.faltan` marca el recibido parcial | Las solicitudes de J1 (`SOLICITUDES_REFACCION`) se movieron a `RefaccionesService`. |
+| Indicadores del Inicio | “Refacciones” cuenta las 3 solicitudes pendientes | Figma: 2. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -800,7 +832,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J5–J11. La cajera (C1–C11 y C1.6), J1, J2, J3 y J4 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J6–J11. La cajera (C1–C11 y C1.6), J1 a J5 quedaron completos.
+- [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
 - [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5). El anticipo a devolver en C6.2 todavía no sale de la caja en el corte.
 - [ ] Tablero: fotos reales, tiempo trabajado sin pausas y “Ver solicitud” (lleva a Refacciones, J11, aún pendiente). La prioridad y las asignaciones viven en memoria.
@@ -1124,3 +1157,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - J4.2 de #0986 como Figma (“23 de 30 días”, reporte y costo de $450.00); al publicar con costo pasa a En reparación
   - #1002 devuelto sin reparar: “Garantía lista” y aparece en Cerradas junto a #0991
   - a 1366×768 y 360 px sin scroll horizontal; Por cotizar sigue igual con el CSS compartido; sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J5: Refacciones
+- Figma sin llamadas: J5.1–J5.5 se tomaron del PNG `docs/diseno/04-jefe-de-tecnicos/j5-refacciones.png` recortado en cinco marcos.
+- `RefaccionesService` (solicitudes, devoluciones, historial y reclamos) sobre `InventarioService` (nuevos `siguientePedido`, `registrarPedido`, `surtir` y `devolver`) y `OrdenesService` (`anotar` y `esperarRefaccion`).
+- `RefaccionesComponent` con cuatro pestañas y sus indicadores (cambian en Pedidos a proveedor), y los modales `PedirSolicitud` (J5.2), `RecibirDevolucion` (J5.3), `NuevoPedido` (J5.5) y `VerPedido`.
+- El Inicio (J1) cuenta las solicitudes pendientes y su “Pedir” abre el pedido de esa solicitud.
+- Verificado:
+  - a 1440×900, J5.1 como Figma: 1 por entregar, 2 por pedir, 2 en camino, 1 devolución; R-214 “12 en stock”, R-213 “Hoy”, R-215 “Pedir si aprueba”, R-205 “Nueva, sin abrir”
+  - pedir R-213: PED-0125 con 1 pieza para #1040 y 1 extra para stock ($190.00); entregar R-214 baja el adhesivo de 12 a 11; recibir R-205 sube la batería P30 a 1
+  - J5.4: PED-0121 “Recibido parcial” → “Reclamar”; “Ver” muestra piezas y total; un nuevo pedido de stock por $1,540.00 aparece arriba como “Pedido”
+  - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
