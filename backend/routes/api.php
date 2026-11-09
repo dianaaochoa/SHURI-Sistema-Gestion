@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\UserLockController;
 use App\Http\Controllers\Api\Admin\UserSessionController;
 use App\Http\Controllers\Api\Auth\CustomerAuthController;
 use App\Http\Controllers\Api\Auth\PasswordRecoveryController;
@@ -57,6 +58,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('users/{user}/sessions', [UserSessionController::class, 'index']);
                 Route::delete('users/{user}/sessions', [UserSessionController::class, 'destroyAll']);
                 Route::delete('users/{user}/sessions/{session}', [UserSessionController::class, 'destroy'])->whereNumber('session');
+                Route::post('users/{user}/unlock', [UserLockController::class, 'unlock']);
             });
 
             // Module routes go here, each one with its permission, e.g.:

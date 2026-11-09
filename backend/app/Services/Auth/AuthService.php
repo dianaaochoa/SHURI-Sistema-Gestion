@@ -45,8 +45,8 @@ class AuthService
 
         $user = $this->verifyCredentials(
             $user, $password,
-            $this->settings->int('staff_max_attempts', 5),
-            $this->settings->int('staff_lock_minutes', 15),
+            $this->settings->int('staff_max_attempts', 3),
+            $this->settings->int('staff_lock_minutes', 0), // 0 = until the admin unlocks it
         );
 
         if ($this->twoFactor->requiredFor($user)) {
@@ -89,6 +89,20 @@ class AuthService
         }
 
         $this->auditFor($account, 'logout', 'Cierre de sesión');
+    }
+
+    /** AD7: the admin unlocks a staff account blocked by failed attempts. */
+    public function unlock(User $user, User $admin): bool
+    {
+        if (! $user->locked_until && $user->failed_attempts === 0) {
+            return false;
+        }
+
+        $user->forceFill(['failed_attempts' => 0, 'locked_until' => null])->save();
+
+        $this->audit->log('auth', 'account_unlocked', "El administrador desbloqueó la cuenta de {$user->username}", $admin->id, 'users', $user->id);
+
+        return true;
     }
 
     /**
@@ -181,8 +195,13 @@ class AuthService
         $attempts = $account->failed_attempts + 1;
 
         if ($attempts >= $maxAttempts) {
-            $account->forceFill(['failed_attempts' => 0, 'locked_until' => now()->addMinutes($lockMinutes)])->save();
-            $this->auditFor($account, 'login_locked', "Cuenta bloqueada {$lockMinutes} min por {$maxAttempts} intentos fallidos");
+            // lockMinutes = 0 → stays locked until an admin unlocks it (A.2)
+            $lockedUntil = $lockMinutes > 0 ? now()->addMinutes($lockMinutes) : AccountLockedException::untilAdmin();
+
+            $account->forceFill(['failed_attempts' => 0, 'locked_until' => $lockedUntil])->save();
+            $this->auditFor($account, 'login_locked', $lockMinutes > 0
+                ? "Cuenta bloqueada {$lockMinutes} min por {$maxAttempts} intentos fallidos"
+                : "Cuenta bloqueada hasta que el administrador la desbloquee ({$maxAttempts} intentos fallidos)");
 
             throw new AccountLockedException($account->locked_until);
         }
