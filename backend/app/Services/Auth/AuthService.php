@@ -27,6 +27,7 @@ class AuthService
     public function __construct(
         private readonly SettingsService $settings,
         private readonly AuditService $audit,
+        private readonly SessionService $sessions,
     ) {}
 
     /**
@@ -146,15 +147,14 @@ class AuthService
             'last_login_at' => now(),
         ])->save();
 
-        $expiresAt = now()->addMinutes((int) config('sanctum.expiration', 480));
-        $token = $account->createToken($deviceName ?: 'web', [$ability], $expiresAt);
+        $token = $this->sessions->issue($account, $ability, $deviceName);
 
         $this->auditFor($account, 'login', 'Inicio de sesión');
 
         return [
             'account' => $account,
             'token' => $token->plainTextToken,
-            'expires_at' => $expiresAt,
+            'expires_at' => $this->sessions->expiresAt($token),
         ];
     }
 

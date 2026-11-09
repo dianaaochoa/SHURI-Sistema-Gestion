@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\UserSessionController;
 use App\Http\Controllers\Api\Auth\CustomerAuthController;
+use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\Auth\StaffAuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,7 +31,19 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/logout', [StaffAuthController::class, 'logout']);
         Route::put('auth/password', [StaffAuthController::class, 'changePassword']);
 
+        // Multi-session: my active sessions
+        Route::get('auth/sessions', [SessionController::class, 'index']);
+        Route::delete('auth/sessions', [SessionController::class, 'destroyOthers']);
+        Route::delete('auth/sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
+
         Route::middleware('password.changed')->group(function () {
+            // AD7 device control: sessions of any staff member
+            Route::middleware('permission:users.manage')->group(function () {
+                Route::get('users/{user}/sessions', [UserSessionController::class, 'index']);
+                Route::delete('users/{user}/sessions', [UserSessionController::class, 'destroyAll']);
+                Route::delete('users/{user}/sessions/{session}', [UserSessionController::class, 'destroy'])->whereNumber('session');
+            });
+
             // Module routes go here, each one with its permission, e.g.:
             // Route::post('sales', [SaleController::class, 'store'])->middleware('permission:pos.sell');
         });
@@ -40,6 +54,10 @@ Route::prefix('v1')->group(function () {
         Route::get('me', [CustomerAuthController::class, 'me']);
         Route::post('logout', [CustomerAuthController::class, 'logout']);
         Route::put('password', [CustomerAuthController::class, 'changePassword']);
+
+        Route::get('sessions', [SessionController::class, 'index']);
+        Route::delete('sessions', [SessionController::class, 'destroyOthers']);
+        Route::delete('sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
 
         Route::middleware('password.changed')->group(function () {
             // Portal routes (P1–P5) go here
