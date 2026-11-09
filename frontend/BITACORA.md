@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J5 Refacciones)
+- **Última actualización:** 8 nov 2026 (J6 Inventario del taller)
 
 ---
 
@@ -60,7 +60,8 @@ flowchart LR
     J3["J3 Por cotizar<br/>J3.1 lista · J3.2 cotizar orden<br/>J3.3 sin reparación · J3.4 re-cotización"]:::hecho
     J4["J4 Garantías<br/>J4.1 lista por etapa · J4.2 dictamen"]:::hecho
     J5["J5 Refacciones<br/>J5.1 solicitudes · J5.2 pedir · J5.3 devolución<br/>J5.4 pedidos a proveedor · J5.5 nuevo pedido"]:::hecho
-    J["J6–J11"]:::pendiente
+    J6["J6 Inventario del taller<br/>refacciones y consumibles con costos"]:::hecho
+    J["J7–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -101,6 +102,8 @@ flowchart LR
   J1 -->|"Pedir"| J5
   J5 -->|"pedidos por recibir"| C7
   C7 -.->|"llega: se aparta<br/>para la orden"| J5
+  C7 -.->|"mismo catálogo<br/>y entrada de mercancía"| J6
+  J6 -->|"Pedir · Ver pedido"| J5
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -188,6 +191,8 @@ flowchart LR
     NP["NuevoPedido<br/>modal J5.5"]:::comp
     VP["VerPedido<br/>modal J5.4"]:::comp
     RS["RefaccionesService<br/>solicitudes, devoluciones<br/>e historial (simulado)"]:::serv
+    IT["InventarioTaller<br/>J6"]:::comp
+    VR["VerProducto<br/>modal J6"]:::comp
     ET["etapas.ts<br/>columnas y SLA de 24 h"]:::serv
     JD["jefe.datos.ts<br/>mensajes y preguntas"]:::serv
   end
@@ -373,6 +378,9 @@ flowchart LR
   RS --> INS & OS
   RF & PS & NP & VP --> INS
   IJ --> RS
+  SL --> IT
+  IT --> VR & NP & INS
+  IT --> EN & PAG
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
@@ -505,6 +513,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Pedidos a proveedor (J5.4): pendientes (Pedido, En camino si llega hoy, Atrasado) y recibidos por caja (Recibido o Recibido parcial con “Reclamar”). “Nuevo pedido” (J5.5) sirve para surtir stock o varias órdenes.
 - Desde el Inicio, “Pedir” abre directo el pedido de esa solicitud (`?folio=1040`).
 
+**Inventario del taller (`/jefe/inventario`, usuario `jlopez`):**
+- El mismo catálogo de caja, solo Refacciones y Consumibles, con costo y precio. Lo que falta va primero: En camino (hay pedido), Sin stock, Stock bajo y OK. Se filtra por texto, categoría y marca (la marca sale del nombre).
+- “Pedir” abre el nuevo pedido de J5.5 con la pieza ya agregada; “Ver pedido” lleva a Refacciones › Pedidos; “Ver” muestra apartados y movimientos.
+- “Entrada de mercancía” (`?vista=entrada`) es la misma de caja (C7.3); si se paga en efectivo, necesita el turno de caja abierto.
+
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
 - Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
@@ -545,18 +558,20 @@ frontend/src/
     │   │   ├── regresar-tecnico/  # J3.2 · J3.3 la orden vuelve a Diagnóstico
     │   │   ├── sin-reparacion/    # J3.3
     │   │   └── recotizacion/      # J3.4
-    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1, J4.1 y J5
+    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1, J4.1, J5 y J6
     │   ├── garantias/         # J4.1 lista por etapa
     │   │   ├── garantia.ts        # etapa, vencimiento, días usados y recomendación
     │   │   ├── dictamen-garantia/ # J4.2 reparación original, cliente y reporte del técnico
     │   │   └── tu-dictamen/       # J4.2 aplica · con costo · sin reparar
-    │   └── refacciones/       # J5.1 solicitudes · J5.4 pedidos · devoluciones · historial
-    │       ├── refacciones.service.ts  # solicitudes de los técnicos, devoluciones e historial (de prueba)
-    │       ├── pedido.ts          # formas de pago, quién recibe y fechas de los pedidos
-    │       ├── pedir-solicitud/   # J5.2
-    │       ├── recibir-devolucion/  # J5.3
-    │       ├── nuevo-pedido/      # J5.5
-    │       └── ver-pedido/        # J5.4 "Ver"
+    │   ├── refacciones/       # J5.1 solicitudes · J5.4 pedidos · devoluciones · historial
+    │   │   ├── refacciones.service.ts  # solicitudes de los técnicos, devoluciones e historial (de prueba)
+    │   │   ├── pedido.ts          # formas de pago, quién recibe y fechas de los pedidos
+    │   │   ├── pedir-solicitud/   # J5.2
+    │   │   ├── recibir-devolucion/  # J5.3
+    │   │   ├── nuevo-pedido/      # J5.5
+    │   │   └── ver-pedido/        # J5.4 "Ver"
+    │   └── inventario-taller/ # J6 (reusa paginación y entrada de mercancía de C7, y el nuevo pedido de J5.5)
+    │       └── ver-producto/      # J6 "Ver": apartados y movimientos
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -820,6 +835,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Refacciones (J5) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j5-refacciones.png` (Figma sin llamadas). Figma pide el flex del iPhone 14 en R-213, pero ese ya está pedido en PED-0124; aquí R-213 es el conector de carga del Moto G84 (#1040) y R-215 el flex de cámara de #1024 | Productos nuevos de prueba: conector Moto G84, flex de cámara S22 Ultra y batería Huawei P30 (la devolución de #1037). |
 | Pedidos del jefe | Siguen en `InventarioService.pedidos` (los mismos que recibe caja en C7.5) con `recibe`, `nota` y `creado`; los recibidos se leen de las entradas con pedido. `Entrada.faltan` marca el recibido parcial | Las solicitudes de J1 (`SOLICITUDES_REFACCION`) se movieron a `RefaccionesService`. |
 | Indicadores del Inicio | “Refacciones” cuenta las 3 solicitudes pendientes | Figma: 2. |
+| Inventario del taller (J6) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j6-inventario.png` (Figma sin llamadas). Las cifras salen del inventario de prueba: 13 refacciones y consumibles de 22 productos | Figma: 286 de 3,450. La paginación es la de C7 (25, 50 o 100 por página). |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -832,7 +848,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J6–J11. La cajera (C1–C11 y C1.6), J1 a J5 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J7–J11. La cajera (C1–C11 y C1.6), J1 a J6 quedaron completos.
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
 - [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5). El anticipo a devolver en C6.2 todavía no sale de la caja en el corte.
@@ -1167,4 +1183,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 1440×900, J5.1 como Figma: 1 por entregar, 2 por pedir, 2 en camino, 1 devolución; R-214 “12 en stock”, R-213 “Hoy”, R-215 “Pedir si aprueba”, R-205 “Nueva, sin abrir”
   - pedir R-213: PED-0125 con 1 pieza para #1040 y 1 extra para stock ($190.00); entregar R-214 baja el adhesivo de 12 a 11; recibir R-205 sube la batería P30 a 1
   - J5.4: PED-0121 “Recibido parcial” → “Reclamar”; “Ver” muestra piezas y total; un nuevo pedido de stock por $1,540.00 aparece arriba como “Pedido”
+  - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J6: Inventario del taller
+- Figma sin llamadas: J6 se tomó del PNG `docs/diseno/04-jefe-de-tecnicos/j6-inventario.png`.
+- `InventarioTallerComponent`: indicadores, filtros por texto, categoría y marca, tabla con apartadas, disponible, costo y estado, y paginación de C7. Reusa `EntradaComponent` (C7.3) en `?vista=entrada` y `NuevoPedidoComponent` (J5.5, ahora acepta un producto inicial). `VerProductoComponent` muestra apartados y movimientos.
+- Verificado:
+  - a 1440×900, como Figma: REF-IP14-FLX y REF-IP11-SEL “En camino · Ver pedido”, REF-G84-USB “Sin stock · Pedir”, REF-IP12-PAN “1 · #1035” y disponible 0 en rojo, REF-IP14-BAT “1 · #1043”
+  - “Pedir” del conector Moto G84 abre el pedido con Distribuidora MovilTec y 2 piezas ($190.00); “Ver” del adhesivo muestra su ajuste AJ-0016; “Ver pedido” lleva a Refacciones › Pedidos
+  - la entrada de mercancía abre con “Recibió: Jorge López”
   - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
