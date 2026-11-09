@@ -105,7 +105,7 @@ export const NAVEGACION: Record<Rol, NavegacionRol> = {
           { etiqueta: 'Tablero de órdenes', icono: 'list', ruta: 'tablero-de-ordenes', figma: 'J2' },
           { etiqueta: 'Por cotizar', icono: 'receipt', ruta: 'por-cotizar', figma: 'J3' },
           { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias', figma: 'J4' },
-          { etiqueta: 'Mensajes', icono: 'msg', ruta: 'mensajes', figma: 'J11', insignia: 2 },
+          { etiqueta: 'Mensajes', icono: 'msg', ruta: 'mensajes', figma: 'J11' },
         ],
       },
       {

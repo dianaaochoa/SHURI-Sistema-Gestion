@@ -5,7 +5,8 @@ import { saludoDelDia } from '../../compartido/formato';
 import { OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { etapaGarantia, recomendacion } from '../garantias/garantia';
 import { slaDiagnostico, atrasada, etapaDe, horasDesde } from '../etapas';
-import { MENSAJES_SIN_RESPONDER, PREGUNTAS_TECNICOS } from '../jefe.datos';
+import { PREGUNTAS_TECNICOS } from '../jefe.datos';
+import { MensajesService } from '../mensajes/mensajes.service';
 import { RefaccionesService } from '../refacciones/refacciones.service';
 import { EN_TALLER, cargaTecnico } from '../tecnicos/carga';
 
@@ -44,6 +45,7 @@ const esHoy = (iso?: string) => !!iso && new Date(iso).toDateString() === new Da
 export class InicioJefeComponent {
   private readonly ordenes = inject(OrdenesService).ordenes;
   private readonly refacciones = inject(RefaccionesService);
+  private readonly mensajes = inject(MensajesService);
   private readonly nombre = (inject(AuthService).sesion()?.nombre ?? '').split(' ')[0];
 
   protected readonly saludo = `${saludoDelDia(new Date())}, ${this.nombre}`;
@@ -76,10 +78,15 @@ export class InicioJefeComponent {
 
   /** "Requiere tu atención": lo más urgente primero, como en Figma J1.1. */
   protected readonly pendientes = computed<Pendiente[]>(() => [
-    ...MENSAJES_SIN_RESPONDER.map((m) => ({
-      icono: 'menu/msg', tono: 'info' as Tono, titulo: `${m.folio} · ${m.cliente} te escribió`,
-      detalle: `“${m.texto}” · ${m.equipo} · ${hace(m.fecha)}`, accion: 'Responder', ruta: 'mensajes',
-    })),
+    // Mensajes de clientes sin responder (J11): abren su conversación.
+    ...this.mensajes.sinResponder().map((c) => {
+      const ultimo = c.mensajes[c.mensajes.length - 1];
+      const equipo = this.ordenes().find((o) => o.folio === c.folio)?.equipo ?? '';
+      return {
+        icono: 'menu/msg', tono: 'info' as Tono, titulo: `${c.folio} · ${c.cliente} te escribió`,
+        detalle: `“${ultimo.texto}” · ${equipo} · ${hace(ultimo.fecha)}`, accion: 'Responder', ruta: 'mensajes', folio: c.folio,
+      };
+    }),
     ...PREGUNTAS_TECNICOS.map((p) => ({
       icono: 'menu/wrench', tono: 'info' as Tono, titulo: `${p.folio} · ${p.tecnico} ${p.asunto}`,
       detalle: `${p.detalle} · ${hace(p.fecha)}`, accion: 'Escribir', ruta: 'mensajes',

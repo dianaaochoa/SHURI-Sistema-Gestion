@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../acceso/auth.service';
 import { formatearDinero } from '../../compartido/formato';
 import { DESPUES_RESGUARDO, DespuesResguardo, ReglasTaller } from '../../compartido/reglas-taller';
+import { MensajesService } from '../mensajes/mensajes.service';
 import { ConfiguracionTallerService, NivelManoObra } from './configuracion.service';
 
 /** J9 · Configuración del taller: tabulador de mano de obra, tiempos, garantía y bodega. */
@@ -14,6 +15,8 @@ import { ConfiguracionTallerService, NivelManoObra } from './configuracion.servi
 export class ConfiguracionComponent {
   private readonly servicio = inject(ConfiguracionTallerService);
   private readonly jefe = inject(AuthService).sesion()?.nombre ?? '';
+  /** Respuestas rápidas del chat (J11.2): se guardan al escribir. */
+  protected readonly mensajes = inject(MensajesService);
 
   protected readonly dinero = formatearDinero;
   protected readonly opcionesSla = [12, 24, 48, 72];

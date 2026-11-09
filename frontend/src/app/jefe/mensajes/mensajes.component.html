@@ -1,0 +1,73 @@
+<div class="mensajes" [class.mensajes--chat]="conversacion()">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Mensajes de clientes</h1>
+      <p class="encabezado-pagina__subtitulo">Los clientes te escriben desde el botón Contactar de su portal. Tus respuestas les llegan ahí mismo, en su chat.</p>
+    </div>
+    <label class="interruptor" [class.interruptor--apagado]="!servicio.disponible()">
+      <span>{{ servicio.disponible() ? 'Disponible hoy' : 'No disponible hoy' }}</span>
+      <input type="checkbox" role="switch" [checked]="servicio.disponible()" (change)="servicio.disponible.set($any($event.target).checked)" />
+    </label>
+  </header>
+
+  @if (!servicio.disponible()) {
+    <p class="aviso aviso--advertencia no-disponible" role="status">
+      <img src="assets/inventario/alert-advertencia.svg" width="16" height="16" alt="" />
+      <span><strong>Modo “no disponible hoy” activado</strong><br />Los clientes que te escriban verán: “{{ jefe }} no está disponible hoy. Tu mensaje quedó guardado y te responderá mañana a partir de las 9:00.”</span>
+    </p>
+  }
+
+  <div class="bandeja">
+    <section class="conversaciones" aria-label="Conversaciones">
+      <div class="conversaciones__cabeza">
+        <label class="buscar">
+          <img src="assets/inventario/search.svg" width="16" height="16" alt="" />
+          <input type="search" autocomplete="off" placeholder="Buscar por cliente o folio" aria-label="Buscar conversación" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+        </label>
+        <nav class="pestanas" aria-label="Filtro">
+          @for (p of pestanas(); track p.id) {
+            <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" (click)="vista.set(p.id)">{{ p.texto }}</button>
+          }
+        </nav>
+      </div>
+      <ul class="lista">
+        @for (f of lista(); track f.conversacion.folio) {
+          <li>
+            <button type="button" class="item" [class.item--elegido]="f.conversacion.folio === folio()" (click)="abrir(f.conversacion)">
+              <span class="avatar-chat" aria-hidden="true">{{ f.iniciales }}</span>
+              <span class="item__texto">
+                <span class="item__fila"><strong>{{ f.conversacion.cliente }}</strong><small>{{ f.cuando }}</small></span>
+                <span class="item__folio">{{ f.conversacion.folio }} · {{ f.equipo }}</span>
+                <span class="item__fila"><span class="item__vista" [class.item__vista--nueva]="f.pendientes">{{ f.vista }}</span>
+                  @if (f.pendientes) {
+                    <span class="item__insignia" [attr.aria-label]="f.pendientes + ' sin leer'">{{ f.pendientes }}</span>
+                  }
+                </span>
+              </span>
+            </button>
+          </li>
+        } @empty {
+          <li class="lista__vacia">{{ vista() === 'sin-responder' ? 'No hay mensajes sin responder.' : 'Sin conversaciones.' }}</li>
+        }
+      </ul>
+    </section>
+
+    @if (conversacion(); as c) {
+      <app-chat class="chat" [conversacion]="c" [orden]="orden()" (volver)="volver()" />
+      @if (orden(); as o) {
+        <app-resumen-orden class="resumen" [orden]="o" />
+      }
+    } @else {
+      <section class="vacio">
+        <span class="vacio__icono"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span></span>
+        @if (servicio.sinResponder().length) {
+          <h2>Elige una conversación</h2>
+          <p>Tienes {{ servicio.sinResponder().length }} {{ servicio.sinResponder().length === 1 ? 'mensaje' : 'mensajes' }} sin responder.</p>
+        } @else {
+          <h2>Todo respondido</h2>
+          <p>No tienes mensajes pendientes. Cuando un cliente escriba desde su portal, aparecerá aquí y te avisaremos con la campana.</p>
+        }
+      </section>
+    }
+  </div>
+</div>

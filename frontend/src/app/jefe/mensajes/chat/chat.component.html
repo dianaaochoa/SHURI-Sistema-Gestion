@@ -1,0 +1,55 @@
+<section class="chat" aria-label="Conversación">
+  <header class="cabeza">
+    <button type="button" class="cabeza__volver" aria-label="Volver a las conversaciones" (click)="volver.emit()"><img src="assets/iconos/undo.svg" width="18" height="18" alt="" /></button>
+    <span class="avatar-chat" aria-hidden="true">{{ iniciales() }}</span>
+    <span class="cabeza__texto"><strong>{{ conversacion().cliente }}</strong><span>{{ subtitulo() }}</span></span>
+    <button type="button" class="boton boton--contorno boton--40 resuelto" (click)="servicio.alternarResuelta(conversacion().folio)">
+      @if (conversacion().resuelta) {
+        Reabrir
+      } @else {
+        <img src="assets/pdv/check-primario.svg" width="16" height="16" alt="" />Resuelto
+      }
+    </button>
+  </header>
+
+  @if (estado(); as e) {
+    <div class="tira">
+      <span class="estado estado--{{ e.tono }}">{{ e.texto }}</span>
+      @if (accion(); as a) {
+        <a class="tira__enlace" [routerLink]="a.ruta" [queryParams]="a.consulta">{{ a.texto }}</a>
+      }
+    </div>
+  }
+
+  <div class="mensajes" #lista>
+    @for (m of renglones(); track $index) {
+      @if (m.separador) {
+        <p class="separador"><span>{{ m.separador }}</span></p>
+      }
+      @switch (m.de) {
+        @case ('estado') {
+          <div class="tarjeta-estado">
+            <strong><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Estado compartido con el cliente</strong>
+            <span class="estado estado--{{ m.tono }}">{{ m.texto }}</span>
+            <small>Compartido con {{ nombre() }} a las {{ m.hora }}</small>
+          </div>
+        }
+        @case ('foto') {
+          <div class="burbuja burbuja--jefe burbuja--foto">
+            <span class="foto-vacia"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
+            <span>{{ m.texto }}</span>
+            <small>{{ m.hora }} · {{ m.leido ? 'Leído' : 'Enviado' }}</small>
+          </div>
+        }
+        @default {
+          <div class="burbuja" [class.burbuja--jefe]="m.de === 'jefe'">
+            <span>{{ m.texto }}</span>
+            <small>{{ m.hora }}{{ m.de === 'jefe' ? (m.leido ? ' · Leído' : ' · Enviado') : '' }}</small>
+          </div>
+        }
+      }
+    }
+  </div>
+
+  <app-redactar [nombre]="nombre()" [puedeCompartir]="!!estado()" (enviar)="enviar($event)" (compartir)="compartirEstado()" (foto)="enviarFoto()" />
+</section>

@@ -32,8 +32,8 @@
           >
             <span class="icono" [style.--icono]="'url(assets/menu/' + destino.icono + '.svg)'"></span>
             <span class="destino__etiqueta">{{ destino.etiqueta }}</span>
-            @if (destino.insignia) {
-              <span class="destino__insignia" [attr.aria-label]="destino.insignia + ' sin responder'">{{ destino.insignia }}</span>
+            @if (insignia(destino); as n) {
+              <span class="destino__insignia" [attr.aria-label]="n + ' sin responder'">{{ n }}</span>
             }
           </a>
         }

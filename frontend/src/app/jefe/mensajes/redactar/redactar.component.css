@@ -1,0 +1,31 @@
+.redactar { display: flex; flex-direction: column; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--color-borde); }
+.icono { width: 16px; height: 16px; }
+.atajos { display: flex; flex-wrap: wrap; gap: 8px; }
+.atajo { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); font: inherit; font-size: 13px; font-weight: 600; color: var(--color-marino); cursor: pointer; }
+.atajo:hover:not(:disabled), .atajo--activo { border-color: var(--color-primario); background: var(--color-primario-suave); }
+.atajo:disabled { opacity: 0.5; cursor: not-allowed; }
+.rapidas { position: relative; }
+.rapidas__menu { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 5; width: min(440px, 80vw); padding: 6px 0; }
+.rapidas__titulo { padding: 8px 16px; font-size: 10px; font-weight: 600; color: var(--color-texto-tenue); }
+.rapida { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 8px 16px; border: 0; background: none; font: inherit; font-size: 11px; text-align: left; color: var(--color-texto-tenue); cursor: pointer; }
+.rapida:hover { background: var(--color-primario-suave); }
+.rapida strong { font-size: 13px; font-weight: 600; color: var(--color-marino); }
+.rapidas__editar { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 10px 16px 6px; border-top: 1px solid var(--color-borde); font-size: 13px; font-weight: 600; color: var(--color-primario); text-decoration: none; }
+.chips { display: none; }
+.escribir { display: flex; align-items: center; gap: 8px; }
+.escribir__foto { display: none; }
+textarea { flex: 1; min-width: 0; height: 40px; padding: 10px 14px; border: 0; border-radius: 8px; background: var(--color-fondo); font: inherit; font-size: 14px; color: var(--color-marino); resize: none; }
+textarea:focus { outline: 2px solid var(--color-primario-suave); }
+
+/* J11.4 · celular: chips, cámara y botón redondo */
+@media (max-width: 768px) {
+  .redactar { padding: 10px 12px; }
+  .atajos { display: none; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; }
+  .chip { flex-shrink: 0; padding: 6px 12px; border: 1px solid var(--color-primario); border-radius: 999px; background: var(--color-superficie); font: inherit; font-size: 12px; font-weight: 600; color: var(--color-primario); }
+  .escribir__foto { display: flex; padding: 6px; border: 0; background: none; color: var(--color-texto-tenue); cursor: pointer; }
+  .escribir__foto .icono { width: 20px; height: 20px; }
+  textarea { border-radius: 999px; }
+  .enviar { width: 40px; padding: 0; border-radius: 999px; }
+  .enviar__texto { display: none; }
+}

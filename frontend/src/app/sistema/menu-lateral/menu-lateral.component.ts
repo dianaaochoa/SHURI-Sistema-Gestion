@@ -4,7 +4,8 @@ import { AuthService } from '../../acceso/auth.service';
 import { CajaService } from '../../cajera/caja.service';
 import { SalirConTurnoComponent } from '../../cajera/salir-con-turno/salir-con-turno.component';
 import { MenuUsuarioComponent } from '../menu-usuario/menu-usuario.component';
-import { NAVEGACION, iniciales } from '../navegacion';
+import { DestinoMenu, NAVEGACION, iniciales } from '../navegacion';
+import { MensajesService } from '../../jefe/mensajes/mensajes.service';
 import { NotificacionesService } from '../notificaciones.service';
 import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-notificaciones.component';
 
@@ -33,6 +34,12 @@ export class MenuLateralComponent {
   protected readonly notificaciones = inject(NotificacionesService);
 
   private readonly caja = inject(CajaService);
+  private readonly mensajes = inject(MensajesService);
+
+  /** Mensajes del jefe: conversaciones sin responder (J11); los demás destinos, su número fijo. */
+  protected insignia(d: DestinoMenu): number {
+    return d.ruta === 'mensajes' && this.sesion()?.rol === 'jefe-tecnicos' ? this.mensajes.sinResponder().length : (d.insignia ?? 0);
+  }
 
   protected readonly sesion = this.auth.sesion;
   protected readonly navegacion = computed(() => NAVEGACION[this.sesion()?.rol ?? 'cajera']);

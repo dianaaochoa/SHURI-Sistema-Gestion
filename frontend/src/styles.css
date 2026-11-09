@@ -822,3 +822,13 @@ input {
 }
 
 .foto-vacia .icono { width: 16px; height: 16px; }
+
+/* ---------- Interruptor (Figma J11 "Disponible hoy") ---------- */
+
+.interruptor { display: flex; flex-shrink: 0; align-items: center; gap: 10px; padding: 6px 8px 6px 12px; border: 1px solid var(--color-borde); border-radius: 999px; background: var(--color-superficie); font-size: 13px; font-weight: 600; color: var(--color-exito); cursor: pointer; }
+.interruptor--apagado { color: var(--color-texto-tenue); }
+.interruptor input { appearance: none; position: relative; width: 36px; height: 20px; margin: 0; border-radius: 999px; background: var(--color-borde); cursor: pointer; transition: background 0.15s; }
+.interruptor input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: var(--color-superficie); transition: transform 0.15s; }
+.interruptor input:checked { background: var(--color-exito); }
+.interruptor input:checked::after { transform: translateX(16px); }
+.interruptor input:focus-visible { outline: 2px solid var(--color-acento); outline-offset: 2px; }

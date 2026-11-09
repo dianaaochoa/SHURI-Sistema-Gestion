@@ -153,6 +153,17 @@
         </label>
       </section>
 
+      <section class="panel" id="respuestas-rapidas" aria-labelledby="titulo-rapidas">
+        <h2 class="panel__titulo" id="titulo-rapidas"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Respuestas rápidas del chat</h2>
+        <p class="nota">Las usas en Mensajes (J11). Se guardan al escribir.</p>
+        @for (r of mensajes.rapidas(); track i; let i = $index) {
+          <div class="rapida">
+            <input class="entrada" type="text" [attr.aria-label]="'Título de la respuesta ' + (i + 1)" [value]="r.titulo" (input)="mensajes.cambiarRapida(i, 'titulo', $any($event.target).value)" />
+            <textarea class="entrada entrada--texto" rows="2" [attr.aria-label]="'Texto de la respuesta ' + (i + 1)" [value]="r.texto" (input)="mensajes.cambiarRapida(i, 'texto', $any($event.target).value)"></textarea>
+          </div>
+        }
+      </section>
+
       <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>El administrador también puede cambiar estos valores (AD9.4). Cada cambio queda en la bitácora y se refleja en las cláusulas.</p>
     </div>
   </div>

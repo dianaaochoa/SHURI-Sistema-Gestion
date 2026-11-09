@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { NAVEGACION } from '../navegacion';
+import { MensajesService } from '../../jefe/mensajes/mensajes.service';
 
 /** Figma J10: los seis destinos del jefe que van abajo en celular (el resto sigue en el cajón). */
 const DESTINOS = [
@@ -48,9 +48,9 @@ const DESTINOS = [
 })
 export class NavegacionMovilComponent {
   protected readonly destinos = DESTINOS;
-  private readonly insignias = new Map(NAVEGACION['jefe-tecnicos'].grupos.flatMap((g) => g.destinos).map((d) => [d.ruta, d.insignia ?? 0]));
+  private readonly mensajes = inject(MensajesService);
 
   protected insignia(ruta: string): number {
-    return this.insignias.get(ruta) ?? 0;
+    return ruta === 'mensajes' ? this.mensajes.sinResponder().length : 0;
   }
 }
