@@ -1,6 +1,6 @@
 /**
  * Datos de prueba del jefe de técnicos para lo que todavía no tiene módulo:
- * mensajes de clientes (J11), preguntas de los técnicos y solicitudes de refacción (J5).
+ * mensajes de clientes (J11) y preguntas de los técnicos. Las solicitudes de refacción viven en `RefaccionesService` (J5).
  * Se reemplazan por la API cuando existan esas pantallas.
  */
 
@@ -22,13 +22,6 @@ export interface PreguntaTecnico {
   fecha: string;
 }
 
-export interface SolicitudRefaccion {
-  folio: string;
-  equipo: string;
-  pieza: string;
-  tecnico: string;
-  fecha: string;
-}
 
 /** Figma J1.1 y el contador “2” de Mensajes en el menú. */
 export const MENSAJES_SIN_RESPONDER: MensajeCliente[] = [
@@ -38,10 +31,4 @@ export const MENSAJES_SIN_RESPONDER: MensajeCliente[] = [
 
 export const PREGUNTAS_TECNICOS: PreguntaTecnico[] = [
   { folio: '#1029', tecnico: 'Carlos', asunto: 'necesita un dato del cliente', detalle: 'El PIN no desbloquea el equipo · orden en pausa', fecha: haceMin(20) },
-];
-
-/** Figma J1.1 “Refacciones · 2 solicitudes pendientes” y J1.2 “Pedir”. */
-export const SOLICITUDES_REFACCION: SolicitudRefaccion[] = [
-  { folio: '#1043', equipo: 'iPhone 14', pieza: 'Batería y flex de carga (sin stock)', tecnico: 'Carlos', fecha: haceMin(25) },
-  { folio: '#1034', equipo: 'Samsung A54', pieza: 'Batería Samsung A54', tecnico: 'Luis', fecha: haceMin(70) },
 ];

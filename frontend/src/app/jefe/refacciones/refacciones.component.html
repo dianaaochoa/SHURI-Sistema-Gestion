@@ -1,0 +1,176 @@
+<div class="lista-pagina">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Refacciones</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo() }}</p>
+    </div>
+    @if (vista() === 'pedidos') {
+      <button type="button" class="boton boton--primario boton--40" (click)="nuevoPedido.set(true)"><span class="icono icono--16" style="--icono: url(assets/pdv/plus.svg)"></span>Nuevo pedido</button>
+    } @else {
+      <button type="button" class="boton boton--contorno boton--40" (click)="nuevoPedido.set(true)"><span class="icono icono--16" style="--icono: url(assets/menu/cart.svg)"></span>Pedido a proveedor</button>
+    }
+  </header>
+
+  <section class="indicadores" aria-label="Resumen">
+    @for (i of indicadores(); track i.titulo) {
+      <button type="button" class="indicador indicador--boton" (click)="elegir(i.vista)">
+        <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+        <span>
+          <span class="indicador__titulo">{{ i.titulo }}</span>
+          <span class="indicador__detalle">{{ i.detalle }}</span>
+        </span>
+      </button>
+    }
+  </section>
+
+  <nav class="pestanas" aria-label="Vistas">
+    @for (p of pestanas(); track p.id) {
+      <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" [attr.aria-current]="p.id === vista() ? 'page' : null" (click)="elegir(p.id)">{{ p.texto }}</button>
+    }
+  </nav>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  @switch (vista()) {
+    @case ('solicitudes') {
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr><th>Solicitud</th><th>Orden</th><th class="t-tecnico">Técnico</th><th>Refacción</th><th class="t-equipo">Cant.</th><th>Stock</th><th class="t-estado">Urgencia</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            @for (f of filasSolicitud(); track f.id) {
+              <tr class="fija">
+                <td class="t-folio">{{ f.id }}</td>
+                <td>{{ f.orden }}</td>
+                <td class="t-tecnico">{{ f.tecnico }}</td>
+                <td class="t-detalle">{{ f.pieza }}</td>
+                <td class="t-equipo">{{ f.cantidad }}</td>
+                <td><span class="estado estado--{{ f.stock.tono }}">{{ f.stock.texto }}</span></td>
+                <td class="t-estado"><span class="estado estado--{{ f.urgencia.tono }}">{{ f.urgencia.texto }}</span></td>
+                <td class="acciones">
+                  @if (f.devolucion; as d) {
+                    <button type="button" class="enlace-accion" (click)="recibiendo.set(d)">Recibir devolución</button>
+                  } @else {
+                    @if (f.solicitud; as s) {
+                      @if (f.conStock) {
+                        <button type="button" class="enlace-accion" (click)="entregar(s)">Entregar</button>
+                        <button type="button" class="enlace-accion enlace-accion--tenue" (click)="rechazar(s)">Rechazar</button>
+                      } @else {
+                        <button type="button" class="enlace-accion" (click)="pidiendo.set(s)">{{ s.siAprueba ? 'Pedir si aprueba' : 'Pedir a proveedor' }}</button>
+                      }
+                    }
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr><td class="vacio" colspan="8">Los técnicos no tienen solicitudes pendientes.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>Al entregar, la pieza se descuenta del inventario y se carga a la orden. El técnico recibe el aviso en su banco.</p>
+    }
+    @case ('pedidos') {
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr><th>Pedido</th><th class="t-tecnico">Proveedor</th><th>Piezas</th><th class="t-equipo">Para orden</th><th class="t-original">Pago</th><th class="t-tiempo">Llega</th><th>Estado</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            @for (f of filasPedido(); track f.folio) {
+              <tr class="fija">
+                <td class="t-folio">{{ f.folio }}</td>
+                <td class="t-tecnico">{{ f.proveedor }}</td>
+                <td class="t-detalle">{{ f.piezas }}</td>
+                <td class="t-equipo">{{ f.ordenes }}</td>
+                <td class="t-original">{{ f.pago }}</td>
+                <td class="t-tiempo">{{ f.llega }}</td>
+                <td><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
+                <td><button type="button" class="enlace-accion" (click)="accionPedido(f)">{{ f.accion }}</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <section class="panel" aria-labelledby="titulo-pasos">
+        <h2 class="panel__titulo" id="titulo-pasos"><span class="icono icono--16 primario" style="--icono: url(assets/menu/list.svg)"></span>Cómo se completa un pedido</h2>
+        <ol class="pasos">
+          @for (p of pasos; track p.titulo; let i = $index) {
+            <li class="paso"><span class="paso__numero">{{ i + 1 }}</span><span class="paso__texto"><strong>{{ p.titulo }}</strong><span>{{ p.detalle }}</span></span></li>
+          }
+        </ol>
+      </section>
+    }
+    @case ('devoluciones') {
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr><th>Folio</th><th>Orden</th><th class="t-tecnico">Técnico</th><th>Refacción</th><th class="t-estado">Según el técnico</th><th>Estado</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            @for (d of devoluciones(); track d.id) {
+              <tr class="fija">
+                <td class="t-folio">{{ d.id }}</td>
+                <td>{{ d.orden }}</td>
+                <td class="t-tecnico">{{ d.tecnico }}</td>
+                <td class="t-detalle">{{ d.nombre }} · {{ d.motivo }}</td>
+                <td class="t-estado">{{ estadosPieza[d.segunTecnico].texto }}</td>
+                <td>
+                  @if (d.recibida; as r) {
+                    <span class="estado estado--{{ estadosPieza[r.estado].tono }}">Recibida · {{ estadosPieza[r.estado].texto.toLowerCase() }}</span>
+                  } @else {
+                    <span class="estado estado--advertencia">Por recibir</span>
+                  }
+                </td>
+                <td>
+                  @if (!d.recibida) {
+                    <button type="button" class="enlace-accion" (click)="recibiendo.set(d)">Recibir devolución</button>
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr><td class="vacio" colspan="7">No hay devoluciones.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    @default {
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr><th>Fecha</th><th>Folio</th><th>Movimiento</th><th class="t-tecnico">Hizo</th></tr>
+          </thead>
+          <tbody>
+            @for (e of historial(); track $index) {
+              <tr class="fija">
+                <td class="t-fecha">{{ e.cuando }}</td>
+                <td class="t-folio">{{ e.folio }}</td>
+                <td class="t-detalle">{{ e.texto }}</td>
+                <td class="t-tecnico">{{ e.por }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+@if (pidiendo(); as s) {
+  <app-pedir-solicitud [solicitud]="s" (cerrar)="pidiendo.set(null)" (registrado)="terminado($event)" />
+}
+@if (recibiendo(); as d) {
+  <app-recibir-devolucion [devolucion]="d" (cerrar)="recibiendo.set(null)" (recibida)="terminado($event)" />
+}
+@if (nuevoPedido()) {
+  <app-nuevo-pedido (cerrar)="nuevoPedido.set(false)" (registrado)="terminado($event)" />
+}
+@if (viendo(); as f) {
+  <app-ver-pedido [pedido]="f.pedido" [estado]="f.estado" (cerrar)="viendo.set(null)" />
+}

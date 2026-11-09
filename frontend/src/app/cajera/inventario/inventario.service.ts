@@ -105,6 +105,38 @@ export class InventarioService {
     return this.pedidos().find((p) => p.lineas.some((l) => l.sku === sku))?.llega ?? null;
   }
 
+  // ---------- Pedidos y piezas del taller (J5) ----------
+  /** Folio que tendrá el siguiente pedido (sigue a los pedidos pendientes y a los ya recibidos). */
+  siguientePedido(): string {
+    const folios = [...this.pedidos().map((p) => p.folio), ...this.entradas().map((e) => e.pedido ?? '')].filter((f) => f.startsWith('PED-'));
+    return `PED-${String(Math.max(124, ...folios.map((f) => Number(f.slice(4)))) + 1).padStart(4, '0')}`;
+  }
+
+  /** J5.2 / J5.5 · El jefe registra un pedido; caja lo verá en "Pedidos por recibir" (C7.5). */
+  registrarPedido(datos: Omit<Pedido, 'folio' | 'creado'>): Pedido {
+    const pedido: Pedido = { ...datos, folio: this.siguientePedido(), creado: new Date().toISOString() };
+    this.pedidos.update((lista) => [...lista, pedido]);
+    return pedido;
+  }
+
+  /** J5.1 · Entrega piezas al técnico: salen del stock y se libera lo apartado para esa orden. */
+  surtir(sku: string, cantidad: number, folio: string): void {
+    this.productos.update((lista) =>
+      lista.map((p) => {
+        if (p.sku !== sku) return p;
+        const apartados = p.apartados
+          .map((a) => (a.folio === folio ? { ...a, cantidad: a.cantidad - cantidad } : a))
+          .filter((a) => a.cantidad > 0);
+        return { ...p, stock: Math.max(0, p.stock - cantidad), apartados };
+      }),
+    );
+  }
+
+  /** J5.3 · Una pieza que regresa del taller vuelve al stock. */
+  devolver(sku: string, cantidad: number): void {
+    this.productos.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, stock: p.stock + cantidad } : p)));
+  }
+
   // ---------- Alta y edición (C7.1) ----------
   guardar(producto: ProductoInventario, skuOriginal: string | null): void {
     this.productos.update((lista) =>

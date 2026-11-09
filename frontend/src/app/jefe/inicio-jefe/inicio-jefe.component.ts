@@ -5,7 +5,8 @@ import { saludoDelDia } from '../../compartido/formato';
 import { EstadoOrden, OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { etapaGarantia, recomendacion } from '../garantias/garantia';
 import { SLA_DIAGNOSTICO_H, atrasada, etapaDe, horasDesde } from '../etapas';
-import { MENSAJES_SIN_RESPONDER, PREGUNTAS_TECNICOS, SOLICITUDES_REFACCION } from '../jefe.datos';
+import { MENSAJES_SIN_RESPONDER, PREGUNTAS_TECNICOS } from '../jefe.datos';
+import { RefaccionesService } from '../refacciones/refacciones.service';
 
 /** En el taller: recibidas y no entregadas (sin contar las vencidas ni las de bodega). */
 const EN_TALLER: EstadoOrden[] = ['por-cotizar', 'por-aprobar', 'adicional', 'en-taller', 'esperando-refaccion', 'en-garantia', 'lista', 'garantia-lista', 'sin-reparacion'];
@@ -42,6 +43,7 @@ const esHoy = (iso?: string) => !!iso && new Date(iso).toDateString() === new Da
 })
 export class InicioJefeComponent {
   private readonly ordenes = inject(OrdenesService).ordenes;
+  private readonly refacciones = inject(RefaccionesService);
   private readonly nombre = (inject(AuthService).sesion()?.nombre ?? '').split(' ')[0];
 
   protected readonly saludo = `${saludoDelDia(new Date())}, ${this.nombre}`;
@@ -65,7 +67,7 @@ export class InicioJefeComponent {
     { valor: this.enTaller().length, tono: '', titulo: 'Órdenes abiertas', detalle: 'En el taller', ruta: 'tablero-de-ordenes' },
     { valor: this.porCotizar().length, tono: 'peligro', titulo: 'Por cotizar', detalle: this.atrasadas().length ? `${this.atrasadas().length} fuera de tiempo` : 'Todas a tiempo', ruta: 'por-cotizar' },
     { valor: this.garantias().length, tono: 'advertencia', titulo: 'Garantías', detalle: 'Esperan tu dictamen', ruta: 'garantias' },
-    { valor: SOLICITUDES_REFACCION.length, tono: 'primario', titulo: 'Refacciones', detalle: 'Solicitudes pendientes', ruta: 'refacciones' },
+    { valor: this.refacciones.pendientes().length, tono: 'primario', titulo: 'Refacciones', detalle: 'Solicitudes pendientes', ruta: 'refacciones' },
     { valor: this.ordenes().filter((o) => o.estado === 'lista' || o.estado === 'garantia-lista').length, tono: 'exito', titulo: 'Listos', detalle: 'Para entregar', ruta: 'equipos-terminados' },
   ]);
 
@@ -109,10 +111,15 @@ export class InicioJefeComponent {
       icono: 'menu/users', tono: 'neutro' as Tono, titulo: `${o.folio} · ${o.equipo} · Recibido`,
       detalle: `Sin técnico asignado desde ${hace(o.recibido)}`, accion: 'Asignar', ruta: 'tablero-de-ordenes', folio: o.folio,
     })),
-    ...SOLICITUDES_REFACCION.slice(0, 1).map((s) => ({
-      icono: 'menu/package', tono: 'advertencia' as Tono, titulo: `${s.folio} · ${s.equipo} · Refacción`,
-      detalle: `${s.tecnico} pidió ${s.pieza.charAt(0).toLowerCase()}${s.pieza.slice(1)} · ${hace(s.fecha)}`, accion: 'Pedir', ruta: 'refacciones', folio: s.folio,
-    })),
+    // La primera pieza sin stock que pidió un técnico (Figma J1.1 "Pedir").
+    ...this.refacciones
+      .pendientes()
+      .filter((s) => !s.siAprueba && this.refacciones.enStock(s) < s.cantidad)
+      .slice(0, 1)
+      .map((s) => ({
+        icono: 'menu/package', tono: 'advertencia' as Tono, titulo: `${s.orden} · ${s.nombre} · Refacción`,
+        detalle: `${s.tecnico.split(' ')[0]} la pidió (${s.id}) · sin stock · ${hace(s.fecha)}`, accion: 'Pedir', ruta: 'refacciones', folio: s.orden,
+      })),
   ]);
 
   /** Carga por técnico: órdenes en el taller de cada uno, la que trae en curso o en pausa. */

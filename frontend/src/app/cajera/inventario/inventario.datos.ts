@@ -65,6 +65,10 @@ export const PRODUCTOS_DEMO: ProductoInventario[] = [
   p({ sku: 'ACC-052', nombre: 'Funda uso rudo transparente', categoria: 'Accesorios', proveedor: 'Importadora Celular GDL', codigoBarras: '7501000000526', costo: 70, precio: 200, stock: 18, minimo: 6, foto: foto(7) }),
   p({ sku: 'REF-IP11-BAT', nombre: 'Batería iPhone 11', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000612', costo: 210, precio: 480, stock: 2, minimo: 3, foto: foto(3), ubicacion: 'Cajón R-3' }),
   p({ sku: 'REF-IP11-SEL', nombre: 'Kit de sellos iPhone 11', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000629', costo: 120, precio: 260, stock: 0, minimo: 0, foto: null, ubicacion: 'Cajón R-4' }),
+  // J5: piezas que piden los técnicos y no hay en stock, y la que regresa de una orden sin reparar.
+  p({ sku: 'REF-G84-USB', nombre: 'Conector de carga Moto G84', categoria: 'Refacciones', proveedor: 'Distribuidora MovilTec', codigoBarras: '7502000000810', costo: 95, precio: 260, stock: 0, minimo: 1, foto: null, ubicacion: 'Cajón R-4' }),
+  p({ sku: 'REF-S22-FCAM', nombre: 'Flex de cámara frontal S22 Ultra', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000827', costo: 160, precio: 380, stock: 0, minimo: 0, foto: null, ubicacion: 'Cajón R-4' }),
+  p({ sku: 'REF-P30-BAT', nombre: 'Batería Huawei P30', categoria: 'Refacciones', proveedor: 'Distribuidora MovilTec', codigoBarras: '7502000000834', costo: 230, precio: 520, stock: 0, minimo: 0, foto: null, ubicacion: 'Cajón R-3' }),
   p({ sku: 'REF-IP14-FLX', nombre: 'Conector flex batería iPhone 14', categoria: 'Refacciones', proveedor: 'Refacciones Móviles del Centro', codigoBarras: '7502000000711', costo: 180, precio: 400, stock: 0, minimo: 0, foto: null, ubicacion: 'Cajón R-4' }),
 ];
 
@@ -93,6 +97,10 @@ export interface Pedido {
   /** Fecha estimada de llegada (ISO). */
   llega: string;
   jefe: string;
+  /** J5.2 / J5.5: quién lo recibe, nota para caja y cuándo se hizo. */
+  recibe?: string;
+  nota?: string;
+  creado?: string;
 }
 
 // ---------- Entradas (C7.3 / C7.7) ----------
@@ -120,6 +128,8 @@ export interface Entrada {
   fotoFactura: boolean;
   /** Diferencia con lo facturado o lo pedido. */
   nota?: string;
+  /** Piezas del pedido que no llegaron (J5.4 "Recibido parcial"). */
+  faltan?: number;
 }
 
 // ---------- Ajustes (C7.4) ----------
@@ -170,7 +180,8 @@ export const ENTRADAS_DEMO: Entrada[] = [
   conTotales({
     folio: 'ENT-0054', fecha: haceDias(3, '09:15'), proveedor: 'Distribuidora MovilTec', documento: 'FAC-A-20918', pedido: 'PED-0121', pago: 'transferencia', recibio: 'Luis Peña', fotoFactura: true,
     lineas: [linea('REF-A54-BAT', 'Batería Samsung A54 5,000 mAh', 4, 205), linea('REF-S22-USB', 'Puerto USB-C Samsung S22 Ultra', 2, 310)],
-    nota: 'PED-0121 llegó incompleto (faltan 2 baterías A54). El jefe ya lo reclamó al proveedor.',
+    nota: 'PED-0121 llegó incompleto (faltan 2 baterías A54).',
+    faltan: 2,
   }),
   conTotales({
     folio: 'ENT-0053', fecha: haceDias(5, '16:30'), proveedor: 'Refacciones Móviles del Centro', documento: 'REM-8790', pedido: 'PED-0120', pago: 'efectivo', recibio: 'Luis Peña', fotoFactura: false,

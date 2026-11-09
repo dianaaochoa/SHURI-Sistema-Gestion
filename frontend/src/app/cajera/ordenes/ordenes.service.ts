@@ -1049,6 +1049,21 @@ export class OrdenesService {
     });
   }
 
+  /** Anota un evento en el historial de la orden (J5: piezas entregadas, pedidas o rechazadas). */
+  anotar(folio: string, texto: string): void {
+    this.actualizar(folio, (o) => ({ ...o, historial: [...o.historial, { fecha: ahoraIso(), texto }] }));
+  }
+
+  /** J5.2 · La orden en el taller se pausa hasta que llegue la refacción pedida. */
+  esperarRefaccion(folio: string, detalle: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) =>
+      o.estado === 'en-taller'
+        ? { ...o, estado: 'esperando-refaccion', pausa: { desde: ahora, motivo: 'Esperando refacción', detalle }, historial: [...o.historial, { fecha: ahora, texto: `En pausa: ${detalle}` }] }
+        : o,
+    );
+  }
+
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */
   avisar(folio: string, texto: string): void {
     this.actualizar(folio, (o) => ({ ...o, contactos: [...o.contactos, { fecha: ahoraIso(), texto }], historial: [...o.historial, { fecha: ahoraIso(), texto }] }));
