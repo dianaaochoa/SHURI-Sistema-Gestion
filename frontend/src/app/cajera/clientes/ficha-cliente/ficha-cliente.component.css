@@ -1,0 +1,29 @@
+:host { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.ficha__encabezado { display: flex; align-items: center; gap: 12px; }
+.ficha__avatar { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 999px; background: var(--color-primario-suave); font-size: 16px; font-weight: 600; color: var(--color-primario); }
+.ficha__nombre { font-size: 16px; font-weight: 700; color: var(--color-marino); }
+.ficha__desde { margin-top: 2px; font-size: 12px; color: var(--color-texto-tenue); }
+
+.contacto { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--color-marino); }
+.contacto li { display: flex; align-items: center; gap: 8px; }
+.contacto__nota { font-style: italic; color: var(--color-texto-tenue); }
+
+.portal { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 8px; background: var(--color-fondo); }
+h3 { font-size: 12px; font-weight: 600; color: var(--color-marino); }
+.renglon { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--color-texto-tenue); }
+.renglon strong { font-weight: 600; text-align: right; color: var(--color-marino); }
+.portal__acciones { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.portal__acciones button { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font: 600 12px var(--fuente); color: var(--color-primario); cursor: pointer; }
+.portal__acciones .icono { width: 14px; height: 14px; }
+.portal__sin { font-size: 12px; color: var(--color-texto-tenue); }
+
+.bloque { display: flex; flex-direction: column; gap: 8px; }
+.equipo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--color-borde); border-radius: 8px; text-decoration: none; }
+a.equipo:hover { border-color: var(--color-primario); }
+.equipo__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.equipo__texto strong { font-size: 13px; font-weight: 600; color: var(--color-marino); }
+.vacio { font-size: 12px; color: var(--color-texto-tenue); }
+
+.espacio { flex: 1; }
+.botones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.boton .icono { width: 16px; height: 16px; }

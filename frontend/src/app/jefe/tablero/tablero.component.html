@@ -1,0 +1,116 @@
+<div class="tablero" [class.tablero--sin-conexion]="!dispositivos.enLinea()">
+  @if (!dispositivos.enLinea()) {
+    <!-- J2.5 · Sin conexión -->
+    <div class="aviso aviso--error sin-conexion" role="alert">
+      <img src="assets/pdv/alert-peligro.svg" width="16" height="16" alt="" />
+      <span class="sin-conexion__texto">Sin conexión con el servidor. Reintentando… Lo que veas puede no estar actualizado y los cambios se guardarán al volver la conexión.</span>
+      <button type="button" class="sin-conexion__boton" (click)="dispositivos.reintentarConexion()">
+        <span class="icono" style="--icono: url(assets/pdv/refresh-primario.svg)"></span>Reintentar ahora
+      </button>
+    </div>
+  }
+
+  @if (orden(); as o) {
+    <app-orden-jefe [orden]="o" [aviso]="aviso()" (volver)="volver()" (reasignar)="asignando.set(o)" />
+  } @else {
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Tablero de órdenes</h1>
+        <p class="encabezado-pagina__subtitulo">Todas las órdenes del taller por etapa · SLA de diagnóstico: {{ sla }} h</p>
+      </div>
+      <button type="button" class="boton boton--contorno boton--40" [disabled]="!siguienteSinTecnico()" (click)="asignando.set(siguienteSinTecnico())">
+        <span class="icono" style="--icono: url(assets/menu/users.svg)"></span>Asignar técnico
+      </button>
+    </header>
+
+    <div class="herramientas">
+      <label class="campo__control campo__control--40 herramientas__buscar">
+        <img src="assets/inventario/search.svg" width="16" height="16" alt="" />
+        <input class="campo__input" type="search" autocomplete="off" placeholder="Buscar folio, cliente o equipo…" aria-label="Buscar orden" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+      </label>
+      <label class="campo__control campo__control--40 herramientas__filtro">
+        <select class="campo__input campo__select" aria-label="Técnico" (change)="tecnico.set($any($event.target).value)">
+          <option value="" [selected]="!tecnico()">Todos los técnicos</option>
+          @for (t of tecnicos; track t.iniciales) {
+            <option [value]="t.iniciales" [selected]="t.iniciales === tecnico()">{{ t.nombre }}</option>
+          }
+          <option value="sin" [selected]="tecnico() === 'sin'">Sin asignar</option>
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </label>
+      <label class="campo__control campo__control--40 herramientas__filtro">
+        <select class="campo__input campo__select" aria-label="Prioridad" (change)="prioridad.set($any($event.target).value)">
+          <option value="" [selected]="!prioridad()">Prioridad: todas</option>
+          @for (p of prioridades; track p[0]) {
+            <option [value]="p[0]" [selected]="p[0] === prioridad()">Prioridad: {{ p[1].texto.toLowerCase() }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </label>
+      <div class="herramientas__chips">
+        @if (atrasadas()) {
+          <button type="button" class="estado estado--peligro chip" [class.chip--activo]="filtro() === 'atrasadas'" [attr.aria-pressed]="filtro() === 'atrasadas'" (click)="alternarFiltro('atrasadas')">
+            {{ atrasadas() }} {{ atrasadas() === 1 ? 'atrasada' : 'atrasadas' }}
+          </button>
+        }
+        @if (enPausa()) {
+          <button type="button" class="estado estado--neutro chip" [class.chip--activo]="filtro() === 'pausa'" [attr.aria-pressed]="filtro() === 'pausa'" (click)="alternarFiltro('pausa')">
+            {{ enPausa() }} en pausa
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (aviso(); as mensaje) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+    }
+
+    <div class="columnas" [attr.aria-busy]="cargando()">
+      @for (c of columnas(); track c.id) {
+        <section class="columna" [attr.aria-label]="c.texto">
+          <h2 class="columna__titulo">
+            <span class="columna__punto" [style.background]="c.color"></span>{{ c.texto }}
+            <span class="columna__cuenta">{{ cargando() ? '–' : c.ordenes.length }}</span>
+          </h2>
+          @if (cargando()) {
+            <!-- J2.4 · Cargando -->
+            @for (n of [1, 2]; track n) {
+              <div class="tarjeta tarjeta--esqueleto" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            }
+          } @else {
+            @for (o of c.ordenes; track o.folio) {
+              <button type="button" class="tarjeta" [class.tarjeta--atrasada]="atrasada(o)" (click)="abrir(o)">
+                <span class="tarjeta__fila">
+                  <strong class="tarjeta__folio">{{ o.folio }}</strong>
+                  @if (prioridadDe(o); as p) {
+                    <span class="tarjeta__prioridad tono--{{ p.tono }}">{{ p.texto }}</span>
+                  }
+                  <span class="tarjeta__tiempo">{{ tiempo(o) }}</span>
+                </span>
+                <span class="tarjeta__equipo">{{ o.equipo }}</span>
+                <span class="tarjeta__cliente">{{ o.cliente.nombre }}</span>
+                <span class="tarjeta__nota">{{ nota(o) }}</span>
+                @if (c.id === 'recibido') {
+                  <span class="tarjeta__fila tarjeta__fila--pie"><span class="tono--advertencia">Sin asignar</span><span class="tono--info">Asignar</span></span>
+                } @else {
+                  <span class="tarjeta__fila tarjeta__fila--pie">
+                    <span class="avatar-chico" [attr.title]="o.tecnico.nombre">{{ o.tecnico.iniciales }}</span>
+                    @if (etiqueta(o); as e) {
+                      <span class="estado estado--{{ e.tono }}">{{ e.texto }}</span>
+                    }
+                  </span>
+                }
+              </button>
+            } @empty {
+              <p class="columna__vacia">Sin órdenes</p>
+            }
+          }
+        </section>
+      }
+    </div>
+  }
+</div>
+
+@if (asignando(); as o) {
+  <app-asignar-tecnico [orden]="o" (cerrar)="cerrarAsignacion()" (asignar)="asignado($event)" />
+}

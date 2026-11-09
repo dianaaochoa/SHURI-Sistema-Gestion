@@ -1,0 +1,110 @@
+.cobro {
+  max-width: 560px;
+}
+
+.cobro__total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--color-fondo);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto-secundario);
+}
+
+.cobro__total strong {
+  font-size: 32px;
+  color: var(--color-marino);
+}
+
+.cobro__fila {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Efectivo */
+.cambio {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--color-exito-suave);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-exito);
+}
+
+.cambio--falta {
+  background: var(--color-peligro-suave);
+  color: var(--color-peligro);
+}
+
+.montos {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.montos__boton {
+  height: 36px;
+  padding: 0 8px;
+}
+
+.aviso--info {
+  align-items: center;
+  background: var(--color-primario-suave);
+}
+
+/* Transferencia */
+.cuenta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.cuenta > div { flex: 1; }
+.cuenta .enlace { align-self: auto; }
+.cuenta__banco { font-size: 12px; color: var(--color-texto-tenue); }
+.cuenta__clabe { margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--color-marino); }
+
+.aviso--advertencia { align-items: center; }
+
+/* Pie */
+.cobro__separador {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-borde);
+}
+
+.cobro__opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.cobro__acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.cobro__acciones--rechazo { justify-content: flex-end; }
+.cobro__rfc { font-size: 11px; color: var(--color-texto-tenue); }
+.cobro__cancelar { width: 140px; }
+.cobro__confirmar { flex: 1; }
+
+@media (max-width: 560px) {
+  .montos { grid-template-columns: repeat(2, 1fr); }
+  .selector { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cobro__fila { grid-template-columns: 1fr; }
+  .cobro__total strong { font-size: 24px; }
+  .cobro__cancelar { width: auto; }
+}

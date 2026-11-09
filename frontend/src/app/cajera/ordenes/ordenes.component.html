@@ -1,0 +1,196 @@
+<div class="ordenes">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Órdenes de servicio</h1>
+      <p class="encabezado-pagina__subtitulo">
+        @if (enBodega()) {
+          Equipos que pasaron {{ diasParaRecoger }} días sin recoger desde el aviso de “Listo”.
+        } @else {
+          Todos los equipos recibidos en SHURI · Consulta el estado y atiende al cliente.
+        }
+      </p>
+    </div>
+    <div class="ordenes__acciones">
+      @if (enBodega()) {
+        <button type="button" class="boton boton--contorno boton--40" [disabled]="!vencidas().length" (click)="abrirBodega()">
+          <img src="assets/ordenes/bodega-primario.svg" width="16" height="16" alt="" />Enviar vencidos a bodega
+        </button>
+      }
+      <a class="boton boton--primario boton--40" routerLink="/cajera/nueva-orden">
+        <img src="assets/pdv/plus-blanco.svg" width="16" height="16" alt="" />Nueva orden
+      </a>
+    </div>
+  </header>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status">
+      <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}
+    </p>
+  }
+
+  <section class="indicadores" aria-label="Resumen de órdenes">
+    @if (enBodega()) {
+      <div class="indicador">
+        <span class="indicador__valor indicador__valor--conteo">{{ indicadoresBodega().bodega }}</span>
+        <div><p class="indicador__titulo">En bodega</p><p class="indicador__detalle">Ubicación: {{ indicadoresBodega().ubicacion }}</p></div>
+      </div>
+      <div class="indicador">
+        <span class="indicador__valor indicador__valor--conteo indicador__valor--peligro">{{ indicadoresBodega().vencidas }}</span>
+        <div><p class="indicador__titulo">Vencido por enviar</p><p class="indicador__detalle">Más de {{ diasParaRecoger }} días</p></div>
+      </div>
+      <div class="indicador">
+        <span class="indicador__valor indicador__valor--advertencia">{{ dinero(indicadoresBodega().saldo, true) }}</span>
+        <div><p class="indicador__titulo">Saldo pendiente</p><p class="indicador__detalle">De equipos en bodega</p></div>
+      </div>
+      <div class="indicador">
+        <span class="indicador__valor indicador__valor--conteo">{{ indicadoresBodega().avisados }}</span>
+        <div><p class="indicador__titulo">Avisados esta semana</p><p class="indicador__detalle">Recordatorio en el portal</p></div>
+      </div>
+    } @else {
+      <div class="indicador">
+        <span class="indicador__valor indicador__valor--conteo">{{ indicadores().activas }}</span>
+        <div><p class="indicador__titulo">Órdenes activas</p><p class="indicador__detalle">En taller ahora</p></div>
+      </div>
+      <button type="button" class="indicador indicador--boton" (click)="elegirFiltro('por-aprobar')">
+        <span class="indicador__valor indicador__valor--conteo indicador__valor--advertencia">{{ indicadores().porAprobar }}</span>
+        <div>
+          <p class="indicador__titulo">Por aprobar</p>
+          <p class="indicador__detalle">{{ indicadores().atrasadas }} con más de 7 días</p>
+        </div>
+      </button>
+      <button type="button" class="indicador indicador--boton" (click)="elegirFiltro('listas')">
+        <span class="indicador__valor indicador__valor--conteo indicador__valor--exito">{{ indicadores().listas }}</span>
+        <div><p class="indicador__titulo">Listas para entregar</p><p class="indicador__detalle">Recoger antes de {{ diasParaRecoger }} días</p></div>
+      </button>
+      <button type="button" class="indicador indicador--boton" (click)="elegirFiltro('bodega')">
+        <span class="indicador__valor indicador__valor--conteo indicador__valor--peligro">{{ indicadores().bodega }}</span>
+        <div><p class="indicador__titulo">En bodega</p><p class="indicador__detalle">Más de {{ diasParaRecoger }} días sin recoger</p></div>
+      </button>
+    }
+  </section>
+
+  <div class="herramientas">
+    <label class="campo__control campo__control--40 herramientas__buscar">
+      <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+      <input
+        class="campo__input"
+        type="search"
+        placeholder="Buscar folio, cliente, teléfono o IMEI"
+        aria-label="Buscar folio, cliente, teléfono o IMEI"
+        autocomplete="off"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+      />
+    </label>
+    <div class="chips" role="radiogroup" aria-label="Filtrar por estado">
+      @for (f of filtros; track f.id) {
+        <button type="button" role="radio" class="chip" [class.chip--activo]="filtro() === f.id" [attr.aria-checked]="filtro() === f.id" (click)="elegirFiltro(f.id)">
+          {{ f.texto }} · {{ conteos()[f.id] }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (seleccionada(); as orden) {
+    <div class="columnas">
+      <div class="lista" #tabla>
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Folio</th>
+              <th class="col-fecha">{{ enBodega() ? 'Listo desde' : 'Recibido' }}</th>
+              <th>Cliente</th>
+              <th class="col-equipo">Equipo</th>
+              <th class="col-tecnico">Téc.</th>
+              <th class="col-dias">Días</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of visibles(); track o.folio) {
+              <tr
+                tabindex="0"
+                [attr.data-folio]="o.folio"
+                [attr.aria-selected]="o.folio === orden.folio"
+                [class.tabla__fila--elegida]="o.folio === orden.folio"
+                (click)="elegir(o)"
+                (keydown.enter)="elegir(o)"
+                (keydown.arrowdown)="moverSeleccion($event, 1)"
+                (keydown.arrowup)="moverSeleccion($event, -1)"
+              >
+                <td class="col-folio">{{ o.folio }}</td>
+                <td class="col-fecha tenue">{{ fechaColumna(o) }}</td>
+                <td>{{ o.cliente.nombre }}</td>
+                <td class="col-equipo">{{ o.equipo }}</td>
+                <td class="col-tecnico tenue">{{ o.tecnico.iniciales }}</td>
+                <td class="col-dias tenue">{{ dias(o) }}</td>
+                <td><span class="estado estado--{{ o.estado === 'terminada' && etiqueta(o) !== 'Terminado' ? 'info' : estados[o.estado].tono }}">{{ etiqueta(o) }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-detalle-orden class="columnas__detalle" [orden]="orden" (accion)="ejecutar($event, orden)" />
+    </div>
+  } @else {
+    <!-- C4.9 · Sin resultados -->
+    <div class="sin-resultados">
+      <span class="sin-resultados__icono"><img src="assets/ordenes/search-primario.svg" width="24" height="24" alt="" /></span>
+      @if (busqueda().trim()) {
+        <p class="sin-resultados__titulo">No encontramos órdenes con “{{ busqueda().trim() }}”</p>
+        <p class="sin-resultados__texto">Revisa el folio, el nombre o el teléfono. También puedes buscar por IMEI o crear una orden nueva.</p>
+      } @else {
+        <p class="sin-resultados__titulo">No hay órdenes en este estado</p>
+        <p class="sin-resultados__texto">Cuando una orden llegue a este paso aparecerá aquí.</p>
+      }
+      <div class="sin-resultados__acciones">
+        @if (busqueda().trim() || filtro() !== 'todas') {
+          <button type="button" class="boton boton--contorno boton--32" (click)="limpiarBusqueda()">Ver todas</button>
+        }
+        <a class="boton boton--primario boton--32" routerLink="/cajera/nueva-orden">
+          <img src="assets/pdv/plus-blanco.svg" width="14" height="14" alt="" />Nueva orden
+        </a>
+      </div>
+    </div>
+  }
+</div>
+
+@switch (modal()) {
+  @case ('respuesta') {
+    @if (seleccionada(); as orden) {
+      <app-respuesta-cliente [orden]="orden" [cajera]="cajera" (cerrar)="modal.set(null)" (guardar)="guardarRespuesta(orden, $event)" />
+    }
+  }
+  @case ('garantia') {
+    @if (seleccionada(); as orden) {
+      <app-recibir-garantia [orden]="orden" (cerrar)="modal.set(null)" (registrada)="registrarGarantia(orden, $event)" />
+    }
+  }
+  @case ('nueva') {
+    <app-nueva-orden [folio]="folioNuevo()" [cajera]="cajera" [clienteInicial]="clienteNuevo" (cerrar)="cerrarNueva()" (registrar)="registrarOrden($event)" />
+  }
+  @case ('registrada') {
+    @if (registrada(); as r) {
+      <app-orden-registrada
+        [orden]="r.orden"
+        [contrasena]="r.contrasena"
+        [metodoAnticipo]="r.metodo"
+        [impreso]="r.impreso"
+        (reimprimir)="reimprimirRegistrada()"
+        (reenviar)="reenviarAcceso()"
+        (verEnOrdenes)="verEnOrdenes()"
+        (otra)="otraOrden()"
+      />
+    }
+  }
+  @case ('bodega') {
+    <app-enviar-bodega
+      [ordenes]="vencidas()"
+      [folioInicial]="folioParaBodega()"
+      [estanteSugerido]="siguienteEstante()"
+      (cerrar)="modal.set(null)"
+      (enviado)="enviarABodega($event)"
+    />
+  }
+}

@@ -1,0 +1,289 @@
+<article class="t hoja-impresion">
+  <header class="t-encabezado">
+    <p class="t-marca">{{ negocio.nombre }}</p>
+    <p class="t-lema">{{ negocio.lema }}</p>
+    <p class="t-dato">{{ negocio.direccion }}</p>
+    <p class="t-dato">{{ doc().tipo === 'venta' ? 'RFC ' + negocio.rfc + ' · ' + negocio.web : 'Dudas: chat en ' + negocio.web }}</p>
+  </header>
+
+  @if (doc(); as d) {
+    @if (d.tipo === 'venta') {
+      <section class="t-portada">
+        <p class="t-titulo">TICKET DE VENTA</p>
+        <p class="t-folio">{{ d.venta.folio }}</p>
+        <p class="t-dato">{{ fechaHora(d.venta.fecha) }} · Caja 01</p>
+        <p class="t-dato">Atendió: {{ d.venta.cajera }} · Cliente: {{ d.venta.cliente.nombre }}</p>
+      </section>
+      <section class="t-bloque">
+        @for (l of d.venta.lineas; track $index) {
+          <div class="t-articulo">
+            <p class="t-renglon"><span>{{ l.cantidad }} × {{ l.nombre }}</span><strong>{{ dinero(totalLinea(l)) }}</strong></p>
+            <p class="t-chico">{{ l.sku }} · {{ dinero(l.precio) }} c/u</p>
+            @if (l.descuento) {
+              <p class="t-chico">Descuento {{ l.descuento }} %: −{{ dinero(l.precio * l.cantidad - totalLinea(l)) }}</p>
+            }
+          </div>
+        }
+      </section>
+      @if (totales(); as t) {
+        <section class="t-bloque">
+          <p class="t-renglon"><span>Artículos</span><strong>{{ t.articulos }}</strong></p>
+          <p class="t-renglon"><span>Subtotal</span><strong>{{ dinero(t.subtotalLineas) }}</strong></p>
+          @if (t.descuentoVenta > 0) {
+            <p class="t-renglon"><span>Descuento a la venta</span><strong>{{ dinero(-t.descuentoVenta) }}</strong></p>
+          }
+          @if (t.descuento > 0) {
+            <p class="t-renglon"><span>Ahorro por descuentos</span><strong>{{ dinero(t.descuento) }}</strong></p>
+          }
+          <p class="t-renglon"><span>IVA 16 %</span><strong>{{ dinero(d.venta.iva) }}</strong></p>
+          <p class="t-renglon t-total"><span>TOTAL MXN</span><strong>{{ dinero(d.venta.total) }}</strong></p>
+          @switch (d.venta.metodo) {
+            @case ('efectivo') {
+              <p class="t-renglon"><span>Pago en efectivo</span><strong>{{ dinero(d.venta.recibido) }}</strong></p>
+              <p class="t-renglon"><span>Cambio</span><strong>{{ dinero(d.venta.cambio) }}</strong></p>
+            }
+            @case ('mixto') {
+              @for (p of d.venta.partes ?? []; track $index) {
+                <p class="t-renglon"><span>Pago con {{ metodos[p.metodo].toLowerCase() }}{{ p.referencia ? ' · ' + p.referencia : '' }}</span><strong>{{ dinero(p.monto ?? 0) }}</strong></p>
+              }
+              @if (d.venta.cambio > 0) {
+                <p class="t-renglon"><span>Cambio</span><strong>{{ dinero(d.venta.cambio) }}</strong></p>
+              }
+            }
+            @default {
+              <p class="t-renglon"><span>Pago con {{ metodos[d.venta.metodo].toLowerCase() }}</span><strong>{{ dinero(d.venta.total) }}</strong></p>
+              @if (d.venta.referencia) {
+                <p class="t-renglon"><span>{{ d.venta.metodo === 'tarjeta' ? 'Autorización' : 'Referencia' }}</span><strong>{{ d.venta.referencia }}</strong></p>
+              }
+            }
+          }
+        </section>
+      }
+      <section class="t-pie">
+        <p class="t-chico t-centro">Cambios y devoluciones: 7 días con este ticket y empaque original. Accesorios con 30 días de garantía por defecto de fábrica.</p>
+        <div class="t-qr" aria-label="Código QR">QR</div>
+        <p class="t-chico t-centro">Factura en {{ negocio.web }}/factura con tu folio {{ d.venta.folio }} (mismo mes de compra).</p>
+        <p class="t-gracias">¡Gracias por tu compra!</p>
+      </section>
+    }
+
+    @if (d.tipo === 'orden') {
+      <section class="t-portada">
+        <p class="t-titulo">ORDEN DE SERVICIO</p>
+        <p class="t-folio">Folio {{ d.orden.folio }}</p>
+        <p class="t-dato">{{ fechaHora(d.orden.recibido) }} · Caja 01 · {{ cajeraDe(d.orden) }}</p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">CLIENTE</p>
+        <p>{{ d.orden.cliente.nombre }}</p>
+        <p class="t-tenue">{{ d.orden.cliente.telefono }}{{ d.orden.cliente.correo ? ' · ' + d.orden.cliente.correo : '' }}</p>
+        <p class="t-seccion">EQUIPO</p>
+        <p>{{ equipoDe(d.orden) }}</p>
+        <p class="t-tenue">{{ colorDe(d.orden) ? 'Color ' + colorDe(d.orden) + ' · ' : '' }}IMEI {{ d.orden.imei }}</p>
+        <p class="t-tenue">Accesorios: {{ (d.orden.accesorios ?? 'ninguno').toLowerCase() }}</p>
+        <p class="t-seccion">FALLA REPORTADA</p>
+        <p>{{ d.orden.ficha?.falla ?? d.orden.trabajo }}</p>
+        @if (d.orden.ficha?.condicion) {
+          <p class="t-seccion">CONDICIÓN FÍSICA AL RECIBIR</p>
+          <p>{{ d.orden.ficha!.condicion }}</p>
+        }
+      </section>
+      <section class="t-bloque">
+        @if (d.orden.anticipo > 0) {
+          <p class="t-renglon t-total"><span>ANTICIPO</span><strong>{{ dinero(d.orden.anticipo) }}</strong></p>
+          <p class="t-renglon"><span>Método</span><strong>{{ metodo(d.orden.metodoAnticipo) }}</strong></p>
+          <p class="t-tenue">Se descuenta del total si autorizas la reparación.</p>
+        } @else {
+          <p class="t-renglon"><span>Anticipo</span><strong>Sin anticipo</strong></p>
+        }
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">SEGUIMIENTO EN LÍNEA</p>
+        <p>{{ negocio.web }}</p>
+        <p class="t-renglon"><span>Usuario</span><strong>{{ d.orden.cliente.correo ?? d.orden.cliente.telefono }}</strong></p>
+        <p class="t-renglon"><span>Contraseña temporal</span><strong>{{ d.orden.ficha?.contrasena ?? 'La de tu correo' }}</strong></p>
+        <div class="t-qr" aria-label="Código QR">QR</div>
+      </section>
+      <section class="t-pie">
+        <p class="t-chico">Recoge tu equipo dentro de los 30 días posteriores al aviso de “Listo”. Garantía de 30 días. Consulta las cláusulas completas en tu orden carta o en el portal.</p>
+        <p class="t-firma">Firma del cliente</p>
+      </section>
+    }
+
+    @if (d.tipo === 'entrega') {
+      <section class="t-portada">
+        <p class="t-titulo">COMPROBANTE DE ENTREGA</p>
+        <p class="t-folio">Folio {{ d.orden.folio }}</p>
+        <p class="t-dato">{{ fechaHora(d.orden.entrega?.fecha ?? d.orden.recibido) }} · {{ d.orden.entrega?.por ?? 'Caja 01' }}</p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">CLIENTE</p>
+        <p>{{ d.orden.cliente.nombre }} · {{ d.orden.cliente.telefono }}</p>
+        @if (d.orden.entrega?.recogio && d.orden.entrega!.recogio !== d.orden.cliente.nombre) {
+          <p class="t-tenue">Recogió: {{ d.orden.entrega!.recogio }} (con carta poder)</p>
+        }
+        <p class="t-seccion">EQUIPO</p>
+        <p>{{ d.orden.equipo }}{{ d.orden.ficha?.color ? ' · ' + d.orden.ficha!.color : '' }}</p>
+        <p class="t-tenue">IMEI {{ d.orden.imei }}</p>
+        <p class="t-tenue">Accesorios devueltos: {{ (d.orden.accesorios ?? 'ninguno').toLowerCase() }}</p>
+        <p class="t-seccion">{{ d.orden.estado === 'sin-reparar-entregada' ? 'SE DEVUELVE SIN REPARAR' : 'TRABAJO REALIZADO' }}</p>
+        <p>{{ d.orden.realizado ?? d.orden.trabajo }}</p>
+      </section>
+      <section class="t-bloque">
+        @if (d.orden.presupuesto && d.orden.estado !== 'sin-reparar-entregada') {
+          <p class="t-renglon"><span>Total del trabajo</span><strong>{{ dinero(d.orden.presupuesto.total) }}</strong></p>
+        }
+        @if (d.orden.anticipo > 0) {
+          <p class="t-renglon"><span>Anticipo ({{ diaMes(d.orden.recibido) }})</span><strong>{{ dinero(-d.orden.anticipo) }}</strong></p>
+        }
+        <p class="t-renglon t-total"><span>PAGADO HOY</span><strong>{{ dinero(d.orden.entrega?.cobrado ?? 0) }}</strong></p>
+        @if (d.orden.entrega?.cobrado) {
+          <p class="t-renglon"><span>Método</span><strong>{{ metodo(d.orden.entrega!.metodo) }}</strong></p>
+        }
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">GARANTÍA</p>
+        @if (d.orden.estado === 'sin-reparar-entregada') {
+          <p>Sin garantía: el equipo se entregó sin reparar.</p>
+        } @else if (d.orden.garantia) {
+          <p>Entrega tras revisión de garantía. La garantía original no se reinicia.</p>
+        } @else {
+          <p>{{ diasGarantia(d.orden) || 30 }} días: del {{ diaMes(d.orden.entrega?.fecha ?? d.orden.recibido) }} al {{ garantiaHasta(d.orden) }}. Cubre la falla y las piezas reparadas. Se solicita con este folio en el portal o en sucursal.</p>
+          <p class="t-tenue">No cubre golpes, humedad ni daños posteriores a la entrega.</p>
+        }
+      </section>
+      <section class="t-pie"><p class="t-firma">Recibí mi equipo a conformidad</p></section>
+    }
+
+    @if (d.tipo === 'devolucion') {
+      <section class="t-portada">
+        <p class="t-titulo">DEVOLUCIÓN DE MERCANCÍA</p>
+        <p class="t-folio">{{ folioDevolucion(d.venta, d.indice) }}</p>
+        <p class="t-dato">{{ fechaHora(d.venta.devoluciones[d.indice].fecha) }} · Atendió: {{ d.venta.cajera }}</p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-renglon"><span>Ticket original</span><strong>{{ d.venta.folio }} · {{ diaMes(d.venta.fecha) }}</strong></p>
+        <p class="t-renglon"><span>Cliente</span><strong>{{ d.venta.cliente.nombre }}</strong></p>
+      </section>
+      <section class="t-bloque">
+        @for (a of articulosDevueltos(d.venta, d.indice); track a.sku) {
+          <p class="t-renglon"><span>{{ a.cantidad }} × {{ a.nombre }}</span><strong>{{ dinero(a.importe) }}</strong></p>
+        }
+        <p class="t-tenue">Motivo: {{ d.venta.devoluciones[d.indice].motivo.toLowerCase() }} · {{ d.venta.devoluciones[d.indice].estadoProducto.toLowerCase() }}</p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-renglon t-total"><span>TOTAL DEVUELTO</span><strong>{{ dinero(d.venta.devoluciones[d.indice].monto) }}</strong></p>
+        <p class="t-renglon"><span>Forma de reembolso</span><strong>{{ reembolso[d.venta.devoluciones[d.indice].forma] }}</strong></p>
+      </section>
+      @if (d.venta.devoluciones[d.indice].forma === 'nota') {
+        <section class="t-bloque t-centro">
+          <p class="t-seccion">NOTA DE CRÉDITO</p>
+          <p class="t-folio t-folio--chico">{{ folioNota(d.venta, d.indice) }} · {{ dinero(d.venta.devoluciones[d.indice].monto) }}</p>
+          <p class="t-chico">Válida 90 días (hasta el {{ vigenciaNota(d.venta.devoluciones[d.indice].fecha) }}). Úsala en una o varias compras presentando este ticket o el código.</p>
+          <div class="t-qr" aria-label="Código QR">QR</div>
+        </section>
+      }
+      <section class="t-pie"><p class="t-firma">Firma del cliente</p></section>
+    }
+
+    @if (d.tipo === 'garantia') {
+      <section class="t-portada">
+        <p class="t-titulo">RECEPCIÓN EN GARANTÍA</p>
+        <p class="t-folio">Folio {{ d.orden.folio }}</p>
+        <p class="t-dato">{{ fechaHora(d.orden.garantia?.recibida ?? d.orden.recibido) }} · Caja 01{{ d.orden.garantia?.recibio ? ' · ' + d.orden.garantia!.recibio : '' }}</p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">CLIENTE</p>
+        <p>{{ d.orden.cliente.nombre }} · {{ d.orden.cliente.telefono }}</p>
+        <p class="t-seccion">EQUIPO</p>
+        <p>{{ d.orden.equipo }}{{ d.orden.ficha?.color ? ' · ' + d.orden.ficha!.color : '' }}</p>
+        <p class="t-seccion">REPARACIÓN ORIGINAL</p>
+        <p>{{ d.orden.realizado ?? d.orden.trabajo }}{{ d.orden.entrega ? ' · entregado el ' + diaMes(d.orden.entrega.fecha) : '' }}</p>
+        @if (d.orden.entrega) {
+          <p class="t-tenue">Garantía vigente: {{ diasGarantia(d.orden) }} {{ diasGarantia(d.orden) === 1 ? 'día restante' : 'días restantes' }} (vence {{ diaMes(venceGarantia(d.orden)) }})</p>
+        }
+        <p class="t-seccion">FALLA QUE REPORTA</p>
+        <p>{{ d.orden.garantia?.falla }}</p>
+        @if (d.orden.garantia?.condicion) {
+          <p class="t-seccion">CONDICIÓN AL REINGRESAR</p>
+          <p>{{ d.orden.garantia!.condicion }}</p>
+        }
+      </section>
+      <section class="t-bloque">
+        <p class="t-tenue">Si el técnico detecta un daño posterior a la entrega, se te cotizará un costo extra en el portal antes de repararlo. Sin tu autorización no se cobra nada.</p>
+        <p class="t-centro t-fuerte">Seguimiento: {{ negocio.web }} · Usuario {{ d.orden.cliente.correo ?? d.orden.cliente.telefono }}</p>
+      </section>
+      <section class="t-pie"><p class="t-firma">Firma del cliente</p></section>
+    }
+
+    @if (d.tipo === 'corte') {
+      <section class="t-portada">
+        <p class="t-titulo">CORTE DE CAJA</p>
+        <p class="t-folio">{{ d.corte.folio }}</p>
+        <p class="t-dato">{{ d.corte.caja }} · Turno {{ d.corte.turno.toLowerCase() }} · {{ fechaHora(d.corte.hasta).split(' · ')[0] }}</p>
+        <p class="t-dato">{{ d.corte.cajera }} · {{ hora(d.corte.desde) }} – {{ hora(d.corte.hasta) }}</p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">MOVIMIENTOS</p>
+        <p class="t-renglon"><span>Fondo inicial</span><strong>{{ dinero(d.corte.fondo) }}</strong></p>
+        <p class="t-renglon"><span>Ventas de mostrador ({{ d.corte.numVentas }})</span><strong>{{ dinero(d.corte.ventas) }}</strong></p>
+        @if (d.corte.desglose; as g) {
+          <p class="t-renglon"><span>Cobros de reparación ({{ g.numEntregas }})</span><strong>{{ dinero(g.entregas) }}</strong></p>
+          <p class="t-renglon"><span>Anticipos de órdenes ({{ g.numAnticipos }})</span><strong>{{ dinero(g.anticipos) }}</strong></p>
+          @if (g.numDevoluciones) { <p class="t-renglon"><span>Devoluciones ({{ g.numDevoluciones }})</span><strong>{{ dinero(-g.devoluciones) }}</strong></p> }
+          @if (g.numIngresos) { <p class="t-renglon"><span>Ingresos ({{ g.numIngresos }})</span><strong>{{ dinero(g.ingresos) }}</strong></p> }
+          <p class="t-renglon"><span>Retiros ({{ g.numRetiros }})</span><strong>{{ dinero(-g.retiros) }}</strong></p>
+          @if (g.numPagos) { <p class="t-renglon"><span>Pagos a proveedor ({{ g.numPagos }})</span><strong>{{ dinero(-g.pagos) }}</strong></p> }
+        } @else {
+          <p class="t-renglon"><span>Cobros de reparación</span><strong>{{ dinero(d.corte.reparaciones) }}</strong></p>
+          <p class="t-renglon"><span>Retiros y pagos</span><strong>{{ dinero(d.corte.retiros) }}</strong></p>
+        }
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">POR MÉTODO</p>
+        <p class="t-renglon"><span>Efectivo</span><strong>{{ dinero(d.corte.esperado) }}</strong></p>
+        <p class="t-renglon"><span>Tarjeta</span><strong>{{ dinero(d.corte.tarjeta) }}</strong></p>
+        <p class="t-renglon"><span>Transferencia</span><strong>{{ dinero(d.corte.transferencias) }}</strong></p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-seccion">ARQUEO DE EFECTIVO</p>
+        <p class="t-renglon"><span>Esperado</span><strong>{{ dinero(d.corte.esperado) }}</strong></p>
+        <p class="t-renglon"><span>Contado</span><strong>{{ dinero(d.corte.contado) }}</strong></p>
+        <p class="t-renglon t-total"><span>DIFERENCIA</span><strong>{{ d.corte.contado - d.corte.esperado > 0 ? '+' : '' }}{{ dinero(d.corte.contado - d.corte.esperado) }}</strong></p>
+        @if (d.corte.comentario) { <p class="t-tenue">{{ d.corte.comentario }}</p> }
+        <p class="t-renglon"><span>Queda de fondo</span><strong>{{ dinero(d.corte.fondoQueQueda) }}</strong></p>
+        <p class="t-renglon"><span>Se entrega a gerencia</span><strong>{{ dinero(d.corte.contado - d.corte.fondoQueQueda) }}</strong></p>
+      </section>
+      <section class="t-pie">
+        <p class="t-firma">Cajera · {{ d.corte.cajera }}</p>
+        <p class="t-firma">Recibe · {{ negocio.encargado }} (encargado)</p>
+      </section>
+    }
+
+    @if (d.tipo === 'movimiento') {
+      <section class="t-portada">
+        <p class="t-titulo">{{ d.movimiento.tipo === 'retiro' ? 'RETIRO DE EFECTIVO' : 'INGRESO DE EFECTIVO' }}</p>
+        <p class="t-folio">{{ d.movimiento.folio }}</p>
+        <p class="t-dato">{{ fechaHora(d.movimiento.fecha) }} · {{ d.caja }}</p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-renglon t-total"><span>{{ d.movimiento.tipo === 'retiro' ? 'Monto retirado' : 'Monto ingresado' }}</span><strong>{{ dinero(d.movimiento.monto) }}</strong></p>
+        <p class="t-renglon"><span>Motivo</span><strong>{{ d.movimiento.motivo }}</strong></p>
+        @if (d.movimiento.comentario) { <p class="t-tenue">{{ d.movimiento.comentario }}</p> }
+      </section>
+      <section class="t-bloque">
+        <p class="t-renglon"><span>Efectivo antes</span><strong>{{ dinero(d.antes) }}</strong></p>
+        <p class="t-renglon"><span>Efectivo después</span><strong>{{ dinero(d.despues) }}</strong></p>
+      </section>
+      <section class="t-bloque">
+        <p class="t-renglon"><span>Realizó</span><strong>{{ d.cajera }}</strong></p>
+      </section>
+      <section class="t-pie">
+        <p class="t-firma">Entrega · {{ d.movimiento.tipo === 'retiro' ? d.cajera : negocio.encargado }}</p>
+        <p class="t-firma">Recibe · {{ d.movimiento.tipo === 'retiro' ? negocio.encargado : d.cajera }}</p>
+      </section>
+    }
+  }
+
+  <p class="t-fin">FIN DEL TICKET</p>
+</article>

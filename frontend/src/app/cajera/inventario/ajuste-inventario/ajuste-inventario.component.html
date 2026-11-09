@@ -1,0 +1,96 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal ajuste" role="dialog" aria-modal="true" aria-labelledby="titulo-ajuste" (click)="$event.stopPropagation(); listaAbierta.set(false)">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-ajuste">Ajuste de inventario</h2>
+        <p class="modal__subtitulo">Corrige el stock por merma, daño o conteo físico</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/inventario/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <div class="campo producto" (click)="$event.stopPropagation()">
+      <label class="campo__etiqueta" for="ajuste-producto">Producto *</label>
+      <div class="campo__control campo__control--40" [class.campo__control--error]="error('producto')">
+        <img src="assets/inventario/search-16.svg" width="16" height="16" alt="" />
+        <input
+          id="ajuste-producto"
+          class="campo__input"
+          autocomplete="off"
+          placeholder="Escanea o busca por SKU o nombre"
+          role="combobox"
+          aria-controls="ajuste-sugerencias"
+          [attr.aria-expanded]="listaAbierta()"
+          [value]="busqueda()"
+          (input)="escribir($any($event.target).value)"
+          (focus)="listaAbierta.set(!sku())"
+          (keydown.enter)="enter($event)"
+        />
+      </div>
+      @if (listaAbierta() && sugerencias().length) {
+        <ul class="popover sugerencias" id="ajuste-sugerencias" role="listbox">
+          @for (p of sugerencias(); track p.sku) {
+            <li role="option" [attr.aria-selected]="false" (click)="elegir(p.sku)">
+              <strong>{{ p.sku }}</strong> · {{ p.nombre }}<span>{{ p.stock }} en sistema</span>
+            </li>
+          }
+        </ul>
+      }
+      @if (error('producto'); as e) { <p class="campo__error">{{ e }}</p> }
+    </div>
+
+    <p class="campo__etiqueta">Tipo de ajuste</p>
+    <div class="selector" role="radiogroup" aria-label="Tipo de ajuste">
+      @for (t of tipos; track t[0]) {
+        <button type="button" role="radio" class="selector__opcion" [class.selector__opcion--elegida]="tipo() === t[0]" [attr.aria-checked]="tipo() === t[0]" (click)="cambiarTipo(t[0])">
+          <span class="icono" [style.--icono]="'url(assets/inventario/' + t[1].icono + '.svg)'"></span>{{ t[1].texto }}
+        </button>
+      }
+    </div>
+
+    <div class="numeros">
+      <div class="campo">
+        <label class="campo__etiqueta" for="ajuste-cantidad">{{ tipo() === 'conteo' ? 'Piezas contadas *' : 'Cantidad a descontar *' }}</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="error('cantidad')">
+          <input id="ajuste-cantidad" class="campo__input" type="number" inputmode="numeric" min="0" step="1" placeholder="0" [value]="cantidad() ?? ''" (input)="cantidad.set($any($event.target).value === '' ? null : +$any($event.target).value)" />
+        </div>
+      </div>
+      <div class="campo">
+        <span class="campo__etiqueta">Stock en sistema</span>
+        <p class="dato">{{ producto() ? producto()!.stock + (producto()!.stock === 1 ? ' pieza' : ' piezas') : '—' }}</p>
+      </div>
+      <div class="campo">
+        <span class="campo__etiqueta">Stock después del ajuste</span>
+        <p class="dato" [class.dato--menos]="(diferencia() ?? 0) < 0" [class.dato--mas]="(diferencia() ?? 0) > 0">
+          @if (despues() !== null) {
+            {{ despues() }} {{ despues() === 1 ? 'pieza' : 'piezas' }} ({{ diferencia()! > 0 ? '+' : diferencia()! < 0 ? '−' : '' }}{{ diferencia()! < 0 ? -diferencia()! : diferencia() }})
+          } @else {
+            —
+          }
+        </p>
+      </div>
+    </div>
+    @if (error('cantidad'); as e) { <p class="campo__error">{{ e }}</p> }
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="ajuste-motivo">Motivo *</label>
+      <div class="campo__control campo__control--40" [class.campo__control--error]="error('motivo')">
+        <input id="ajuste-motivo" class="campo__input" autocomplete="off" maxlength="120" placeholder="Ej. Pantalla dañada al instalarla en la orden #1027" [value]="motivo()" (input)="motivo.set($any($event.target).value)" />
+      </div>
+      @if (error('motivo'); as e) { <p class="campo__error">{{ e }}</p> }
+    </div>
+
+    <p class="valor">
+      <span>Valor del ajuste (a costo)</span>
+      <strong [class.valor--menos]="(valor() ?? 0) < 0">{{ valor() === null ? '—' : (valor()! < 0 ? '− ' : valor()! > 0 ? '+ ' : '') + dinero(valor()! < 0 ? -valor()! : valor()!) }}</strong>
+    </p>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="button" class="boton boton--primario boton--44" (click)="aplicar()">
+        <img src="assets/inventario/check-blanco.svg" width="16" height="16" alt="" />Aplicar ajuste
+      </button>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,46 @@
+:host { display: block; height: 100%; }
+.clientes { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+.clientes > .aviso { align-items: center; }
+
+.herramientas { display: flex; flex-wrap: wrap; gap: 12px; }
+.herramientas__buscar { gap: 8px; width: 420px; }
+.herramientas__filtro { gap: 8px; width: 200px; }
+
+/* Figma C8.1: tabla de 792 px y ficha de 400 px */
+.columnas { display: flex; flex: 1; align-items: stretch; gap: 16px; min-height: 0; }
+.tabla-clientes { flex: 1; align-self: flex-start; max-height: 100%; min-width: 0; overflow: auto; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.columnas__ficha { flex-shrink: 0; width: 400px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-marino); }
+th { position: sticky; top: 0; z-index: 1; height: 40px; padding: 0 8px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; color: var(--color-texto-secundario); white-space: nowrap; }
+td { height: 52px; padding: 0 8px; border-top: 1px solid var(--color-borde); white-space: nowrap; }
+th:first-child, td:first-child { padding-left: 16px; }
+th:last-child, td:last-child { padding-right: 16px; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--color-fondo); }
+tbody tr:focus-visible { outline: 2px solid var(--color-acento); outline-offset: -2px; }
+tbody tr.elegida { background: var(--color-primario-suave); }
+.t-nombre { font-weight: 600; }
+.t-sub { display: none; font-size: 11px; font-weight: 400; color: var(--color-texto-tenue); }
+.t-tenue { color: var(--color-texto-tenue); }
+.t-total { font-weight: 600; text-align: right !important; }
+.t-vacia { height: 72px; text-align: center; color: var(--color-texto-tenue); white-space: normal; }
+.t-vacia .enlace { margin-left: 4px; }
+
+@media (max-width: 1280px) {
+  :host, .clientes { height: auto; }
+  .columnas { flex: none; flex-direction: column; }
+  .tabla-clientes { align-self: stretch; max-height: none; }
+  .columnas__ficha { width: auto; }
+}
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .herramientas__buscar, .herramientas__filtro { flex: 1 1 100%; width: auto; }
+  .t-telefono, .t-visita { display: none; }
+  .t-sub { display: block; }
+  table { font-size: 12px; }
+  th, td { padding: 0 6px; }
+  th:first-child, td:first-child { padding-left: 12px; }
+  th:last-child, td:last-child { padding-right: 12px; }
+}

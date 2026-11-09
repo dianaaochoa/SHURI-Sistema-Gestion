@@ -1,0 +1,25 @@
+.icono--16 { width: 16px; height: 16px; }
+.primario { color: var(--color-primario); }
+tbody tr.fija { cursor: default; }
+tbody tr.fija:hover { background: none; }
+.acciones { white-space: nowrap; }
+.acciones .enlace-accion + .enlace-accion { margin-left: 12px; }
+.enlace-accion--tenue { font-weight: 500; color: var(--color-texto-tenue); }
+.t-fecha { white-space: nowrap; color: var(--color-texto-tenue); }
+.t-folio, .t-tiempo { white-space: nowrap; }
+
+/* Figma J5.4 "Cómo se completa un pedido" */
+.pasos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 6px 0 0; padding: 0; list-style: none; }
+.paso { display: flex; gap: 10px; padding: 12px; border-radius: 8px; background: var(--color-fondo); }
+.paso__numero { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; background: var(--color-primario); font-size: 12px; font-weight: 700; color: var(--color-superficie); }
+.paso__texto { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--color-texto-tenue); }
+.paso__texto strong { font-size: 13px; font-weight: 600; color: var(--color-marino); }
+
+@media (max-width: 1100px) {
+  .pasos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .pasos { grid-template-columns: 1fr; }
+  .encabezado-pagina { flex-wrap: wrap; }
+}

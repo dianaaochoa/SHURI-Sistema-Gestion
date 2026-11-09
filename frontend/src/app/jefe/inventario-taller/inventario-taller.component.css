@@ -1,0 +1,20 @@
+.icono--16 { width: 16px; height: 16px; }
+.acciones-encabezado { display: flex; flex-wrap: wrap; gap: 8px; }
+.volver { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 600; color: var(--color-primario); cursor: pointer; }
+
+.herramientas { display: flex; flex-wrap: wrap; gap: 12px; }
+.herramientas__buscar { flex: 0 1 340px; min-width: 200px; }
+.herramientas__filtro { flex: 0 1 200px; min-width: 150px; }
+.herramientas__filtro img { pointer-events: none; }
+
+tbody tr.fija { cursor: default; }
+tbody tr.fija:hover { background: none; }
+.t-folio { white-space: nowrap; }
+.apartada { font-weight: 600; color: var(--color-advertencia); white-space: nowrap; }
+.disponible { font-weight: 600; color: var(--color-exito); }
+.disponible--cero { color: var(--color-peligro); }
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .herramientas > * { flex: 1 1 100%; }
+}

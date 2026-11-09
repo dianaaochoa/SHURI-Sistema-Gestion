@@ -1,0 +1,127 @@
+<div class="entrega">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Entrega de equipo</h1>
+      <p class="encabezado-pagina__subtitulo">Busca el folio, verifica al cliente, cobra el saldo y entrega. También puedes entregar desde Órdenes de servicio.</p>
+    </div>
+    <div class="entrega__buscar">
+      <label class="campo__control campo__control--40 entrega__folio">
+        <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+        <input
+          #buscador
+          class="campo__input"
+          type="search"
+          autocomplete="off"
+          placeholder="Folio, p. ej. #1026"
+          aria-label="Folio de la orden"
+          [value]="busqueda()"
+          (input)="busqueda.set($any($event.target).value)"
+          (keydown.enter)="buscarFolio()"
+        />
+      </label>
+      <button type="button" class="boton boton--contorno boton--40" (click)="escanear()">
+        <img src="assets/entrega/barcode-primario.svg" width="16" height="16" alt="" />Escanear folio
+      </button>
+    </div>
+  </header>
+
+  @if (error(); as mensaje) {
+    <p class="aviso aviso--advertencia" role="alert"><img src="assets/ventas/alert-advertencia.svg" width="16" height="16" alt="" />{{ mensaje }}</p>
+  }
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  <div class="tarjetas" role="listbox" aria-label="Equipos por entregar">
+    @for (o of porEntregar(); track o.folio) {
+      <button type="button" role="option" class="tarjeta-equipo" [class.tarjeta-equipo--elegida]="o.folio === orden()?.folio" [attr.aria-selected]="o.folio === orden()?.folio" (click)="elegir(o)">
+        <span class="tarjeta-equipo__icono"><img src="assets/entrega/telefono.svg" width="18" height="18" alt="" /></span>
+        <span class="tarjeta-equipo__texto">
+          <strong>{{ o.folio }} · {{ o.equipo }}</strong>
+          <span>
+            {{ o.cliente.nombre }} ·
+            @switch (o.estado) {
+              @case ('sin-reparacion') { Sin reparar · {{ diaMes(o.listaDesde!) }} }
+              @case ('garantia-lista') { Garantía lista }
+              @case ('bodega') { En bodega · {{ o.bodega!.estante }} }
+              @case ('vencida') { Vencido · listo desde {{ diaMes(o.listaDesde!) }} }
+              @default { Listo desde {{ diaMes(o.listaDesde!) }} }
+            }
+          </span>
+        </span>
+      </button>
+    } @empty {
+      <p class="tarjetas__vacio">No hay equipos por entregar. <a class="enlace" routerLink="/cajera/ordenes-de-servicio">Ver Órdenes de servicio</a></p>
+    }
+  </div>
+
+  @if (orden(); as o) {
+    <div class="columnas">
+      <div class="columnas__izquierda">
+        <section class="panel-orden" aria-label="Datos de la orden">
+          <header class="panel-orden__encabezado">
+            <div>
+              <h2 class="panel-orden__titulo">Folio {{ o.folio }} · {{ o.equipo }}{{ tipo() === 'garantia' ? ' · Garantía' : '' }}</h2>
+              <p class="panel-orden__subtitulo">
+                {{ recoge()?.tipo === 'otra' ? 'Titular: ' : '' }}{{ o.cliente.nombre }} · {{ o.cliente.telefono }} ·
+                @if (o.estado === 'sin-reparacion' && o.rechazo) {
+                  Presupuesto rechazado {{ cuando(o.rechazo).startsWith('Hoy') ? 'hoy' : 'el ' + diaMes(o.rechazo) }}
+                } @else {
+                  Técnico: {{ o.tecnico.nombre }} ({{ o.tecnico.iniciales }})
+                }
+              </p>
+            </div>
+            <span class="estado estado--{{ estadoTexto().tono }}">{{ estadoTexto().texto }}</span>
+          </header>
+          <dl class="panel-orden__datos">
+            @for (d of datos(); track d.etiqueta) {
+              <div><dt>{{ d.etiqueta }}</dt><dd>{{ d.valor }}</dd></div>
+            }
+          </dl>
+          <hr class="separador" />
+          <p class="panel-orden__texto">{{ descripcion() }}</p>
+        </section>
+
+        <app-quien-recoge [titular]="o.cliente.nombre" (cambio)="cambioRecoge($event)" />
+
+        <section class="verificacion" aria-labelledby="titulo-verificacion">
+          <h2 class="panel-titulo" id="titulo-verificacion">
+            <img src="assets/entrega/escudo-16.svg" width="16" height="16" alt="" />Verificación antes de entregar
+          </h2>
+          @for (punto of puntos(); track punto; let i = $index) {
+            <label class="casilla"><input type="checkbox" [checked]="!!verificacion()[i]" (change)="marcar(i, $any($event.target).checked)" />{{ punto }}</label>
+          }
+          @if (recoge()?.tipo !== 'otra') {
+            <p class="nota">Si recoge otra persona, se requiere carta poder e identificación de ambos.</p>
+          }
+        </section>
+      </div>
+
+      <app-cobro-entrega
+        class="columnas__cobro"
+        [orden]="o"
+        [tipo]="tipo()"
+        [otraPersona]="recoge()?.tipo === 'otra' ? recoge()!.nombre : ''"
+        [falta]="falta()"
+        [facturar]="!!factura()"
+        [rfc]="factura()?.rfc ?? ''"
+        [(metodo)]="metodo"
+        (factura)="alternarFactura($event)"
+        (entregar)="entregar()"
+        (imprimir)="imprimirComprobante()"
+      />
+    </div>
+
+    @if (facturaAbierta()) {
+      <app-datos-factura
+        [folio]="o.folio"
+        [total]="dineroSaldo(o)"
+        [cliente]="clienteFactura()"
+        [inicial]="factura()"
+        (cerrar)="facturaAbierta.set(false)"
+        (sinFactura)="factura.set(null); facturaAbierta.set(false)"
+        (guardar)="factura.set($event); facturaAbierta.set(false)"
+      />
+    }
+  }
+</div>

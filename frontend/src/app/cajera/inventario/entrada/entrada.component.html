@@ -1,0 +1,142 @@
+@if (inventario.borrador() && !intentado()) {
+  <p class="aviso aviso--info borrador">
+    <img src="assets/inventario/alert-primario.svg" width="16" height="16" alt="" />Retomaste un borrador guardado.
+    <button type="button" class="enlace" (click)="descartarBorrador()">Descartar borrador</button>
+  </p>
+}
+
+@if (inventario.pedidos().length) {
+  <app-pedidos-jefe [elegido]="pedido()" (elegir)="elegirPedido($event)" />
+}
+
+<section class="panel-entrada datos" aria-label="Datos de la entrada">
+  <div class="campo">
+    <label class="campo__etiqueta" for="entrada-proveedor">Proveedor *</label>
+    <div class="campo__control campo__control--40" [class.campo__control--fijo]="pedido()">
+      <img src="assets/inventario/truck.svg" width="16" height="16" alt="" />
+      <select id="entrada-proveedor" class="campo__input campo__select" [disabled]="!!pedido()" [value]="proveedor()" (change)="proveedor.set($any($event.target).value)">
+        @for (p of proveedores; track p) { <option [value]="p" [selected]="p === proveedor()">{{ p }}</option> }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </div>
+  </div>
+  <div class="campo">
+    <label class="campo__etiqueta" for="entrada-documento">Folio de factura / remisión *</label>
+    <div class="campo__control campo__control--40" [class.campo__control--error]="error('documento')">
+      <input id="entrada-documento" class="campo__input" autocomplete="off" maxlength="20" [placeholder]="pedido() ? 'Ej. REM-8841' : 'Ej. FAC-A-20931'" [value]="documento()" (input)="documento.set($any($event.target).value)" />
+    </div>
+    @if (error('documento'); as e) { <p class="campo__error">{{ e }}</p> }
+  </div>
+  <div class="campo">
+    <label class="campo__etiqueta" for="entrada-fecha">Fecha de recepción</label>
+    <div class="campo__control campo__control--40">
+      <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+      <input id="entrada-fecha" class="campo__input" type="date" [value]="fecha()" (change)="fecha.set($any($event.target).value)" />
+    </div>
+  </div>
+  <div class="campo">
+    <span class="campo__etiqueta">Recibió</span>
+    <div class="campo__control campo__control--40 campo__control--fijo">
+      <img src="assets/inventario/user.svg" width="16" height="16" alt="" />
+      <span class="campo__input">{{ cajera }}</span>
+    </div>
+  </div>
+</section>
+
+<div class="buscar">
+  <label class="campo__control campo__control--40 buscar__control">
+    <img src="assets/inventario/barcode.svg" width="16" height="16" alt="" />
+    <input
+      #buscador
+      class="campo__input"
+      type="search"
+      autocomplete="off"
+      placeholder="Escanea o busca el producto para agregarlo a la entrada…"
+      aria-label="Agregar producto"
+      [value]="busqueda()"
+      (input)="escribir($any($event.target).value)"
+      (keydown.enter)="enter()"
+    />
+  </label>
+  @if (sugerencias().length) {
+    <ul class="popover sugerencias" role="listbox">
+      @for (p of sugerencias(); track p.sku) {
+        <li role="option" [attr.aria-selected]="false" (click)="agregar(p.sku)"><strong>{{ p.sku }}</strong> · {{ p.nombre }}<span>{{ p.stock }} en stock · {{ dinero(p.costo) }}</span></li>
+      }
+    </ul>
+  }
+  @if (errorBusqueda(); as e) { <p class="campo__error">{{ e }}</p> }
+</div>
+
+<div class="columnas">
+  <section class="recibidos" aria-label="Productos recibidos">
+    <div class="recibidos__desplazable">
+      <table>
+        <thead>
+          <tr><th class="r-sku">SKU</th><th>Producto</th><th class="r-centro">Stock actual</th><th class="r-centro">Cantidad recibida</th><th class="r-centro">Costo unitario</th><th class="r-centro">Stock nuevo</th><th class="r-quitar"></th></tr>
+        </thead>
+        <tbody>
+          @for (r of renglones(); track clave(r); let i = $index) {
+            <tr>
+              <td class="r-sku">{{ r.sku }}</td>
+              <td class="r-producto">{{ r.nombre }}@if (r.orden) { <span class="aparta">→ aparta {{ r.orden }}</span> }</td>
+              <td class="r-centro r-tenue">{{ r.stock }}</td>
+              <td class="r-centro"><input class="celda" type="number" inputmode="numeric" min="1" step="1" [attr.aria-label]="'Cantidad de ' + r.nombre" [value]="r.cantidad" (input)="cambiar(i, 'cantidad', $any($event.target).value)" /></td>
+              <td class="r-centro"><input class="celda celda--costo" type="number" inputmode="decimal" min="0" step="0.01" [attr.aria-label]="'Costo de ' + r.nombre" [value]="r.costo" (input)="cambiar(i, 'costo', $any($event.target).value)" /></td>
+              <td class="r-centro r-fuerte">{{ r.stock + (r.cantidad || 0) }}</td>
+              <td class="r-quitar"><button type="button" [attr.aria-label]="'Quitar ' + r.nombre" (click)="quitar(i)"><img src="assets/inventario/x-peligro.svg" width="14" height="14" alt="" /></button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="vacia">Escanea o busca los productos que llegaron. {{ inventario.pedidos().length ? 'Si es un pedido del jefe, elígelo arriba.' : '' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (error('lineas'); as e) { <p class="campo__error recibidos__error">{{ e }}</p> }
+  </section>
+
+  <section class="panel-entrada resumen" aria-labelledby="titulo-resumen">
+    <h2 class="resumen__titulo" id="titulo-resumen"><img src="assets/inventario/package-primario.svg" width="16" height="16" alt="" />Resumen de la entrada</h2>
+    <p class="renglon"><span>Productos distintos</span><strong>{{ renglones().length }}</strong></p>
+    <p class="renglon"><span>Piezas recibidas</span><strong>{{ piezas() }}</strong></p>
+    <p class="renglon"><span>Subtotal (sin IVA)</span><strong>{{ dinero(subtotal()) }}</strong></p>
+    <p class="renglon"><span>IVA 16 %</span><strong>{{ dinero(iva()) }}</strong></p>
+    <hr />
+    <p class="renglon renglon--total"><span>Total de la factura</span><strong>{{ dinero(total()) }}</strong></p>
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="entrada-pago">Forma de pago</label>
+      <div class="campo__control campo__control--40" [class.campo__control--error]="error('pago')">
+        <select id="entrada-pago" class="campo__input campo__select" [value]="pago()" (change)="pago.set($any($event.target).value)">
+          @for (f of formas; track f[0]) { <option [value]="f[0]" [selected]="f[0] === pago()">{{ f[1].texto }}</option> }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </div>
+      @if (error('pago'); as e) { <p class="campo__error">{{ e }}</p> }
+    </div>
+    <label class="casilla"><input type="checkbox" [checked]="fotoFactura()" (change)="fotoFactura.set($any($event.target).checked)" />Adjuntar foto de la factura</label>
+    <div class="campo__control campo__control--40">
+      <input class="campo__input" autocomplete="off" maxlength="140" placeholder="Diferencia con la factura (opcional)" aria-label="Diferencia con la factura" [value]="nota()" (input)="nota.set($any($event.target).value)" />
+    </div>
+
+    <span class="resumen__espacio"></span>
+    <p class="aviso aviso--info"><img src="assets/inventario/alert-primario.svg" width="16" height="16" alt="" />{{ avisoPanel() }}</p>
+    <button type="button" class="boton boton--primario boton--44 boton--bloque" (click)="registrar()">
+      <img src="assets/inventario/check-blanco.svg" width="16" height="16" alt="" />{{ pago() === 'efectivo' ? 'Registrar entrada y pagar ' + dinero(total()) : 'Registrar entrada' }}
+    </button>
+    @if (!pedido()) {
+      <button type="button" class="boton boton--contorno boton--40 boton--bloque" (click)="guardarBorrador()">Guardar borrador</button>
+    }
+  </section>
+</div>
+
+@if (pagoAbierto()) {
+  <app-pago-proveedor
+    [proveedor]="proveedor()"
+    [documento]="documento().trim().toUpperCase()"
+    [pedido]="pedidoElegido()"
+    [total]="total()"
+    (cerrar)="pagoAbierto.set(false)"
+    (confirmar)="confirmar($event)"
+  />
+}

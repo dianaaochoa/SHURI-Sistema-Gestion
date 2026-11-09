@@ -1,0 +1,57 @@
+<section class="popover notificaciones" role="dialog" aria-label="Notificaciones">
+  <header class="notificaciones__encabezado">
+    <h2 class="notificaciones__titulo">Notificaciones</h2>
+    @if (notificaciones.nuevas().length) {
+      <button type="button" class="enlace" (click)="notificaciones.marcarTodoLeido()">Marcar todo como leído</button>
+    }
+  </header>
+
+  <div class="notificaciones__pestanas" role="tablist">
+    <button
+      type="button"
+      role="tab"
+      class="notificaciones__pestana"
+      [class.notificaciones__pestana--activa]="pestana() === 'nuevas'"
+      [attr.aria-selected]="pestana() === 'nuevas'"
+      (click)="pestana.set('nuevas')"
+    >
+      Nuevas ({{ notificaciones.nuevas().length }})
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="notificaciones__pestana"
+      [class.notificaciones__pestana--activa]="pestana() === 'todas'"
+      [attr.aria-selected]="pestana() === 'todas'"
+      (click)="pestana.set('todas')"
+    >
+      Todas
+    </button>
+  </div>
+
+  <ul class="notificaciones__lista">
+    @for (aviso of pestana() === 'nuevas' ? notificaciones.nuevas() : notificaciones.todas(); track aviso.id) {
+      <li>
+        <button
+          type="button"
+          class="aviso-item"
+          [class.aviso-item--nueva]="!aviso.leida"
+          (click)="notificaciones.marcarLeida(aviso.id)"
+        >
+          <span class="aviso-item__icono" [class]="'aviso-item__icono--' + aviso.tono">
+            <span class="icono" [style.--icono]="'url(assets/' + aviso.icono + '.svg)'"></span>
+          </span>
+          <span class="aviso-item__texto">
+            <strong>{{ aviso.titulo }}</strong>
+            <span>{{ aviso.detalle }}</span>
+          </span>
+          @if (!aviso.leida) {
+            <img class="aviso-item__punto" src="assets/menu/punto.svg" width="8" height="8" alt="Sin leer" />
+          }
+        </button>
+      </li>
+    } @empty {
+      <li class="notificaciones__vacio">No tienes notificaciones nuevas.</li>
+    }
+  </ul>
+</section>

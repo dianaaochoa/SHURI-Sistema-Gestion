@@ -1,0 +1,170 @@
+<div class="configuracion">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Configuración del taller</h1>
+      <p class="encabezado-pagina__subtitulo">Precios de mano de obra y reglas que usan el cotizador, el portal y caja · SHURI</p>
+    </div>
+    <div class="acciones">
+      @if (pendientes()) {
+        <button type="button" class="boton boton--contorno boton--40" (click)="descartar()">Descartar</button>
+      }
+      <button type="button" class="boton boton--primario boton--40" [disabled]="!pendientes() || invalido()" (click)="guardar()">
+        <img src="assets/inventario/check-14-blanco.svg" width="16" height="16" alt="" />Guardar cambios
+      </button>
+    </div>
+  </header>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  <div class="columnas">
+    <section class="panel tabulador" aria-labelledby="titulo-tabulador">
+      <h2 class="panel__titulo" id="titulo-tabulador"><span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span>Tabulador de mano de obra</h2>
+      <p class="nota">El técnico elige el nivel en su diagnóstico y el cotizador pone el precio automáticamente. Puedes ajustarlo en cada presupuesto.</p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Nivel</th><th class="t-tiempo">Tiempo típico</th><th class="t-ejemplos">Ejemplos</th><th>Precio</th><th><span class="oculto">Acción</span></th></tr></thead>
+          <tbody>
+            @for (n of niveles(); track n.id) {
+              @if (editando() === n.id) {
+                <tr class="editando">
+                  <td><input class="entrada" type="text" aria-label="Nivel" [value]="n.nivel" (input)="cambiarNivel(n.id, 'nivel', $any($event.target).value)" /></td>
+                  <td class="t-tiempo"><input class="entrada" type="text" aria-label="Tiempo típico" [value]="n.tiempo" (input)="cambiarNivel(n.id, 'tiempo', $any($event.target).value)" /></td>
+                  <td class="t-ejemplos"><input class="entrada" type="text" aria-label="Ejemplos" [value]="n.ejemplos" (input)="cambiarNivel(n.id, 'ejemplos', $any($event.target).value)" /></td>
+                  <td><input class="entrada entrada--precio" type="number" min="0" step="10" aria-label="Precio" [value]="n.precio" (input)="cambiarNivel(n.id, 'precio', $any($event.target).value)" /></td>
+                  <td class="t-accion">
+                    <button type="button" class="enlace-accion" (click)="editando.set(null)">Listo</button>
+                    @if (quitable(n)) {
+                      <button type="button" class="enlace-accion enlace-accion--peligro" (click)="quitarNivel(n.id)">Quitar</button>
+                    }
+                  </td>
+                </tr>
+              } @else {
+                <tr>
+                  <td class="t-nivel">{{ n.nivel }}</td>
+                  <td class="t-tiempo">{{ n.tiempo || '—' }}</td>
+                  <td class="t-ejemplos">{{ n.ejemplos }}</td>
+                  <td>{{ dinero(n.precio) }}</td>
+                  <td class="t-accion"><button type="button" class="enlace-accion" (click)="editando.set(n.id)">Editar</button></td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="agregar" (click)="agregarNivel()"><img src="assets/pdv/plus-14-primario.svg" width="14" height="14" alt="" />Agregar nivel</button>
+
+      @if (cambios().length) {
+        <h3 class="campo__etiqueta bitacora__titulo">Últimos cambios</h3>
+        <ul class="bitacora">
+          @for (c of cambios().slice(0, 6); track $index) {
+            <li><span>{{ c.texto }}</span><small>{{ c.por }} · {{ hora(c.fecha) }}</small></li>
+          }
+        </ul>
+      }
+    </section>
+
+    <div class="lateral">
+      <section class="panel" aria-labelledby="titulo-tiempos">
+        <h2 class="panel__titulo" id="titulo-tiempos"><span class="icono" style="--icono: url(assets/cajera/clock.svg)"></span>Tiempos del taller</h2>
+        <div class="dos">
+          <label class="campo">
+            <span class="campo__etiqueta">Diagnóstico y cotización</span>
+            <span class="campo__control campo__control--40">
+              <select class="campo__input campo__select" (change)="regla('slaDiagnosticoH', +$any($event.target).value)">
+                @for (h of opcionesSla; track h) {
+                  <option [value]="h" [selected]="h === reglas().slaDiagnosticoH">{{ h }} h</option>
+                }
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </span>
+          </label>
+          <label class="campo">
+            <span class="campo__etiqueta">Vigencia del presupuesto</span>
+            <span class="campo__control campo__control--40">
+              <select class="campo__input campo__select" (change)="regla('vigenciaDias', +$any($event.target).value)">
+                @for (d of opcionesVigencia; track d) {
+                  <option [value]="d" [selected]="d === reglas().vigenciaDias">{{ d }} días</option>
+                }
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="titulo-garantia">
+        <h2 class="panel__titulo" id="titulo-garantia"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Garantía</h2>
+        <div class="dos">
+          <label class="campo">
+            <span class="campo__etiqueta">Garantía por defecto</span>
+            <span class="campo__control campo__control--40">
+              <select class="campo__input campo__select" (change)="regla('garantiaDias', +$any($event.target).value)">
+                @for (d of opcionesGarantia; track d) {
+                  <option [value]="d" [selected]="d === reglas().garantiaDias">{{ d }} días</option>
+                }
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </span>
+          </label>
+          <label class="campo">
+            <span class="campo__etiqueta">Cuenta desde</span>
+            <span class="campo__control campo__control--40">
+              <select class="campo__input campo__select" (change)="regla('garantiaDesde', $any($event.target).value)">
+                <option value="entrega" [selected]="reglas().garantiaDesde === 'entrega'">La entrega</option>
+                <option value="reparacion" [selected]="reglas().garantiaDesde === 'reparacion'">La reparación</option>
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="titulo-bodega">
+        <h2 class="panel__titulo" id="titulo-bodega"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>Equipos en bodega</h2>
+        <div class="dos">
+          <label class="campo">
+            <span class="campo__etiqueta">Días sin cobro</span>
+            <span class="campo__control campo__control--40">
+              <select class="campo__input campo__select" (change)="regla('diasSinCobro', +$any($event.target).value)">
+                @for (d of opcionesSinCobro; track d) {
+                  <option [value]="d" [selected]="d === reglas().diasSinCobro">{{ d }} días</option>
+                }
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </span>
+          </label>
+          <label class="campo">
+            <span class="campo__etiqueta">Almacenaje después</span>
+            <span class="campo__control campo__control--40">$<input class="campo__input" type="number" min="0" step="5" [value]="reglas().almacenajeDia" (input)="regla('almacenajeDia', +$any($event.target).value || 0)" /><span class="sufijo">/ día</span></span>
+          </label>
+        </div>
+        <label class="campo">
+          <span class="campo__etiqueta">Después de {{ reglas().diasResguardo }} días</span>
+          <span class="campo__control campo__control--40">
+            <select class="campo__input campo__select" (change)="regla('despuesResguardo', $any($event.target).value)">
+              @for (o of opcionesDespues; track o[0]) {
+                <option [value]="o[0]" [selected]="o[0] === reglas().despuesResguardo">{{ o[1] }}</option>
+              }
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </span>
+        </label>
+      </section>
+
+      <section class="panel" id="respuestas-rapidas" aria-labelledby="titulo-rapidas">
+        <h2 class="panel__titulo" id="titulo-rapidas"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Respuestas rápidas del chat</h2>
+        <p class="nota">Las usas en Mensajes (J11). Se guardan al escribir.</p>
+        @for (r of mensajes.rapidas(); track i; let i = $index) {
+          <div class="rapida">
+            <input class="entrada" type="text" [attr.aria-label]="'Título de la respuesta ' + (i + 1)" [value]="r.titulo" (input)="mensajes.cambiarRapida(i, 'titulo', $any($event.target).value)" />
+            <textarea class="entrada entrada--texto" rows="2" [attr.aria-label]="'Texto de la respuesta ' + (i + 1)" [value]="r.texto" (input)="mensajes.cambiarRapida(i, 'texto', $any($event.target).value)"></textarea>
+          </div>
+        }
+      </section>
+
+      <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>El administrador también puede cambiar estos valores (AD9.4). Cada cambio queda en la bitácora y se refleja en las cláusulas.</p>
+    </div>
+  </div>
+</div>

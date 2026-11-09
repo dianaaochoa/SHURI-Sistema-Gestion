@@ -1,0 +1,101 @@
+<header class="barra">
+  <div class="buscador">
+    <img src="assets/pdv/search.svg" width="24" height="24" alt="" />
+    <input
+      #campo
+      class="buscador__input"
+      type="search"
+      placeholder="Buscar producto, SKU o escanear código de barras..."
+      aria-label="Buscar producto, SKU o escanear código de barras"
+      autocomplete="off"
+      [value]="busqueda()"
+      (input)="escribir($any($event.target).value)"
+      (keydown)="alTeclear($event)"
+    />
+    <kbd class="buscador__tecla">F2</kbd>
+    <img class="buscador__escaner" src="assets/pdv/scan-barcode.svg" width="28" height="28" alt="" />
+
+    @if (abierta()) {
+      <div class="resultados" role="listbox" aria-label="Resultados de búsqueda">
+        @if (resultados().length) {
+          <div class="resultados__encabezado">
+            <span>{{ resultados().length }} {{ resultados().length === 1 ? 'resultado' : 'resultados' }} para “{{ busqueda().trim() }}”</span>
+            <span class="resultados__ayuda">
+              <kbd class="tecla">↑</kbd><kbd class="tecla">↓</kbd> moverte <kbd class="tecla">Enter</kbd> agregar
+            </span>
+          </div>
+          @for (producto of resultados(); track producto.sku; let i = $index) {
+            <div
+              class="resultado"
+              role="option"
+              [attr.aria-selected]="i === resaltado()"
+              [class.resultado--resaltado]="i === resaltado()"
+              [class.resultado--agotado]="producto.disponibles < 1"
+              (mouseenter)="resaltado.set(i)"
+            >
+              <span class="resultado__icono"><img src="assets/pdv/package.svg" width="18" height="18" alt="" /></span>
+              <span class="resultado__texto">
+                <strong>{{ producto.nombre }}</strong>
+                <span>{{ producto.sku }} · {{ producto.categoria }}</span>
+              </span>
+              @if (producto.disponibles < 1) {
+                <span class="estado estado--peligro">Sin disponibles</span>
+              } @else if (producto.disponibles <= 2) {
+                <span class="estado estado--advertencia">Últimas {{ producto.disponibles }} disponibles</span>
+              } @else {
+                <span class="estado estado--exito">{{ producto.disponibles }} disponibles</span>
+              }
+              <strong class="resultado__precio">{{ dinero(producto.precio) }}</strong>
+              @if (producto.disponibles < 1) {
+                <button type="button" class="enlace resultado__temporal" (click)="venderComoTemporal(producto.nombre, producto.precio)">
+                  <img src="assets/pdv/plus-14.svg" width="14" height="14" alt="" />Vender como temporal
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="boton resultado__agregar"
+                  [class.boton--primario]="i === resaltado()"
+                  [class.boton--contorno]="i !== resaltado()"
+                  (click)="agregar(producto)"
+                >
+                  <img [src]="i === resaltado() ? 'assets/pdv/plus-blanco.svg' : 'assets/pdv/plus.svg'" width="16" height="16" alt="" />Agregar
+                </button>
+              }
+            </div>
+          }
+          <p class="resultados__nota">
+            <img src="assets/pdv/alert-14.svg" width="14" height="14" alt="" />
+            Solo se vende lo disponible (stock menos lo apartado para reparaciones). Si no hay disponibles, véndelo como producto temporal.
+          </p>
+        } @else {
+          <div class="no-encontrado">
+            <span class="no-encontrado__icono"><img src="assets/pdv/barcode.svg" width="26" height="26" alt="" /></span>
+            <p class="no-encontrado__titulo">No encontramos {{ esCodigo() ? 'el código' : '' }} “{{ busqueda().trim() }}”</p>
+            <p class="no-encontrado__texto">
+              Revisa que esté bien escrito o escanéalo de nuevo. Si el producto es nuevo, puedes venderlo hoy y darlo de alta después.
+            </p>
+            <div class="no-encontrado__acciones">
+              <button type="button" class="boton boton--primario boton--40" (click)="venderComoTemporal(esCodigo() ? '' : busqueda().trim(), null)">
+                <img src="assets/pdv/plus-blanco.svg" width="16" height="16" alt="" />Vender como producto temporal
+              </button>
+              <a class="boton boton--contorno boton--40" routerLink="/cajera/inventario">
+                <img src="assets/pdv/package-primario.svg" width="16" height="16" alt="" />Dar de alta en inventario
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="estado-caja">
+    <time class="estado-caja__hora">{{ hora() }}</time>
+    @if (dispositivos.enLinea()) {
+      <span class="estado estado--exito estado-caja__conexion">En línea · sincronizado</span>
+    } @else {
+      <span class="estado estado--advertencia estado-caja__conexion">
+        Sin conexión{{ dispositivos.porSincronizar() ? ' · ' + dispositivos.porSincronizar() + ' por sincronizar' : '' }}
+      </span>
+    }
+  </div>
+</header>

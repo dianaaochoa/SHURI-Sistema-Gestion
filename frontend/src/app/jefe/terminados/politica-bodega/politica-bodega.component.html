@@ -1,0 +1,38 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-politica" (click)="$event.stopPropagation()" (keydown.escape)="cerrar.emit()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-politica">Aplicar política de bodega · {{ orden().folio }}</h2>
+        <p class="modal__subtitulo">{{ orden().cliente.nombre }} · {{ orden().equipo }} · {{ resultado() }} · {{ dias() }} días en bodega</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="datos">
+      <p class="renglon"><span>Listo desde</span><strong>{{ orden().listaDesde ? diaMesDe(orden().listaDesde!) : '—' }} · avisado en su portal</strong></p>
+      <p class="renglon"><span>Avisos enviados</span><strong>{{ avisos().length || 1 }} · {{ ultimo() }}</strong></p>
+      <p class="renglon"><span>Días sin cobro (configuración)</span><strong>{{ limite }} días</strong></p>
+      <p class="renglon"><span>Almacenaje acumulado</span><strong class="peligro">{{ diasCobro() }} días × {{ dinero(porDia) }} = {{ dinero(monto()) }}</strong></p>
+      @if (orden().almacenaje; as a) {
+        <p class="renglon"><span>Ya aplicada</span><strong>{{ a.perdonado ? 'Perdonado' : 'Por cobrar ' + dinero(a.monto) }} · {{ a.por }}</strong></p>
+      }
+    </div>
+
+    <fieldset class="opciones">
+      <legend class="campo__etiqueta">¿Qué hacemos?</legend>
+      @for (op of opciones(); track op.id) {
+        <label class="opcion-radio" [class.opcion-radio--elegida]="op.id === decision()">
+          <input type="radio" name="politica" [checked]="op.id === decision()" (change)="decision.set(op.id)" />
+          <span class="opcion-radio__texto"><strong>{{ op.texto }}</strong><span>{{ op.detalle }}</span></span>
+        </label>
+      }
+    </fieldset>
+
+    <p class="aviso aviso--advertencia"><img src="assets/inventario/alert-advertencia.svg" width="16" height="16" alt="" />A los {{ resguardo }} días {{ despues }}, como dicen las cláusulas que aceptó el cliente al dejarlo.</p>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="button" class="boton boton--primario boton--44" (click)="aplicar()"><img src="assets/inventario/check-14-blanco.svg" width="16" height="16" alt="" />Aplicar</button>
+    </div>
+  </div>
+</div>

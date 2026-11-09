@@ -1,0 +1,91 @@
+<article class="carta hoja-impresion">
+  <header class="carta__encabezado">
+    <div class="marca">
+      <img src="assets/acceso/logo-shuri.png" width="44" height="44" alt="" />
+      <div><strong>{{ negocio.nombre }}</strong><span>Reparaciones y Ventas</span></div>
+    </div>
+    <div class="negocio">
+      <strong>{{ negocio.nombre }}</strong>
+      <span>{{ negocio.direccionLarga }}</span>
+      <span>Dudas: chat en {{ negocio.web }} con tu folio</span>
+      <span>{{ negocio.web }} · RFC {{ negocio.rfc }}</span>
+      <span>Aviso de privacidad: {{ negocio.web }}/privacidad</span>
+    </div>
+    <div class="folio">
+      <span class="folio__titulo">ORDEN DE SERVICIO</span>
+      <strong>Folio {{ orden().folio }}</strong>
+      <span>{{ fecha() }}</span>
+      <span>Atendió: {{ cajera() }} · Caja 01</span>
+    </div>
+  </header>
+
+  <div class="dos">
+    <section class="caja">
+      <h2>DATOS DEL CLIENTE</h2>
+      <dl>
+        <dt>Nombre</dt><dd>{{ orden().cliente.nombre }}</dd>
+        <dt>Teléfono</dt><dd>{{ orden().cliente.telefono }}</dd>
+        <dt>Correo</dt><dd>{{ orden().cliente.correo ?? '—' }}</dd>
+        <dt>Dirección</dt><dd>{{ direccion() }}</dd>
+      </dl>
+    </section>
+    <section class="caja">
+      <h2>DATOS DEL EQUIPO</h2>
+      <dl>
+        <dt>Tipo</dt><dd>{{ equipo().tipo }}</dd>
+        <dt>Marca</dt><dd>{{ equipo().marca }}</dd>
+        <dt>Modelo</dt><dd>{{ equipo().modelo }}</dd>
+        <dt>Color</dt><dd>{{ equipo().color || '—' }}</dd>
+        <dt>IMEI / serie</dt><dd>{{ orden().imei }}</dd>
+        <dt>Accesorios</dt><dd>{{ orden().accesorios ?? 'Ninguno' }}</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="caja">
+    <h2>FALLA REPORTADA POR EL CLIENTE</h2>
+    <p>{{ orden().ficha?.falla ?? orden().trabajo }}</p>
+  </section>
+  @if (equipo().condicion) {
+    <section class="caja">
+      <h2>CONDICIÓN FÍSICA AL RECIBIR</h2>
+      <p>{{ equipo().condicion }}</p>
+    </section>
+  }
+
+  <div class="dos">
+    <section class="caja">
+      <h2>ANTICIPO / COSTO DE REVISIÓN</h2>
+      <dl>
+        <dt>Importe</dt><dd>{{ orden().anticipo > 0 ? dinero(orden().anticipo) + ' MXN' : 'Sin anticipo' }}</dd>
+        <dt>Método de pago</dt><dd>{{ metodo() }}</dd>
+        <dt>Nota</dt><dd>Se descuenta del total si autorizas la reparación.</dd>
+      </dl>
+    </section>
+    <section class="caja caja--seguimiento">
+      <div>
+        <h2>SEGUIMIENTO EN LÍNEA</h2>
+        <p>Entra a {{ negocio.web }}</p>
+        <p class="fuerte">Usuario: {{ orden().cliente.correo ?? orden().cliente.telefono }}</p>
+        <p class="fuerte">Contraseña temporal: {{ orden().ficha?.contrasena ?? 'la que te enviamos por correo' }} (también te la enviamos por correo; al entrar te pediremos cambiarla)</p>
+      </div>
+      <div class="qr" aria-label="Código QR">QR</div>
+    </section>
+  </div>
+
+  <section class="caja">
+    <h2>CLÁUSULAS Y CONDICIONES</h2>
+    <ol class="clausulas">
+      @for (c of clausulas(); track $index) {
+        <li>{{ c }}</li>
+      }
+    </ol>
+  </section>
+
+  <span class="espacio"></span>
+  <div class="firmas">
+    <p><strong>Firma del cliente</strong><span>{{ orden().cliente.nombre }} · Acepto las cláusulas de esta orden</span></p>
+    <p><strong>Recibió</strong><span>{{ cajera() }} · Caja 01</span></p>
+  </div>
+  <footer class="pie"><span>Conserva este documento para recoger tu equipo · Folio {{ orden().folio }}</span><span>Página 1 de 1</span></footer>
+</article>

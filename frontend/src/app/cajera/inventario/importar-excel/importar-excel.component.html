@@ -1,0 +1,123 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal importar" role="dialog" aria-modal="true" aria-labelledby="titulo-importar" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-importar">Importar productos desde Excel</h2>
+        <p class="modal__subtitulo">Alta o actualización masiva del catálogo</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/inventario/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <ol class="pasos">
+      @for (texto of ['Descargar plantilla', 'Subir archivo', 'Revisar e importar']; track texto; let n = $index) {
+        @if (n > 0) {
+          <li class="pasos__linea" [class.pasos__linea--hecha]="paso() > n" aria-hidden="true"></li>
+        }
+        <li class="pasos__paso" [class.pasos__paso--hecho]="paso() > n + 1" [class.pasos__paso--actual]="paso() === n + 1" [attr.aria-current]="paso() === n + 1 ? 'step' : null">
+          <span class="pasos__indicador">
+            @if (paso() > n + 1) {
+              <img src="assets/inventario/check-14-blanco.svg" width="14" height="14" alt="Hecho" />
+            } @else {
+              {{ n + 1 }}
+            }
+          </span>
+          {{ texto }}
+        </li>
+      }
+    </ol>
+
+    @if (archivo(); as a) {
+      <div class="archivo">
+        <span class="archivo__icono"><img src="assets/inventario/sheet-exito.svg" width="20" height="20" alt="" /></span>
+        <div class="archivo__datos">
+          <strong>{{ a.nombre }}</strong>
+          <span>{{ a.filas.length }} {{ a.filas.length === 1 ? 'fila' : 'filas' }} · {{ a.kb }} KB{{ a.hoja ? ' · Hoja “' + a.hoja + '”' : '' }}</span>
+        </div>
+        <label class="archivo__enlace">
+          <input type="file" accept=".xlsx,.xls,.csv" class="oculto" (change)="subir($event)" />
+          <img src="assets/inventario/upload-14.svg" width="14" height="14" alt="" />Cambiar archivo
+        </label>
+        <button type="button" class="archivo__enlace" (click)="descargarPlantilla()">
+          <img src="assets/inventario/download-14.svg" width="14" height="14" alt="" />Plantilla
+        </button>
+      </div>
+
+      <div class="opciones">
+        <label class="casilla"><input type="checkbox" [checked]="actualizar()" (change)="actualizar.set($any($event.target).checked)" />Actualizar productos existentes (mismo SKU)</label>
+        <label class="casilla"><input type="checkbox" [checked]="sumarStock()" (change)="sumarStock.set($any($event.target).checked)" />Sumar stock en lugar de reemplazarlo</label>
+      </div>
+
+      <div class="conteo">
+        <span class="estado estado--exito">{{ conteo().nuevos }} {{ conteo().nuevos === 1 ? 'producto nuevo' : 'productos nuevos' }}</span>
+        <span class="estado estado--info">{{ conteo().actualiza }} se {{ conteo().actualiza === 1 ? 'actualizará' : 'actualizarán' }}</span>
+        @if (conteo().errores) {
+          <span class="estado estado--peligro">{{ conteo().errores }} {{ conteo().errores === 1 ? 'fila con error' : 'filas con error' }}</span>
+        }
+        @if (conteo().omite) {
+          <span class="estado estado--neutro">{{ conteo().omite }} sin cambios</span>
+        }
+      </div>
+
+      <div class="vista-previa">
+        <table>
+          <thead>
+            <tr><th>Fila</th><th>SKU</th><th class="v-nombre">Nombre</th><th class="v-categoria">Categoría</th><th class="v-num">Costo</th><th class="v-num">Precio</th><th class="v-num">Stock</th><th>Resultado</th></tr>
+          </thead>
+          <tbody>
+            @for (f of filas(); track f.numero) {
+              <tr>
+                <td class="v-fila">{{ f.numero }}</td>
+                <td>{{ f.celdas[0] || '—' }}</td>
+                <td class="v-nombre"><span>{{ f.celdas[1] }}</span></td>
+                <td class="v-categoria v-tenue">{{ f.celdas[2] }}</td>
+                <td class="v-num v-tenue">{{ dinero(f.costo) }}</td>
+                <td class="v-num v-precio">{{ f.precio === null ? '' : dinero(f.precio) }}</td>
+                <td class="v-num v-tenue">{{ f.stock ?? '—' }}</td>
+                <td><span class="estado estado--{{ f.resultado.tono }}">{{ f.resultado.texto }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="nota">
+        {{ filas().length }} {{ filas().length === 1 ? 'fila' : 'filas' }} en el archivo.
+        @if (conteo().errores) { Las filas con error no se importan; descárgalas, corrígelas y vuelve a subirlas. }
+        @if (a.hoja) { Vista previa de prueba: la lectura de .xlsx llega con la API. }
+      </p>
+    } @else {
+      <div class="inicio">
+        <div class="inicio__paso">
+          <strong>1. Descarga la plantilla</strong>
+          <p>Columnas: SKU, Nombre, Categoría (Accesorios, Refacciones o Consumibles), Costo sin IVA, Precio con IVA y Stock.</p>
+          <button type="button" class="boton boton--contorno boton--40" (click)="descargarPlantilla()">
+            <img src="assets/inventario/download-primario.svg" width="16" height="16" alt="" />Descargar plantilla
+          </button>
+        </div>
+        <label class="inicio__paso inicio__subir">
+          <input type="file" accept=".xlsx,.xls,.csv" class="oculto" (change)="subir($event)" />
+          <strong>2. Sube el archivo lleno</strong>
+          <p>Excel (.xlsx) o CSV. Antes de importar verás qué productos son nuevos, cuáles se actualizan y cuáles tienen error.</p>
+          <span class="boton boton--primario boton--40"><img src="assets/inventario/upload-blanco.svg" width="16" height="16" alt="" />Elegir archivo</span>
+        </label>
+      </div>
+      @if (errorArchivo(); as e) {
+        <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="16" height="16" alt="" />{{ e }}</p>
+      }
+    }
+
+    <div class="importar__acciones">
+      @if (conteo().errores) {
+        <button type="button" class="boton boton--contorno boton--44" (click)="descargarErrores()">
+          <img src="assets/inventario/download-primario.svg" width="16" height="16" alt="" />Descargar filas con error
+        </button>
+      }
+      <span class="importar__espacio"></span>
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="button" class="boton boton--primario boton--44" [disabled]="!aImportar()" (click)="importar()">
+        <img src="assets/inventario/upload-blanco.svg" width="16" height="16" alt="" />Importar {{ aImportar() }} {{ aImportar() === 1 ? 'producto' : 'productos' }}
+      </button>
+    </div>
+  </section>
+</div>

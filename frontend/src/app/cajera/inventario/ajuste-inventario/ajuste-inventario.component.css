@@ -1,0 +1,19 @@
+.ajuste { max-width: 600px; }
+.ajuste .campo__control { gap: 8px; }
+.ajuste > .campo__etiqueta { margin-bottom: -8px; }
+.producto { position: relative; }
+.producto .sugerencias { top: 70px; }
+
+.numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dato { display: flex; align-items: center; height: 40px; padding: 0 12px; border-radius: 8px; background: var(--color-neutro-suave); font-size: 14px; font-weight: 600; color: var(--color-texto-secundario); }
+.dato--menos { background: var(--color-peligro-suave); color: var(--color-peligro); }
+.dato--mas { background: var(--color-exito-suave); color: var(--color-exito); }
+
+.valor { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--color-texto-tenue); }
+.valor strong { color: var(--color-marino); }
+.valor .valor--menos { color: var(--color-peligro); }
+
+@media (max-width: 560px) {
+  .numeros { grid-template-columns: minmax(0, 1fr); }
+  .selector__opcion { font-size: 12px; }
+}
