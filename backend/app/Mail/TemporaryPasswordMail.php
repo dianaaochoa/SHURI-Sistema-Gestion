@@ -9,26 +9,27 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Link to reset the password (A.3 staff / portal "¿Olvidaste tu contraseña?").
+ * Temporary password after a successful recovery (A.3).
+ * Sent immediately: the person is waiting on the screen.
+ * The body is never stored in sent_emails.
  */
-class PasswordResetMail extends Mailable
+class TemporaryPasswordMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public readonly string $name,
-        public readonly string $url,
-        public readonly int $minutes,
-        public readonly bool $asksQuestion,
+        public readonly string $login,
+        public readonly string $temporaryPassword,
     ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Recupera tu contraseña de SHURI');
+        return new Envelope(subject: 'Tu contraseña temporal de SHURI');
     }
 
     public function content(): Content
     {
-        return new Content(view: 'emails.password-reset');
+        return new Content(view: 'emails.temporary-password');
     }
 }

@@ -28,14 +28,12 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/2fa/resend', [TwoFactorController::class, 'resend'])->name('auth.2fa.resend');
         Route::post('portal/login', [CustomerAuthController::class, 'login']);
 
-        // Password recovery: email link + security question (staff and portal)
+        // Password recovery (A.3): security question → temporary password by email
         foreach (['auth' => 'staff', 'portal' => 'customer'] as $prefix => $actor) {
             Route::post("{$prefix}/password/forgot", [PasswordRecoveryController::class, 'forgot'])
                 ->defaults('actor', $actor)->name("{$prefix}.password.forgot");
-            Route::post("{$prefix}/password/verify-token", [PasswordRecoveryController::class, 'verifyToken'])
-                ->defaults('actor', $actor)->name("{$prefix}.password.verify-token");
-            Route::post("{$prefix}/password/reset", [PasswordRecoveryController::class, 'reset'])
-                ->defaults('actor', $actor)->name("{$prefix}.password.reset");
+            Route::post("{$prefix}/password/answer", [PasswordRecoveryController::class, 'answer'])
+                ->defaults('actor', $actor)->name("{$prefix}.password.answer");
         }
     });
 

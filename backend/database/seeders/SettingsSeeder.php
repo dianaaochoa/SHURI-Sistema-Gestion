@@ -63,7 +63,7 @@ class SettingsSeeder extends Seeder
             ['staff_mfa_enabled', '1', 'boolean', 'security', 'Pedir código por correo (MFA) al personal al iniciar sesión'],
             ['mfa_code_minutes', '10', 'integer', 'security', 'Minutos de vigencia del código de verificación'],
             ['mfa_max_attempts', '5', 'integer', 'security', 'Intentos permitidos para escribir el código'],
-            ['password_reset_minutes', '60', 'integer', 'security', 'Minutos de vigencia del enlace para recuperar la contraseña'],
+            ['password_reset_minutes', '15', 'integer', 'security', 'Minutos para responder la pregunta de seguridad al recuperar la contraseña'],
             // Email (AD9.7) — the SMTP password goes in .env (MAIL_PASSWORD)
             ['mail_from_address', 'avisos@shuri.mx', 'text', 'email', 'Correo remitente'],
             ['mail_from_name', 'SHURI Reparaciones y Ventas', 'text', 'email', 'Nombre del remitente'],

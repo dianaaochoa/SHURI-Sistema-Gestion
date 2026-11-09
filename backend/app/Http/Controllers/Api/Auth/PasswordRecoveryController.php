@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\PasswordRecoveryRequest;
 use App\Http\Requests\Auth\SecurityQuestionRequest;
+use App\Services\Auth\AuthService;
 use App\Services\Auth\PasswordRecoveryService;
 use App\Support\SecurityQuestions;
 use Illuminate\Http\JsonResponse;
 
 /**
- * "¿Olvidaste tu contraseña?" for staff (A.3) and customers (portal).
+ * "¿Olvidaste tu contraseña?" (Figma A.3) for staff and portal customers:
+ * user → security question → temporary password by email → create password (A.5).
  * The route tells which one with ->defaults('actor', 'staff'|'customer').
  */
 class PasswordRecoveryController extends Controller
@@ -20,43 +22,34 @@ class PasswordRecoveryController extends Controller
     /** POST /auth/password/forgot · /portal/password/forgot */
     public function forgot(PasswordRecoveryRequest $request): JsonResponse
     {
-        $this->recovery->requestReset($request->route('actor'), $request->validated('email'));
+        $actor = $request->route('actor');
+        $result = $this->recovery->start($actor, $request->validated('login'));
 
-        // Same answer whether the email exists or not
-        return response()->json([
-            'message' => 'Si el correo está registrado, te enviamos un enlace para crear una nueva contraseña.',
-        ]);
+        if ($result === null) {
+            // Same answer if the account does not exist or has no question
+            return response()->json([
+                'requires_answer' => false,
+                'message' => $actor === AuthService::STAFF
+                    ? 'No podemos recuperar esta cuenta en línea. Pide una contraseña temporal al administrador.'
+                    : 'No podemos recuperar esta cuenta en línea. Pide una contraseña temporal en la sucursal.',
+            ]);
+        }
+
+        return response()->json(['requires_answer' => true] + $result);
     }
 
-    /** POST /auth/password/verify-token · /portal/password/verify-token */
-    public function verifyToken(PasswordRecoveryRequest $request): JsonResponse
+    /** POST /auth/password/answer · /portal/password/answer */
+    public function answer(PasswordRecoveryRequest $request): JsonResponse
     {
-        $result = $this->recovery->checkToken(
+        $result = $this->recovery->answer(
             $request->route('actor'),
-            $request->validated('email'),
-            $request->validated('token'),
-        );
-
-        return response()->json([
-            'valid' => true,
-            'requires_answer' => $result['security_question'] !== null,
-            'security_question' => $result['security_question'],
-        ]);
-    }
-
-    /** POST /auth/password/reset · /portal/password/reset */
-    public function reset(PasswordRecoveryRequest $request): JsonResponse
-    {
-        $this->recovery->reset(
-            $request->route('actor'),
-            $request->validated('email'),
-            $request->validated('token'),
+            $request->validated('recovery_id'),
             $request->validated('answer'),
-            $request->validated('password'),
         );
 
         return response()->json([
-            'message' => 'Tu contraseña se cambió. Inicia sesión con la nueva contraseña.',
+            'email_hint' => $result['email_hint'],
+            'message' => "Te enviamos una contraseña temporal a {$result['email_hint']}. Entra con ella y el sistema te pedirá crear tu nueva contraseña.",
         ]);
     }
 

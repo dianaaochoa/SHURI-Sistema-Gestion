@@ -2,8 +2,7 @@
 
 namespace App\Services\Auth;
 
-use App\Mail\PasswordChangedMail;
-use App\Mail\PasswordResetMail;
+use App\Mail\TemporaryPasswordMail;
 use App\Models\Customer;
 use App\Models\CustomerPasswordResetToken;
 use App\Models\User;
@@ -11,6 +10,7 @@ use App\Services\AuditService;
 use App\Services\MailService;
 use App\Services\SettingsService;
 use App\Support\SecurityQuestions;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -18,18 +18,18 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Password recovery with two factors (staff and customers):
- *   1. Link sent to the account email (proves the person owns the email).
- *   2. Answer to the security question, if the account configured one.
+ * Password recovery following the Figma flow (A.3), with two factors:
+ *   1. Something the person knows: the answer to their security question.
+ *   2. Something the person has: their email, where the temporary password arrives.
+ * After logging in with the temporary password, the system forces them to
+ * create a new one (A.5, must_change_password).
  *
- * Staff tokens live in `password_reset_tokens`, customer tokens in
- * `customer_password_reset_tokens`. Both store only a SHA-256 hash.
+ * The pending recovery (recovery_id, stored as SHA-256) lives in
+ * `password_reset_tokens` (staff) or `customer_password_reset_tokens` (customers).
  */
 class PasswordRecoveryService
 {
     private const MAX_ANSWER_ATTEMPTS = 3;
-
-    private const RESEND_COOLDOWN_SECONDS = 60;
 
     public function __construct(
         private readonly SettingsService $settings,
@@ -38,64 +38,54 @@ class PasswordRecoveryService
     ) {}
 
     /**
-     * Step 1. Silent when the email does not exist: the caller always
-     * answers the same message, so nobody can test which emails are registered.
+     * Step 1. Returns the security question, or null when the account does not
+     * exist, is inactive or has no question (same answer in the three cases,
+     * so nobody can learn which accounts lack a question).
+     *
+     * @return array{recovery_id: string, security_question: string}|null
      */
-    public function requestReset(string $actor, string $email): void
+    public function start(string $actor, string $login): ?array
     {
-        $account = $this->findAccount($actor, $email);
+        $account = $this->findAccount($actor, $login);
 
-        if (! $account || ! $account->is_active || $this->recentlyRequested($account)) {
-            return;
+        if (! $account || ! $account->is_active || ! $account->security_answer_hash) {
+            return null;
         }
 
-        $token = Str::random(64);
-        $this->storeToken($account, $token);
+        $recoveryId = Str::random(64);
+        $this->storeRecovery($account, hash('sha256', $recoveryId));
 
-        $path = $account instanceof User ? '/recuperar-contrasena' : '/portal/recuperar-contrasena';
-        $url = config('app.frontend_url').$path.'?'.http_build_query(['token' => $token, 'email' => $account->email]);
+        $this->log($account, 'password_recovery_started', 'Inició la recuperación de contraseña');
 
-        $this->mailer->send(
-            new PasswordResetMail($account->name, $url, $this->minutes(), (bool) $account->security_answer_hash),
-            $account,
-            'password_recovery',
-        );
-
-        $this->log($account, 'password_reset_requested', 'Solicitud de recuperación de contraseña por correo');
+        return [
+            'recovery_id' => $recoveryId,
+            'security_question' => SecurityQuestions::text($account->security_question),
+        ];
     }
 
     /**
-     * Step 2. The link was opened: returns the security question to show.
+     * Step 2. Correct answer → new temporary password sent by email.
      *
-     * @return array{security_question: ?string}
+     * @return array{email_hint: string}
      */
-    public function checkToken(string $actor, string $email, string $token): array
+    public function answer(string $actor, string $recoveryId, string $answer): array
     {
-        [$account] = $this->resolve($actor, $email, $token);
+        [$account, $record] = $this->resolve($actor, $recoveryId);
 
-        return ['security_question' => SecurityQuestions::text($account->security_question)];
-    }
-
-    /** Step 3. New password, after checking the security answer. */
-    public function reset(string $actor, string $email, string $token, ?string $answer, string $password): void
-    {
-        [$account, $record] = $this->resolve($actor, $email, $token);
-
-        if ($account->security_answer_hash
-            && ($answer === null || ! Hash::check(SecurityQuestions::normalize($answer), $account->security_answer_hash))) {
+        if (! Hash::check(SecurityQuestions::normalize($answer), $account->security_answer_hash)) {
             $this->failAnswer($account, $record);
         }
 
-        DB::transaction(function () use ($account, $record, $password) {
-            $account->password = $password; // hashed by the model cast (Bcrypt)
-            $account->must_change_password = false;
+        $temporary = $this->temporaryPassword();
+
+        DB::transaction(function () use ($account, $record, $temporary) {
+            $account->password = $temporary; // hashed by the model cast (Bcrypt)
+            $account->must_change_password = true;
             $account->failed_attempts = 0;
             $account->locked_until = null; // recovering also unlocks the account
 
             if ($account instanceof Customer) {
-                $account->password_changed_at = now();
-                $account->temporary_password_encrypted = null;
-                $account->temporary_password_expires_at = null;
+                $account->temporary_password_expires_at = now()->addHours($this->settings->int('portal_temp_password_hours', 72));
             }
 
             $account->save();
@@ -103,10 +93,22 @@ class PasswordRecoveryService
             $this->consume($account, $record);
         });
 
-        $this->log($account, 'password_reset', 'Contraseña restablecida con enlace por correo'
-            .($account->security_answer_hash ? ' y pregunta de seguridad' : ''));
+        $sent = $this->mailer->send(
+            new TemporaryPasswordMail($account->name, $account instanceof User ? $account->username : $account->email, $temporary),
+            $account,
+            'temporary_password',
+        );
 
-        $this->mailer->send(new PasswordChangedMail($account->name), $account, 'password_changed');
+        $this->log($account, 'password_recovered', 'Pregunta de seguridad correcta: contraseña temporal enviada por correo');
+
+        if (! $sent) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Respondiste bien, pero no pudimos enviar el correo. Pide una contraseña temporal al administrador.',
+                'code' => 'MAIL_FAILED',
+            ], 503));
+        }
+
+        return ['email_hint' => TwoFactorService::maskEmail($account->email)];
     }
 
     /** Configure or change the security question (requires the current password). */
@@ -126,55 +128,18 @@ class PasswordRecoveryService
         $this->log($account, 'security_question_set', 'Pregunta de seguridad configurada');
     }
 
-    private function findAccount(string $actor, string $email): User|Customer|null
+    /** Staff: username or email (as in the login). Customers: email. */
+    private function findAccount(string $actor, string $login): User|Customer|null
     {
         return $actor === AuthService::STAFF
-            ? User::where('email', $email)->first()
-            : Customer::where('email', $email)->first();
+            ? User::where(fn ($q) => $q->where('email', $login)->orWhere('username', $login))->first()
+            : Customer::where('email', $login)->first();
     }
 
-    /**
-     * Valid account + valid, unexpired token, or a generic error.
-     *
-     * @return array{0: User|Customer, 1: object}
-     */
-    private function resolve(string $actor, string $email, string $token): array
-    {
-        $account = $this->findAccount($actor, $email);
-        $record = $account?->is_active ? $this->findValidRecord($account) : null;
-
-        $storedHash = $record ? ($record->token ?? $record->token_hash) : null;
-
-        if (! $record || ! hash_equals($storedHash, hash('sha256', $token))) {
-            throw ValidationException::withMessages([
-                'token' => 'El enlace no es válido o ya venció. Solicita uno nuevo.',
-            ]);
-        }
-
-        return [$account, $record];
-    }
-
-    private function findValidRecord(User|Customer $account): ?object
+    private function storeRecovery(User|Customer $account, string $hash): void
     {
         if ($account instanceof User) {
-            $row = DB::table('password_reset_tokens')->where('email', $account->email)->first();
-
-            return $row && Carbon::parse($row->created_at)->addMinutes($this->minutes())->isFuture() ? $row : null;
-        }
-
-        return CustomerPasswordResetToken::where('customer_id', $account->id)
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
-            ->latest('id')
-            ->first();
-    }
-
-    private function storeToken(User|Customer $account, string $token): void
-    {
-        $hash = hash('sha256', $token);
-
-        if ($account instanceof User) {
-            // One row per email: a new request replaces (invalidates) the previous link
+            // One row per email: starting again replaces the previous recovery
             DB::table('password_reset_tokens')->updateOrInsert(
                 ['email' => $account->email],
                 ['token' => $hash, 'question_attempts' => 0, 'created_at' => now()],
@@ -192,13 +157,35 @@ class PasswordRecoveryService
         ]);
     }
 
-    private function recentlyRequested(User|Customer $account): bool
+    /**
+     * Finds the pending recovery by its id, or a generic error.
+     *
+     * @return array{0: User|Customer, 1: object}
+     */
+    private function resolve(string $actor, string $recoveryId): array
     {
-        $last = $account instanceof User
-            ? DB::table('password_reset_tokens')->where('email', $account->email)->value('created_at')
-            : CustomerPasswordResetToken::where('customer_id', $account->id)->latest('id')->value('created_at');
+        $hash = hash('sha256', $recoveryId);
 
-        return $last && Carbon::parse($last)->addSeconds(self::RESEND_COOLDOWN_SECONDS)->isFuture();
+        if ($actor === AuthService::STAFF) {
+            $record = DB::table('password_reset_tokens')->where('token', $hash)->first();
+            $valid = $record && Carbon::parse($record->created_at)->addMinutes($this->minutes())->isFuture();
+            $account = $valid ? User::where('email', $record->email)->first() : null;
+        } else {
+            $record = CustomerPasswordResetToken::with('customer')
+                ->where('token_hash', $hash)
+                ->whereNull('used_at')
+                ->where('expires_at', '>', now())
+                ->first();
+            $account = $record?->customer;
+        }
+
+        if (! $account || ! $account->is_active || ! $account->security_answer_hash) {
+            throw ValidationException::withMessages([
+                'recovery_id' => 'La recuperación venció o ya no es válida. Empieza de nuevo.',
+            ]);
+        }
+
+        return [$account, $record];
     }
 
     private function failAnswer(User|Customer $account, object $record): never
@@ -207,10 +194,10 @@ class PasswordRecoveryService
 
         if ($attempts >= self::MAX_ANSWER_ATTEMPTS) {
             $this->consume($account, $record);
-            $this->log($account, 'password_reset_blocked', 'Enlace de recuperación anulado por respuestas incorrectas');
+            $this->log($account, 'password_recovery_blocked', 'Recuperación anulada por respuestas incorrectas');
 
             throw ValidationException::withMessages([
-                'token' => 'Demasiadas respuestas incorrectas. Solicita un nuevo enlace.',
+                'recovery_id' => 'Demasiadas respuestas incorrectas. Pide una contraseña temporal al administrador.',
             ]);
         }
 
@@ -221,7 +208,7 @@ class PasswordRecoveryService
         }
 
         $left = self::MAX_ANSWER_ATTEMPTS - $attempts;
-        $this->log($account, 'password_reset_wrong_answer', "Respuesta de seguridad incorrecta ({$attempts} de ".self::MAX_ANSWER_ATTEMPTS.')');
+        $this->log($account, 'password_recovery_wrong_answer', "Respuesta de seguridad incorrecta ({$attempts} de ".self::MAX_ANSWER_ATTEMPTS.')');
 
         throw ValidationException::withMessages([
             'answer' => "La respuesta no es correcta. Te quedan {$left} intento(s).",
@@ -239,9 +226,15 @@ class PasswordRecoveryService
         $record->update(['used_at' => now()]);
     }
 
+    /** Easy to type from the email, e.g. "Kt7mPq2xRb". It must be changed on first login. */
+    private function temporaryPassword(): string
+    {
+        return Str::password(10, letters: true, numbers: true, symbols: false);
+    }
+
     private function minutes(): int
     {
-        return $this->settings->int('password_reset_minutes', 60);
+        return $this->settings->int('password_reset_minutes', 15);
     }
 
     private function log(User|Customer $account, string $action, string $description): void

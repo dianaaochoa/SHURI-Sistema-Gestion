@@ -2,8 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Mail\PasswordChangedMail;
-use App\Mail\PasswordResetMail;
+use App\Mail\TemporaryPasswordMail;
 use App\Models\Customer;
 use App\Models\User;
 use App\Support\SecurityQuestions;
@@ -13,10 +12,12 @@ use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
- * Password recovery with two methods: email link + security question.
+ * Password recovery (Figma A.3): user → security question →
+ * temporary password by email → create password (A.5).
  */
 class PasswordRecoveryTest extends TestCase
 {
@@ -26,30 +27,12 @@ class PasswordRecoveryTest extends TestCase
 
     protected bool $seed = true;
 
-    private const NEW_PASSWORD = 'NuevaClave2026';
-
     protected function setUp(): void
     {
         parent::setUp();
 
         Mail::fake();
         $this->withoutMiddleware(ThrottleRequests::class);
-    }
-
-    /** Requests the link and returns the token that arrived by email. */
-    private function requestLink(string $email, string $prefix = 'auth'): string
-    {
-        $this->postJson("/api/v1/{$prefix}/password/forgot", ['email' => $email])->assertOk();
-
-        $url = null;
-        Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail) use (&$url) {
-            $url = $mail->url;
-
-            return true;
-        });
-        parse_str(parse_url($url, PHP_URL_QUERY), $query);
-
-        return $query['token'];
     }
 
     private function staffWithQuestion(array $attributes = []): User
@@ -62,195 +45,220 @@ class PasswordRecoveryTest extends TestCase
         ]);
     }
 
-    private function reset(string $token, ?string $answer, string $email = 'carlos@shuri.test', string $prefix = 'auth')
+    private function forgot(string $login, string $prefix = 'auth'): TestResponse
     {
-        return $this->postJson("/api/v1/{$prefix}/password/reset", [
-            'email' => $email,
-            'token' => $token,
-            'answer' => $answer,
-            'password' => self::NEW_PASSWORD,
-            'password_confirmation' => self::NEW_PASSWORD,
-        ]);
+        return $this->postJson("/api/v1/{$prefix}/password/forgot", ['login' => $login]);
     }
 
-    public function test_unknown_email_gets_the_same_answer_and_no_email(): void
+    private function answer(string $recoveryId, string $answer, string $prefix = 'auth'): TestResponse
     {
-        $this->postJson('/api/v1/auth/password/forgot', ['email' => 'nadie@shuri.test'])
+        return $this->postJson("/api/v1/{$prefix}/password/answer", ['recovery_id' => $recoveryId, 'answer' => $answer]);
+    }
+
+    private function sentTemporaryPassword(): string
+    {
+        $password = null;
+        Mail::assertSent(TemporaryPasswordMail::class, function (TemporaryPasswordMail $mail) use (&$password) {
+            $password = $mail->temporaryPassword;
+
+            return true;
+        });
+
+        return $password;
+    }
+
+    public function test_forgot_with_username_returns_the_security_question(): void
+    {
+        $this->staffWithQuestion();
+
+        $this->forgot('Carlos')
             ->assertOk()
-            ->assertJsonPath('message', 'Si el correo está registrado, te enviamos un enlace para crear una nueva contraseña.');
+            ->assertJsonPath('requires_answer', true)
+            ->assertJsonPath('security_question', '¿Cómo se llamaba tu primera mascota?')
+            ->assertJsonStructure(['recovery_id']);
 
         Mail::assertNothingSent();
     }
 
-    public function test_link_is_emailed_and_only_its_hash_is_stored(): void
-    {
-        $user = $this->staffWithQuestion();
-
-        $token = $this->requestLink('carlos@shuri.test');
-
-        Mail::assertSent(PasswordResetMail::class, fn ($mail) => $mail->hasTo('carlos@shuri.test')
-            && str_starts_with($mail->url, 'http://localhost:4200/recuperar-contrasena?'));
-        $this->assertSame(hash('sha256', $token), DB::table('password_reset_tokens')->value('token'));
-        $this->assertDatabaseHas('sent_emails', ['user_id' => $user->id, 'type' => 'password_recovery', 'status' => 'sent']);
-    }
-
-    public function test_opening_the_link_shows_the_security_question(): void
+    public function test_forgot_also_accepts_the_email(): void
     {
         $this->staffWithQuestion();
-        $token = $this->requestLink('carlos@shuri.test');
 
-        $this->postJson('/api/v1/auth/password/verify-token', ['email' => 'carlos@shuri.test', 'token' => $token])
-            ->assertOk()
-            ->assertJsonPath('requires_answer', true)
-            ->assertJsonPath('security_question', '¿Cómo se llamaba tu primera mascota?');
+        $this->forgot('carlos@shuri.test')->assertOk()->assertJsonPath('requires_answer', true);
     }
 
-    public function test_invalid_token_is_rejected(): void
+    public function test_unknown_user_and_user_without_question_get_the_same_answer(): void
+    {
+        User::factory()->create(['username' => 'laura']);
+
+        $unknown = $this->forgot('nadie')->assertOk()->json();
+        $withoutQuestion = $this->forgot('laura')->assertOk()->json();
+
+        $this->assertSame($unknown, $withoutQuestion);
+        $this->assertFalse($unknown['requires_answer']);
+        $this->assertArrayNotHasKey('recovery_id', $unknown);
+    }
+
+    public function test_recovery_id_is_stored_hashed(): void
     {
         $this->staffWithQuestion();
-        $this->requestLink('carlos@shuri.test');
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
 
-        $this->postJson('/api/v1/auth/password/verify-token', ['email' => 'carlos@shuri.test', 'token' => str_repeat('a', 64)])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('token');
+        $this->assertSame(hash('sha256', $recoveryId), DB::table('password_reset_tokens')->value('token'));
     }
 
-    public function test_reset_with_link_and_correct_answer_changes_password_and_closes_sessions(): void
+    public function test_full_flow_question_then_temporary_password_then_create_password(): void
     {
         $user = $this->staffWithQuestion(['locked_until' => now()->addMinutes(10), 'failed_attempts' => 3]);
         $user->createToken('Celular robado', ['staff']);
-        $token = $this->requestLink('carlos@shuri.test');
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
 
         // Accents, case and extra spaces do not matter
-        $this->reset($token, '  FIRULAÍS ')->assertOk();
+        $this->answer($recoveryId, '  FIRULAÍS ')
+            ->assertOk()
+            ->assertJsonPath('email_hint', 'c*****@shuri.test');
+
+        Mail::assertSent(TemporaryPasswordMail::class, fn ($mail) => $mail->hasTo('carlos@shuri.test') && $mail->login === 'carlos');
+        $temporary = $this->sentTemporaryPassword();
 
         $user->refresh();
-        $this->assertTrue(Hash::check(self::NEW_PASSWORD, $user->password));
+        $this->assertTrue($user->must_change_password);
+        $this->assertTrue(Hash::check($temporary, $user->password));
         $this->assertNull($user->locked_until);
         $this->assertSame(0, $user->tokens()->count());
-        $this->assertDatabaseCount('password_reset_tokens', 0);
-        Mail::assertSent(PasswordChangedMail::class);
+        $this->assertDatabaseHas('sent_emails', ['user_id' => $user->id, 'type' => 'temporary_password', 'status' => 'sent']);
 
-        $this->postJson('/api/v1/auth/login', ['login' => 'carlos', 'password' => self::NEW_PASSWORD])->assertOk();
+        // Log in with the temporary password → must create a new one (A.5)
+        $token = $this->postJson('/api/v1/auth/login', ['login' => 'carlos', 'password' => $temporary])
+            ->assertOk()
+            ->assertJsonPath('user.must_change_password', true)
+            ->json('token');
+
+        $this->withToken($token)->putJson('/api/v1/auth/password', [
+            'current_password' => $temporary,
+            'password' => 'NuevaClave2026',
+            'password_confirmation' => 'NuevaClave2026',
+        ])->assertOk();
+
+        $this->assertFalse($user->fresh()->must_change_password);
     }
 
-    public function test_link_can_only_be_used_once(): void
+    public function test_temporary_password_is_not_stored_in_plain_text(): void
     {
         $this->staffWithQuestion();
-        $token = $this->requestLink('carlos@shuri.test');
+        $this->answer($this->forgot('carlos')->json('recovery_id'), 'Firulais')->assertOk();
+        $temporary = $this->sentTemporaryPassword();
 
-        $this->reset($token, 'Firulais')->assertOk();
-        $this->reset($token, 'Firulais')->assertStatus(422)->assertJsonValidationErrors('token');
+        $this->assertDatabaseMissing('users', ['password' => $temporary]);
+        $this->assertStringStartsWith('$2y$', DB::table('users')->where('username', 'carlos')->value('password'));
     }
 
-    public function test_link_alone_is_not_enough_when_a_question_is_configured(): void
+    public function test_wrong_answer_tells_remaining_attempts(): void
     {
         $this->staffWithQuestion();
-        $token = $this->requestLink('carlos@shuri.test');
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
 
-        $this->reset($token, null)->assertStatus(422)->assertJsonValidationErrors('answer');
-        $this->reset($token, 'Bobby')
+        $this->answer($recoveryId, 'Bobby')
             ->assertStatus(422)
-            ->assertJsonPath('errors.answer.0', 'La respuesta no es correcta. Te quedan 1 intento(s).');
-    }
-
-    public function test_three_wrong_answers_cancel_the_link(): void
-    {
-        $user = $this->staffWithQuestion();
-        $token = $this->requestLink('carlos@shuri.test');
-
-        $this->reset($token, 'Bobby')->assertJsonValidationErrors('answer');
-        $this->reset($token, 'Max')->assertJsonValidationErrors('answer');
-        $this->reset($token, 'Rex')->assertJsonValidationErrors('token');
-
-        // Not even the right answer works now
-        $this->reset($token, 'Firulais')->assertStatus(422);
-        $this->assertTrue(Hash::check('Password123', $user->fresh()->password));
-        $this->assertDatabaseHas('audit_logs', ['action' => 'password_reset_blocked', 'user_id' => $user->id]);
-    }
-
-    public function test_account_without_question_recovers_with_the_email_link(): void
-    {
-        $user = User::factory()->create(['email' => 'laura@shuri.test']);
-        $token = $this->requestLink('laura@shuri.test');
-
-        $this->postJson('/api/v1/auth/password/verify-token', ['email' => 'laura@shuri.test', 'token' => $token])
-            ->assertJsonPath('requires_answer', false);
-
-        $this->reset($token, null, 'laura@shuri.test')->assertOk();
-        $this->assertTrue(Hash::check(self::NEW_PASSWORD, $user->fresh()->password));
-    }
-
-    public function test_expired_link_is_rejected(): void
-    {
-        $this->staffWithQuestion();
-        $token = $this->requestLink('carlos@shuri.test');
-
-        $this->travel(61)->minutes();
-
-        $this->reset($token, 'Firulais')->assertStatus(422)->assertJsonValidationErrors('token');
-    }
-
-    public function test_new_request_invalidates_the_previous_link(): void
-    {
-        $this->staffWithQuestion();
-        $old = $this->requestLink('carlos@shuri.test');
-
-        $this->travel(61)->seconds();
-        Mail::fake();
-        $new = $this->requestLink('carlos@shuri.test');
-
-        $this->reset($old, 'Firulais')->assertStatus(422)->assertJsonValidationErrors('token');
-        $this->reset($new, 'Firulais')->assertOk();
-    }
-
-    public function test_repeated_requests_within_a_minute_send_only_one_email(): void
-    {
-        $this->staffWithQuestion();
-
-        $this->postJson('/api/v1/auth/password/forgot', ['email' => 'carlos@shuri.test'])->assertOk();
-        $this->postJson('/api/v1/auth/password/forgot', ['email' => 'carlos@shuri.test'])->assertOk();
-
-        Mail::assertSent(PasswordResetMail::class, 1);
-    }
-
-    public function test_inactive_account_does_not_receive_a_link(): void
-    {
-        User::factory()->inactive()->create(['email' => 'baja@shuri.test']);
-
-        $this->postJson('/api/v1/auth/password/forgot', ['email' => 'baja@shuri.test'])->assertOk();
+            ->assertJsonPath('errors.answer.0', 'La respuesta no es correcta. Te quedan 2 intento(s).');
 
         Mail::assertNothingSent();
     }
 
-    public function test_customer_recovers_portal_password(): void
+    public function test_three_wrong_answers_cancel_the_recovery(): void
     {
-        $customer = Customer::factory()->withTemporaryPassword()->create([
+        $user = $this->staffWithQuestion();
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
+
+        $this->answer($recoveryId, 'Bobby')->assertJsonValidationErrors('answer');
+        $this->answer($recoveryId, 'Max')->assertJsonValidationErrors('answer');
+        $this->answer($recoveryId, 'Rex')->assertJsonValidationErrors('recovery_id');
+
+        // Not even the right answer works now
+        $this->answer($recoveryId, 'Firulais')->assertStatus(422);
+        $this->assertTrue(Hash::check('Password123', $user->fresh()->password));
+        Mail::assertNothingSent();
+        $this->assertDatabaseHas('audit_logs', ['action' => 'password_recovery_blocked', 'user_id' => $user->id]);
+    }
+
+    public function test_recovery_can_only_be_used_once(): void
+    {
+        $this->staffWithQuestion();
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
+
+        $this->answer($recoveryId, 'Firulais')->assertOk();
+        $this->answer($recoveryId, 'Firulais')->assertStatus(422)->assertJsonValidationErrors('recovery_id');
+    }
+
+    public function test_recovery_expires_after_fifteen_minutes(): void
+    {
+        $this->staffWithQuestion();
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
+
+        $this->travel(16)->minutes();
+
+        $this->answer($recoveryId, 'Firulais')->assertStatus(422)->assertJsonValidationErrors('recovery_id');
+    }
+
+    public function test_starting_again_invalidates_the_previous_recovery(): void
+    {
+        $this->staffWithQuestion();
+        $old = $this->forgot('carlos')->json('recovery_id');
+        $new = $this->forgot('carlos')->json('recovery_id');
+
+        $this->answer($old, 'Firulais')->assertStatus(422);
+        $this->answer($new, 'Firulais')->assertOk();
+    }
+
+    public function test_inactive_account_cannot_recover(): void
+    {
+        $this->staffWithQuestion(['is_active' => false]);
+
+        $this->forgot('carlos')->assertOk()->assertJsonPath('requires_answer', false);
+    }
+
+    public function test_mail_failure_returns_503(): void
+    {
+        $this->staffWithQuestion();
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP caído'));
+
+        $this->answer($recoveryId, 'Firulais')
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'MAIL_FAILED');
+    }
+
+    public function test_customer_recovers_portal_access_with_email(): void
+    {
+        $customer = Customer::factory()->create([
             'email' => 'ana@correo.com',
             'security_question' => 'birth_city',
             'security_answer_hash' => Hash::make(SecurityQuestions::normalize('Torreón')),
         ]);
-        $token = $this->requestLink('ana@correo.com', 'portal');
 
-        Mail::assertSent(PasswordResetMail::class, fn ($mail) => str_contains($mail->url, '/portal/recuperar-contrasena?'));
+        $recoveryId = $this->forgot('ANA@correo.com', 'portal')
+            ->assertJsonPath('security_question', '¿En qué ciudad naciste?')
+            ->json('recovery_id');
 
-        $this->reset($token, 'torreon', 'ana@correo.com', 'portal')->assertOk();
+        $this->answer($recoveryId, 'torreon', 'portal')->assertOk();
+        $temporary = $this->sentTemporaryPassword();
 
         $customer->refresh();
-        $this->assertTrue(Hash::check(self::NEW_PASSWORD, $customer->password));
-        $this->assertFalse($customer->must_change_password);
-        $this->assertNull($customer->temporary_password_expires_at);
-        $this->assertDatabaseHas('customer_password_reset_tokens', ['customer_id' => $customer->id, 'question_attempts' => 0]);
+        $this->assertTrue($customer->must_change_password);
+        $this->assertNotNull($customer->temporary_password_expires_at);
         $this->assertDatabaseMissing('customer_password_reset_tokens', ['customer_id' => $customer->id, 'used_at' => null]);
+
+        $this->postJson('/api/v1/portal/login', ['email' => 'ana@correo.com', 'password' => $temporary])
+            ->assertOk()
+            ->assertJsonPath('customer.must_change_password', true);
     }
 
-    public function test_staff_link_does_not_work_on_the_portal(): void
+    public function test_staff_recovery_id_does_not_work_on_the_portal(): void
     {
         $this->staffWithQuestion();
-        Customer::factory()->create(['email' => 'carlos@shuri.test']);
-        $token = $this->requestLink('carlos@shuri.test');
+        $recoveryId = $this->forgot('carlos')->json('recovery_id');
 
-        $this->reset($token, 'Firulais', 'carlos@shuri.test', 'portal')->assertStatus(422);
+        $this->answer($recoveryId, 'Firulais', 'portal')->assertStatus(422);
     }
 
     public function test_user_configures_security_question_with_current_password(): void
@@ -272,7 +280,6 @@ class PasswordRecoveryTest extends TestCase
 
         $user->refresh();
         $this->assertSame('first_pet', $user->security_question);
-        $this->assertNotSame('firulais', $user->security_answer_hash);
         $this->assertTrue(Hash::check('firulais', $user->security_answer_hash));
 
         $this->withToken($token)->getJson('/api/v1/auth/me')->assertJsonPath('data.has_security_question', true);

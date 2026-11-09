@@ -32,7 +32,8 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request) {
             $account = mb_strtolower((string) ($request->input('login')
                 ?? $request->input('email')
-                ?? $request->input('challenge_id')));
+                ?? $request->input('challenge_id')
+                ?? $request->input('recovery_id')));
 
             return [
                 Limit::perMinute(5)->by('login:'.$account.'|'.$request->ip()),

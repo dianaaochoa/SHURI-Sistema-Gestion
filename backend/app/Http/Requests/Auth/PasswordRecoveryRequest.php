@@ -3,11 +3,10 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
 /**
- * The three recovery steps share this request; rules grow by step:
- * forgot (email) → verify-token (+ token) → reset (+ answer, new password).
+ * Both recovery steps share this request:
+ * forgot (login) → answer (recovery_id + answer).
  */
 class PasswordRecoveryRequest extends FormRequest
 {
@@ -19,33 +18,30 @@ class PasswordRecoveryRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        $rules = ['email' => ['required', 'string', 'email', 'max:150']];
-
-        if ($this->routeIs('*.password.verify-token', '*.password.reset')) {
-            $rules['token'] = ['required', 'string', 'size:64'];
+        if ($this->routeIs('*.password.answer')) {
+            return [
+                'recovery_id' => ['required', 'string', 'size:64'],
+                'answer' => ['required', 'string', 'max:100'],
+            ];
         }
 
-        if ($this->routeIs('*.password.reset')) {
-            $rules['answer'] = ['nullable', 'string', 'max:100'];
-            $rules['password'] = ['required', 'string', 'max:255', 'confirmed', Password::defaults()];
-        }
-
-        return $rules;
+        return ['login' => ['required', 'string', 'max:150']];
     }
 
     /** @return array<string, string> */
     public function attributes(): array
     {
         return [
-            'email' => 'correo',
-            'token' => 'enlace',
+            'login' => $this->routeIs('portal.*') ? 'correo' : 'usuario o correo',
+            'recovery_id' => 'identificador de recuperación',
             'answer' => 'respuesta',
-            'password' => 'nueva contraseña',
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['email' => mb_strtolower(trim((string) $this->input('email')))]);
+        if ($this->has('login')) {
+            $this->merge(['login' => mb_strtolower(trim((string) $this->input('login')))]);
+        }
     }
 }
