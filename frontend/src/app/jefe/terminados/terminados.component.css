@@ -1,0 +1,5 @@
+tbody tr.fija { cursor: default; }
+tbody tr.fija:hover { background: none; }
+.t-folio { white-space: nowrap; }
+.vencido { font-weight: 700; color: var(--color-peligro); }
+td small { display: block; margin-top: 2px; font-size: 11px; font-weight: 500; color: var(--color-texto-tenue); }

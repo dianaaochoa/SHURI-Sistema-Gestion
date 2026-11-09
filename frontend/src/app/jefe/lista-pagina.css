@@ -1,4 +1,4 @@
-/* Páginas de lista del jefe (J3.1 Por cotizar, J4.1 Garantías, J5 Refacciones, J6 Inventario, J7 Técnicos): indicadores, pestañas y tabla. */
+/* Páginas de lista del jefe (J3.1 Por cotizar, J4.1 Garantías, J5 Refacciones, J6 Inventario, J7 Técnicos, J8 Equipos terminados): indicadores, pestañas y tabla. */
 .lista-pagina { display: flex; flex-direction: column; gap: 16px; }
 
 /* Figma J3.1 / J4.1: 4 indicadores de 290 × 64 */

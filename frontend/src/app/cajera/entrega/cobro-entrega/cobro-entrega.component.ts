@@ -47,6 +47,9 @@ const METODOS: { id: MetodoSimple; texto: string; icono: string }[] = [
         }
       }
     }
+    @if (o.almacenaje?.monto) {
+      <p class="renglon"><span>Almacenaje ({{ o.almacenaje!.dias }} días)</span><strong>{{ dinero(o.almacenaje!.monto) }}</strong></p>
+    }
     <hr class="separador" />
     <p class="renglon renglon--total"><span>{{ tipo() === 'normal' ? 'Restante a cobrar' : 'Saldo a cobrar' }}</span><strong>{{ dinero(restante()) }}</strong></p>
 

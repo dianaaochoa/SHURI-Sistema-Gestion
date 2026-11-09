@@ -117,6 +117,8 @@ export interface Orden {
   sinReparacion?: { fecha: string; motivo: string; texto: string };
   /** Daño encontrado durante la reparación; el jefe lo re-cotiza (J3.4). */
   danoAdicional?: { fecha: string; texto: string; urgente: boolean; conceptos: Concepto[] };
+  /** Política de bodega (J8.2): almacenaje que caja cobra al entregar, o perdonado por el jefe. */
+  almacenaje?: { dias: number; monto: number; por: string; perdonado?: boolean };
   /** Cobro de revisión de un equipo sin reparación (J3.3). Sin valor: la revisión es el anticipo. */
   revision?: { cobrar: boolean; monto: number };
   /** Orden en pausa (J2.3): desde cuándo y por qué. */
@@ -246,9 +248,11 @@ export function etiquetaEstado(orden: Orden): string {
 
 /** Lo que falta por cobrar al entregar: presupuesto (y adicional aprobado) menos anticipo. */
 export function saldo(orden: Orden): number {
-  if (orden.estado === 'sin-reparacion' && orden.revision?.cobrar) return Math.max(0, redondear(orden.revision.monto - orden.anticipo));
-  if (['sin-reparacion', 'garantia-lista', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return 0;
-  return Math.max(0, redondear(orden.presupuesto.total - orden.anticipo));
+  // Almacenaje de la política de bodega (J8.2): se suma a lo que falta cobrar al entregar.
+  const almacenaje = ENTREGABLES.includes(orden.estado) ? (orden.almacenaje?.monto ?? 0) : 0;
+  if (orden.estado === 'sin-reparacion' && orden.revision?.cobrar) return redondear(Math.max(0, orden.revision.monto - orden.anticipo) + almacenaje);
+  if (['sin-reparacion', 'garantia-lista', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return almacenaje;
+  return redondear(Math.max(0, orden.presupuesto.total - orden.anticipo) + almacenaje);
 }
 
 // ---------- Datos de prueba (Figma C4.1–C4.8) ----------
@@ -1062,6 +1066,18 @@ export class OrdenesService {
         ? { ...o, estado: 'esperando-refaccion', pausa: { desde: ahora, motivo: 'Esperando refacción', detalle }, historial: [...o.historial, { fecha: ahora, texto: `En pausa: ${detalle}` }] }
         : o,
     );
+  }
+
+  /** J8.2 · Política de bodega: cobrar almacenaje al entregar o perdonarlo (queda con el nombre del jefe). */
+  aplicarAlmacenaje(folio: string, datos: { dias: number; monto: number; perdonar: boolean; por: string }): void {
+    const texto = datos.perdonar
+      ? `Almacenaje de ${datos.dias} días perdonado por ${datos.por}`
+      : `Almacenaje de ${datos.dias} días ($${datos.monto.toFixed(2)}) por cobrar al entregar (${datos.por})`;
+    this.actualizar(folio, (o) => ({
+      ...o,
+      almacenaje: { dias: datos.dias, monto: datos.perdonar ? 0 : datos.monto, por: datos.por, perdonado: datos.perdonar || undefined },
+      historial: [...o.historial, { fecha: ahoraIso(), texto }],
+    }));
   }
 
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */
