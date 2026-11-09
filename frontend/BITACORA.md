@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J6 Inventario del taller)
+- **Última actualización:** 8 nov 2026 (J7 Técnicos)
 
 ---
 
@@ -61,7 +61,8 @@ flowchart LR
     J4["J4 Garantías<br/>J4.1 lista por etapa · J4.2 dictamen"]:::hecho
     J5["J5 Refacciones<br/>J5.1 solicitudes · J5.2 pedir · J5.3 devolución<br/>J5.4 pedidos a proveedor · J5.5 nuevo pedido"]:::hecho
     J6["J6 Inventario del taller<br/>refacciones y consumibles con costos"]:::hecho
-    J["J7–J11"]:::pendiente
+    J7["J7 Técnicos<br/>carga, desempeño del mes y órdenes por técnico"]:::hecho
+    J["J8–J11"]:::pendiente
   end
   subgraph TEC["05 · Técnico"]
     T["T1–T7"]:::pendiente
@@ -104,6 +105,7 @@ flowchart LR
   C7 -.->|"llega: se aparta<br/>para la orden"| J5
   C7 -.->|"mismo catálogo<br/>y entrada de mercancía"| J6
   J6 -->|"Pedir · Ver pedido"| J5
+  J7 -->|"Ver · Reasignar"| J2
   J1 -->|"cada pendiente abre<br/>su módulo"| J
   C2C & C3 & C4 & C5 & C6 & C10 -->|"imprimir"| C11
   BASE --> POR
@@ -193,6 +195,8 @@ flowchart LR
     RS["RefaccionesService<br/>solicitudes, devoluciones<br/>e historial (simulado)"]:::serv
     IT["InventarioTaller<br/>J6"]:::comp
     VR["VerProducto<br/>modal J6"]:::comp
+    TQ["Tecnicos<br/>J7"]:::comp
+    CG["carga.ts · desempeno.ts<br/>estado del técnico y<br/>cifras del mes (prueba)"]:::serv
     ET["etapas.ts<br/>columnas y SLA de 24 h"]:::serv
     JD["jefe.datos.ts<br/>mensajes y preguntas"]:::serv
   end
@@ -381,6 +385,9 @@ flowchart LR
   SL --> IT
   IT --> VR & NP & INS
   IT --> EN & PAG
+  SL --> TQ
+  TQ --> CG & OS & AS
+  IJ --> CG
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
 ```
 
@@ -518,6 +525,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Pedir” abre el nuevo pedido de J5.5 con la pieza ya agregada; “Ver pedido” lleva a Refacciones › Pedidos; “Ver” muestra apartados y movimientos.
 - “Entrada de mercancía” (`?vista=entrada`) es la misma de caja (C7.3); si se paga en efectivo, necesita el turno de caja abierto.
 
+**Técnicos (`/jefe/tecnicos`, usuario `jlopez`):**
+- Una tarjeta por técnico: estado (Ocupado con 5 órdenes o más, En pausa, Disponible, la misma regla del Inicio), lo que trae en curso o en pausa y las cifras del mes elegido. Clic en la tarjeta filtra la tabla.
+- La tabla muestra sus órdenes en el taller con etapa, tiempo en la etapa, fecha prometida y si va a tiempo. “Ver” abre el detalle del tablero; “Reasignar” (las que están en pausa) abre el modal de J2.2.
+- Terminadas, promedio y % de garantías son de prueba (escala de Figma) más lo que la app entregó ese mes.
+
 **Mi perfil (`/cajera/perfil` y `/cajera/cambiar-contrasena`; igual en `/jefe/…`, `/tecnico/…` y `/administrador/…`):**
 - Se abre desde el menú de usuario. “Cambiar contraseña” lleva a la misma pantalla con el cursor en la contraseña actual.
 - Para cambiarla: la actual (`Shuri2026!` en los usuarios de prueba), una nueva con 8 caracteres, mayúscula y número, y repetirla. El símbolo es opcional y sube la seguridad de “Buena” a “Segura”.
@@ -558,7 +570,7 @@ frontend/src/
     │   │   ├── regresar-tecnico/  # J3.2 · J3.3 la orden vuelve a Diagnóstico
     │   │   ├── sin-reparacion/    # J3.3
     │   │   └── recotizacion/      # J3.4
-    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1, J4.1, J5 y J6
+    │   ├── lista-pagina.css   # indicadores, pestañas y tabla de J3.1, J4.1, J5, J6 y J7
     │   ├── garantias/         # J4.1 lista por etapa
     │   │   ├── garantia.ts        # etapa, vencimiento, días usados y recomendación
     │   │   ├── dictamen-garantia/ # J4.2 reparación original, cliente y reporte del técnico
@@ -570,8 +582,11 @@ frontend/src/
     │   │   ├── recibir-devolucion/  # J5.3
     │   │   ├── nuevo-pedido/      # J5.5
     │   │   └── ver-pedido/        # J5.4 "Ver"
-    │   └── inventario-taller/ # J6 (reusa paginación y entrada de mercancía de C7, y el nuevo pedido de J5.5)
-    │       └── ver-producto/      # J6 "Ver": apartados y movimientos
+    │   ├── inventario-taller/ # J6 (reusa paginación y entrada de mercancía de C7, y el nuevo pedido de J5.5)
+    │   │   └── ver-producto/      # J6 "Ver": apartados y movimientos
+    │   └── tecnicos/          # J7 (Reasignar usa el modal de J2.2)
+    │       ├── carga.ts           # órdenes, en curso o en pausa y estado del técnico (también J1)
+    │       └── desempeno.ts       # terminadas, promedio y % de garantías del mes (de prueba)
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
@@ -836,6 +851,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Pedidos del jefe | Siguen en `InventarioService.pedidos` (los mismos que recibe caja en C7.5) con `recibe`, `nota` y `creado`; los recibidos se leen de las entradas con pedido. `Entrada.faltan` marca el recibido parcial | Las solicitudes de J1 (`SOLICITUDES_REFACCION`) se movieron a `RefaccionesService`. |
 | Indicadores del Inicio | “Refacciones” cuenta las 3 solicitudes pendientes | Figma: 2. |
 | Inventario del taller (J6) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j6-inventario.png` (Figma sin llamadas). Las cifras salen del inventario de prueba: 13 refacciones y consumibles de 22 productos | Figma: 286 de 3,450. La paginación es la de C7 (25, 50 o 100 por página). |
+| Técnicos (J7) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j7-tecnicos.png` (Figma sin llamadas). Carga y tabla salen de las órdenes; el desempeño del mes es de prueba (`desempeno.ts`) porque aún no hay registro de tiempos | Con las órdenes de prueba de J3–J5, Carlos y Luis salen “Ocupado” con 7 órdenes y Mariana “Disponible”; Figma: 5, 4 y 3. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -848,7 +864,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versiones J10 celular (jefe) y T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J7–J11. La cajera (C1–C11 y C1.6), J1 a J6 quedaron completos.
+- [ ] Pantallas de cada rol: inicios de AD1 y T1; jefe J8–J11. La cajera (C1–C11 y C1.6), J1 a J7 quedaron completos.
+- [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
 - [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5). El anticipo a devolver en C6.2 todavía no sale de la caja en el corte.
@@ -1193,3 +1210,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - “Pedir” del conector Moto G84 abre el pedido con Distribuidora MovilTec y 2 piezas ($190.00); “Ver” del adhesivo muestra su ajuste AJ-0016; “Ver pedido” lleva a Refacciones › Pedidos
   - la entrada de mercancía abre con “Recibió: Jorge López”
   - a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
+
+### 8 nov 2026 · Jefe de técnicos J7: Técnicos
+- Figma sin llamadas: J7 se tomó del PNG `docs/diseno/04-jefe-de-tecnicos/j7-tecnicos.png`.
+- `jefe/tecnicos/carga.ts` saca del Inicio (J1) la regla de estado del técnico; J1 y J7 la usan. `desempeno.ts` da las cifras del mes (prueba con la escala de Figma, el mes en curso proporcional a los días).
+- `TecnicosComponent`: selector de mes (los últimos 6), tarjetas que filtran la tabla y tabla de órdenes en el taller; “Reasignar” reusa `AsignarTecnicoComponent`.
+- Verificado:
+  - a 1440×900, tres tarjetas con estado, orden en curso y cuatro cifras; la tabla marca #1034 “Atrasada” y #1028 “En pausa · Reasignar”
+  - clic en Mariana deja solo #1010 (Garantía) y #1028; octubre cambia el subtítulo y las cifras; reasignar #1028 a Luis la quita de Mariana
+  - el Inicio sigue igual con la regla compartida; a 1366×768 y 360 px sin scroll horizontal; sin errores en consola
