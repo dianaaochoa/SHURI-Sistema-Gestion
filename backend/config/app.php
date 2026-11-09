@@ -85,7 +85,8 @@ return [
     |
     */
 
-    'locale' => 'en',
+    // Validation messages in Spanish (lang/es); missing keys fall back to English
+    'locale' => 'es',
 
     /*
     |--------------------------------------------------------------------------

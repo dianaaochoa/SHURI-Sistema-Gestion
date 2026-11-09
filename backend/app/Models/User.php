@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -13,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users';
 
@@ -92,5 +93,41 @@ class User extends Authenticatable
     public function cashierSales(): HasMany
     {
         return $this->hasMany(Sale::class, 'cashier_id');
+    }
+
+    /** @var array<int, string>|null Permission codes cached for this request */
+    private ?array $permissionCodesCache = null;
+
+    /**
+     * Permission codes of the user's role plus any role they are covering
+     * today through an active substitution (e.g. technician covering the head).
+     *
+     * @return array<int, string>
+     */
+    public function permissionCodes(): array
+    {
+        if ($this->permissionCodesCache !== null) {
+            return $this->permissionCodesCache;
+        }
+
+        $roleIds = $this->userRoleSubstitutions()
+            ->whereNull('revoked_at')
+            ->where('starts_at', '<=', now())
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+            ->pluck('role_id')
+            ->push($this->role_id)
+            ->unique();
+
+        return $this->permissionCodesCache = Permission::query()
+            ->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $roleIds))
+            ->pluck('code')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function hasPermission(string $code): bool
+    {
+        return in_array($code, $this->permissionCodes(), true);
     }
 }

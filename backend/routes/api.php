@@ -1,19 +1,48 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\Auth\CustomerAuthController;
+use App\Http\Controllers\Api\Auth\StaffAuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| SHURI API v1  —  prefix: /api/v1
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
+| Layers of protection:
+|  1. Public + throttle:login          → login endpoints (brute-force protection)
+|  2. auth:sanctum + actor:<type>     → valid token of the right account type
+|  3. password.changed                → temporary password already replaced
+|  4. permission:<code>               → RBAC per action (permissions table)
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('v1')->group(function () {
+
+    // ── Public ──────────────────────────────────────────────────────────
+    Route::middleware('throttle:login')->group(function () {
+        Route::post('auth/login', [StaffAuthController::class, 'login']);
+        Route::post('portal/login', [CustomerAuthController::class, 'login']);
+    });
+
+    // ── Staff (Admin, Head technician, Technician, Cashier) ────────────
+    Route::middleware(['auth:sanctum', 'actor:staff'])->group(function () {
+        Route::get('auth/me', [StaffAuthController::class, 'me']);
+        Route::post('auth/logout', [StaffAuthController::class, 'logout']);
+        Route::put('auth/password', [StaffAuthController::class, 'changePassword']);
+
+        Route::middleware('password.changed')->group(function () {
+            // Module routes go here, each one with its permission, e.g.:
+            // Route::post('sales', [SaleController::class, 'store'])->middleware('permission:pos.sell');
+        });
+    });
+
+    // ── Customer portal ─────────────────────────────────────────────────
+    Route::prefix('portal')->middleware(['auth:sanctum', 'actor:customer'])->group(function () {
+        Route::get('me', [CustomerAuthController::class, 'me']);
+        Route::post('logout', [CustomerAuthController::class, 'logout']);
+        Route::put('password', [CustomerAuthController::class, 'changePassword']);
+
+        Route::middleware('password.changed')->group(function () {
+            // Portal routes (P1–P5) go here
+        });
+    });
 });

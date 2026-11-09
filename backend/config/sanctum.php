@@ -46,7 +46,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Minutes until an issued token expires (8 h = one work shift).
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 480),
 
     /*
     |--------------------------------------------------------------------------

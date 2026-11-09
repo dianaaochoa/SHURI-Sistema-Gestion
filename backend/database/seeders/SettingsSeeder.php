@@ -57,6 +57,9 @@ class SettingsSeeder extends Seeder
             ['portal_temp_password_hours', '72', 'integer', 'portal', 'Horas de vigencia de la contraseña temporal'],
             ['portal_max_attempts', '5', 'integer', 'portal', 'Intentos fallidos antes de bloquear el acceso'],
             ['portal_lock_minutes', '15', 'integer', 'portal', 'Minutos de bloqueo tras exceder intentos'],
+            // Staff access (A.1–A.6)
+            ['staff_max_attempts', '5', 'integer', 'security', 'Intentos fallidos del personal antes de bloquear la cuenta'],
+            ['staff_lock_minutes', '15', 'integer', 'security', 'Minutos de bloqueo de la cuenta del personal'],
             // Email (AD9.7) — the SMTP password goes in .env (MAIL_PASSWORD)
             ['mail_from_address', 'avisos@shuri.mx', 'text', 'email', 'Correo remitente'],
             ['mail_from_name', 'SHURI Reparaciones y Ventas', 'text', 'email', 'Nombre del remitente'],
