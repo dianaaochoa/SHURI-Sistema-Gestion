@@ -70,7 +70,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Torreón, Coahuila (UTC-6, no daylight saving). Must match DB_TIMEZONE because
+    // triggers and views compare stored dates with MySQL's NOW().
+    'timezone' => env('APP_TIMEZONE', 'America/Mexico_City'),
 
     /*
     |--------------------------------------------------------------------------
