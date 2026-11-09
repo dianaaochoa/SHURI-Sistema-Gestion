@@ -1,4 +1,4 @@
-import { Component, computed, inject, output, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { AuthService } from '../../../acceso/auth.service';
 import { FormaPago, PROVEEDORES, ProductoInventario } from '../../../cajera/inventario/inventario.datos';
 import { InventarioService } from '../../../cajera/inventario/inventario.service';
@@ -27,12 +27,14 @@ const EN_TALLER = ['por-cotizar', 'por-aprobar', 'adicional', 'en-taller', 'espe
   templateUrl: './nuevo-pedido.component.html',
   styleUrl: './nuevo-pedido.component.css',
 })
-export class NuevoPedidoComponent {
+export class NuevoPedidoComponent implements OnInit {
   private readonly inventario = inject(InventarioService);
   private readonly refacciones = inject(RefaccionesService);
   private readonly todas = inject(OrdenesService).ordenes;
   private readonly jefe = inject(AuthService).sesion()?.nombre ?? '';
 
+  /** J6 "Pedir": el producto llega ya agregado y con su proveedor. */
+  readonly inicial = input<ProductoInventario | null>(null);
   readonly cerrar = output<void>();
   readonly registrado = output<string>();
 
@@ -64,6 +66,13 @@ export class NuevoPedidoComponent {
       .sort((a, b) => Number(b.proveedor === this.proveedor()) - Number(a.proveedor === this.proveedor()))
       .slice(0, 6);
   });
+
+  ngOnInit(): void {
+    const p = this.inicial();
+    if (!p) return;
+    this.proveedor.set(p.proveedor);
+    this.agregar(p);
+  }
 
   protected readonly total = computed(() => this.lineas().reduce((s, l) => s + l.cantidad * l.costo, 0));
 
