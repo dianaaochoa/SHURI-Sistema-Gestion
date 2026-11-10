@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J11 Mensajes de clientes · jefe de técnicos completo)
+- **Última actualización:** 9 nov 2026 (corrección: cerrar turno en Corte de caja)
 
 ---
 
@@ -916,6 +916,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Versión celular del jefe (J10) | Hecha con el PNG `docs/diseno/04-jefe-de-tecnicos/j10-version-celular.png`. Las pantallas J2–J9 ya se adaptaban a 360 px; J10 agrega el marco (barras) y el Inicio compacto (2 × 2 indicadores, total de órdenes en el subtítulo) | El dictamen y el pedido de Figma J10 son J4.2 y J5.2 apilados; Mensajes llega con J11. |
 | Mensajes de clientes (J11) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j11-mensajes-de-clientes.png` (Figma sin llamadas). Las conversaciones usan órdenes de la app: María (#1024) tiene un daño adicional en lugar de la garantía de Figma | Las respuestas rápidas se editan en Configuración (J9, nueva sección) y se guardan al escribir. |
 | Interruptor | Clase global `.interruptor` (Figma J11 “Disponible hoy”) | Para reusar en otros “sí/no”. |
+| Fondo al cerrar turno (C10.4) | Sigue al conteo: el fondo asignado ($1,000) pero nunca más de lo contado, hasta que la cajera lo escriba. Si falta algo para cerrar, se dice junto al botón | Antes se quedaba en $1,000 aunque se contara menos y el cierre se rechazaba con un error pequeño junto al campo. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -1321,3 +1322,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - respuesta rápida “Qué traer” y enviar → Sin responder (1) y el menú marca 1; compartir estado agrega la tarjeta; Resuelto la pasa a Resueltos; contestar a Andrés con Enter deja Sin responder (0) y quita el contador; volver a Mensajes muestra “Todo respondido”; apagar “Disponible hoy” muestra el aviso
   - a 390 px: lista sola; al abrir, chat con tira de la orden, chips y la barra de escribir arriba de la barra inferior; volver regresa a la lista
   - a 1366×768 con el panel de la orden; editar una respuesta rápida en Configuración se ve en el chat; sin errores en consola
+
+### 9 nov 2026 · Corrección: no se podía cerrar turno (C10.4)
+- Causa: en “Cerrar turno” el “Efectivo que se queda como fondo” arrancaba en $1,000 fijo. Si la cajera contaba por denominación menos de $1,000 (o el arqueo daba menos), el fondo quedaba mayor que lo contado y el botón no hacía nada visible: el error “Entre $0.00 y …” aparecía solo bajo ese campo.
+- `CerrarTurnoComponent`: el fondo es un cálculo (asignado, tope lo contado) hasta que la cajera lo escribe; aviso “No se puede cerrar todavía: …” junto al botón con lo que falte (conteo, comentario por diferencia o fondo).
+- Verificado como `amartinez`: turno con esperado $1,899 y $800 contados por denominación → fondo $800 solo, pide comentario y al escribirlo cierra (corte C-0412, fondo $800); turno con fondo escrito a mano de $500 → “A gerencia se entregan $1,399.00” y cierra; sin errores en consola.
