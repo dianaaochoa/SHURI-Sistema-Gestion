@@ -36,7 +36,8 @@ export class CerrarTurnoComponent implements OnInit {
   protected readonly cantidades = signal<Record<number, number>>({});
   protected readonly centavos = signal(0);
   protected readonly comentario = signal('');
-  protected readonly fondo = signal(0);
+  /** Lo que la cajera escribió como fondo; sin valor, el fondo sigue al conteo. */
+  private readonly fondoEscrito = signal<number | null>(null);
   protected readonly intentado = signal(false);
 
   /** "Turno matutino · Caja 01 · Ana Martínez · 09:00 – 15:02" */
@@ -51,6 +52,11 @@ export class CerrarTurnoComponent implements OnInit {
   /** Si contó por denominación manda ese total; si no, lo que escribió en el arqueo. */
   protected readonly contado = computed(() => (this.porDenominacion() > 0 ? this.porDenominacion() : (this.contadoInicial() ?? 0)));
   protected readonly diferencia = computed(() => Math.round((this.contado() - this.esperado()) * 100) / 100);
+  /**
+   * Fondo que se queda en la caja: el asignado, pero nunca más de lo contado. Antes se quedaba fijo en $1,000
+   * y, si el conteo daba menos, el cierre se rechazaba ("Entre $0.00 y …") sin que la cajera lo notara.
+   */
+  protected readonly fondo = computed(() => this.fondoEscrito() ?? Math.min(this.caja.fondoAsignado, Math.max(0, this.contado())));
 
   protected readonly errores = computed(() => {
     const e: Record<string, string> = {};
@@ -60,9 +66,15 @@ export class CerrarTurnoComponent implements OnInit {
     return e;
   });
 
+  /** Lo que falta para poder cerrar, junto al botón (los errores de cada campo pueden quedar fuera de la vista). */
+  protected readonly faltantes = computed(() => Object.values(this.errores()));
+
   ngOnInit(): void {
     this.comentario.set(this.comentarioInicial());
-    this.fondo.set(Math.min(this.caja.fondoAsignado, Math.max(0, this.contadoInicial() ?? this.caja.fondoAsignado)));
+  }
+
+  protected cambiarFondo(texto: string): void {
+    this.fondoEscrito.set(texto === '' ? null : Math.max(0, Number(texto) || 0));
   }
 
   protected dinero(importe: number): string {

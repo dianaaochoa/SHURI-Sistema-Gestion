@@ -58,7 +58,7 @@
         <label class="campo__etiqueta" for="cierre-fondo">Efectivo que se queda como fondo</label>
         <div class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['fondo']">
           <span class="moneda">$</span>
-          <input id="cierre-fondo" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" [value]="fondo()" (input)="fondo.set(+$any($event.target).value)" />
+          <input id="cierre-fondo" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" [value]="fondo()" (input)="cambiarFondo($any($event.target).value)" />
         </div>
         @if (intentado() && errores()['fondo']; as e) {
           <p class="campo__error">{{ e }}</p>
@@ -68,6 +68,9 @@
       </div>
     </div>
 
+    @if (intentado() && faltantes().length) {
+      <p class="faltan" role="alert">No se puede cerrar todavía: {{ faltantes().join(' ') }}</p>
+    }
     <div class="modal__acciones">
       <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Seguir contando</button>
       <button type="button" class="boton boton--primario boton--44" (click)="cerrarTurno()">

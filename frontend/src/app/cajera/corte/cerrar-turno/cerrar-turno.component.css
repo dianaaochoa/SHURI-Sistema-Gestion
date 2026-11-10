@@ -32,3 +32,4 @@
   .totales { grid-template-columns: minmax(0, 1fr); }
   .modal__acciones .boton { flex: 1 1 auto; }
 }
+.faltan { padding: 10px 12px; border-radius: var(--radio-control); background: var(--color-peligro-suave); font-size: 12px; color: var(--color-peligro); }
