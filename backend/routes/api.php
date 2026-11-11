@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Auth\TwoFactorController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
+use App\Http\Controllers\Api\Workshop\WorkbenchController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -67,6 +68,17 @@ Route::prefix('v1')->group(function () {
                 Route::get('technicians', [AssignmentController::class, 'technicians']);
                 Route::post('service-orders/{folio}/assign', [AssignmentController::class, 'assign']);
             });
+
+            // ── Taller: banco de trabajo del técnico (T2, T3 · RF-05) ──
+            Route::middleware('permission:orders.repair')->prefix('my/orders')->group(function () {
+                Route::get('/', [WorkbenchController::class, 'index']);
+                Route::get('{folio}', [WorkbenchController::class, 'show']);
+                Route::post('{folio}/start', [WorkbenchController::class, 'start']);
+                Route::post('{folio}/pause', [WorkbenchController::class, 'pause']);
+                Route::post('{folio}/resume', [WorkbenchController::class, 'resume']);
+                Route::post('{folio}/diagnosis', [WorkbenchController::class, 'diagnosis']);
+            });
+            Route::get('labor-levels', [WorkbenchController::class, 'laborLevels'])->middleware('permission:orders.repair,orders.quote');
 
             Route::middleware('permission:customers.manage,orders.receive')->group(function () {
                 Route::get('customers', [CustomerController::class, 'index']);

@@ -30,6 +30,7 @@ return [
         'uncompromised' => 'La :attribute apareció en una filtración de datos. Elige otra.',
     ],
     'required' => 'El campo :attribute es obligatorio.',
+    'required_if' => 'El campo :attribute es obligatorio.',
     'required_with' => 'El campo :attribute es obligatorio.',
     'required_without' => 'El campo :attribute es obligatorio.',
     'size' => [

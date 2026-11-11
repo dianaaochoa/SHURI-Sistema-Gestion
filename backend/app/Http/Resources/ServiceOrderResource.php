@@ -55,6 +55,10 @@ class ServiceOrderResource extends JsonResource
             'has_device_pin' => $this->device_pin !== null,
             'device_pin' => $this->when($canRepair, fn () => $this->device_pin),
             'diagnosis' => $this->diagnosis,
+            'failure_cause' => $this->failure_cause,
+            'labor_level_id' => $this->labor_level_id,
+            'estimated_minutes' => $this->estimated_minutes,
+            'no_repair_reason' => $this->no_repair_reason,
             'technician' => $this->whenLoaded('technician', fn () => $this->technician
                 ? ['id' => $this->technician->id, 'name' => $this->technician->name]
                 : null),
