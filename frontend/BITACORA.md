@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 10 nov 2026 (pendientes de cajera y jefe: caja, inventario, Inicio y plazos)
+- **Última actualización:** 10 nov 2026 (revisión general: título del login en blanco y choques de clases con `styles.css`)
 
 ---
 
@@ -921,6 +921,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Inventario al vender | Cobrar una venta baja el stock; cancelarla lo regresa; una devolución “Buen estado · regresa a venta” lo suma. El buscador del punto de venta muestra los disponibles de Inventario | Los productos temporales no tocan el inventario. |
 | Anticipo devuelto (C6.2) | Al entregar sin reparar con revisión perdonada, el anticipo sale de la caja como “Devolución de anticipo” (cobro negativo en la orden) | Antes solo se mostraba en el panel de cobro. |
 | Plazos en caja | `DIAS_PARA_RECOGER` y `DIAS_GARANTIA` pasaron a `diasParaRecoger()` y `diasGarantia()`, que leen Configuración (J9); las cláusulas de la orden impresa (C11) también | Cambiar los días en J9 cambia caja, garantías y el papel. |
+| Nombres de clase locales | Una clase de un componente no debe llamarse igual que una global de `styles.css` si no quiere sus estilos: el login usa `.portada`, la fuerza de contraseña `.fuerza`, el tablero `.tarjeta-orden` y Técnicos `.tarjeta-tecnico` | Con el mismo nombre se heredaban color, borde, sombra y ancho máximo de la clase global (el título del login salía azul marino). |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -1338,3 +1339,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - vender 2 cargadores ACC-020 lo baja de 32 a 30, cancelar lo regresa a 32; vender 1 y devolverlo en buen estado vuelve a 32; el punto de venta dice “31 disponibles” tras una venta
   - con turno abierto: “$290 vendido · 1 venta · 2 en espera”, efectivo en caja $1,290; entregar #1038 sin reparar con revisión perdonada deja “Devolución de anticipo #1038 · −$300.00” y el esperado en $990
   - menú del jefe “18 órdenes abiertas” como su indicador; sin errores en consola
+
+### 10 nov 2026 · Revisión general (cajera y jefe)
+- Login: “Tu mostrador y tu taller, en un solo lugar” vuelve a ser blanco; el panel de marca heredaba `.panel` y `.panel__titulo` globales (borde y texto azul marino). Clases renombradas a `.portada…`.
+- Crear contraseña: la fuerza de la contraseña heredaba `.indicador` (caja con borde, contenido centrado, sin saltos de línea); ahora es `.fuerza…`.
+- Tablero y Técnicos del jefe: las tarjetas heredaban `.tarjeta` del login (sombra y ancho máximo de 440 px); ahora `.tarjeta-orden` y `.tarjeta-tecnico`.
+- Ventas a 360 px: el selector de periodo se salía 22 px de la pantalla; ahora se desplaza dentro de su ancho.
+- Inicio del jefe: “Carlos necesita un dato del cliente · Escribir” abre la conversación de esa orden.
+- Inicio de la cajera: las filas de “Listos para entregar” y “Por enviar a bodega” abren esa orden en Entrega / Órdenes.
+- Revisado con un recorrido automático de todas las pantallas de cajera (caja cerrada y abierta) y jefe a 1440, 1366 y 360 px: sin errores en consola, sin imágenes rotas, sin “NaN/undefined/null” en pantalla y sin desplazamiento horizontal; todos los enlaces del jefe llevan a rutas que existen y los botones de ambos Inicios llegan a su destino.
