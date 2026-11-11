@@ -1,0 +1,82 @@
+<div class="inicio">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">{{ saludo }}</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo }}</p>
+    </div>
+    <a class="boton boton--primario boton--40" routerLink="/tecnico/banco-de-trabajo">
+      <span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span>Ir a mi banco
+    </a>
+  </header>
+
+  <section class="indicadores" aria-label="Mis equipos">
+    @for (i of indicadores(); track i.titulo) {
+      <a class="indicador indicador--boton" routerLink="/tecnico/equipos-asignados">
+        <p class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ i.detalle }}</p>
+        </div>
+      </a>
+    }
+  </section>
+
+  <div class="columnas">
+    <section class="panel atencion" aria-labelledby="titulo-sigue">
+      <h2 class="panel__titulo" id="titulo-sigue"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>Sigue con esto</h2>
+
+      @if (enCurso(); as c) {
+        <div class="en-curso">
+          <span class="icono en-curso__icono" style="--icono: url(assets/menu/wrench.svg)"></span>
+          <p class="en-curso__texto">
+            <strong>En curso · {{ c.orden.folio }} {{ c.orden.equipo }} · {{ c.orden.cliente.nombre }}</strong>
+            <span>{{ c.detalle }}</span>
+          </p>
+          <a class="boton boton--primario boton--40" routerLink="/tecnico/banco-de-trabajo" [queryParams]="{ folio: c.folio }">
+            <span class="icono" style="--icono: url(assets/cajera/chev-r.svg)"></span>Continuar
+          </a>
+        </div>
+      } @else {
+        <div class="en-curso">
+          <span class="icono en-curso__icono" style="--icono: url(assets/menu/wrench.svg)"></span>
+          <p class="en-curso__texto"><strong>Sin equipo en curso</strong><span>Toma el siguiente de tu cola en tu banco de trabajo.</span></p>
+        </div>
+      }
+
+      <p class="cola__titulo">Siguientes en tu cola (por fecha de entrega prometida)</p>
+      @for (f of cola(); track f.o.folio) {
+        <a class="pendiente" routerLink="/tecnico/banco-de-trabajo" [queryParams]="{ folio: f.folio }">
+          <span class="pendiente__texto">
+            <strong>{{ f.o.folio }} · {{ f.o.equipo }} · {{ f.o.cliente.nombre }}</strong>
+            <span>{{ f.detalle }}</span>
+          </span>
+          <span class="estado estado--{{ f.tono }}">{{ f.texto }}</span>
+          <img src="assets/cajera/chev-r.svg" width="14" height="14" alt="" />
+        </a>
+      } @empty {
+        <p class="vacio">No tienes más equipos en tu cola.</p>
+      }
+    </section>
+
+    <div class="lateral">
+      <section class="panel" aria-labelledby="titulo-avisos">
+        <h2 class="panel__titulo" id="titulo-avisos"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Avisos</h2>
+        @for (a of avisos(); track $index) {
+          <a class="pendiente aviso-tecnico" routerLink="/tecnico/banco-de-trabajo" [queryParams]="consulta(a.folio)">
+            <span class="pendiente__icono pendiente__icono--info"><span class="icono" [style.--icono]="'url(assets/' + a.icono + '.svg)'"></span></span>
+            <span class="pendiente__texto"><strong>{{ a.titulo }}</strong><span>{{ a.detalle }}</span></span>
+          </a>
+        } @empty {
+          <p class="vacio">Sin avisos nuevos.</p>
+        }
+      </section>
+
+      <section class="panel hoy" aria-labelledby="titulo-dia">
+        <h2 class="panel__titulo" id="titulo-dia"><span class="icono" style="--icono: url(assets/menu/chart.svg)"></span>Mi día</h2>
+        @for (d of miDia(); track d.texto) {
+          <p class="dato"><span>{{ d.texto }}</span><strong>{{ d.valor }}</strong></p>
+        }
+      </section>
+    </div>
+  </div>
+</div>

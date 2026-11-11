@@ -1,0 +1,18 @@
+/* Figma T1.1: mismo armado que el inicio del jefe (J1.1); aquí solo lo propio del técnico. */
+.boton { white-space: nowrap; }
+.boton .icono { width: 16px; height: 16px; }
+
+.en-curso { display: flex; flex-shrink: 0; align-items: center; gap: 16px; padding: 16px; border-radius: 8px; background: var(--color-primario-suave); }
+.en-curso__icono { width: 22px; height: 22px; color: var(--color-primario); }
+.en-curso__texto { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; font-size: 12px; color: var(--color-texto-secundario); }
+.en-curso__texto strong { font-size: 15px; font-weight: 600; color: var(--color-marino); }
+
+.cola__titulo { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--color-marino); }
+.pendiente { padding: 12px 14px; }
+.aviso-tecnico { padding: 12px 14px; }
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .en-curso { flex-wrap: wrap; background: var(--color-superficie); border: 1px solid var(--color-primario); }
+  .en-curso .boton { flex: 1 1 100%; justify-content: center; }
+}

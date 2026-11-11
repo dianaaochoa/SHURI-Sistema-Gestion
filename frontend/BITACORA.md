@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 10 nov 2026 (revisión general: título del login en blanco y choques de clases con `styles.css`)
+- **Última actualización:** 10 nov 2026 (técnico T1: Inicio)
 
 ---
 
@@ -69,7 +69,8 @@ flowchart LR
     J["J11 Mensajes de clientes<br/>J11.1 chat · J11.2 respuestas rápidas · J11.3 todo respondido<br/>J11.4 celular · J11.5 no disponible hoy"]:::hecho
   end
   subgraph TEC["05 · Técnico"]
-    T["T1–T7"]:::pendiente
+    T1["T1 Inicio<br/>T1.1 sigue con esto · avisos · mi día<br/>T1.2 notificaciones · T1.3 menú"]:::hecho
+    T["T2–T7"]:::pendiente
   end
   subgraph POR["06 · Portal del cliente"]
     P["P1–P6"]:::pendiente
@@ -216,6 +217,11 @@ flowchart LR
     RDC["Redactar<br/>J11.2 respuestas rápidas"]:::comp
     RO["ResumenOrden<br/>panel de la orden"]:::comp
     MS["MensajesService<br/>conversaciones, respuestas<br/>rápidas y disponible (simulado)"]:::serv
+  end
+  subgraph TECNICO["tecnico/"]
+    TI["InicioTecnico<br/>T1.1"]:::comp
+    BTS["BancoService<br/>equipo en curso y jornada<br/>(simulado)"]:::serv
+    MT["mi-trabajo.ts<br/>asignadas, trabajables, cola"]:::serv
   end
   subgraph CAJERA["cajera/"]
     IC["InicioCajera<br/>C1.1 · C1.2"]:::comp
@@ -420,7 +426,11 @@ flowchart LR
   CF --> CFS
   CFS --> RT9
   ET & PB --> RT9
-  GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
+  GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
+  SL --> TI
+  TI --> BTS & MT & RS
+  BTS & MT --> OS
+  ML --> MT
 ```
 
 ---
@@ -585,6 +595,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Para ver la orden de #1024 como en Figma: Órdenes › #1024 › Reimprimir orden › Carta.
 - La impresora sigue simulada: con `localStorage.setItem('shuri.demo.impresora', 'falla')` no se abre la vista y aparecen los avisos de error de siempre.
 
+**Inicio del técnico (`/tecnico/inicio`, usuario `cruiz`):**
+- Indicadores de sus equipos (asignados, por cotizar, por aprobar, en taller y garantías), el equipo en curso con su cronómetro, la cola por fecha prometida, avisos (piezas entregadas, aprobaciones, dictámenes, equipos nuevos) y “Mi día”.
+- “Continuar”, “Ir a mi banco” y cada equipo de la cola llevan al banco de trabajo (T3, todavía pendiente). La campana (T1.2) y el menú de usuario (T1.3) son los del menú lateral.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -644,6 +658,10 @@ frontend/src/
     │       ├── chat/              # J11.1 · J11.4 conversación
     │       ├── redactar/          # J11.2 respuestas rápidas, compartir estado, foto y mensaje
     │       └── resumen-orden/     # panel derecho con la orden
+    ├── tecnico/               # 05 · Técnico
+    │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
+    │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
+    │   └── inicio-tecnico/    # T1.1 (usa los estilos de inicio-jefe)
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .paneles.ts: paneles con datos reales)
@@ -922,6 +940,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Anticipo devuelto (C6.2) | Al entregar sin reparar con revisión perdonada, el anticipo sale de la caja como “Devolución de anticipo” (cobro negativo en la orden) | Antes solo se mostraba en el panel de cobro. |
 | Plazos en caja | `DIAS_PARA_RECOGER` y `DIAS_GARANTIA` pasaron a `diasParaRecoger()` y `diasGarantia()`, que leen Configuración (J9); las cláusulas de la orden impresa (C11) también | Cambiar los días en J9 cambia caja, garantías y el papel. |
 | Nombres de clase locales | Una clase de un componente no debe llamarse igual que una global de `styles.css` si no quiere sus estilos: el login usa `.portada`, la fuerza de contraseña `.fuerza`, el tablero `.tarjeta-orden` y Técnicos `.tarjeta-tecnico` | Con el mismo nombre se heredaban color, borde, sombra y ancho máximo de la clase global (el título del login salía azul marino). |
+| Inicio del técnico (T1) | Hecho con el PNG `docs/diseno/05-tecnico/t1-inicio.png`. Todo sale de las órdenes de la app: Carlos tiene 5 equipos (Figma: 8) y su equipo en curso es #1029 | El paso (3 de 6), el cronómetro (desde hace 45 min) y la jornada (3 h 40 min, 25 min en pausa) son de prueba en `BancoService` hasta que existan el banco (T3) y la API. |
+| Cola del técnico | Muestra todos sus equipos sin terminar, también los que esperan al jefe o al cliente, con su etiqueta (Diagnóstico, Por cotizar, Por aprobar, En taller, En pausa, Garantía) | En Figma solo aparecen equipos que puede trabajar; con los datos de prueba la cola quedaría vacía. |
+| Técnico de la sesión | Se busca por nombre en `TECNICOS` (`tecnicoDe`) | Con la API vendrá en la sesión. El resumen del menú (“5 equipos asignados”) usa el mismo conteo. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -934,7 +955,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T1–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos.
+- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T2–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico va T1.
+- [ ] Inicio del técnico: paso, cronómetro y jornada son de prueba (`BancoService`); los avisos se arman con las órdenes y Refacciones, no con la campana.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1348,3 +1370,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - Inicio del jefe: “Carlos necesita un dato del cliente · Escribir” abre la conversación de esa orden.
 - Inicio de la cajera: las filas de “Listos para entregar” y “Por enviar a bodega” abren esa orden en Entrega / Órdenes.
 - Revisado con un recorrido automático de todas las pantallas de cajera (caja cerrada y abierta) y jefe a 1440, 1366 y 360 px: sin errores en consola, sin imágenes rotas, sin “NaN/undefined/null” en pantalla y sin desplazamiento horizontal; todos los enlaces del jefe llevan a rutas que existen y los botones de ambos Inicios llegan a su destino.
+
+### 10 nov 2026 · Técnico T1: Inicio
+- Hecho con el PNG `docs/diseno/05-tecnico/t1-inicio.png` (T1.1; T1.2 y T1.3 ya eran la campana y el menú de usuario del menú lateral).
+- Nuevo `tecnico/`: `mi-trabajo.ts` (equipos del técnico y su etiqueta), `BancoService` (equipo en curso y jornada, para T3) e `InicioTecnicoComponent`, que reusa los estilos del inicio del jefe.
+- El resumen del menú del técnico cuenta sus equipos asignados.
+- Desde hoy va un solo commit por pedido (código y bitácora juntos).
+- Verificado como `cruiz`:
+  - a 1440×900: 5 asignados, 1 por cotizar, 1 por aprobar, 1 en taller, 2 garantías “con el jefe”; en curso #1029 Samsung S21 · Andrés Vega con el cronómetro corriendo; cola #1043, #0986, #1002 y #1035; aviso “Refacción entregada · Batería iPhone 14 para #1043”; “Mi día” 3 h 40 min y 1 refacción pendiente
+  - a 1366×768 y 360 px sin desplazamiento horizontal (en celular 2 × 2 indicadores y “Continuar” a lo ancho); sin errores en consola
