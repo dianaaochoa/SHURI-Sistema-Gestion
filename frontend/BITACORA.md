@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 11 nov 2026 (técnico T4: Garantías)
+- **Última actualización:** 11 nov 2026 (técnico T5: Refacciones)
 
 ---
 
@@ -73,7 +73,8 @@ flowchart LR
     T2["T2 Equipos asignados<br/>T2.1 lista con filtros · T2.2 sin equipos"]:::hecho
     T3["T3 Banco de trabajo<br/>T3.1 diagnóstico · T3.2 esperando · T3.3 en taller · T3.9 devolver · T3.10 garantía<br/>modales: listo, daño adicional, pausa, sin reparación, necesito info, orden en curso"]:::hecho
     T4["T4 Garantías<br/>T4.1 lista por etapa · T4.2 revisión y reporte"]:::hecho
-    T["T5–T7"]:::pendiente
+    T5["T5 Refacciones<br/>T5.1 lista · T5.2 nueva solicitud · T5.3 devolver · T5.4 sin solicitudes"]:::hecho
+    T["T6–T7"]:::pendiente
   end
   subgraph POR["06 · Portal del cliente"]
     P["P1–P6"]:::pendiente
@@ -226,6 +227,7 @@ flowchart LR
     EA["EquiposAsignados<br/>T2.1 · T2.2"]:::comp
     BNC["Banco<br/>T3 cabecera, cronómetro y etapas"]:::comp
     GTC["GarantiasTecnico<br/>T4.1 · RevisionGarantia T4.2"]:::comp
+    RFT["RefaccionesTecnico<br/>T5.1 · T5.4 · NuevaSolicitud T5.2 · DevolverPieza T5.3"]:::comp
     BPN["Paneles: Diagnóstico T3.1 · Espera T3.2<br/>Taller T3.3 / T3.10 · Devolver T3.9"]:::comp
     BMD["Modales: MarcarListo T3.4 · DañoAdicional T3.5<br/>Pausar T3.6 · SinReparación T3.7<br/>NecesitoInfo T3.8 · OrdenEnCurso T3.11"]:::comp
     BTS["BancoService<br/>equipo en curso y jornada<br/>(simulado)"]:::serv
@@ -435,7 +437,8 @@ flowchart LR
   CFS --> RT9
   ET & PB --> RT9
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
-  SL --> TI & EA & BNC & GTC
+  SL --> TI & EA & BNC & GTC & RFT
+  RFT --> RS
   GTC --> OS
   BNC --> BPN & BMD & BTS
   BPN & BMD --> OS & RS
@@ -627,6 +630,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Revisar” abre T4.2: reparación original, lo que reporta el cliente, evidencia y el reporte para el jefe (falla, relación con la reparación, mal uso, trabajo y recomendación). Al enviarlo queda “Esperando dictamen” y el jefe lo ve en J4.2. “Ver reporte” lo muestra sin editar y “Abrir banco” lleva a la reparación (T3.10).
 - Las garantías de prueba de Carlos ya traen reporte; para ver una “Por revisar” hay que recibir una en caja (C4.5) asignada a él.
 
+**Refacciones del técnico (`/tecnico/refacciones`, usuario `cruiz`):**
+- Sus solicitudes con stock y estado: pendiente (Cancelar), por pedir a proveedor, pedida, entregada, por devolver (Devolver) y devuelta. Los indicadores filtran.
+- “Nueva solicitud” (T5.2): orden, pieza del inventario con su stock, cantidad, urgencia y nota; llega al jefe en J5.1. “Devolver” (T5.3) le avisa al jefe cómo regresa la pieza y él la recibe en J5.3.
+- De prueba: R-214 pendiente (#1029), R-212 y R-210 entregadas y R-207 por devolver (#0954 no tuvo reparación).
+
 ## 5. Estructura de carpetas
 
 ```
@@ -692,6 +700,7 @@ frontend/src/
     │   ├── inicio-tecnico/    # T1.1 (usa los estilos de inicio-jefe)
     │   ├── equipos-asignados/ # T2.1 · T2.2 (usa jefe/lista-pagina.css)
     │   ├── garantias/         # T4.1 lista · revision-garantia/ T4.2 reporte para el jefe
+    │   ├── refacciones/       # T5.1 · T5.4 · nueva-solicitud/ T5.2 · devolver-pieza/ T5.3
     │   └── banco/             # T3 · cabecera, cronómetro y etapas
     │       ├── banco-comun.css · modal-banco.css   # estilos de los paneles y de los modales
     │       ├── diagnostico-panel/ espera-panel/ taller-panel/ devolver-panel/   # T3.1 · T3.2 · T3.3 y T3.10 · T3.9
@@ -990,6 +999,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Garantías del técnico (T4) | Hecho con el PNG `docs/diseno/05-tecnico/t4-garantias.png`. Pestañas Todas, Por revisar, Esperando dictamen y En reparación; la columna “Días restantes” usa la misma cuenta que J4 (días usados de la garantía) | En celular quedan folio, cliente y estado; la fila abre la revisión. |
 | Reporte de garantía | `OrdenesService.enviarReporteGarantia` guarda `garantia.reporte` con los campos que ya leía el jefe (J4.2); el motivo se arma con la relación y el mal uso (“pieza defectuosa”, “humedad posterior”) y, si no aplica, un costo sugerido opcional | El técnico solo recomienda; el dictamen sigue siendo del jefe. |
 | Técnico de la reparación original | Muestra el técnico actual de la orden | Al recibir la garantía, caja reasigna la orden; con la API habrá que guardar quién hizo la reparación original. |
+| Refacciones del técnico (T5) | Hecho con el PNG `docs/diseno/05-tecnico/t5-refacciones.png`. Estado para el técnico: pendiente con stock, “Por pedir a proveedor” si no alcanza el stock, pedida, entregada (con hora si fue hoy), por devolver si la orden no se reparó, devuelta o rechazada | Cancelar quita la solicitud de la lista del jefe; Ver abre la orden en el banco. |
+| Solicitudes entregadas de prueba | `RefaccionesService` suma R-212, R-210 y R-207 de Carlos y guarda `entregada` (hora) y `nota` | J5 solo lista pendientes y devoluciones, así que no cambia; el banco (T3.3) ya muestra la pieza “Entregada” con su hora. |
+| Devolver pieza | `devolverPieza` crea la devolución que el jefe recibe en J5.3 con el estado que dijo el técnico (nueva, abierta o dañada) | El técnico usa los textos de Figma T5.3 (“Abierta, sin instalar”); el jefe confirma con los suyos. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -1002,9 +1014,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T5–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1–T4.
+- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T6–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1–T5.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 2.69 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 2.80 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1457,3 +1469,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - T4.2 de #0998 como Figma; reporte “No, daño posterior · Humedad · no aplica · $450” → aviso “queda Esperando dictamen”, el jefe lo recibe como “No aplica · humedad posterior”
   - el jefe aplica #0986 → pestaña En reparación “Aprobada · Abrir banco”; “Ver reporte” de #1002 muestra el reporte sin editar
   - a 1366×768 la tabla cabe; a 360 px quedan folio, cliente y estado sin desplazamiento; sin errores en consola
+
+### 11 nov 2026 · Técnico T5: Refacciones
+- Hecho con el PNG `docs/diseno/05-tecnico/t5-refacciones.png` (T5.1 lista, T5.2 nueva solicitud, T5.3 devolver, T5.4 sin solicitudes).
+- `RefaccionesTecnicoComponent` (reusa `jefe/lista-pagina.css`), `NuevaSolicitudComponent` y `DevolverPiezaComponent`; `RefaccionesService.cancelar` y `devolverPieza`.
+- Verificado como `cruiz`:
+  - lista con R-214 pendiente (12 en stock), R-212 y R-210 entregadas y R-207 por devolver; indicadores 1 · 0 · 2 · 1
+  - nueva solicitud del conector flex de iPhone 14 para #1043 → R-216 “Sin stock · Por pedir a proveedor”; Cancelar la quita
+  - devolver R-207 como “Abierta, sin instalar” → queda “Devuelta” y el jefe tiene 2 devoluciones por recibir
+  - sin solicitudes aparece T5.4; a 1366×768 la tabla cabe y a 360 px quedan solicitud, orden, refacción y estado; sin errores en consola

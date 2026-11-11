@@ -70,7 +70,7 @@ export class TallerPanelComponent {
     this.refacciones
       .solicitudes()
       .filter((s) => s.orden === this.orden().folio)
-      .map((s) => ({ s, ...PIEZA[s.estado] })),
+      .map((s) => ({ s, ...PIEZA[s.estado], texto: s.entregada ? `Entregada ${hora(s.entregada)}` : PIEZA[s.estado].texto })),
   );
 
   /** Notas internas como "10:05 — texto". */

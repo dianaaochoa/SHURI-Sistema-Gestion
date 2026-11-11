@@ -1,0 +1,76 @@
+<div class="lista-pagina">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Refacciones</h1>
+      <p class="encabezado-pagina__subtitulo">Piezas y consumibles que pediste para tus órdenes. El jefe de técnicos las aprueba y te las entrega.</p>
+    </div>
+    <button type="button" class="boton boton--primario boton--40" (click)="nueva.set(true)"><span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Nueva solicitud</button>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen">
+    @for (i of indicadores(); track i.titulo) {
+      <button type="button" class="indicador indicador--boton" [class.indicador--activo]="total() && vista() === i.vista" (click)="vista.set(i.vista)">
+        <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+        <span>
+          <span class="indicador__titulo">{{ i.titulo }}</span>
+          <span class="indicador__detalle">{{ i.detalle }}</span>
+        </span>
+      </button>
+    }
+  </section>
+
+  @if (aviso()) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+  }
+
+  @if (!total()) {
+    <!-- T5.4 · Sin solicitudes -->
+    <div class="sin-solicitudes">
+      <span class="sin-solicitudes__icono"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span></span>
+      <p class="sin-solicitudes__titulo">No tienes solicitudes de refacción</p>
+      <p class="sin-solicitudes__texto">Cuando necesites una pieza o consumible para alguna de tus órdenes, pídela aquí o desde el banco de trabajo.</p>
+      <button type="button" class="boton boton--primario boton--40" (click)="nueva.set(true)"><span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Nueva solicitud</button>
+    </div>
+  } @else {
+    <nav class="pestanas" aria-label="Vistas">
+      @for (p of pestanas(); track p.id) {
+        <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" [attr.aria-current]="p.id === vista() ? 'page' : null" (click)="vista.set(p.id)">{{ p.texto }}</button>
+      }
+    </nav>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Solicitud</th><th>Orden</th><th>Refacción</th><th class="t-cant">Cant.</th><th class="t-tiempo">Solicitada</th><th class="t-stock">Stock</th><th>Estado</th><th class="t-accion">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of renglones(); track r.s.id; let primera = $first) {
+            <tr [class.resaltada]="primera && r.accion === 'Cancelar'" tabindex="0" (click)="accion(r)" (keydown.enter)="accion(r)">
+              <td class="t-folio">{{ r.s.id }}</td>
+              <td>{{ r.s.orden }}</td>
+              <td class="t-pieza">{{ r.detalle }}</td>
+              <td class="t-cant">{{ r.s.cantidad }}</td>
+              <td class="t-tiempo">{{ r.solicitada }}</td>
+              <td class="t-stock"><span class="estado estado--{{ r.stock.tono }}">{{ r.stock.texto }}</span></td>
+              <td><span class="estado estado--{{ r.estado.tono }}">{{ r.estado.texto }}</span></td>
+              <td class="t-accion"><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); accion(r)">{{ r.accion }}</button></td>
+            </tr>
+          } @empty {
+            <tr><td class="vacio" colspan="8">No hay solicitudes aquí.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Si una pieza entregada no se usó (por ejemplo, el cliente rechazó la reparación), devuélvela para que regrese al inventario.</p>
+  }
+</div>
+
+@if (nueva()) {
+  <app-nueva-solicitud [ordenes]="misOrdenes()" (cerrar)="nueva.set(false)" (enviar)="crear($event)" />
+}
+@if (devolviendo(); as s) {
+  <app-devolver-pieza [solicitud]="s" (cerrar)="devolviendo.set(null)" (devolver)="devolver($event)" />
+}

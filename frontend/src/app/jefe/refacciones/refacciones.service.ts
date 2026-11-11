@@ -25,6 +25,10 @@ export interface Solicitud {
   siAprueba?: boolean;
   estado: 'pendiente' | 'entregada' | 'rechazada' | 'pedida';
   pedido?: string;
+  /** ISO: cuándo se la entregó el jefe ("Entregada 10:18", T3.3 y T5.1). */
+  entregada?: string;
+  /** Lo que escribió el técnico al pedirla (T5.2). */
+  nota?: string;
 }
 
 /** Pieza que regresa del taller sin usarse (J5.3). */
@@ -64,6 +68,10 @@ export class RefaccionesService {
     { id: 'R-214', orden: '#1029', tecnico: 'Carlos Ruiz', sku: 'CON-007', nombre: 'Adhesivo de tapa B-7000', cantidad: 1, urgencia: 'normal', fecha: haceMin(15), estado: 'pendiente' },
     { id: 'R-213', orden: '#1040', tecnico: 'Luis Ortega', sku: 'REF-G84-USB', nombre: 'Conector de carga Moto G84', cantidad: 1, urgencia: 'hoy', fecha: haceMin(40), estado: 'pendiente' },
     { id: 'R-215', orden: '#1024', tecnico: 'Luis Ortega', sku: 'REF-S22-FCAM', nombre: 'Flex de cámara frontal S22 Ultra', cantidad: 1, urgencia: 'normal', fecha: haceMin(55), siAprueba: true, estado: 'pendiente' },
+    // Ya entregadas a Carlos (Figma T3.3 y T5.1); la de #0954 no se usó porque el equipo no tuvo reparación.
+    { id: 'R-212', orden: '#1029', tecnico: 'Carlos Ruiz', sku: 'REF-S21-PAN', nombre: 'Pantalla AMOLED Samsung S21', cantidad: 1, urgencia: 'hoy', fecha: haceMin(60 * 3), estado: 'entregada', entregada: haceMin(60 * 2 + 40) },
+    { id: 'R-210', orden: '#1043', tecnico: 'Carlos Ruiz', sku: 'REF-IP14-BAT', nombre: 'Batería iPhone 14', cantidad: 1, urgencia: 'normal', fecha: haceMin(60 * 31), estado: 'entregada', entregada: haceMin(60 * 30) },
+    { id: 'R-207', orden: '#0954', tecnico: 'Carlos Ruiz', sku: 'REF-IP11-SEL', nombre: 'Kit de sellos iPhone 11', cantidad: 1, urgencia: 'normal', fecha: haceMin(60 * 24 * 60), estado: 'entregada', entregada: haceMin(60 * 24 * 59) },
   ]);
 
   readonly devoluciones = signal<Devolucion[]>([
@@ -98,7 +106,7 @@ export class RefaccionesService {
 
   /** La pieza sale del inventario y se carga a la orden; el técnico recibe el aviso en su banco. */
   entregar(id: string, por: string): Solicitud | undefined {
-    const s = this.cambiar(id, { estado: 'entregada' });
+    const s = this.cambiar(id, { estado: 'entregada', entregada: new Date().toISOString() });
     if (!s) return;
     this.inventario.surtir(s.sku, s.cantidad, s.orden);
     this.ordenes.anotar(s.orden, `${s.nombre} ×${s.cantidad} entregada a ${s.tecnico} (${s.id})`);
@@ -134,11 +142,27 @@ export class RefaccionesService {
   }
 
   /** T3.3 · El técnico pide una pieza o consumible para su orden; el jefe la ve en J5.1. */
-  solicitar(datos: Pick<Solicitud, 'orden' | 'tecnico' | 'sku' | 'nombre' | 'cantidad' | 'urgencia'>): Solicitud {
+  solicitar(datos: Pick<Solicitud, 'orden' | 'tecnico' | 'sku' | 'nombre' | 'cantidad' | 'urgencia' | 'nota'>): Solicitud {
     const numero = Math.max(0, ...[...this.solicitudes(), ...this.devoluciones()].map((s) => Number(s.id.slice(2)))) + 1;
     const solicitud: Solicitud = { ...datos, id: `R-${numero}`, fecha: new Date().toISOString(), estado: 'pendiente' };
     this.solicitudes.update((lista) => [solicitud, ...lista]);
     return solicitud;
+  }
+
+  /** T5.1 · El técnico cancela una solicitud que el jefe todavía no atiende. */
+  cancelar(id: string, por: string): void {
+    const s = this.solicitudes().find((x) => x.id === id && x.estado === 'pendiente');
+    if (!s) return;
+    this.solicitudes.update((lista) => lista.filter((x) => x.id !== id));
+    this.anotar(s.id, `${s.nombre} para ${s.orden} · cancelada por el técnico`, por);
+  }
+
+  /** T5.3 · El técnico devuelve una pieza que no se usó; el jefe confirma cómo llega (J5.3). */
+  devolverPieza(s: Solicitud, estado: EstadoPieza, motivo: string): Devolucion {
+    const d: Devolucion = { id: s.id, orden: s.orden, tecnico: s.tecnico, sku: s.sku, nombre: s.nombre, cantidad: s.cantidad, segunTecnico: estado, motivo, fecha: new Date().toISOString() };
+    this.devoluciones.update((lista) => [d, ...lista]);
+    this.ordenes.anotar(s.orden, `${s.nombre} devuelta al jefe por ${s.tecnico} (${s.id})`);
+    return d;
   }
 
   registrarPedido(folio: string, texto: string, por: string): void {
