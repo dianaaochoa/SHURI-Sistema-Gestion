@@ -94,6 +94,11 @@ export class InventarioService {
     );
   }
 
+  /** T3.9 · La orden no se repara: lo apartado para ella vuelve a estar disponible. */
+  liberar(folio: string): void {
+    this.productos.update((lista) => lista.map((p) => (p.apartados.some((a) => a.folio === folio) ? { ...p, apartados: p.apartados.filter((a) => a.folio !== folio) } : p)));
+  }
+
   /** Piezas que puede usar una orden: stock menos lo apartado para otras órdenes. */
   paraOrden(sku: string, folio: string): number {
     const p = this.buscar(sku);

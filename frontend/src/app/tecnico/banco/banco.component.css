@@ -1,0 +1,49 @@
+/* Figma T3: los paneles llegan hasta abajo de la pantalla. */
+:host { display: flex; flex-direction: column; min-height: 100%; }
+.banco { display: flex; flex: 1; flex-direction: column; gap: 16px; }
+.cabecera { display: flex; align-items: center; gap: 16px; }
+.cabecera__texto { flex: 1; min-width: 0; }
+h1 { font-size: 26px; font-weight: 700; color: var(--color-marino); }
+.cabecera__texto p { margin-top: 4px; font-size: 13px; color: var(--color-texto-tenue); }
+.reloj { display: flex; align-items: center; gap: 16px; padding: 8px 12px 8px 14px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.reloj__texto { display: flex; flex-direction: column; }
+.reloj__etiqueta { font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--color-texto-tenue); }
+.reloj__tiempo { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-texto-secundario); }
+.reloj__tiempo--corre { color: var(--color-primario); }
+.boton .icono { width: 16px; height: 16px; }
+
+.pasos { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; padding: 12px 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); list-style: none; }
+.paso { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--color-texto-tenue); }
+.paso::before { content: ''; position: absolute; top: 10px; left: -50%; right: 50%; height: 2px; background: var(--color-borde); }
+.paso:first-child::before { display: none; }
+.paso--hecho::before, .paso--actual::before { background: var(--color-exito); }
+.paso--error::before { background: var(--color-peligro); }
+.paso__marca { position: relative; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--color-borde); border-radius: 999px; background: var(--color-superficie); font-size: 10px; font-weight: 600; }
+.paso__marca .icono { width: 12px; height: 12px; }
+.paso--hecho .paso__marca { border-color: var(--color-exito); background: var(--color-exito); color: var(--color-superficie); }
+.paso--actual { font-weight: 600; color: var(--color-primario); }
+.paso--actual .paso__marca { border-color: var(--color-primario); background: var(--color-primario); color: var(--color-superficie); }
+.paso--error { color: var(--color-peligro); }
+.paso--error .paso__marca { border-color: var(--color-peligro); background: var(--color-peligro); }
+
+/* Figma T3: columna de trabajo y lado de 420 px */
+.cuerpo { display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) 420px; align-items: stretch; gap: 16px; }
+
+.vacio-banco { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 60vh; text-align: center; }
+.vacio-banco__icono { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 999px; background: var(--color-primario-suave); color: var(--color-primario); }
+.vacio-banco__icono .icono { width: 28px; height: 28px; }
+.vacio-banco__titulo { font-size: 18px; font-weight: 700; color: var(--color-marino); }
+.vacio-banco__texto { max-width: 420px; font-size: 13px; color: var(--color-texto-tenue); }
+
+@media (max-width: 1100px) {
+  .cuerpo { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .cabecera { flex-wrap: wrap; }
+  .cabecera__texto { flex-basis: 100%; }
+  h1 { font-size: 22px; }
+  .reloj { flex: 1; justify-content: space-between; }
+  .paso:not(.paso--actual) .paso__texto { display: none; }
+  .paso--actual .paso__texto { white-space: nowrap; }
+}

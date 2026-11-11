@@ -184,6 +184,7 @@ export class NuevaOrdenComponent implements AfterViewInit {
         condicion: this.condicion.trim(),
         anticipo: this.anticipo ?? 0,
         metodoAnticipo: this.metodo,
+        pin: this.pin,
       },
     });
   }

@@ -133,6 +133,14 @@ export class RefaccionesService {
     return d;
   }
 
+  /** T3.3 · El técnico pide una pieza o consumible para su orden; el jefe la ve en J5.1. */
+  solicitar(datos: Pick<Solicitud, 'orden' | 'tecnico' | 'sku' | 'nombre' | 'cantidad' | 'urgencia'>): Solicitud {
+    const numero = Math.max(0, ...[...this.solicitudes(), ...this.devoluciones()].map((s) => Number(s.id.slice(2)))) + 1;
+    const solicitud: Solicitud = { ...datos, id: `R-${numero}`, fecha: new Date().toISOString(), estado: 'pendiente' };
+    this.solicitudes.update((lista) => [solicitud, ...lista]);
+    return solicitud;
+  }
+
   registrarPedido(folio: string, texto: string, por: string): void {
     this.anotar(folio, texto, por);
   }

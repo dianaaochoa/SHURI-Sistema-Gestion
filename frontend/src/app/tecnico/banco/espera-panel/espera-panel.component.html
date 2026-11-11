@@ -1,0 +1,39 @@
+<div class="columna">
+  <div class="banner banner--advertencia">
+    <span class="icono" style="--icono: url(assets/cajera/lock.svg)"></span>
+    <p><strong>{{ aviso().titulo }}</strong>{{ aviso().texto }}</p>
+  </div>
+
+  <app-ficha-equipo [orden]="orden()" [lineas]="lineas()" />
+
+  @if (resumen(); as r) {
+    <section class="tarjeta-banco resumen">
+      <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>{{ r.titulo }}</h3>
+      @for (d of r.datos; track $index) {
+        <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+      }
+    </section>
+  }
+</div>
+
+<aside class="lado">
+  <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>Mientras tanto, puedes trabajar en:</h3>
+  @for (s of sugeridas(); track s.o.folio) {
+    <a class="sugerida" routerLink="/tecnico/banco-de-trabajo" [queryParams]="{ folio: s.folio }">
+      <span class="pieza__texto"><strong>{{ s.o.folio }}</strong><span>{{ s.o.equipo }} · {{ s.detalle }}</span></span>
+      <span class="estado estado--{{ s.tono }}">{{ s.texto }}</span>
+      <img src="assets/cajera/chev-r.svg" width="14" height="14" alt="" />
+    </a>
+  } @empty {
+    <p class="tenue">No tienes otros equipos para trabajar por ahora.</p>
+  }
+
+  <div class="lado__pie">
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/clock.svg); color: var(--color-primario)"></span>El cronómetro de esta orden queda en pausa mientras espera; vuelve a correr cuando la retomes.</p>
+    @if (revisarGarantia()) {
+      <a class="boton boton--primario boton-grande" routerLink="/tecnico/garantias" [queryParams]="{ folio: orden().folio.replace('#', '') }"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Ir a Garantías</a>
+    } @else {
+      <button type="button" class="boton boton--primario boton-grande" disabled><span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span>Iniciar reparación</button>
+    }
+  </div>
+</aside>

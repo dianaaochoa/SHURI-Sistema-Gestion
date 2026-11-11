@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { saludoDelDia } from '../../compartido/formato';
@@ -7,7 +7,7 @@ import { etapaGarantia } from '../../jefe/garantias/garantia';
 import { etapaDe } from '../../jefe/etapas';
 import { RefaccionesService } from '../../jefe/refacciones/refacciones.service';
 import { BancoService } from '../banco.service';
-import { TURNO, asignadas, enCola, hace, tecnicoDe } from '../mi-trabajo';
+import { TURNO, asignadas, cronometro, enCola, hace, tecnicoDe } from '../mi-trabajo';
 
 interface Aviso {
   icono: string;
@@ -19,12 +19,6 @@ interface Aviso {
 
 const esHoy = (iso?: string) => !!iso && new Date(iso).toDateString() === new Date().toDateString();
 const sinGato = (folio: string) => folio.replace('#', '');
-
-/** "00:45:12" */
-function cronometro(ms: number): string {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map((n) => String(n).padStart(2, '0')).join(':');
-}
 
 /** 220 → "3 h 40 min" */
 function minutos(min: number): string {
@@ -46,14 +40,6 @@ export class InicioTecnicoComponent {
   private readonly banco = inject(BancoService);
   private readonly sesion = inject(AuthService).sesion();
   private readonly tecnico = tecnicoDe(this.sesion?.nombre);
-
-  /** Avanza el cronómetro del equipo en curso. */
-  private readonly ahora = signal(Date.now());
-
-  constructor() {
-    const reloj = setInterval(() => this.ahora.set(Date.now()), 1000);
-    inject(DestroyRef).onDestroy(() => clearInterval(reloj));
-  }
 
   protected readonly saludo = `${saludoDelDia(new Date())}, ${(this.sesion?.nombre ?? '').split(' ')[0]}`;
   /** "Viernes 16 de octubre · Taller · Turno 9:00–18:00" */
@@ -87,11 +73,11 @@ export class InicioTecnicoComponent {
 
   /** El equipo que tiene en su banco (T3) con su avance y el cronómetro. */
   protected readonly enCurso = computed(() => {
-    const trabajo = this.tecnico && this.banco.enCurso()[this.tecnico.iniciales];
-    const orden = trabajo && this.ordenes().find((o) => o.folio === trabajo.folio);
-    if (!trabajo || !orden) return null;
-    const tiempo = cronometro(this.ahora() - new Date(trabajo.desde).getTime());
-    return { orden, detalle: `${orden.trabajo} · ${trabajo.paso} de ${trabajo.pasos} pasos · ${tiempo}`, folio: sinGato(orden.folio) };
+    const folio = this.tecnico && this.banco.enCurso()[this.tecnico.iniciales];
+    const orden = folio && this.ordenes().find((o) => o.folio === folio);
+    if (!orden) return null;
+    const { hechos, total } = this.banco.avance(orden);
+    return { orden, detalle: `${orden.trabajo} · ${hechos} de ${total} pasos · ${cronometro(this.banco.tiempo(orden.folio))}`, folio: sinGato(orden.folio) };
   });
 
   /** "Siguientes en tu cola (por fecha de entrega prometida)": las que no tienen fecha van al final, por antigüedad. */
@@ -133,8 +119,8 @@ export class InicioTecnicoComponent {
   protected readonly miDia = computed(() => {
     const t = this.tecnico;
     const jornada = (t && this.banco.jornada()[t.iniciales]) || { trabajado: 0, pausa: 0 };
-    const trabajo = t && this.banco.enCurso()[t.iniciales];
-    const enCurso = trabajo ? Math.floor((this.ahora() - new Date(trabajo.desde).getTime()) / 60_000) : 0;
+    const folio = t && this.banco.enCurso()[t.iniciales];
+    const enCurso = folio ? Math.floor(this.banco.segmento(folio) / 60_000) : 0;
     const terminados = this.ordenes().filter((o) => o.tecnico.iniciales === t?.iniciales && esHoy(o.listaDesde)).length;
     const piezas = this.refacciones.solicitudes().filter((s) => s.tecnico === t?.nombre && s.estado === 'pendiente').length;
     return [

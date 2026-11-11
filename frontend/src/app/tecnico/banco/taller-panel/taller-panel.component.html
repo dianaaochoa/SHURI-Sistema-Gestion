@@ -1,0 +1,97 @@
+<div class="columna">
+  @if (garantia()) {
+    <div class="banner banner--exito">
+      <span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>
+      <p><strong>Reparación por garantía · mismo folio, sin costo para el cliente</strong>Dictamen del jefe: {{ orden().garantia?.decision?.texto }}</p>
+    </div>
+  } @else if (orden().pausa) {
+    <div class="banner banner--advertencia">
+      <span class="icono" style="--icono: url(assets/pdv/pause.svg)"></span>
+      <p><strong>En pausa: {{ orden().pausa!.motivo }}</strong>{{ orden().pausa!.detalle || 'Reanúdala con el botón de arriba cuando puedas seguir.' }}</p>
+    </div>
+  } @else if (orden().estado === 'adicional') {
+    <div class="banner banner--info">
+      <span class="icono" style="--icono: url(assets/cajera/alert.svg); color: var(--color-primario)"></span>
+      <p><strong>El cliente revisa el cargo adicional</strong>Termina lo que ya autorizó; lo nuevo no se toca hasta tener su respuesta.</p>
+    </div>
+  }
+
+  <app-ficha-equipo [orden]="orden()" [lineas]="lineas()" />
+
+  @if (garantia()) {
+    <section class="tarjeta-banco">
+      <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/history.svg)"></span>Reparación original</h3>
+      @for (d of original(); track d[0]) {
+        <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+      }
+    </section>
+  } @else {
+    <section class="tarjeta-banco">
+      <div class="fila-titulo">
+        <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos de recepción (caja)</h3>
+        <span class="enlace-banco"><span class="icono" style="--icono: url(assets/cajera/chev-r.svg)"></span>Ver todas (6)</span>
+      </div>
+      <app-fotos [cantidad]="4" [tamano]="56" />
+    </section>
+  }
+
+  <section class="tarjeta-banco" [class.crece]="garantia()">
+    <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>{{ garantia() ? 'Trabajo de garantía' : 'Trabajo autorizado' }}</h3>
+    <div class="checks">
+      @for (p of pasos(); track i; let i = $index) {
+        <label class="casilla"><input type="checkbox" [checked]="marcados()[i]" (change)="marcar(i, $any($event.target).checked)" />{{ p }}</label>
+      }
+    </div>
+  </section>
+
+  @if (!garantia()) {
+    <section class="tarjeta-banco crece">
+      <h3 class="titulo-banco">Notas de reparación (internas)</h3>
+      @for (n of notas(); track $index) {
+        <p class="nota">{{ n }}</p>
+      } @empty {
+        <p class="tenue">Sin notas todavía. Lo que escribas aquí no lo ve el cliente.</p>
+      }
+      <span class="campo__control campo__control--40">
+        <input class="campo__input" placeholder="Escribe una nota…" aria-label="Nota de reparación" [value]="nota()" (input)="nota.set($any($event.target).value)" (keydown.enter)="guardarNota()" />
+        @if (nota().trim()) {
+          <button type="button" class="enlace-banco" (click)="guardarNota()">Guardar</button>
+        }
+      </span>
+    </section>
+  }
+</div>
+
+<aside class="lado">
+  <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>{{ garantia() ? 'Refacciones de garantía' : 'Refacciones de esta orden' }}</h3>
+  @for (p of piezas(); track p.s.id) {
+    <div class="pieza">
+      <span class="pieza__texto"><strong>{{ p.s.nombre }}</strong><span>{{ p.s.sku }} · {{ p.s.cantidad }} pza · {{ p.s.id }}</span></span>
+      <span class="estado estado--{{ p.tono }}">{{ p.texto }}</span>
+    </div>
+  } @empty {
+    <p class="tenue">Todavía no has pedido piezas para esta orden.</p>
+  }
+  <app-buscar-pieza placeholder="Solicitar otra refacción o consumible…" [folio]="orden().folio" (elegida)="solicitar($event)" />
+  <p class="tenue">{{ pedida() || 'Las solicitudes llegan al jefe de técnicos; verás aquí cuando te entreguen la pieza.' }}</p>
+  <div class="separador"></div>
+  <p class="campo__etiqueta">Fotos de la reparación</p>
+  <app-fotos [cantidad]="fotos()" agregar="Agregar" (agregada)="fotos.set(fotos() + 1)" />
+
+  <div class="lado__pie">
+    @if (garantia()) {
+      <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Si encuentras un daño nuevo que no cubre la garantía, repórtalo: se cotiza aparte y el cliente decide.</p>
+    } @else {
+      <div class="enlaces">
+        <button type="button" class="enlace-banco" (click)="necesitoInfo.emit()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Necesito información del cliente</button>
+        <button type="button" class="enlace-banco" (click)="pausar.emit()"><span class="icono" style="--icono: url(assets/pdv/pause.svg)"></span>Pausar</button>
+      </div>
+    }
+    <button type="button" class="boton boton--peligro-contorno boton-grande" [disabled]="!!orden().danoAdicional" (click)="danoAdicional.emit()">
+      <span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>{{ orden().danoAdicional ? 'Daño reportado · esperando al jefe' : garantia() ? 'Reportar daño no cubierto' : 'Reportar daño adicional' }}
+    </button>
+    <button type="button" class="boton boton--primario boton-grande" (click)="listo.emit()">
+      <span class="icono" style="--icono: url(assets/iconos/circle-check-sm.svg)"></span>{{ garantia() ? 'Marcar garantía como lista' : 'Marcar como listo' }}
+    </button>
+  </div>
+</aside>

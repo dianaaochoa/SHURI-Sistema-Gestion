@@ -127,6 +127,8 @@ export interface Orden {
   /** Notas internas del taller (no las ve el cliente). */
   notas?: Evento[];
   bodega?: { ubicacion: string; estante: string; enviado: string; por: string };
+  /** ISO: el técnico armó el equipo con presupuesto rechazado y lo devolvió a caja (T3.9). */
+  devueltoACaja?: string;
   historial: Evento[];
   /** Avisos y recordatorios al cliente (C4.6 "Intentos de contacto"). */
   contactos: Evento[];
@@ -171,6 +173,8 @@ export interface FichaRecepcion {
   falla?: string;
   /** Contraseña temporal del portal que se imprimió con la orden. */
   contrasena?: string;
+  /** PIN o patrón del equipo: no se imprime, solo lo ve el técnico en su banco (T3). */
+  pin?: string;
 }
 
 /** Técnico de una orden recién recibida: la asigna el jefe de taller (C5.3). */
@@ -189,6 +193,7 @@ export interface NuevaOrden {
   condicion: string;
   anticipo: number;
   metodoAnticipo: string;
+  pin?: string;
 }
 
 export const TECNICOS: Tecnico[] = [
@@ -821,7 +826,7 @@ export class OrdenesService {
       accesorios: datos.accesorios || 'Ninguno',
       anticipo: datos.anticipo,
       metodoAnticipo: datos.anticipo > 0 ? datos.metodoAnticipo.toLowerCase() : undefined,
-      ficha: { tipo: datos.tipo, marca: datos.marca, modelo: datos.modelo, color: datos.color, condicion: datos.condicion.trim(), recibio: cajera, contrasena },
+      ficha: { tipo: datos.tipo, marca: datos.marca, modelo: datos.modelo, color: datos.color, condicion: datos.condicion.trim(), recibio: cajera, contrasena, pin: datos.pin?.trim() || undefined },
       historial,
       contactos: datos.cliente.correo ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
     };
@@ -1073,6 +1078,91 @@ export class OrdenesService {
         ? { ...o, estado: 'esperando-refaccion', pausa: { desde: ahora, motivo: 'Esperando refacción', detalle }, historial: [...o.historial, { fecha: ahora, texto: `En pausa: ${detalle}` }] }
         : o,
     );
+  }
+
+  // ---------- Banco de trabajo del técnico (T3) ----------
+
+  /** T3.1 · El técnico envía su diagnóstico y la propuesta: la orden pasa a "Por cotizar" en el tablero del jefe (J3). */
+  enviarDiagnostico(folio: string, d: { texto: string; resumen: string; causa: string; dificultad: string; tiempo: string; nota: string; conceptos: Concepto[]; por: string }): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      pausa: undefined,
+      diagnostico: { fecha: ahora, texto: d.texto.trim(), resumen: d.resumen, causa: d.causa, dificultad: d.dificultad, nota: d.nota.trim() || undefined, conceptos: d.conceptos },
+      historial: [...o.historial, { fecha: ahora, texto: `Diagnóstico enviado al jefe por ${d.por} (${d.tiempo})` }],
+    }));
+  }
+
+  /** T3.7 · El técnico reporta que no tiene reparación; el jefe lo confirma en J3.3. */
+  reportarSinReparacion(folio: string, motivo: string, texto: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      pausa: undefined,
+      sinReparacion: { fecha: ahora, motivo, texto: texto.trim() },
+      historial: [...o.historial, { fecha: ahora, texto: `${por} reportó que no tiene reparación: ${motivo.toLowerCase()}` }],
+    }));
+  }
+
+  /** T3.5 · Daño encontrado al reparar; el jefe lo re-cotiza en J3.4. Lo ya autorizado se puede terminar. */
+  reportarDanoAdicional(folio: string, texto: string, urgente: boolean, conceptos: Concepto[], por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      danoAdicional: { fecha: ahora, texto: texto.trim(), urgente, conceptos },
+      historial: [...o.historial, { fecha: ahora, texto: `${por} reportó daño adicional${urgente ? ' (urgente)' : ''}: ${texto.trim()}` }],
+    }));
+  }
+
+  /** T3.6 / T3.8 · Pausa la orden con su motivo; "Esperando refacción" la deja en esa columna del tablero. */
+  pausar(folio: string, motivo: string, detalle: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      estado: motivo === 'Esperando refacción' && o.estado === 'en-taller' ? 'esperando-refaccion' : o.estado,
+      pausa: { desde: ahora, motivo, detalle: detalle.trim() },
+      historial: [...o.historial, { fecha: ahora, texto: `En pausa (${por}): ${motivo.toLowerCase()}${detalle.trim() ? ` · ${detalle.trim()}` : ''}` }],
+    }));
+  }
+
+  /** El técnico retoma la orden pausada. */
+  reanudar(folio: string, por: string): void {
+    this.actualizar(folio, (o) =>
+      o.pausa || o.estado === 'esperando-refaccion'
+        ? { ...o, estado: o.estado === 'esperando-refaccion' ? 'en-taller' : o.estado, pausa: undefined, historial: [...o.historial, { fecha: ahoraIso(), texto: `Reanudada por ${por}` }] }
+        : o,
+    );
+  }
+
+  /** T3.4 · Equipo listo: el cliente recibe el aviso en su portal y caja lo entrega (C6). En garantía queda "Garantía lista". */
+  marcarLista(folio: string, d: { realizado: string; notaInterna: string; tiempo: string; por: string }): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const garantia = o.estado === 'en-garantia';
+      const notas = d.notaInterna.trim() ? [...(o.notas ?? []), { fecha: ahora, texto: `${d.por}: ${d.notaInterna.trim()}` }] : o.notas;
+      return {
+        ...o,
+        estado: garantia ? 'garantia-lista' : 'lista',
+        listaDesde: ahora,
+        pausa: undefined,
+        realizado: d.realizado.trim() || o.realizado,
+        garantia: garantia && o.garantia ? { ...o.garantia, resolucion: d.realizado.trim() || o.garantia.resolucion } : o.garantia,
+        notas,
+        historial: [...o.historial, { fecha: ahora, texto: `${garantia ? 'Garantía lista' : 'Listo'} · ${d.por} (${d.tiempo} de trabajo)` }],
+        contactos: [...o.contactos, { fecha: ahora, texto: 'Aviso de “Listo” en el portal' }],
+      };
+    });
+  }
+
+  /** T3.9 · Presupuesto rechazado: el técnico arma el equipo como llegó y lo devuelve a caja. */
+  devolverACaja(folio: string, nota: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      devueltoACaja: ahora,
+      notas: nota.trim() ? [...(o.notas ?? []), { fecha: ahora, texto: `${por}: ${nota.trim()}` }] : o.notas,
+      historial: [...o.historial, { fecha: ahora, texto: `Armado y devuelto a caja sin reparar por ${por}` }],
+    }));
   }
 
   /** J8.2 · Política de bodega: cobrar almacenaje al entregar o perdonarlo (queda con el nombre del jefe). */

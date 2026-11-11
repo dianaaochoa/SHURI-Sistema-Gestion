@@ -1,0 +1,6 @@
+.resumen { flex: 1; }
+.resumen .dato { padding: 2px 0; }
+.sugerida { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-borde); border-radius: 8px; text-decoration: none; }
+.sugerida:hover { border-color: var(--color-primario); }
+.sugerida .pieza__texto > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boton-grande:disabled { opacity: 0.45; }

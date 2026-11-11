@@ -1,0 +1,107 @@
+<div class="columna">
+  <app-ficha-equipo [orden]="orden()" [lineas]="lineas()" />
+
+  <section class="tarjeta-banco">
+    <div class="fila-titulo">
+      <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos de recepción (caja)</h3>
+      <span class="enlace-banco"><span class="icono" style="--icono: url(assets/cajera/chev-r.svg)"></span>Ver todas (6)</span>
+    </div>
+    <app-fotos [cantidad]="4" [tamano]="56" />
+  </section>
+
+  <section class="tarjeta-banco diagnostico">
+    <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/ventas/search.svg)"></span>Diagnóstico del técnico</h3>
+    <label class="campo">
+      <span class="campo__etiqueta">Falla encontrada *</span>
+      <textarea class="campo__area" rows="3" placeholder="Qué encontraste al revisar el equipo…" [class.campo__area--error]="intentado() && faltaFalla()" [value]="falla()" (input)="falla.set($any($event.target).value)"></textarea>
+      @if (intentado() && faltaFalla()) {
+        <span class="campo__error">Describe lo que encontraste (al menos 10 caracteres).</span>
+      }
+    </label>
+    <div class="tres">
+      <label class="campo">
+        <span class="campo__etiqueta">Causa</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="causa.set($any($event.target).value)">
+            @for (c of causas; track c) {
+              <option [value]="c" [selected]="c === causa()">{{ c }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Dificultad</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="dificultad.set($any($event.target).value)">
+            @for (d of dificultades; track d) {
+              <option [value]="d" [selected]="d === dificultad()">{{ d }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Tiempo estimado</span>
+        <span class="campo__control campo__control--40">
+          <img src="assets/cajera/clock.svg" width="16" height="16" alt="" />
+          <input class="campo__input" [value]="tiempo()" (input)="tiempo.set($any($event.target).value)" />
+        </span>
+      </label>
+    </div>
+    <p class="campo__etiqueta">Fotos de evidencia (las verá el cliente en su presupuesto)</p>
+    <app-fotos [cantidad]="fotos()" agregar="Agregar" (agregada)="fotos.set(fotos() + 1)" />
+  </section>
+</div>
+
+<aside class="lado">
+  <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Propuesta para cotizar</h3>
+  <p class="tenue">El jefe de técnicos revisa la propuesta, pone precios y la envía al cliente.</p>
+  <app-buscar-pieza [folio]="orden().folio" (elegida)="agregar($event)" />
+
+  @for (x of piezas(); track x.producto.sku) {
+    <div class="pieza">
+      <span class="pieza__texto">
+        <strong>{{ x.producto.nombre }}</strong>
+        <span>{{ x.producto.sku }}
+          @if (stock(x.producto) >= x.cantidad) {
+            <span class="estado estado--exito">{{ stock(x.producto) }} en stock</span>
+          } @else {
+            <span class="estado estado--advertencia">Sin stock · pedir</span>
+          }
+        </span>
+      </span>
+      <span class="cantidad">
+        <button type="button" aria-label="Quitar una" (click)="cambiar(x.producto.sku, -1)">−</button>
+        <strong>{{ x.cantidad }}</strong>
+        <button type="button" aria-label="Agregar una" (click)="cambiar(x.producto.sku, 1)">+</button>
+      </span>
+      <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + x.producto.nombre" (click)="quitar(x.producto.sku)"><span class="icono" style="--icono: url(assets/tecnico/x-circulo.svg)"></span></button>
+    </div>
+  }
+
+  <label class="campo">
+    <span class="campo__etiqueta">Mano de obra estimada</span>
+    <span class="campo__control campo__control--40">
+      <select class="campo__input campo__select" (change)="elegirNivel($any($event.target).value)">
+        @for (m of manoObra; track m.id) {
+          <option [value]="m.id" [selected]="m.id === nivel()">{{ m.texto }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+  </label>
+  <label class="campo">
+    <span class="campo__etiqueta">Nota para el jefe</span>
+    <textarea class="campo__area" rows="2" placeholder="Opcional" [value]="nota()" (input)="nota.set($any($event.target).value)"></textarea>
+  </label>
+
+  <div class="lado__pie">
+    <div class="enlaces">
+      <button type="button" class="enlace-banco enlace-banco--peligro" (click)="sinReparacion.emit()"><span class="icono" style="--icono: url(assets/tecnico/x-circulo.svg)"></span>No tiene reparación</button>
+      <button type="button" class="enlace-banco" (click)="necesitoInfo.emit()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Necesito información del cliente</button>
+    </div>
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg); color: var(--color-primario)"></span>Al enviar, la orden pasa a “Por cotizar” en el tablero del jefe. No inicies la reparación hasta que el cliente autorice.</p>
+    <button type="button" class="boton boton--primario boton-grande" (click)="mandar()"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Enviar diagnóstico al jefe</button>
+  </div>
+</aside>

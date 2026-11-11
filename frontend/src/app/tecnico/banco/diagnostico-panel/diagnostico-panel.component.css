@@ -1,0 +1,15 @@
+.fila-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.diagnostico { flex: 1; }
+.tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.campo__control { gap: 8px; }
+.pieza__texto > span { display: flex; align-items: center; gap: 8px; }
+.cantidad { display: flex; align-items: center; gap: 8px; }
+.cantidad button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 999px; background: var(--color-primario-suave); font: 600 13px var(--fuente); color: var(--color-primario); cursor: pointer; }
+.cantidad strong { min-width: 14px; font-size: 13px; text-align: center; color: var(--color-marino); }
+.quitar { display: flex; padding: 4px; border: 0; background: none; color: var(--color-peligro); cursor: pointer; }
+.quitar .icono { width: 14px; height: 14px; }
+
+@media (max-width: 600px) {
+  .tres { grid-template-columns: 1fr; }
+  .pieza { flex-wrap: wrap; }
+}

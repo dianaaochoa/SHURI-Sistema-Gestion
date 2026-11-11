@@ -6,7 +6,7 @@ import { Orden, OrdenesService, diasGarantia } from '../../cajera/ordenes/ordene
 import { diasUsados, etapaGarantia } from '../../jefe/garantias/garantia';
 import { etapaDe } from '../../jefe/etapas';
 import { BancoService } from '../banco.service';
-import { asignadas, diaCorto, hace, tecnicoDe } from '../mi-trabajo';
+import { asignadas, cronometro, diaCorto, hace, porDevolver, tecnicoDe } from '../mi-trabajo';
 
 type Grupo = 'diagnostico' | 'por-cotizar' | 'por-aprobar' | 'en-taller' | 'garantia';
 type Accion = 'Abrir banco' | 'Ver orden' | 'Revisar';
@@ -55,6 +55,8 @@ function filaDe(o: Orden): Omit<Fila, 'enCurso'> {
       return { ...base, falla, fecha, grupo: 'garantia', estado: { texto: 'Garantía · con el jefe', tono: 'advertencia' }, nota: 'Reporte enviado', accion: 'Ver orden' };
     return { ...base, falla, fecha, grupo: 'garantia', estado: { texto: 'Garantía · en taller', tono: 'exito' }, nota: o.garantia.decision ? `Aprobada por ${o.garantia.decision.por.split(' ')[0]}` : '', accion: 'Abrir banco' };
   }
+  if (porDevolver(o)) return { ...base, grupo: 'en-taller', estado: { texto: 'Rechazado · devolver', tono: 'peligro' }, nota: 'Ármalo y devuélvelo a caja', accion: 'Abrir banco' };
+  if (o.sinReparacion) return { ...base, grupo: 'diagnostico', estado: { texto: 'Sin reparación', tono: 'neutro' }, nota: 'Esperando al jefe', accion: 'Ver orden' };
   switch (etapaDe(o)) {
     case 'diagnostico':
       return { ...base, grupo: 'diagnostico', estado: { texto: 'Diagnóstico', tono: 'neutro' }, nota: esHoy(o.recibido) ? 'Recibido hoy' : `Recibido ${hace(o.recibido)}`, accion: 'Abrir banco' };
@@ -90,7 +92,7 @@ export class EquiposAsignadosComponent {
   protected readonly grupo = signal<Grupo | ''>('');
   protected readonly prioridad = signal('');
 
-  private readonly enCursoFolio = computed(() => (this.tecnico ? this.banco.enCurso()[this.tecnico.iniciales]?.folio : undefined));
+  private readonly enCursoFolio = computed(() => (this.tecnico ? this.banco.enCurso()[this.tecnico.iniciales] : undefined));
 
   /** Todas sus órdenes: la que trae en el banco primero y luego las más recientes. */
   private readonly todas = computed<Fila[]>(() => {
@@ -99,9 +101,7 @@ export class EquiposAsignadosComponent {
       .map((o) => {
         const fila: Fila = { ...filaDe(o), enCurso: o.folio === actual };
         if (fila.enCurso) {
-          const desde = this.banco.enCurso()[this.tecnico!.iniciales].desde;
-          const min = Math.max(0, Math.floor((Date.now() - new Date(desde).getTime()) / 60_000));
-          fila.nota = `En curso · ${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+          fila.nota = `En curso · ${cronometro(this.banco.tiempo(o.folio)).slice(0, 5)}`;
           fila.accion = 'Abrir banco';
         } else if (o.prometida && o.prioridad && o.prioridad !== 'normal') {
           fila.nota = `Prometido ${esHoy(o.prometida) ? 'hoy' : diaCorto(o.prometida)}`;

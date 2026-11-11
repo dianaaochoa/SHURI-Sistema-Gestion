@@ -832,3 +832,44 @@ input {
 .interruptor input:checked { background: var(--color-exito); }
 .interruptor input:checked::after { transform: translateX(16px); }
 .interruptor input:focus-visible { outline: 2px solid var(--color-acento); outline-offset: 2px; }
+
+/* ---------- Área de texto, botón de peligro con contorno y foto por agregar (banco del técnico, T3) ---------- */
+
+.campo__area {
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  background: var(--color-superficie);
+  font: 14px/20px var(--fuente);
+  color: var(--color-marino);
+  resize: vertical;
+}
+
+.campo__area:focus { outline: none; border-color: var(--color-primario); }
+.campo__area::placeholder { color: var(--color-placeholder); }
+.campo__area--error { border-color: var(--color-peligro); }
+
+.boton--peligro-contorno {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-peligro);
+  color: var(--color-peligro);
+}
+
+.boton--peligro-contorno:hover:not(:disabled) { background: var(--color-peligro-suave); }
+
+.foto-agregar {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px dashed var(--color-primario);
+  border-radius: 8px;
+  background: var(--color-superficie);
+  font: 600 11px var(--fuente);
+  color: var(--color-primario);
+  cursor: pointer;
+}

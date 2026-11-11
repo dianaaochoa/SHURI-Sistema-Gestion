@@ -1,0 +1,103 @@
+@if (orden(); as o) {
+  <div class="banco">
+    <header class="cabecera">
+      <div class="cabecera__texto">
+        <h1>Banco de trabajo · {{ o.folio }}</h1>
+        <p>{{ subtitulo() }}</p>
+      </div>
+      <span class="estado estado--{{ estado().tono }}">{{ estado().texto }}</span>
+      @if (modo() !== 'devolver') {
+        <div class="reloj">
+          <span class="reloj__texto">
+            <span class="reloj__etiqueta">Tiempo en esta orden</span>
+            <strong class="reloj__tiempo" [class.reloj__tiempo--corre]="corriendo()">{{ tiempo() }}</strong>
+          </span>
+          @if (corriendo()) {
+            <button type="button" class="boton boton--contorno boton--40" (click)="botonReloj()"><span class="icono" style="--icono: url(assets/pdv/pause.svg)"></span>Pausar</button>
+          } @else {
+            <button type="button" class="boton boton--primario boton--40" [disabled]="!puedeIniciar()" (click)="botonReloj()">
+              <span class="icono" style="--icono: url(assets/pdv/play-blanco.svg)"></span>{{ pausada() && puedeIniciar() ? 'Reanudar' : 'Iniciar' }}
+            </button>
+          }
+        </div>
+      }
+    </header>
+
+    @if (mensaje()) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje() }}</p>
+    }
+
+    <ol class="pasos" aria-label="Etapas de la orden">
+      @for (p of pasos; track p; let i = $index) {
+        <li
+          class="paso"
+          [class.paso--hecho]="i < pasoActual()"
+          [class.paso--actual]="i === pasoActual()"
+          [class.paso--error]="i === pasoActual() && modo() === 'devolver'"
+          [attr.aria-current]="i === pasoActual() ? 'step' : null"
+        >
+          <span class="paso__marca">
+            @if (i < pasoActual()) {
+              <span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>
+            } @else if (i === pasoActual() && modo() === 'devolver') {
+              <span class="icono" style="--icono: url(assets/tecnico/x-circulo.svg)"></span>
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <span class="paso__texto">{{ p }}</span>
+        </li>
+      }
+    </ol>
+
+    <div class="cuerpo">
+      @switch (modo()) {
+        @case ('diagnostico') {
+          <app-diagnostico-panel [orden]="o" (enviar)="enviarDiagnostico($event)" (sinReparacion)="modal.set('sin')" (necesitoInfo)="modal.set('info')" />
+        }
+        @case ('taller') {
+          <app-taller-panel [orden]="o" (pausar)="modal.set('pausar')" (necesitoInfo)="modal.set('info')" (danoAdicional)="modal.set('dano')" (listo)="modal.set('listo')" />
+        }
+        @case ('devolver') {
+          <app-devolver-panel [orden]="o" (devolver)="devolver($event)" />
+        }
+        @default {
+          <app-espera-panel [orden]="o" [otras]="otras()" />
+        }
+      }
+    </div>
+  </div>
+
+  @switch (modal()) {
+    @case ('pausar') {
+      <app-pausar [orden]="o" (cerrar)="modal.set(null)" (pausar)="pausar($event)" />
+    }
+    @case ('info') {
+      <app-necesito-info [orden]="o" (cerrar)="modal.set(null)" (enviar)="pedirInfo($event)" />
+    }
+    @case ('sin') {
+      <app-sin-reparacion [orden]="o" (cerrar)="modal.set(null)" (enviar)="sinReparacion($event)" />
+    }
+    @case ('dano') {
+      <app-dano-adicional [orden]="o" (cerrar)="modal.set(null)" (enviar)="danoAdicional($event)" />
+    }
+    @case ('listo') {
+      <app-marcar-listo [orden]="o" [tiempo]="tiempoTotal()" (cerrar)="modal.set(null)" (confirmar)="marcarListo($event)" />
+    }
+    @case ('en-curso') {
+      @if (enCursoOtra(); as actual) {
+        <app-orden-en-curso [actual]="actual" [nueva]="o.folio" [tiempo]="tiempoDe(actual.folio)" (volver)="modal.set(null)" (irActual)="irA(actual.folio)" (cambiar)="cambiarOrden()" />
+      }
+    }
+  }
+} @else {
+  <div class="vacio-banco">
+    @if (mensaje()) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje() }}</p>
+    }
+    <span class="vacio-banco__icono"><span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span></span>
+    <p class="vacio-banco__titulo">{{ noEsSuya() ? 'Esta orden no está en tu banco' : 'No tienes equipos para trabajar' }}</p>
+    <p class="vacio-banco__texto">{{ noEsSuya() ? 'Solo puedes abrir las órdenes que el jefe te asignó.' : 'Cuando el jefe te asigne un equipo o el cliente apruebe un presupuesto, aparecerá aquí.' }}</p>
+    <a class="boton boton--contorno boton--40" routerLink="/tecnico/equipos-asignados">Ver mis equipos asignados</a>
+  </div>
+}

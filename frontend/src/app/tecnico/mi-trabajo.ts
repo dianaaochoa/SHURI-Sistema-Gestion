@@ -13,18 +13,28 @@ export function hace(iso: string): string {
   return h < 24 ? `hace ${h} h` : `hace ${Math.floor(h / 24)} ${Math.floor(h / 24) === 1 ? 'día' : 'días'}`;
 }
 
+/** "00:45:12" */
+export function cronometro(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map((n) => String(n).padStart(2, '0')).join(':');
+}
+
+/** Presupuesto rechazado que el técnico todavía no arma y devuelve a caja (T3.9). */
+export const porDevolver = (o: Orden) => o.estado === 'sin-reparacion' && !!o.rechazo && !o.devueltoACaja;
+
 /** El técnico de la sesión (por su nombre; con la API vendrá en la sesión). */
 export const tecnicoDe = (nombre: string | undefined): Tecnico | undefined => TECNICOS.find((t) => t.nombre === nombre);
 
 /** Sus equipos en el tablero: asignados y todavía sin terminar (de "Diagnóstico" a "En taller" en J2). */
 export function asignadas(t: Tecnico | undefined, ordenes: Orden[]): Orden[] {
   if (!t) return [];
-  return ordenes.filter((o) => o.tecnico.iniciales === t.iniciales && !!etapaDe(o) && etapaDe(o) !== 'listo');
+  return ordenes.filter((o) => o.tecnico.iniciales === t.iniciales && ((!!etapaDe(o) && etapaDe(o) !== 'listo') || porDevolver(o)));
 }
 
 /** Lo que puede trabajar ya: diagnosticar, reparar o revisar una garantía (lo demás espera al jefe o al cliente). */
 export function trabajable(o: Orden): boolean {
-  if (etapaDe(o) === 'diagnostico') return true;
+  if (porDevolver(o)) return true;
+  if (etapaDe(o) === 'diagnostico') return !o.sinReparacion;
   if (o.estado === 'en-taller' || o.estado === 'adicional') return true;
   const g = etapaGarantia(o);
   return g === 'en-revision' || g === 'en-reparacion';
@@ -50,6 +60,8 @@ export function enCola(o: Orden): { texto: string; tono: string; detalle: string
     const paso = g === 'en-revision' ? 'por revisar' : g === 'por-dictaminar' ? 'esperando dictamen del jefe' : 'dictamen: repararla';
     return { texto: 'Garantía', tono: 'peligro', detalle: `Garantía: ${minuscula(o.garantia.falla)} · ${paso}` };
   }
+  if (porDevolver(o)) return { texto: 'Rechazado', tono: 'peligro', detalle: 'Presupuesto rechazado · ármalo y devuélvelo a caja' };
+  if (o.sinReparacion) return { texto: 'Sin reparación', tono: 'neutro', detalle: `${o.sinReparacion.motivo} · esperando al jefe` };
   switch (etapaDe(o)) {
     case 'diagnostico':
       return { texto: 'Diagnóstico', tono: 'neutro', detalle: `${o.trabajo} · Recibido ${diasAtras(o.recibido)}${prometido}` };

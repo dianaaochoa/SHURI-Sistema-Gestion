@@ -1,0 +1,50 @@
+<div class="columna">
+  <div class="banner banner--peligro">
+    <span class="icono" style="--icono: url(assets/tecnico/x-circulo.svg)"></span>
+    <p><strong>No se repara: arma el equipo y devuélvelo a caja</strong>Debe salir igual que como llegó. Compara con las fotos de recepción antes de devolverlo.</p>
+  </div>
+
+  <app-ficha-equipo [orden]="orden()" [lineas]="lineas()" />
+
+  <section class="tarjeta-banco">
+    <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos de recepción (caja)</h3>
+    <app-fotos [cantidad]="4" [tamano]="56" />
+  </section>
+
+  <section class="tarjeta-banco crece">
+    <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>Antes de devolver</h3>
+    <div class="checks">
+      @for (r of revision; track r; let i = $index) {
+        <label class="casilla"><input type="checkbox" [checked]="hechos()[i]" (change)="marcar(i, $any($event.target).checked)" />{{ r }}</label>
+      }
+    </div>
+  </section>
+</div>
+
+<aside class="lado">
+  <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>Refacciones apartadas</h3>
+  @for (p of apartadas(); track p.sku) {
+    <div class="pieza">
+      <span class="pieza__texto"><strong>{{ p.nombre }}</strong><span>{{ p.sku }} · {{ p.cantidad }} pza</span></span>
+      <span class="estado estado--info">Se libera</span>
+    </div>
+  } @empty {
+    <p class="tenue">No había piezas apartadas para esta orden.</p>
+  }
+  <p class="tenue">Al devolver el equipo, la pieza regresa al inventario disponible.</p>
+  <div class="separador"></div>
+  <p class="campo__etiqueta">Fotos de salida *</p>
+  <app-fotos [cantidad]="fotos()" agregar="Foto" (agregada)="fotos.set(fotos() + 1)" />
+  <label class="campo">
+    <span class="campo__etiqueta">Nota interna</span>
+    <textarea class="campo__area" rows="2" placeholder="Cómo quedó el equipo" [value]="nota()" (input)="nota.set($any($event.target).value)"></textarea>
+  </label>
+
+  <div class="lado__pie">
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg); color: var(--color-primario)"></span>El portal le avisará al cliente que puede recoger su equipo. Se cobra el diagnóstico solo si así lo dice la política del negocio.</p>
+    @if (!listo()) {
+      <p class="tenue centro">Marca las 3 revisiones y agrega al menos una foto de salida.</p>
+    }
+    <button type="button" class="boton boton--primario boton-grande" [disabled]="!listo()" (click)="devolver.emit(nota())"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Devolver a caja sin reparar</button>
+  </div>
+</aside>

@@ -1,0 +1,58 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-listo" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); mandar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-listo">{{ garantia() ? 'Marcar garantía como lista' : 'Marcar como listo' }} · {{ orden().folio }}</h2>
+        <p class="modal__subtitulo">{{ orden().cliente.nombre }} · {{ orden().equipo }} · Se avisará al cliente y a caja</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="dos">
+      <div class="columna">
+        <p class="campo__etiqueta">Pruebas finales *</p>
+        <div class="checks">
+          @for (p of pruebas; track p; let i = $index) {
+            <label class="casilla"><input type="checkbox" [checked]="hechas()[i]" (change)="marcar(i, $any($event.target).checked)" />{{ p }}</label>
+          }
+        </div>
+        <p class="campo__etiqueta">Fotos de salida *</p>
+        <app-fotos [cantidad]="fotos()" [tamano]="64" agregar="Foto" (agregada)="fotos.set(fotos() + 1)" />
+      </div>
+
+      <div class="columna">
+        <p class="campo__etiqueta">Refacciones usadas</p>
+        @for (s of usadas(); track s.id) {
+          <p class="dato"><span>{{ s.nombre }}</span><strong>{{ s.cantidad }} pza · usada</strong></p>
+        } @empty {
+          <p class="dato"><span>Sin piezas entregadas para esta orden</span></p>
+        }
+        <p class="dato"><span>Tiempo total de trabajo</span><strong>{{ tiempo() }}</strong></p>
+        <label class="campo">
+          <span class="campo__etiqueta">Nota para el cliente (portal y ticket)</span>
+          <textarea class="campo__area" rows="2" placeholder="Qué se hizo, en palabras del cliente" [value]="notaCliente()" (input)="notaCliente.set($any($event.target).value)"></textarea>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Nota interna</span>
+          <textarea class="campo__area" rows="2" placeholder="Opcional" [value]="notaInterna()" (input)="notaInterna.set($any($event.target).value)"></textarea>
+        </label>
+      </div>
+    </div>
+
+    @if (intentado() && (faltan().length || !fotos())) {
+      <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>
+        @if (faltan().length) {
+          Falta marcar {{ faltan().length === 1 ? '“' + faltan()[0] + '”' : faltan().length + ' pruebas' }}. Todas las pruebas son obligatorias para continuar.
+        }
+        @if (!fotos()) {
+          Agrega al menos una foto de salida.
+        }
+      </p>
+    }
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/circle-check-sm.svg)"></span>Confirmar: {{ garantia() ? 'garantía lista' : 'equipo listo' }}</button>
+    </div>
+  </form>
+</div>

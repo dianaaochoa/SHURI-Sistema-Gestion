@@ -87,7 +87,7 @@ export class InicioJefeComponent {
         detalle: `“${ultimo.texto}” · ${equipo} · ${hace(ultimo.fecha)}`, accion: 'Responder', ruta: 'mensajes', folio: c.folio,
       };
     }),
-    ...PREGUNTAS_TECNICOS.map((p) => ({
+    ...PREGUNTAS_TECNICOS().map((p) => ({
       icono: 'menu/wrench', tono: 'info' as Tono, titulo: `${p.folio} · ${p.tecnico} ${p.asunto}`,
       detalle: `${p.detalle} · ${hace(p.fecha)}`, accion: 'Escribir', ruta: 'mensajes', folio: p.folio,
     })),

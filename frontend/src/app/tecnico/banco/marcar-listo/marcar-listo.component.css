@@ -1,0 +1,5 @@
+.modal { max-width: 720px; }
+.dos { gap: 24px; }
+.columna { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.checks { display: flex; flex-direction: column; gap: 10px; }
+.checks .casilla { font-size: 14px; color: var(--color-marino); }

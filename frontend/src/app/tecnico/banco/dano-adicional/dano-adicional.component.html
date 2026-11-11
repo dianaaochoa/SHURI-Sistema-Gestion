@@ -1,0 +1,65 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-dano" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); mandar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-dano">{{ garantia() ? 'Reportar daño no cubierto' : 'Reportar daño adicional' }} · {{ orden().folio }}</h2>
+        <p class="modal__subtitulo">Lo nuevo no se toca hasta que el cliente autorice la re-cotización</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <label class="campo">
+      <span class="campo__etiqueta">¿Qué encontraste? *</span>
+      <textarea class="campo__area" rows="2" placeholder="Ej. el flex de la cámara frontal está roto; la cámara frontal no enciende." [class.campo__area--error]="intentado() && !texto().trim()" [value]="texto()" (input)="texto.set($any($event.target).value)"></textarea>
+    </label>
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">¿Cuándo se detectó?</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="momento.set($any($event.target).value)">
+            @for (c of cuando; track c) {
+              <option [value]="c" [selected]="c === momento()">{{ c }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">¿Es urgente para que el equipo funcione?</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="urgente.set($any($event.target).value === 'si')">
+            <option value="no" [selected]="!urgente()">No, el equipo funciona</option>
+            <option value="si" [selected]="urgente()">Sí, sin esto no funciona</option>
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+    </div>
+
+    <div class="campo">
+      <span class="campo__etiqueta">Refacciones / trabajo adicional propuesto</span>
+      <app-buscar-pieza placeholder="Agregar refacción del inventario…" [folio]="orden().folio" (elegida)="agregar($event)" />
+      @for (p of piezas(); track p.sku) {
+        <p class="dato">
+          <span>{{ p.nombre }} <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + p.nombre" (click)="quitar(p.sku)">Quitar</button></span>
+          <strong>{{ stock(p) }}</strong>
+        </p>
+      }
+      <p class="dato"><span>Mano de obra adicional</span><strong>30 min · nivel bajo</strong></p>
+    </div>
+
+    <div class="campo">
+      <span class="campo__etiqueta">Fotos de evidencia *</span>
+      <app-fotos [cantidad]="fotos()" [tamano]="64" agregar="Foto" (agregada)="fotos.set(fotos() + 1)" />
+    </div>
+    @if (intentado() && (!texto().trim() || !fotos())) {
+      <p class="campo__error">Describe lo que encontraste y agrega al menos una foto.</p>
+    }
+
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>El jefe de técnicos cotiza y se envía al cliente. Lo ya autorizado puedes terminarlo; lo nuevo no se toca hasta tener respuesta.</p>
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Enviar para re-cotización</button>
+    </div>
+  </form>
+</div>

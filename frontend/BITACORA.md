@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 10 nov 2026 (técnico T2: Equipos asignados)
+- **Última actualización:** 10 nov 2026 (técnico T3: Banco de trabajo)
 
 ---
 
@@ -71,7 +71,8 @@ flowchart LR
   subgraph TEC["05 · Técnico"]
     T1["T1 Inicio<br/>T1.1 sigue con esto · avisos · mi día<br/>T1.2 notificaciones · T1.3 menú"]:::hecho
     T2["T2 Equipos asignados<br/>T2.1 lista con filtros · T2.2 sin equipos"]:::hecho
-    T["T3–T7"]:::pendiente
+    T3["T3 Banco de trabajo<br/>T3.1 diagnóstico · T3.2 esperando · T3.3 en taller · T3.9 devolver · T3.10 garantía<br/>modales: listo, daño adicional, pausa, sin reparación, necesito info, orden en curso"]:::hecho
+    T["T4–T7"]:::pendiente
   end
   subgraph POR["06 · Portal del cliente"]
     P["P1–P6"]:::pendiente
@@ -222,6 +223,9 @@ flowchart LR
   subgraph TECNICO["tecnico/"]
     TI["InicioTecnico<br/>T1.1"]:::comp
     EA["EquiposAsignados<br/>T2.1 · T2.2"]:::comp
+    BNC["Banco<br/>T3 cabecera, cronómetro y etapas"]:::comp
+    BPN["Paneles: Diagnóstico T3.1 · Espera T3.2<br/>Taller T3.3 / T3.10 · Devolver T3.9"]:::comp
+    BMD["Modales: MarcarListo T3.4 · DañoAdicional T3.5<br/>Pausar T3.6 · SinReparación T3.7<br/>NecesitoInfo T3.8 · OrdenEnCurso T3.11"]:::comp
     BTS["BancoService<br/>equipo en curso y jornada<br/>(simulado)"]:::serv
     MT["mi-trabajo.ts<br/>asignadas, trabajables, cola"]:::serv
   end
@@ -429,7 +433,10 @@ flowchart LR
   CFS --> RT9
   ET & PB --> RT9
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
-  SL --> TI & EA
+  SL --> TI & EA & BNC
+  BNC --> BPN & BMD & BTS
+  BPN & BMD --> OS & RS
+  BNC --> JD
   EA --> BTS & MT
   TI --> BTS & MT & RS
   BTS & MT --> OS
@@ -536,7 +543,7 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
 
 **Inicio del jefe de técnicos (`/jefe/inicio`, usuario `jlopez`):**
-- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; las preguntas de los técnicos son de prueba (`jefe/jefe.datos.ts`); los mensajes de clientes salen de `MensajesService` (J11) y las solicitudes de refacción de `RefaccionesService` (J5).
+- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; las preguntas de los técnicos salen de `PREGUNTAS_TECNICOS` (una de prueba y las que manda el banco, T3.8); los mensajes de clientes salen de `MensajesService` (J11) y las solicitudes de refacción de `RefaccionesService` (J5).
 - Cada pendiente y cada indicador abre su módulo con el folio (`/jefe/por-cotizar?folio=1043`); salvo el tablero, esos módulos todavía son páginas pendientes.
 - Las notificaciones de la campana (J1.2) son las de Figma.
 
@@ -604,7 +611,13 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 
 **Equipos asignados (`/tecnico/equipos-asignados`, usuario `cruiz`):**
 - Tabla con sus equipos: el que trae en el banco va primero y resaltado con “Abrir banco”; los demás por fecha. Buscador (folio, cliente, equipo, falla o estatus), filtros de estado y prioridad, e indicadores que filtran al hacer clic.
-- “Abrir banco” y “Ver orden” llevan al banco de trabajo (T3) y “Revisar” a Garantías (T4); las dos siguen pendientes. Si no tiene equipos se ve el estado vacío de T2.2.
+- “Abrir banco” y “Ver orden” llevan al banco de trabajo (T3) y “Revisar” a Garantías (T4, pendiente). Si no tiene equipos se ve el estado vacío de T2.2.
+
+**Banco de trabajo (`/tecnico/banco-de-trabajo`, usuario `cruiz`):**
+- Sin `?folio=` abre la orden en curso (#1029) o la primera que puede trabajar. Cada etapa tiene su vista: diagnóstico (T3.1), esperando al jefe o al cliente (T3.2), en taller (T3.3), garantía aprobada (T3.10) y presupuesto rechazado (T3.9).
+- El cronómetro corre por orden; “Pausar” pide el motivo (T3.6) y “Reanudar” la retoma. Iniciar otra con una corriendo abre T3.11.
+- Para ver las demás vistas sin otro usuario (desde la consola, mientras no exista la API): el jefe asigna #1041 → diagnóstico; dictamina #1002 “aplica” → garantía; caja registra que #1035 se rechazó → devolver.
+- “Enviar diagnóstico”, “No tiene reparación”, “Reportar daño adicional” y “Necesito información” llegan al jefe (J3, J1); “Marcar como listo” y “Devolver a caja” pasan la orden a caja (C6).
 
 ## 5. Estructura de carpetas
 
@@ -669,7 +682,12 @@ frontend/src/
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
     │   ├── inicio-tecnico/    # T1.1 (usa los estilos de inicio-jefe)
-    │   └── equipos-asignados/ # T2.1 · T2.2 (usa jefe/lista-pagina.css)
+    │   ├── equipos-asignados/ # T2.1 · T2.2 (usa jefe/lista-pagina.css)
+    │   └── banco/             # T3 · cabecera, cronómetro y etapas
+    │       ├── banco-comun.css · modal-banco.css   # estilos de los paneles y de los modales
+    │       ├── diagnostico-panel/ espera-panel/ taller-panel/ devolver-panel/   # T3.1 · T3.2 · T3.3 y T3.10 · T3.9
+    │       ├── marcar-listo/ dano-adicional/ pausar/ sin-reparacion/ necesito-info/ orden-en-curso/   # T3.4–T3.8 · T3.11
+    │       └── ficha-equipo/ fotos/ buscar-pieza/   # tarjeta del equipo con PIN, fotos vacías y buscador del inventario
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .paneles.ts: paneles con datos reales)
@@ -953,6 +971,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Técnico de la sesión | Se busca por nombre en `TECNICOS` (`tecnicoDe`) | Con la API vendrá en la sesión. El resumen del menú (“5 equipos asignados”) usa el mismo conteo. |
 | Equipos asignados (T2) | Hecho con el PNG `docs/diseno/05-tecnico/t2-equipos-asignados.png`. Estados para el técnico: Diagnóstico, Por cotizar, Por aprobar, Cargo adicional, En taller, En pausa · refacción y Garantía (revisar, con el jefe, en taller); la acción es “Abrir banco” si puede trabajarlo, “Revisar” en garantías por revisar y “Ver orden” si espera a alguien | En celular se ocultan cliente, falla, prioridad, fecha y acción: la fila entera abre el equipo. |
 | Estado vacío de T2.2 | Usa los mismos 4 indicadores de T2.1 en cero | Figma T2.2 muestra otros títulos (Recibidos, En diagnóstico); se dejó uno solo para que la pantalla no cambie al quedarse sin equipos. |
+| Banco de trabajo (T3) | Hecho con el PNG `docs/diseno/05-tecnico/t3-banco-de-trabajo.png` (11 vistas). Una vista por etapa de la orden y un componente por modal para no pasar el límite de CSS | Las vistas salen del estado real: Carlos arranca con #1029 en taller; diagnóstico, garantía y rechazo se ven al asignar, dictaminar o rechazar desde jefe y caja. |
+| Cronómetro | `BancoService` guarda el tiempo de cada orden y la que trae cada técnico; solo una corre a la vez (T3.11). Pausar, enviar diagnóstico, marcar listo o devolver lo detienen y suman lo corrido a “Mi día” (T1) | Arranca como Figma: #1029 desde hace 45 min con 3 pasos hechos y las órdenes con diagnóstico con 00:42:10. |
+| Pasos del trabajo | Se arman con lo autorizado (`pasosDe`): desarmar, una línea por refacción del presupuesto (o el trabajo), limpiar, probar y armar; en garantía, corregir la falla, probar y armar | Figma usa pasos escritos para #1029; los nuestros cambian con cada orden. |
+| Acciones nuevas | `OrdenesService`: `enviarDiagnostico`, `reportarSinReparacion`, `reportarDanoAdicional`, `pausar`, `reanudar`, `marcarLista`, `devolverACaja`. `RefaccionesService.solicitar`, `InventarioService.liberar`. Las preguntas al jefe (`PREGUNTAS_TECNICOS`) pasaron a señal | Usan los campos que ya leían el jefe (J1, J3.3, J3.4, J5) y caja (C6). |
+| Presupuesto rechazado (T3.9) | La orden sigue entregable en caja como antes; el técnico la ve hasta que la arma y la devuelve (`devueltoACaja`) | Así caja no espera al técnico si el cliente llega antes. |
+| PIN del equipo | Caja ya lo guarda al recibir (`ficha.pin`, C5) y el técnico lo ve en su banco; no se imprime | Las órdenes de prueba no tienen PIN y muestran “—”. |
+| Fotos | Espacios vacíos con cámara; “Agregar” suma uno. Los modales piden al menos una foto donde Figma las marca obligatorias | Sin cámara ni almacenamiento hasta la API. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -965,8 +990,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T3–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1 y T2.
-- [ ] Inicio del técnico: paso, cronómetro y jornada son de prueba (`BancoService`); los avisos se arman con las órdenes y Refacciones, no con la campana.
+- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T4–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1–T3.
+- [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
+- [ ] El paquete inicial pasó 2.36 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -980,7 +1006,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
-- [ ] El PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
 - [ ] Los clientes viven en memoria (`ClientesService`): altas, ediciones y contraseñas temporales se pierden al recargar. La contraseña temporal no se envía de verdad.
 - [ ] Algunos clientes de prueba tienen un teléfono en Punto de venta y otro en Órdenes (Laura Medina, Raúl Ortiz, Andrés Vega, Pedro Núñez): se unen por nombre. La API debe tener un solo registro con un id.
 - [ ] Editar un cliente no cambia los datos ya guardados en sus órdenes.
@@ -1398,3 +1423,16 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - clic en #0986 abre `/tecnico/banco-de-trabajo?folio=0986`
   - sin órdenes (reasignadas en memoria) aparece T2.2 con los indicadores en 0
   - a 1366×768 la tabla cabe; a 360 px queda Folio · Equipo · Estado sin desplazamiento; sin errores en consola
+
+### 10 nov 2026 · Técnico T3: Banco de trabajo
+- Hecho con el PNG `docs/diseno/05-tecnico/t3-banco-de-trabajo.png`: 11 vistas (T3.1 diagnóstico, T3.2 esperando aprobación, T3.3 en taller, T3.4 marcar listo, T3.5 daño adicional, T3.6 pausar, T3.7 sin reparación, T3.8 necesito información, T3.9 presupuesto rechazado, T3.10 garantía, T3.11 orden en curso).
+- `BancoService` reescrito: cronómetro por orden, una en curso por técnico, pasos marcados y reloj compartido (T1 y T2 ya lo usan).
+- Acciones nuevas en órdenes, refacciones e inventario para que lo del técnico llegue al jefe y a caja; el PIN que captura caja llega al banco.
+- Verificado como `cruiz` (lo de jefe y caja simulado desde la consola):
+  - #1029 en taller como Figma T3.3; pausar con “Comida / descanso” detiene el cronómetro (00:45:34) y “Reanudar” lo sigue; nota interna guardada
+  - iniciar #1041 con #1029 corriendo abre T3.11; “Pausar #1029 e iniciar #1041” deja #1029 en pausa “Atender otra orden urgente”
+  - diagnóstico de #1041 sin texto marca el error; con la pantalla OLED iPhone 13 y nivel medio llega al jefe como “Por cotizar” ($2,400 + $580) y la vista cambia a T3.2
+  - #1035 rechazado: con las 3 revisiones y una foto se devuelve a caja, la pantalla apartada queda libre y el banco pasa a #1002
+  - #1002 garantía aprobada (T3.10): marcar lista sin pruebas avisa “Falta marcar 6 pruebas”; con todo queda “Garantía lista” y se avisa en el portal
+  - necesito información pausa #1029 con el mensaje; daño adicional con flex de cámara frontal llega al jefe ($380 + $150); solicitar adhesivo crea R-216; sin reparación de #1041 queda “con el jefe”
+  - a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
