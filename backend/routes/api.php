@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Auth\PasswordRecoveryController;
 use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\Auth\StaffAuthController;
 use App\Http\Controllers\Api\Auth\TwoFactorController;
+use App\Http\Controllers\Api\Cash\CashShiftController;
 use App\Http\Controllers\Api\Inventory\MovementController;
 use App\Http\Controllers\Api\Inventory\ProductController;
 use App\Http\Controllers\Api\NotificationController;
@@ -94,6 +95,20 @@ Route::prefix('v1')->group(function () {
             Route::put('products/{product}', [ProductController::class, 'update'])->whereNumber('product')->middleware('permission:catalog.prices');
             Route::post('inventory/stock-in', [MovementController::class, 'stockIn'])->middleware('permission:inventory.stock_in');
             Route::post('inventory/adjustments', [MovementController::class, 'adjust'])->middleware('permission:inventory.adjust');
+
+            // ── Caja: turnos y cortes (C1, C10, AD3 · RF-13) ──
+            Route::middleware('permission:cash.shift,cash.review_closing')->group(function () {
+                Route::get('cash-registers', [CashShiftController::class, 'registers']);
+                Route::get('cash-shifts', [CashShiftController::class, 'index']);
+                Route::get('cash-shifts/{shift}', [CashShiftController::class, 'show'])->whereNumber('shift');
+                Route::post('cash-shifts/{shift}/close', [CashShiftController::class, 'close'])->whereNumber('shift');
+            });
+            Route::middleware('permission:cash.shift')->group(function () {
+                Route::get('cash-shifts/current', [CashShiftController::class, 'current']);
+                Route::post('cash-shifts', [CashShiftController::class, 'open']);
+            });
+            Route::post('cash-shifts/{shift}/movements', [CashShiftController::class, 'movement'])->whereNumber('shift')->middleware('permission:cash.withdrawal');
+            Route::post('cash-shifts/{shift}/review', [CashShiftController::class, 'review'])->whereNumber('shift')->middleware('permission:cash.review_closing');
 
             // ── Notificaciones internas (campanita) ──
             Route::get('notifications', [NotificationController::class, 'index']);
