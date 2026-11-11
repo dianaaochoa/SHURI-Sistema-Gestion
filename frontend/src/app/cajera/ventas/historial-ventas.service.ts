@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { InventarioService } from '../inventario/inventario.service';
 import { CATALOGO } from '../punto-de-venta/catalogo.datos';
 import { CLIENTES, Cliente, PUBLICO_GENERAL } from '../punto-de-venta/clientes.datos';
 import {
@@ -210,6 +211,7 @@ export class HistorialVentasService {
   readonly ventas = signal<VentaRegistrada[]>(ventasDemo());
   /** Cajeras para el filtro (Figma: "Todas las cajeras"). */
   readonly cajeras = ['Ana Martínez', 'Luis Pérez'];
+  private readonly inventario = inject(InventarioService);
 
   registrar(cobrada: VentaCobrada, cajera: string): void {
     const nueva: VentaRegistrada = {
@@ -231,13 +233,20 @@ export class HistorialVentasService {
       devoluciones: [],
     };
     this.ventas.update((lista) => [nueva, ...lista.filter((v) => v.folio !== nueva.folio)]);
+    // Lo vendido sale del inventario (los productos temporales no están en él).
+    for (const l of cobrada.lineas) this.inventario.moverStock(l.sku, -l.cantidad);
   }
 
   cancelar(folio: string): void {
+    const venta = this.ventas().find((v) => v.folio === folio);
+    // Regresa al inventario lo que no se había devuelto antes.
+    if (venta && venta.estado !== 'cancelada') for (const l of venta.lineas) this.inventario.moverStock(l.sku, l.cantidad - devueltas(venta, l.sku));
     this.actualizar(folio, (v) => ({ ...v, estado: 'cancelada' }));
   }
 
   devolver(folio: string, devolucion: Devolucion): void {
+    // Solo lo que vuelve en buen estado regresa a venta; lo defectuoso va al proveedor y lo abierto se revisa antes.
+    if (devolucion.estadoProducto.startsWith('Buen estado')) for (const a of devolucion.articulos) this.inventario.moverStock(a.sku, a.cantidad);
     this.actualizar(folio, (v) => {
       const devoluciones = [...v.devoluciones, devolucion];
       const conDevolucion = { ...v, devoluciones };

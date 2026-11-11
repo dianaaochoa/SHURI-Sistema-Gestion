@@ -8,7 +8,7 @@ import { EnviarBodegaComponent, EnvioBodega } from './enviar-bodega/enviar-bodeg
 import { NuevaOrdenComponent, OrdenCapturada } from './nueva-orden/nueva-orden.component';
 import { OrdenRegistradaComponent } from './orden-registrada/orden-registrada.component';
 import {
-  DIAS_PARA_RECOGER,
+  diasParaRecoger,
   ESTADOS_ORDEN,
   FILTROS,
   Filtro,
@@ -245,7 +245,7 @@ export class OrdenesComponent {
     if (!this.modal()) this.aviso.set(null);
   }
 
-  protected readonly diasParaRecoger = DIAS_PARA_RECOGER;
+  protected readonly diasParaRecoger = diasParaRecoger();
 
   // ---------- C5 · Nueva orden ----------
   protected readonly folioNuevo = this.servicio.siguienteFolio;

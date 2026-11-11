@@ -132,6 +132,11 @@ export class InventarioService {
     );
   }
 
+  /** Venta (−), cancelación o devolución en buen estado (+) desde caja (C2 / C3). Lo que no está en Inventario se ignora. */
+  moverStock(sku: string, cambio: number): void {
+    this.productos.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, stock: Math.max(0, p.stock + cambio) } : p)));
+  }
+
   /** J5.3 · Una pieza que regresa del taller vuelve al stock. */
   devolver(sku: string, cantidad: number): void {
     this.productos.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, stock: p.stock + cantidad } : p)));

@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { redondear } from '../punto-de-venta/venta.service';
 
 export type EstadoOrden =
@@ -197,8 +198,9 @@ export const TECNICOS: Tecnico[] = [
 ];
 
 /** Días para recoger antes de pasar a bodega y días de garantía (reglas de Figma C4). */
-export const DIAS_PARA_RECOGER = 30;
-export const DIAS_GARANTIA = 30;
+/** Plazo para recoger y días de garantía: los fija Configuración del taller (J9). */
+export const diasParaRecoger = () => REGLAS_TALLER.diasSinCobro;
+export const diasGarantia = () => REGLAS_TALLER.garantiaDias;
 
 export const ESTADOS_ORDEN: Record<EstadoOrden, { texto: string; tono: string; paso: number }> = {
   'por-cotizar': { texto: 'Por cotizar', tono: 'neutro', paso: 2 },
@@ -237,7 +239,7 @@ export const sumarDias = (iso: string, dias: number) => new Date(new Date(iso).g
 /** Días de garantía que le quedan a una orden entregada (0 si ya venció). */
 export function garantiaRestante(orden: Orden): number {
   if (!orden.entrega || orden.estado === 'sin-reparar-entregada') return 0;
-  return Math.max(0, DIAS_GARANTIA - diasDesde(orden.entrega.fecha));
+  return Math.max(0, diasGarantia() - diasDesde(orden.entrega.fecha));
 }
 
 /** Etiqueta de estado de la tabla: "Terminado · garantía" mientras la garantía sigue vigente (Figma C4.1). */
@@ -897,11 +899,16 @@ export class OrdenesService {
         return { ...o, estado: 'terminada', historial: evento(`Entregado tras garantía a ${entrega.recoge}`), contactos };
       }
       if (o.estado === 'sin-reparacion') {
+        // Revisión que se queda el taller; si el anticipo era mayor, el resto se devuelve en efectivo y sale de la caja (C10).
+        const revision = o.revision ? (o.revision.cobrar ? o.revision.monto : 0) : o.anticipo;
+        const devuelto = Math.max(0, redondear(o.anticipo - revision));
+        const cobrado = redondear(entrega.pagado - devuelto);
+        const nota = devuelto ? ` · se devolvieron $${devuelto.toFixed(2)} del anticipo en efectivo` : '';
         return {
           ...o,
           estado: 'sin-reparar-entregada',
-          entrega: { fecha: ahora, por, pagado: o.revision ? (o.revision.cobrar ? o.revision.monto : 0) : o.anticipo, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.pagado > 0 ? entrega.metodo : undefined },
-          historial: evento(`Entregado sin reparar a ${entrega.recoge}`),
+          entrega: { fecha: ahora, por, pagado: Math.min(revision, o.anticipo) + Math.max(0, cobrado), recogio: entrega.recoge, cobrado, metodo: devuelto ? 'efectivo' : entrega.pagado > 0 ? entrega.metodo : undefined },
+          historial: evento(`Entregado sin reparar a ${entrega.recoge}${nota}`),
           contactos,
         };
       }

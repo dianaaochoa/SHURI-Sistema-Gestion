@@ -95,6 +95,8 @@
                     }
                     <img src="assets/cajera/chev-r.svg" width="14" height="14" alt="" />
                   </a>
+                } @empty {
+                  <p class="panel__vacio">Nada pendiente.</p>
                 }
                 <a class="enlace panel__enlace" [routerLink]="['/cajera', panel.enlace.ruta]">
                   <img src="assets/cajera/chev-r-primario.svg" width="14" height="14" alt="" />{{ panel.enlace.texto }}

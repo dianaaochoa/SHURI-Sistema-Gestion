@@ -1,7 +1,7 @@
 import { Component, HostListener, inject, output, signal } from '@angular/core';
 import { formatearDinero, formatearHora } from '../../compartido/formato';
 import { CajaService } from '../caja.service';
-import { VENTAS_EFECTIVO_DEMO } from '../inicio-cajera/inicio-cajera.datos';
+import { CorteService } from '../corte/corte.service';
 
 /** C1.7 · Cerrar sesión con turno abierto (modal). */
 @Component({
@@ -91,7 +91,7 @@ export class SalirConTurnoComponent {
   private readonly turno = inject(CajaService).turno();
   /** "Caja 01 · desde las 09:00 · efectivo esperado $7,180.00" */
   protected readonly detalle = this.turno
-    ? `${this.turno.caja} · desde las ${formatearHora(new Date(this.turno.desde))} · efectivo esperado ${formatearDinero(VENTAS_EFECTIVO_DEMO + this.turno.fondo)}`
+    ? `${this.turno.caja} · desde las ${formatearHora(new Date(this.turno.desde))} · efectivo esperado ${formatearDinero(inject(CorteService).resumen().esperado)}`
     : '';
 
   @HostListener('document:keydown.escape')

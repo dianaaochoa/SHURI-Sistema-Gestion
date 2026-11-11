@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Orden, TECNICOS, Tecnico, garantiaRestante, sumarDias } from '../ordenes.service';
+import { Orden, TECNICOS, Tecnico, garantiaRestante, sumarDias, diasGarantia } from '../ordenes.service';
 import { diaMes } from '../detalle-orden/detalle-orden.component';
 
 export interface RecepcionGarantia {
@@ -117,7 +117,7 @@ export class RecibirGarantiaComponent implements OnInit, AfterViewInit {
   protected readonly intentado = signal(false);
 
   protected readonly dias = computed(() => garantiaRestante(this.orden()));
-  protected readonly vence = computed(() => diaMes(sumarDias(this.orden().entrega!.fecha, 30)));
+  protected readonly vence = computed(() => diaMes(sumarDias(this.orden().entrega!.fecha, diasGarantia())));
   /** "Cambio de pantalla OLED" → "cambio de pantalla OLED" (solo la primera letra). */
   protected readonly cubre = computed(() => {
     const trabajo = this.orden().trabajo;

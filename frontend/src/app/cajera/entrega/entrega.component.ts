@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { formatearDinero } from '../../compartido/formato';
 import { cuando, diaMes } from '../ordenes/detalle-orden/detalle-orden.component';
-import { DIAS_PARA_RECOGER, ENTREGABLES, ESTADOS_ORDEN, Orden, OrdenesService, saldo, sumarDias } from '../ordenes/ordenes.service';
+import { diasGarantia, diasParaRecoger, ENTREGABLES, ESTADOS_ORDEN, Orden, OrdenesService, saldo, sumarDias } from '../ordenes/ordenes.service';
 import { CLIENTES, Cliente, DatosFiscales } from '../punto-de-venta/clientes.datos';
 import { DatosFacturaComponent } from '../punto-de-venta/datos-factura/datos-factura.component';
 import { DispositivosService } from '../punto-de-venta/dispositivos.service';
@@ -99,7 +99,7 @@ export class EntregaComponent {
     const o = this.orden();
     if (!o) return [];
     const accesorios = { etiqueta: 'Accesorios registrados', valor: o.accesorios ?? 'Ninguno' };
-    const limite = o.listaDesde ? `${diaMes(sumarDias(o.listaDesde, DIAS_PARA_RECOGER))} (30 días)` : '—';
+    const limite = o.listaDesde ? `${diaMes(sumarDias(o.listaDesde, diasParaRecoger()))} (${diasParaRecoger()} días)` : '—';
     switch (o.estado) {
       case 'garantia-lista':
         return [
@@ -209,11 +209,13 @@ export class EntregaComponent {
     const tipo = this.tipo();
     const cobrado = saldo(o);
     const recoge = this.recoge();
-    this.ordenes.entregar(o.folio, { recoge: recoge?.nombre || o.cliente.nombre, pagado: cobrado, metodo: this.metodo(), cajera: this.cajera });
+    const entregada = this.ordenes.entregar(o.folio, { recoge: recoge?.nombre || o.cliente.nombre, pagado: cobrado, metodo: this.metodo(), cajera: this.cajera });
     const impreso = this.documentos.orden(o.folio, 'entrega');
     const partes = [`${o.folio} · ${o.equipo} entregado a ${recoge?.nombre || o.cliente.nombre}`];
     if (cobrado > 0) partes.push(`cobrados ${formatearDinero(cobrado)} ${METODO_TEXTO[this.metodo()]}`);
-    if (tipo === 'normal') partes.push(`garantía hasta el ${diaMes(sumarDias(new Date().toISOString(), 30))}`);
+    const devuelto = -(entregada?.entrega?.cobrado ?? 0);
+    if (devuelto > 0) partes.push(`devueltos ${formatearDinero(devuelto)} del anticipo en efectivo`);
+    if (tipo === 'normal') partes.push(`garantía hasta el ${diaMes(sumarDias(new Date().toISOString(), diasGarantia()))}`);
     if (this.factura()) partes.push('factura enviada por correo');
     if (!impreso) partes.push('no se pudo imprimir el comprobante');
     this.aviso.set(partes.join(' · '));

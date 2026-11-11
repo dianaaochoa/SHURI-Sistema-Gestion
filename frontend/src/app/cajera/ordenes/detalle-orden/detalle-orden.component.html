@@ -77,7 +77,7 @@
       <p class="dato"><span>Trabajo</span><strong>{{ o.trabajo }}</strong></p>
       @if (enMostrador()) {
         <p class="dato"><span>{{ o.estado === 'sin-reparacion' ? 'Avisado' : 'Listo desde' }}</span><strong>{{ cuando(o.listaDesde!) }}</strong></p>
-        <p class="dato"><span>Recoger antes del</span><strong [class.peligro]="o.estado === 'vencida'">{{ limite() }} (30 días)</strong></p>
+        <p class="dato"><span>Recoger antes del</span><strong [class.peligro]="o.estado === 'vencida'">{{ limite() }} ({{ plazo }} días)</strong></p>
         <p class="dato"><span>Saldo a cobrar</span><strong class="fuerte">{{ dinero(saldo()) }}</strong></p>
       } @else {
         @if (o.presupuesto; as p) {

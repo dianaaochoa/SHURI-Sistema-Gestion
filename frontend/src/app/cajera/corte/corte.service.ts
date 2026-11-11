@@ -138,7 +138,8 @@ export class CorteService {
         lista.push({ fecha: o.recibido, concepto: `Anticipo orden ${o.folio} · ${o.cliente.nombre} · ${o.equipo}`, metodo: o.metodoAnticipo as MetodoSimple, monto: o.anticipo });
       }
       if (o.entrega && en(o.entrega.fecha) && o.entrega.cobrado) {
-        lista.push({ fecha: o.entrega.fecha, concepto: `Entrega ${o.folio} · ${o.equipo}`, metodo: (o.entrega.metodo ?? 'efectivo') as MetodoSimple, monto: o.entrega.cobrado });
+        const concepto = o.entrega.cobrado < 0 ? `Devolución de anticipo ${o.folio} · ${o.cliente.nombre}` : `Entrega ${o.folio} · ${o.equipo}`;
+        lista.push({ fecha: o.entrega.fecha, concepto, metodo: (o.entrega.metodo ?? 'efectivo') as MetodoSimple, monto: o.entrega.cobrado });
       }
     }
     for (const p of this.caja.pagosAProveedor()) {
@@ -155,7 +156,8 @@ export class CorteService {
     const turno = this.caja.turno();
     const desde = turno?.desde ?? '9999';
     const ventas = this.ventas.ventas().filter((v) => v.fecha >= desde && v.estado !== 'cancelada');
-    const entregas = this.ordenes.ordenes().filter((o) => o.entrega && o.entrega.fecha >= desde && (o.entrega.cobrado ?? 0) > 0);
+    // Incluye los anticipos devueltos al entregar sin reparar (cobrado negativo).
+    const entregas = this.ordenes.ordenes().filter((o) => o.entrega && o.entrega.fecha >= desde && (o.entrega.cobrado ?? 0) !== 0);
     const anticipos = this.ordenes.ordenes().filter((o) => o.anticipo > 0 && o.recibido >= desde && o.metodoAnticipo);
     const retiros = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'retiro');
     const ingresos = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'ingreso');

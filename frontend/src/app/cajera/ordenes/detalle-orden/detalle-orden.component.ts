@@ -1,7 +1,8 @@
 import { Component, computed, input, output } from '@angular/core';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import {
-  DIAS_PARA_RECOGER,
+  diasGarantia,
+  diasParaRecoger,
   ESTADOS_ORDEN,
   Evento,
   Orden,
@@ -46,10 +47,11 @@ export class DetalleOrdenComponent {
   protected readonly garantia = computed(() => garantiaRestante(this.orden()));
   protected readonly enMostrador = computed(() => ['lista', 'sin-reparacion', 'vencida', 'garantia-lista'].includes(this.orden().estado));
 
-  /** Fecha límite para recoger: 30 días desde el aviso de "Listo". */
+  /** Fecha límite para recoger: el plazo de Configuración (J9) desde el aviso de "Listo". */
+  protected readonly plazo = diasParaRecoger();
   protected readonly limite = computed(() => {
     const desde = this.orden().listaDesde;
-    return desde ? diaMes(sumarDias(desde, DIAS_PARA_RECOGER)) : '';
+    return desde ? diaMes(sumarDias(desde, diasParaRecoger())) : '';
   });
 
   protected readonly diasDesdeAviso = computed(() => {
@@ -59,7 +61,7 @@ export class DetalleOrdenComponent {
 
   protected readonly venceGarantia = computed(() => {
     const entrega = this.orden().entrega;
-    return entrega ? diaMes(sumarDias(entrega.fecha, 30)) : '';
+    return entrega ? diaMes(sumarDias(entrega.fecha, diasGarantia())) : '';
   });
 
   /** El historial con fechas del día como "Hoy 11:20". */

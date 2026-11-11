@@ -5,7 +5,9 @@ import { CajaService } from '../../cajera/caja.service';
 import { SalirConTurnoComponent } from '../../cajera/salir-con-turno/salir-con-turno.component';
 import { MenuUsuarioComponent } from '../menu-usuario/menu-usuario.component';
 import { DestinoMenu, NAVEGACION, iniciales } from '../navegacion';
+import { OrdenesService } from '../../cajera/ordenes/ordenes.service';
 import { MensajesService } from '../../jefe/mensajes/mensajes.service';
+import { EN_TALLER } from '../../jefe/tecnicos/carga';
 import { NotificacionesService } from '../notificaciones.service';
 import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-notificaciones.component';
 
@@ -35,6 +37,7 @@ export class MenuLateralComponent {
 
   private readonly caja = inject(CajaService);
   private readonly mensajes = inject(MensajesService);
+  private readonly ordenes = inject(OrdenesService);
 
   /** Mensajes del jefe: conversaciones sin responder (J11); los demás destinos, su número fijo. */
   protected insignia(d: DestinoMenu): number {
@@ -45,7 +48,15 @@ export class MenuLateralComponent {
   protected readonly navegacion = computed(() => NAVEGACION[this.sesion()?.rol ?? 'cajera']);
   protected readonly esCajera = computed(() => this.sesion()?.rol === 'cajera');
   /** La cajera ve el estado real de su caja (C1.1 / C1.2); los demás roles, el de navegacion.ts. */
-  protected readonly resumen = computed(() => (this.esCajera() ? this.caja.resumen() : this.navegacion().resumen));
+  /** La cajera ve su caja; el jefe, las órdenes abiertas (el mismo conteo de su Inicio, J1); los demás, el texto fijo. */
+  protected readonly resumen = computed(() => {
+    if (this.esCajera()) return this.caja.resumen();
+    if (this.sesion()?.rol === 'jefe-tecnicos') {
+      const abiertas = this.ordenes.ordenes().filter((o) => EN_TALLER.includes(o.estado)).length;
+      return `${abiertas} ${abiertas === 1 ? 'orden abierta' : 'órdenes abiertas'}`;
+    }
+    return this.navegacion().resumen;
+  });
   protected readonly cajaCerrada = computed(() => this.esCajera() && !this.caja.abierta());
   /** C1.7: confirmar la salida cuando la cajera deja su turno abierto. */
   protected readonly confirmarSalida = signal(false);

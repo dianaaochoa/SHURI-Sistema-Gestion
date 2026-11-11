@@ -1,6 +1,7 @@
 import { Component, DestroyRef, ElementRef, computed, inject, output, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatearDinero } from '../../../compartido/formato';
+import { InventarioService, disponible } from '../../inventario/inventario.service';
 import { CATALOGO, Producto } from '../catalogo.datos';
 import { DispositivosService } from '../dispositivos.service';
 import { IVA, VentaService } from '../venta.service';
@@ -28,6 +29,7 @@ export class BarraBusquedaComponent {
   readonly temporal = output<{ nombre: string; precio: number | null }>();
 
   private readonly venta = inject(VentaService);
+  private readonly inventario = inject(InventarioService);
   private readonly campo = viewChild.required<ElementRef<HTMLInputElement>>('campo');
   protected readonly dinero = formatearDinero;
 
@@ -40,9 +42,13 @@ export class BarraBusquedaComponent {
   protected readonly resultados = computed(() => {
     const texto = sinAcentos(this.busqueda().trim());
     if (texto.length < 2) return [];
+    // Disponibles según Inventario (C7): stock menos lo apartado, y baja con cada venta.
     return CATALOGO.filter(
       (p) => sinAcentos(p.nombre).includes(texto) || sinAcentos(p.sku).includes(texto) || p.codigoBarras === texto,
-    );
+    ).map((p) => {
+      const enInventario = this.inventario.buscar(p.sku);
+      return enInventario ? { ...p, disponibles: disponible(enInventario) } : p;
+    });
   });
   protected readonly abierta = computed(() => this.busqueda().trim().length >= 2);
   protected readonly esCodigo = computed(() => /^\d{6,}$/.test(this.busqueda().trim()));

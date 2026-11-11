@@ -1,7 +1,7 @@
 import { Component, computed, input, model, output } from '@angular/core';
 import { formatearDinero } from '../../../compartido/formato';
 import { diaMes } from '../../ordenes/detalle-orden/detalle-orden.component';
-import { Orden, saldo, sumarDias } from '../../ordenes/ordenes.service';
+import { Orden, diasGarantia, saldo, sumarDias } from '../../ordenes/ordenes.service';
 import { MetodoSimple } from '../../punto-de-venta/venta.service';
 
 export type TipoEntrega = 'normal' | 'sin-reparar' | 'garantia';
@@ -140,7 +140,7 @@ export class CobroEntregaComponent {
     if (this.otraPersona()) {
       return `El comprobante de entrega se imprime a nombre del titular e indica quién recogió. ${o.cliente.nombre.split(' ')[0]} recibe el aviso de entrega en su portal.`;
     }
-    const vence = diaMes(sumarDias(new Date().toISOString(), 30));
+    const vence = diaMes(sumarDias(new Date().toISOString(), diasGarantia()));
     return `Al confirmar: se imprime el comprobante de entrega, el folio pasa a “Terminado”, inicia la garantía (vence ${vence}) y se notifica al cliente en su portal.`;
   });
 

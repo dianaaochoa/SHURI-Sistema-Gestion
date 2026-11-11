@@ -174,7 +174,7 @@ export class VentaService {
     const existente = this.lineasActuales().find((l) => l.sku === producto.sku);
     if (existente) return this.cambiarCantidad(producto.sku, 1);
     if (producto.disponibles < 1) return false;
-    this.lineasActuales.update((lineas) => [...lineas, lineaDe(producto.sku)]);
+    this.lineasActuales.update((lineas) => [...lineas, { ...lineaDe(producto.sku), disponibles: producto.disponibles }]);
     return true;
   }
 

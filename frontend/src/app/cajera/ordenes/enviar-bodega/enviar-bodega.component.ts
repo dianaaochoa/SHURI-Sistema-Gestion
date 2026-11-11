@@ -1,7 +1,7 @@
 import { Component, HostListener, OnInit, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { formatearDinero } from '../../../compartido/formato';
-import { DIAS_PARA_RECOGER, Orden, diasDesde, saldo } from '../ordenes.service';
+import { diasParaRecoger, Orden, diasDesde, saldo } from '../ordenes.service';
 
 export const UBICACIONES = ['Bodega trasera', 'Almacén planta alta'];
 
@@ -121,7 +121,7 @@ export class EnviarBodegaComponent implements OnInit {
   readonly enviado = output<EnvioBodega>();
 
   protected readonly dinero = formatearDinero;
-  protected readonly dias = DIAS_PARA_RECOGER;
+  protected readonly dias = diasParaRecoger();
   protected readonly ubicaciones = UBICACIONES;
   protected ubicacion = UBICACIONES[0];
   protected estante = '';
@@ -139,7 +139,7 @@ export class EnviarBodegaComponent implements OnInit {
     this.estante = this.estanteSugerido();
     // Como en Figma: van marcados los que ya pasaron de los 30 días (o el que se eligió en el panel).
     const inicial = this.folioInicial();
-    this.elegidos.set(inicial ? [inicial] : this.ordenes().filter((o) => this.diasDe(o) > DIAS_PARA_RECOGER).map((o) => o.folio));
+    this.elegidos.set(inicial ? [inicial] : this.ordenes().filter((o) => this.diasDe(o) > diasParaRecoger()).map((o) => o.folio));
   }
 
   protected alternar(folio: string): void {
