@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Auth\PasswordRecoveryController;
 use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\Auth\StaffAuthController;
 use App\Http\Controllers\Api\Auth\TwoFactorController;
+use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
 use Illuminate\Support\Facades\Route;
@@ -20,7 +21,7 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/2fa/resend', [TwoFactorController::class, 'resend'])->name('auth.2fa.resend');
         Route::post('portal/login', [CustomerAuthController::class, 'login']);
 
-        // Recuperar Contraseña: pregunta de seguridad → temporary password by email
+        // Recuperar Contraseña: pregunta de seguridad → contraseña temporal por correo
         foreach (['auth' => 'staff', 'portal' => 'customer'] as $prefix => $actor) {
             Route::post("{$prefix}/password/forgot", [PasswordRecoveryController::class, 'forgot'])
                 ->defaults('actor', $actor)->name("{$prefix}.password.forgot");
@@ -31,14 +32,14 @@ Route::prefix('v1')->group(function () {
 
     Route::get('security-questions', [PasswordRecoveryController::class, 'questions']);
 
-    // staff
+    // Personal
     Route::middleware(['auth:sanctum', 'actor:staff'])->group(function () {
         Route::get('auth/me', [StaffAuthController::class, 'me']);
         Route::post('auth/logout', [StaffAuthController::class, 'logout']);
         Route::put('auth/password', [StaffAuthController::class, 'changePassword']);
         Route::put('auth/security-question', [PasswordRecoveryController::class, 'setQuestion']);
 
-        // Multi-session: sesion activa
+        // Multisesión: sesiones activas
         Route::get('auth/sessions', [SessionController::class, 'index']);
         Route::delete('auth/sessions', [SessionController::class, 'destroyOthers']);
         Route::delete('auth/sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
@@ -59,6 +60,13 @@ Route::prefix('v1')->group(function () {
                 Route::get('service-orders/{folio}', [ServiceOrderController::class, 'show']);
             });
             Route::post('service-orders', [ServiceOrderController::class, 'store'])->middleware('permission:orders.receive');
+
+            // ── Taller: asignación (J1, J2, J7 · RF-04) ──
+            Route::middleware('permission:orders.assign')->group(function () {
+                Route::get('workshop/board', [AssignmentController::class, 'board']);
+                Route::get('technicians', [AssignmentController::class, 'technicians']);
+                Route::post('service-orders/{folio}/assign', [AssignmentController::class, 'assign']);
+            });
 
             Route::middleware('permission:customers.manage,orders.receive')->group(function () {
                 Route::get('customers', [CustomerController::class, 'index']);
@@ -82,7 +90,6 @@ Route::prefix('v1')->group(function () {
         Route::delete('sessions', [SessionController::class, 'destroyOthers']);
         Route::delete('sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
 
-        Route::middleware('password.changed')->group(function () {
-        });
+        Route::middleware('password.changed')->group(function () {});
     });
 });

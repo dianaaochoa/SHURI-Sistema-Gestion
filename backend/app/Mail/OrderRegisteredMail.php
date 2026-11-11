@@ -9,8 +9,8 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * "Equipo recibido" (RF-17, P6): folio of the new order and, on the
- * customer's first visit, their portal access with the temporary password (RF-06).
+ * "Equipo recibido" (RF-17, P6): folio de la orden nueva y, en la
+ * primera visita del cliente, su acceso al portal con la contraseña temporal (RF-06).
  */
 class OrderRegisteredMail extends Mailable
 {

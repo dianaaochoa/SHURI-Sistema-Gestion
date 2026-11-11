@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Staff users. Role ids come from CatalogSeeder:
+ * Usuarios del personal. Los ids de rol vienen de CatalogSeeder:
  * 1 admin · 2 head_technician · 3 technician · 4 cashier.
  *
  * @extends Factory<User>
@@ -35,7 +35,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('Password123'),
             'must_change_password' => false,
-            // The DB default is true; tests opt in with withTwoFactor()
+            // En la BD el valor por defecto es true; las pruebas lo activan con withTwoFactor()
             'two_factor_enabled' => false,
             'is_active' => true,
             'remember_token' => Str::random(10),
@@ -62,13 +62,13 @@ class UserFactory extends Factory
         return $this->state(['role_id' => 4, 'max_discount_pct' => 10]);
     }
 
-    /** First access with a temporary password assigned by the admin (AD7). */
+    /** Primer acceso con una contraseña temporal asignada por el administrador (AD7). */
     public function withTemporaryPassword(): static
     {
         return $this->state(['must_change_password' => true]);
     }
 
-    /** Asks for the email code after the password (MFA). */
+    /** Pide el código por correo después de la contraseña (MFA). */
     public function withTwoFactor(): static
     {
         return $this->state(['two_factor_enabled' => true]);

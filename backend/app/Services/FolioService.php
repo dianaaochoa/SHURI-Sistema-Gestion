@@ -5,16 +5,16 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Consecutive folios per type and year, without gaps or duplicates
- * (README §15.2, table `sequences`). E.g. OS-2026-00001.
+ * Folios consecutivos por tipo y año, sin huecos ni duplicados
+ * (README §15.2, tabla `sequences`). P. ej. OS-2026-00001.
  *
- * The sequence row is locked (SELECT … FOR UPDATE) so two cash registers
- * receiving devices at the same time never get the same folio.
- * Registered as a singleton in AppServiceProvider.
+ * La fila de la secuencia se bloquea (SELECT … FOR UPDATE) para que dos cajas
+ * que reciben equipos al mismo tiempo nunca obtengan el mismo folio.
+ * Registrado como singleton en AppServiceProvider.
  */
 class FolioService
 {
-    /** @var array<string, string> sequence name => folio prefix */
+    /** @var array<string, string> nombre de la secuencia => prefijo del folio */
     private const PREFIXES = [
         'service_order' => 'OS',
         'sale' => 'V',
@@ -29,14 +29,14 @@ class FolioService
         'cash_withdrawal' => 'RET',
     ];
 
-    /** Must be called inside the same DB transaction that saves the record. */
+    /** Se debe llamar dentro de la misma transacción que guarda el registro. */
     public function next(string $sequence): string
     {
         $prefix = self::PREFIXES[$sequence] ?? throw new \InvalidArgumentException("Secuencia desconocida: {$sequence}");
         $year = (int) now()->format('Y');
 
         return DB::transaction(function () use ($sequence, $year, $prefix) {
-            // First folio of a new year: create its counter
+            // Primer folio de un año nuevo: crea su contador
             DB::table('sequences')->insertOrIgnore(['name' => $sequence, 'year' => $year, 'value' => 0]);
 
             $current = (int) DB::table('sequences')

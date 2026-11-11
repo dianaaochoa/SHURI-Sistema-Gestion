@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
- * MFA for staff: password + 6-digit code sent by email.
+ * MFA del personal: contraseña + código de 6 dígitos enviado por correo.
  */
 class TwoFactorTest extends TestCase
 {
@@ -31,7 +31,7 @@ class TwoFactorTest extends TestCase
         $this->withoutMiddleware(ThrottleRequests::class);
     }
 
-    /** Logs in with the password and returns [challenge_id, code received by email]. */
+    /** Inicia sesión con la contraseña y devuelve [challenge_id, código recibido por correo]. */
     private function startLogin(string $login = 'carlos'): array
     {
         $challengeId = $this->postJson('/api/v1/auth/login', [
@@ -139,7 +139,7 @@ class TwoFactorTest extends TestCase
         $this->postJson('/api/v1/auth/2fa/verify', ['challenge_id' => $challengeId, 'code' => $wrong])
             ->assertJsonValidationErrors('challenge_id');
 
-        // Even the right code no longer works
+        // Ya ni el código correcto funciona
         $this->postJson('/api/v1/auth/2fa/verify', ['challenge_id' => $challengeId, 'code' => $code])
             ->assertStatus(422);
         $this->assertDatabaseCount('personal_access_tokens', 0);
@@ -167,7 +167,7 @@ class TwoFactorTest extends TestCase
             ->assertJsonValidationErrors('challenge_id');
 
         $this->travel(61)->seconds();
-        Mail::fake(); // forget the first email
+        Mail::fake(); // olvida el primer correo
 
         $this->postJson('/api/v1/auth/2fa/resend', ['challenge_id' => $challengeId])->assertOk();
         $newCode = $this->lastCode();

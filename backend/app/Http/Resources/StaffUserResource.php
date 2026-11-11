@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Staff user as the Angular app sees it. The frontend uses `role.slug`
- * for routing guards and `permissions` to show or hide actions.
+ * Usuario del personal como lo ve Angular. El frontend usa `role.slug`
+ * en los guards de rutas y `permissions` para mostrar u ocultar acciones.
  *
  * @mixin User
  */

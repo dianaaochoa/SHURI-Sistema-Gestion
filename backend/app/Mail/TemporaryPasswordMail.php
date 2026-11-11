@@ -9,9 +9,9 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Temporary password after a successful recovery (A.3).
- * Sent immediately: the person is waiting on the screen.
- * The body is never stored in sent_emails.
+ * Contraseña temporal después de una recuperación correcta (A.3).
+ * Se envía de inmediato: la persona está esperando en la pantalla.
+ * El contenido nunca se guarda en sent_emails.
  */
 class TemporaryPasswordMail extends Mailable
 {

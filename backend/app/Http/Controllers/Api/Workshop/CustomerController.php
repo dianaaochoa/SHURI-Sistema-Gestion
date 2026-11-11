@@ -12,13 +12,13 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
- * Customers at the counter: C5 search/new customer, C8 customer file.
+ * Clientes en mostrador: C5 buscar/nuevo cliente, C8 ficha del cliente.
  */
 class CustomerController extends Controller
 {
     public function __construct(private readonly CustomerService $customers) {}
 
-    /** GET /customers?search= (name, phone or email) */
+    /** GET /customers?search= (nombre, teléfono o correo) */
     public function index(Request $request): AnonymousResourceCollection
     {
         $data = $request->validate(['search' => ['required', 'string', 'min:2', 'max:100']]);
@@ -26,7 +26,7 @@ class CustomerController extends Controller
         return CustomerSummaryResource::collection($this->customers->search($data['search']));
     }
 
-    /** GET /customers/{customer} — with their devices, to pick one in C5 */
+    /** GET /customers/{customer} — con sus equipos, para elegir uno en C5 */
     public function show(Customer $customer): CustomerSummaryResource
     {
         return new CustomerSummaryResource($customer->load('devices')->loadCount('serviceOrders'));

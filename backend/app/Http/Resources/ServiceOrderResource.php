@@ -9,8 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Service order for staff screens (C4, J2, T2). The device PIN is only
- * returned to people who repair (permission orders.repair).
+ * Orden de servicio para las pantallas del personal (C4, J2, T2). El PIN del equipo
+ * solo se devuelve a quien repara (permiso orders.repair).
  *
  * @mixin ServiceOrder
  */

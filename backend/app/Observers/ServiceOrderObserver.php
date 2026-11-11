@@ -9,9 +9,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Observer pattern (README §8.3): every relevant change of a service order
- * is written to the immutable order log (order_logs) automatically,
- * so no controller can forget it. The portal timeline (P2) reads these rows.
+ * Patrón Observer (README §8.3): cada cambio importante de una orden de servicio
+ * se escribe automáticamente en la bitácora inmutable (order_logs),
+ * así ningún controlador puede olvidarlo. La línea de tiempo del portal (P2) lee estas filas.
  */
 class ServiceOrderObserver
 {

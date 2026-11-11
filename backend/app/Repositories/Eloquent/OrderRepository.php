@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class OrderRepository implements OrderRepositoryInterface
 {
-    /** Relations every order screen needs (avoids N+1 queries). */
+    /** Relaciones que necesita toda pantalla de órdenes (evita consultas N+1). */
     private const WITH = ['status', 'customer', 'device', 'technician', 'receivedBy'];
 
     public function create(array $attributes): ServiceOrder

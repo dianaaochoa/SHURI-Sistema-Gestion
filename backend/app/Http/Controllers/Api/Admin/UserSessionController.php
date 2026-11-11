@@ -11,9 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
- * AD7 Users and permissions: device control. The admin sees where each
- * staff member is logged in and can close their sessions (lost phone, dismissal).
- * Route protected with permission:users.manage.
+ * AD7 Usuarios y permisos: control de dispositivos. El administrador ve dónde tiene
+ * sesión abierta cada empleado y puede cerrarlas (celular perdido, baja).
+ * Ruta protegida con permission:users.manage.
  */
 class UserSessionController extends Controller
 {

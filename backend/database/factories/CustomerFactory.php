@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Portal customers. By default they already created their own password.
+ * Clientes del portal. Por defecto ya crearon su propia contraseña.
  *
  * @extends Factory<Customer>
  */
@@ -30,7 +30,7 @@ class CustomerFactory extends Factory
         ];
     }
 
-    /** Just registered at the counter: temporary password valid for 72 h (RF-06). */
+    /** Recién registrado en mostrador: contraseña temporal válida 72 h (RF-06). */
     public function withTemporaryPassword(?\DateTimeInterface $expiresAt = null): static
     {
         return $this->state([

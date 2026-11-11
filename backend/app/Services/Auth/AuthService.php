@@ -14,12 +14,12 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Login, lockout, token issuing and password change for staff (users)
- * and customers (portal). Controllers only translate HTTP <-> this service.
+ * Acceso, bloqueo, emisión de tokens y cambio de contraseña del personal (users)
+ * y de los clientes (portal). Los controladores solo traducen HTTP <-> este servicio.
  */
 class AuthService
 {
-    /** Token abilities: they separate staff tokens from portal tokens. */
+    /** Abilities del token: separan los tokens del personal de los del portal. */
     public const STAFF = 'staff';
 
     public const CUSTOMER = 'customer';
@@ -32,7 +32,7 @@ class AuthService
     ) {}
 
     /**
-     * Password first; if MFA applies, sends the email code instead of a token.
+     * Primero la contraseña; si aplica MFA, envía el código por correo en lugar del token.
      *
      * @return array{account: User, token: string, expires_at: Carbon}
      *                                                                 |array{mfa_required: true, challenge_id: string, expires_at: Carbon, email_hint: string}
@@ -68,7 +68,7 @@ class AuthService
             $this->settings->int('portal_max_attempts', 5),
             $this->settings->int('portal_lock_minutes', 15),
             function (Customer $customer) {
-                // The temporary password printed on the reception sheet expires (RF-06)
+                // La contraseña temporal impresa en la hoja de recepción vence (RF-06)
                 if ($customer->must_change_password && $customer->temporary_password_expires_at?->isPast()) {
                     throw ValidationException::withMessages([
                         'password' => 'Tu contraseña temporal venció. Pide una nueva en la sucursal.',
@@ -91,7 +91,7 @@ class AuthService
         $this->auditFor($account, 'logout', 'Cierre de sesión');
     }
 
-    /** AD7: the admin unlocks a staff account blocked by failed attempts. */
+    /** AD7: el administrador desbloquea una cuenta bloqueada por intentos fallidos. */
     public function unlock(User $user, User $admin): bool
     {
         if (! $user->locked_until && $user->failed_attempts === 0) {
@@ -106,8 +106,8 @@ class AuthService
     }
 
     /**
-     * Sets the user's own password (mandatory on first access) and closes
-     * every other session, so a leaked temporary password stops working.
+     * Guarda la contraseña propia del usuario (obligatoria en el primer acceso) y cierra
+     * las demás sesiones, para que una contraseña temporal filtrada deje de servir.
      */
     public function changePassword(Authenticatable $account, string $currentPassword, string $newPassword): void
     {
@@ -117,7 +117,7 @@ class AuthService
             ]);
         }
 
-        $account->password = $newPassword; // hashed by the model cast (Bcrypt)
+        $account->password = $newPassword; // el cast del modelo aplica el hash (Bcrypt)
         $account->must_change_password = false;
 
         if ($account instanceof Customer) {
@@ -137,7 +137,7 @@ class AuthService
     }
 
     /**
-     * Opens the session once every factor was verified.
+     * Abre la sesión cuando ya se verificaron todos los factores.
      *
      * @return array{account: User|Customer, token: string, expires_at: Carbon}
      */
@@ -157,7 +157,7 @@ class AuthService
     }
 
     /**
-     * First factor: password + lockout. Returns the account when correct.
+     * Primer factor: contraseña + bloqueo. Devuelve la cuenta si es correcta.
      */
     private function verifyCredentials(
         User|Customer|null $account,
@@ -167,7 +167,7 @@ class AuthService
         ?callable $afterPasswordCheck = null,
     ): User|Customer {
         if (! $account || ! $account->is_active || ! $account->password) {
-            // Same work as a real check so response time does not reveal valid emails
+            // El mismo trabajo que una verificación real, para que el tiempo de respuesta no revele correos válidos
             static $dummyHash = null;
             Hash::check($password, $dummyHash ??= Hash::make('shuri-dummy-password'));
             $this->failed();
@@ -195,7 +195,7 @@ class AuthService
         $attempts = $account->failed_attempts + 1;
 
         if ($attempts >= $maxAttempts) {
-            // lockMinutes = 0 → stays locked until an admin unlocks it (A.2)
+            // lockMinutes = 0 → queda bloqueada hasta que el administrador la desbloquee (A.2)
             $lockedUntil = $lockMinutes > 0 ? now()->addMinutes($lockMinutes) : AccountLockedException::untilAdmin();
 
             $account->forceFill(['failed_attempts' => 0, 'locked_until' => $lockedUntil])->save();
@@ -214,7 +214,7 @@ class AuthService
 
     private function failed(): never
     {
-        // Generic message: never say whether the user or the password was wrong
+        // Mensaje genérico: nunca decir si falló el usuario o la contraseña
         throw ValidationException::withMessages([
             'login' => 'Usuario o contraseña incorrectos.',
         ]);

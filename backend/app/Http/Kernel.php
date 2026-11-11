@@ -66,7 +66,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
-        // SHURI access control
+        // Control de acceso de SHURI
         'actor' => \App\Http\Middleware\EnsureActor::class,
         'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
         'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,

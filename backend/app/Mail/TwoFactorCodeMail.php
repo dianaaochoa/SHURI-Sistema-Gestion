@@ -9,8 +9,8 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Verification code for staff login (MFA). Sent immediately, not queued:
- * the person is waiting on the login screen.
+ * Código de verificación para el acceso del personal (MFA). Se envía de inmediato, sin cola:
+ * la persona está esperando en la pantalla de acceso.
  */
 class TwoFactorCodeMail extends Mailable
 {

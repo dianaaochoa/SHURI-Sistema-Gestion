@@ -5,14 +5,14 @@ namespace App\Http\Requests\Workshop;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * C5 New service order. Accepts an existing customer (customer_id) or a new
- * one (customer: {...}), and an existing device (device.id) or a new one.
+ * C5 Nueva orden de servicio. Acepta un cliente existente (customer_id) o uno nuevo
+ * (customer: {...}), y un equipo existente (device.id) o uno nuevo.
  */
 class StoreServiceOrderRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // route already requires permission:orders.receive
+        return true; // la ruta ya exige permission:orders.receive
     }
 
     /** @return array<string, mixed> */

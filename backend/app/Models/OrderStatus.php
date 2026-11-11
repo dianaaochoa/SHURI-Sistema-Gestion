@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class OrderStatus extends Model
 {
-    // Codes seeded by CatalogSeeder (README §14.4 state diagram)
+    // Códigos que inserta CatalogSeeder (diagrama de estados del README §14.4)
     public const RECEIVED = 'received';
 
     public const ASSIGNED = 'assigned';
@@ -39,10 +39,10 @@ class OrderStatus extends Model
 
     public const CANCELLED = 'cancelled';
 
-    /** @var array<string, int>|null code => id, loaded once per request */
+    /** @var array<string, int>|null código => id, se carga una vez por petición */
     private static ?array $idsByCode = null;
 
-    /** Id of a status by its code, e.g. OrderStatus::idFor(OrderStatus::ASSIGNED). */
+    /** Id de un estado por su código, p. ej. OrderStatus::idFor(OrderStatus::ASSIGNED). */
     public static function idFor(string $code): int
     {
         self::$idsByCode ??= static::query()->pluck('id', 'code')->map(fn ($id) => (int) $id)->all();
@@ -50,7 +50,7 @@ class OrderStatus extends Model
         return self::$idsByCode[$code] ?? throw new \InvalidArgumentException("Estado de orden desconocido: {$code}");
     }
 
-    /** Forget the cached ids (tests reseed the catalog between cases). */
+    /** Olvida los ids en caché (las pruebas vuelven a sembrar el catálogo). */
     public static function flushIds(): void
     {
         self::$idsByCode = null;

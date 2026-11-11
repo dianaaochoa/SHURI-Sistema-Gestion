@@ -4,12 +4,12 @@ namespace App\Http\Requests\Workshop;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/** C8 / C5 New customer at the counter. The email is their portal user (RF-06). */
+/** C8 / C5 Cliente nuevo en mostrador. El correo es su usuario del portal (RF-06). */
 class StoreCustomerRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // route already requires permission:customers.manage
+        return true; // la ruta ya exige permission:customers.manage
     }
 
     /** @return array<string, mixed> */

@@ -13,8 +13,8 @@ use Laravel\Sanctum\NewAccessToken;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Multi-session management. Every Sanctum token is one session on one
- * device: it can be listed, closed remotely or closed all at once.
+ * Manejo de multisesiones. Cada token de Sanctum es una sesión en un
+ * dispositivo: se puede listar, cerrar a distancia o cerrar todas a la vez.
  */
 class SessionService
 {
@@ -23,7 +23,7 @@ class SessionService
         private readonly AuditService $audit,
     ) {}
 
-    /** Opens a new session for the account on the current device. */
+    /** Abre una sesión nueva de la cuenta en el dispositivo actual. */
     public function issue(User|Customer $account, string $ability, ?string $deviceName): NewAccessToken
     {
         $expiresAt = now()->addMinutes((int) config('sanctum.expiration', 480));
@@ -39,7 +39,7 @@ class SessionService
     }
 
     /**
-     * Active (not expired) sessions of the account, most recent first.
+     * Sesiones activas (sin vencer) de la cuenta, la más reciente primero.
      *
      * @return Collection<int, PersonalAccessToken>
      */
@@ -52,7 +52,7 @@ class SessionService
             ->get();
     }
 
-    /** Closes one session of the account. Returns false if it is not theirs. */
+    /** Cierra una sesión de la cuenta. Devuelve false si no es suya. */
     public function revoke(User|Customer $account, int $sessionId, ?User $by = null): bool
     {
         $token = $account->tokens()->whereKey($sessionId)->first();
@@ -67,7 +67,7 @@ class SessionService
         return true;
     }
 
-    /** Closes every session except the current one. Returns how many were closed. */
+    /** Cierra todas las sesiones menos la actual. Devuelve cuántas se cerraron. */
     public function revokeOthers(User|Customer $account): int
     {
         $current = $account->currentAccessToken();
@@ -81,7 +81,7 @@ class SessionService
         return $closed;
     }
 
-    /** Admin action: close all sessions of a staff member (e.g. lost device). */
+    /** Acción del administrador: cerrar todas las sesiones de un empleado (p. ej. equipo perdido). */
     public function revokeAll(User $account, User $by): int
     {
         $closed = $account->tokens()->delete();

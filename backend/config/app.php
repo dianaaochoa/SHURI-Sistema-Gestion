@@ -57,7 +57,7 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    // Customer portal (Angular): link in customer emails
+    // Portal del cliente (Angular): enlace en los correos al cliente
     'portal_url' => env('PORTAL_URL', 'http://localhost:4200/portal'),
 
     'asset_url' => env('ASSET_URL'),
@@ -88,7 +88,7 @@ return [
     |
     */
 
-    // Validation messages in Spanish (lang/es); missing keys fall back to English
+    // Mensajes de validación en español (lang/es); las claves que falten usan el inglés
     'locale' => 'es',
 
     /*

@@ -17,9 +17,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Multi-factor authentication for staff: after the password, a 6-digit
- * code is emailed and the session is only opened when it matches.
- * Email instead of SMS because the project does not send SMS (README §5.2).
+ * Autenticación multifactor del personal: después de la contraseña se envía
+ * un código de 6 dígitos por correo y la sesión solo se abre si coincide.
+ * Correo en lugar de SMS porque el proyecto no envía SMS (README §5.2).
  */
 class TwoFactorService
 {
@@ -38,13 +38,13 @@ class TwoFactorService
     }
 
     /**
-     * Creates the challenge and emails the first code.
+     * Crea el reto y envía el primer código por correo.
      *
      * @return array{challenge_id: string, expires_at: Carbon, email_hint: string}
      */
     public function start(User $user, ?string $deviceName): array
     {
-        // Only one pending challenge per user
+        // Solo un reto pendiente por usuario
         TwoFactorChallenge::where('user_id', $user->id)->whereNull('consumed_at')->delete();
 
         $challengeId = Str::random(64);
@@ -71,7 +71,7 @@ class TwoFactorService
     }
 
     /**
-     * Sends a new code for the same challenge (at most once per minute).
+     * Envía un código nuevo para el mismo reto (máximo uno por minuto).
      *
      * @return array{challenge_id: string, expires_at: Carbon, email_hint: string}
      */
@@ -105,7 +105,7 @@ class TwoFactorService
     }
 
     /**
-     * Checks the code. Returns the user and the device name of the login.
+     * Verifica el código. Devuelve el usuario y el nombre del dispositivo del acceso.
      *
      * @return array{user: User, device_name: ?string}
      */
@@ -113,7 +113,7 @@ class TwoFactorService
     {
         $maxAttempts = $this->settings->int('mfa_max_attempts', 5);
 
-        // Locked row: two simultaneous requests cannot use the same code
+        // Fila bloqueada: dos peticiones al mismo tiempo no pueden usar el mismo código
         [$challenge, $error] = DB::transaction(function () use ($challengeId, $code, $maxAttempts) {
             $challenge = TwoFactorChallenge::with('user')
                 ->where('challenge_hash', hash('sha256', $challengeId))
@@ -128,7 +128,7 @@ class TwoFactorService
             if (! Hash::check($code, $challenge->code_hash)) {
                 $challenge->attempts++;
                 if ($challenge->attempts >= $maxAttempts) {
-                    $challenge->consumed_at = now(); // burn it: must log in again
+                    $challenge->consumed_at = now(); // se anula: hay que iniciar sesión de nuevo
                 }
                 $challenge->save();
 

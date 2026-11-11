@@ -11,9 +11,9 @@ use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Separates staff tokens from customer portal tokens.
- * Usage: ->middleware('actor:staff') or ->middleware('actor:customer').
- * Must run after auth:sanctum.
+ * Separa los tokens del personal de los tokens del portal del cliente.
+ * Uso: ->middleware('actor:staff') o ->middleware('actor:customer').
+ * Debe ejecutarse después de auth:sanctum.
  */
 class EnsureActor
 {
@@ -30,7 +30,7 @@ class EnsureActor
             ], 403);
         }
 
-        // An account deactivated by the admin loses access immediately
+        // Una cuenta desactivada por el administrador pierde el acceso de inmediato
         if (! $account->is_active) {
             $token = $account->currentAccessToken();
             if ($token instanceof PersonalAccessToken) {

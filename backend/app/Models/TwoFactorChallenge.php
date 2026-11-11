@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Tabla: two_factor_challenges — pending MFA logins (code sent by email).
+ * Tabla: two_factor_challenges — accesos MFA pendientes (código enviado por correo).
  */
 class TwoFactorChallenge extends Model
 {
@@ -46,13 +46,13 @@ class TwoFactorChallenge extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /** Deleted daily by `php artisan model:prune` (scheduled in Console\Kernel). */
+    /** Se borran a diario con `php artisan model:prune` (programado en Console\Kernel). */
     public function prunable(): Builder
     {
         return static::where('expires_at', '<', now()->subDay());
     }
 
-    /** Not used yet and not expired. */
+    /** Sin usar y sin vencer. */
     public function scopePending(Builder $query): Builder
     {
         return $query->whereNull('consumed_at')->where('expires_at', '>', now());

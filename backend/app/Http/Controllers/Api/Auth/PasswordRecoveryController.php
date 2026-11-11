@@ -21,7 +21,7 @@ class PasswordRecoveryController extends Controller
         $result = $this->recovery->start($actor, $request->validated('login'));
 
         if ($result === null) {
-            // Same answer if the account does not exist or has no question
+            // Misma respuesta si la cuenta no existe o no tiene pregunta
             return response()->json([
                 'requires_answer' => false,
                 'message' => $actor === AuthService::STAFF
@@ -48,7 +48,7 @@ class PasswordRecoveryController extends Controller
         ]);
     }
 
-    /** GET /security-questions — catalog for the "configure question" screen */
+    /** GET /security-questions — catálogo para la pantalla "configurar pregunta" */
     public function questions(): JsonResponse
     {
         return response()->json([

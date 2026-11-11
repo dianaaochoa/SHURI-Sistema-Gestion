@@ -10,7 +10,7 @@ use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
- * Multi-session: list active sessions, close remote sessions, device control (AD7).
+ * Multisesión: listar sesiones activas, cerrar sesiones a distancia y control de dispositivos (AD7).
  */
 class SessionTest extends TestCase
 {
@@ -22,7 +22,7 @@ class SessionTest extends TestCase
 
     private const CHROME_WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
-    /** Each call behaves like a fresh HTTP request with its own token. */
+    /** Cada llamada se comporta como una petición HTTP nueva con su propio token. */
     private function as(string $token, string $method, string $uri): TestResponse
     {
         $this->app['auth']->forgetGuards();

@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The API always answers JSON (errors included), even if the client
- * forgets the "Accept: application/json" header.
+ * La API siempre responde JSON (incluidos los errores), aunque el cliente
+ * olvide el encabezado "Accept: application/json".
  */
 class ForceJsonResponse
 {

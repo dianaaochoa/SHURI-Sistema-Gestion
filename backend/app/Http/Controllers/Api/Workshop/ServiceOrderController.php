@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
- * Service orders at the counter: C4 list, C5 new order, order detail.
+ * Órdenes de servicio en mostrador: C4 lista, C5 nueva orden y detalle de la orden.
  */
 class ServiceOrderController extends Controller
 {
@@ -39,7 +39,7 @@ class ServiceOrderController extends Controller
         );
     }
 
-    /** POST /service-orders — C5 receive a device */
+    /** POST /service-orders — C5 recibir un equipo */
     public function store(StoreServiceOrderRequest $request): JsonResponse
     {
         $result = $this->service->receive($request->validated(), $request->user());
@@ -47,7 +47,7 @@ class ServiceOrderController extends Controller
         return response()->json([
             'message' => "Orden {$result['order']->folio} registrada.",
             'data' => new ServiceOrderResource($result['order']),
-            // Only returned once, for the printed reception sheet (RF-06)
+            // Se devuelve una sola vez, para la hoja de recepción impresa (RF-06)
             'portal_access' => $result['portal_access'] ? [
                 'email' => $result['portal_access']['email'],
                 'temporary_password' => $result['portal_access']['temporary_password'],
@@ -69,7 +69,7 @@ class ServiceOrderController extends Controller
         return new ServiceOrderResource($order);
     }
 
-    /** GET /order-statuses — catalog with colors for badges */
+    /** GET /order-statuses — catálogo con colores para las etiquetas */
     public function statuses(): JsonResponse
     {
         return response()->json([

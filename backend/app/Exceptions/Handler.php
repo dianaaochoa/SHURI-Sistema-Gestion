@@ -36,7 +36,7 @@ class Handler extends ExceptionHandler
             //
         });
 
-        // Uniform JSON errors for the API: { message, code }
+        // Errores JSON uniformes para la API: { message, code }
         $this->renderable(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return $this->apiError('Tu sesión no es válida o expiró. Inicia sesión de nuevo.', 'UNAUTHENTICATED', 401);
@@ -62,7 +62,7 @@ class Handler extends ExceptionHandler
             }
         });
 
-        // Any other unexpected error: never leak internals unless APP_DEBUG=true
+        // Cualquier otro error inesperado: nunca exponer detalles internos salvo con APP_DEBUG=true
         $this->renderable(function (Throwable $e, Request $request) {
             $handledElsewhere = $e instanceof HttpExceptionInterface
                 || $e instanceof ValidationException

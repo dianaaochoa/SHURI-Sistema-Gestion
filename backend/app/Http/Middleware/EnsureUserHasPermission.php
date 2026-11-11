@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Role-based access control (RBAC) using the codes in the `permissions` table.
- * Usage: ->middleware('permission:pos.sell')
- *        ->middleware('permission:orders.assign,orders.quote')  // any of them
+ * Control de acceso por roles (RBAC) con los códigos de la tabla `permissions`.
+ * Uso: ->middleware('permission:pos.sell')
+ *        ->middleware('permission:orders.assign,orders.quote')  // cualquiera de ellos
  */
 class EnsureUserHasPermission
 {

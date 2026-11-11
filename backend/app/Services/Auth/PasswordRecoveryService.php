@@ -18,14 +18,14 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Password recovery following the Figma flow (A.3), with two factors:
- *   1. Something the person knows: the answer to their security question.
- *   2. Something the person has: their email, where the temporary password arrives.
- * After logging in with the temporary password, the system forces them to
- * create a new one (A.5, must_change_password).
+ * Recuperación de contraseña con el flujo de Figma (A.3) y dos factores:
+ *   1. Algo que la persona sabe: la respuesta a su pregunta de seguridad.
+ *   2. Algo que la persona tiene: su correo, donde llega la contraseña temporal.
+ * Al entrar con la contraseña temporal, el sistema la obliga a
+ * crear una nueva (A.5, must_change_password).
  *
- * The pending recovery (recovery_id, stored as SHA-256) lives in
- * `password_reset_tokens` (staff) or `customer_password_reset_tokens` (customers).
+ * La recuperación pendiente (recovery_id, guardado como SHA-256) vive en
+ * `password_reset_tokens` (personal) o `customer_password_reset_tokens` (clientes).
  */
 class PasswordRecoveryService
 {
@@ -38,9 +38,9 @@ class PasswordRecoveryService
     ) {}
 
     /**
-     * Step 1. Returns the security question, or null when the account does not
-     * exist, is inactive or has no question (same answer in the three cases,
-     * so nobody can learn which accounts lack a question).
+     * Paso 1. Devuelve la pregunta de seguridad, o null si la cuenta no
+     * existe, está inactiva o no tiene pregunta (misma respuesta en los tres casos,
+     * para que nadie pueda saber qué cuentas no tienen pregunta).
      *
      * @return array{recovery_id: string, security_question: string}|null
      */
@@ -64,7 +64,7 @@ class PasswordRecoveryService
     }
 
     /**
-     * Step 2. Correct answer → new temporary password sent by email.
+     * Paso 2. Respuesta correcta → nueva contraseña temporal enviada por correo.
      *
      * @return array{email_hint: string}
      */
@@ -79,17 +79,17 @@ class PasswordRecoveryService
         $temporary = $this->temporaryPassword();
 
         DB::transaction(function () use ($account, $record, $temporary) {
-            $account->password = $temporary; // hashed by the model cast (Bcrypt)
+            $account->password = $temporary; // el cast del modelo aplica el hash (Bcrypt)
             $account->must_change_password = true;
             $account->failed_attempts = 0;
-            $account->locked_until = null; // recovering also unlocks the account
+            $account->locked_until = null; // recuperar también desbloquea la cuenta
 
             if ($account instanceof Customer) {
                 $account->temporary_password_expires_at = now()->addHours($this->settings->int('portal_temp_password_hours', 72));
             }
 
             $account->save();
-            $account->tokens()->delete(); // close every session
+            $account->tokens()->delete(); // cierra todas las sesiones
             $this->consume($account, $record);
         });
 
@@ -111,7 +111,7 @@ class PasswordRecoveryService
         return ['email_hint' => TwoFactorService::maskEmail($account->email)];
     }
 
-    /** Configure or change the security question (requires the current password). */
+    /** Configura o cambia la pregunta de seguridad (pide la contraseña actual). */
     public function setSecurityQuestion(User|Customer $account, string $currentPassword, string $questionKey, string $answer): void
     {
         if (! Hash::check($currentPassword, $account->password)) {
@@ -128,7 +128,7 @@ class PasswordRecoveryService
         $this->log($account, 'security_question_set', 'Pregunta de seguridad configurada');
     }
 
-    /** Staff: username or email (as in the login). Customers: email. */
+    /** Personal: usuario o correo (igual que en el acceso). Clientes: correo. */
     private function findAccount(string $actor, string $login): User|Customer|null
     {
         return $actor === AuthService::STAFF
@@ -139,7 +139,7 @@ class PasswordRecoveryService
     private function storeRecovery(User|Customer $account, string $hash): void
     {
         if ($account instanceof User) {
-            // One row per email: starting again replaces the previous recovery
+            // Una fila por correo: empezar de nuevo reemplaza la recuperación anterior
             DB::table('password_reset_tokens')->updateOrInsert(
                 ['email' => $account->email],
                 ['token' => $hash, 'question_attempts' => 0, 'created_at' => now()],
@@ -158,7 +158,7 @@ class PasswordRecoveryService
     }
 
     /**
-     * Finds the pending recovery by its id, or a generic error.
+     * Busca la recuperación pendiente por su id, o lanza un error genérico.
      *
      * @return array{0: User|Customer, 1: object}
      */
@@ -226,7 +226,7 @@ class PasswordRecoveryService
         $record->update(['used_at' => now()]);
     }
 
-    /** Easy to type from the email, e.g. "Kt7mPq2xRb". It must be changed on first login. */
+    /** Fácil de escribir desde el correo, p. ej. "Kt7mPq2xRb". Se cambia en el primer acceso. */
     private function temporaryPassword(): string
     {
         return Str::password(10, letters: true, numbers: true, symbols: false);

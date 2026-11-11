@@ -57,7 +57,7 @@ class SettingsSeeder extends Seeder
             ['portal_temp_password_hours', '72', 'integer', 'portal', 'Horas de vigencia de la contraseña temporal'],
             ['portal_max_attempts', '5', 'integer', 'portal', 'Intentos fallidos antes de bloquear el acceso'],
             ['portal_lock_minutes', '15', 'integer', 'portal', 'Minutos de bloqueo tras exceder intentos'],
-            // Staff access (A.1–A.6)
+            // Acceso del personal (A.1–A.6)
             ['staff_max_attempts', '3', 'integer', 'security', 'Intentos fallidos del personal antes de bloquear la cuenta'],
             ['staff_lock_minutes', '0', 'integer', 'security', 'Minutos de bloqueo del personal (0 = hasta que el administrador la desbloquee)'],
             ['staff_mfa_enabled', '1', 'boolean', 'security', 'Pedir código por correo (MFA) al personal al iniciar sesión'],

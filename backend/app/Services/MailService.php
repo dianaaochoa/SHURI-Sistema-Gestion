@@ -11,13 +11,13 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Sends an email and records it in `sent_emails` (RF-17: every email
- * sent is logged). Never stores the body, so passwords or codes are not saved.
+ * Envía un correo y lo registra en `sent_emails` (RF-17: cada correo
+ * enviado queda registrado). Nunca guarda el contenido, así no se guardan contraseñas ni códigos.
  */
 class MailService
 {
     /**
-     * @return bool true if the email was handed to the mail server
+     * @return bool true si el correo se entregó al servidor de correo
      */
     public function send(Mailable $mail, User|Customer $to, string $type): bool
     {

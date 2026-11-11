@@ -23,7 +23,7 @@ class EventServiceProvider extends ServiceProvider
     ];
 
     /**
-     * Model observers (Observer pattern).
+     * Observers de los modelos (patrón Observer).
      *
      * @var array<class-string, array<int, class-string>>
      */

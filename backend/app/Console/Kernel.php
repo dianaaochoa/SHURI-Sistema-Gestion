@@ -12,9 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Delete Sanctum tokens that expired more than 24 h ago
+        // Borra los tokens de Sanctum que vencieron hace más de 24 h
         $schedule->command('sanctum:prune-expired --hours=24')->daily();
-        // Delete old MFA challenges (models using the Prunable trait)
+        // Borra los retos MFA viejos (modelos con el trait Prunable)
         $schedule->command('model:prune')->daily();
     }
 

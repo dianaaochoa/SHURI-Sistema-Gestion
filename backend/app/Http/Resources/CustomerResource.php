@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Customer data shown in the portal (P1–P4). Never includes the password
- * or the encrypted temporary password.
+ * Datos del cliente que se muestran en el portal (P1–P4). Nunca incluye la contraseña
+ * ni la contraseña temporal cifrada.
  *
  * @mixin Customer
  */

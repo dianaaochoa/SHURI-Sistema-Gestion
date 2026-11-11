@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 /**
- * Writes the immutable staff audit trail (audit_logs, AD8).
- * Always captures the IP and user agent of the current request.
+ * Escribe la auditoría inmutable del personal (audit_logs, AD8).
+ * Siempre guarda la IP y el navegador de la petición actual.
  */
 class AuditService
 {

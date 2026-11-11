@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * While the account still uses its temporary password, only the
- * "change password", "me" and "logout" endpoints are reachable (A.4 / RF-06).
+ * Mientras la cuenta use su contraseña temporal, solo se puede entrar a
+ * "cambiar contraseña", "me" y "logout" (A.4 / RF-06).
  */
 class EnsurePasswordChanged
 {

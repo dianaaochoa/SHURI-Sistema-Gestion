@@ -16,8 +16,8 @@ use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
- * Password recovery (Figma A.3): user → security question →
- * temporary password by email → create password (A.5).
+ * Recuperación de contraseña (Figma A.3): usuario → pregunta de seguridad →
+ * contraseña temporal por correo → crear contraseña (A.5).
  */
 class PasswordRecoveryTest extends TestCase
 {
@@ -113,7 +113,7 @@ class PasswordRecoveryTest extends TestCase
         $user->createToken('Celular robado', ['staff']);
         $recoveryId = $this->forgot('carlos')->json('recovery_id');
 
-        // Accents, case and extra spaces do not matter
+        // No importan los acentos, las mayúsculas ni los espacios de más
         $this->answer($recoveryId, '  FIRULAÍS ')
             ->assertOk()
             ->assertJsonPath('email_hint', 'c*****@shuri.test');
@@ -128,7 +128,7 @@ class PasswordRecoveryTest extends TestCase
         $this->assertSame(0, $user->tokens()->count());
         $this->assertDatabaseHas('sent_emails', ['user_id' => $user->id, 'type' => 'temporary_password', 'status' => 'sent']);
 
-        // Log in with the temporary password → must create a new one (A.5)
+        // Entrar con la contraseña temporal → debe crear una nueva (A.5)
         $token = $this->postJson('/api/v1/auth/login', ['login' => 'carlos', 'password' => $temporary])
             ->assertOk()
             ->assertJsonPath('user.must_change_password', true)
@@ -174,7 +174,7 @@ class PasswordRecoveryTest extends TestCase
         $this->answer($recoveryId, 'Max')->assertJsonValidationErrors('answer');
         $this->answer($recoveryId, 'Rex')->assertJsonValidationErrors('recovery_id');
 
-        // Not even the right answer works now
+        // Ahora ni la respuesta correcta funciona
         $this->answer($recoveryId, 'Firulais')->assertStatus(422);
         $this->assertTrue(Hash::check('Password123', $user->fresh()->password));
         Mail::assertNothingSent();

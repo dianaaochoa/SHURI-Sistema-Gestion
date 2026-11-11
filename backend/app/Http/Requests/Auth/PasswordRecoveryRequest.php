@@ -5,8 +5,8 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Both recovery steps share this request:
- * forgot (login) → answer (recovery_id + answer).
+ * Los dos pasos de la recuperación comparten esta validación:
+ * forgot (login) → answer (recovery_id + respuesta).
  */
 class PasswordRecoveryRequest extends FormRequest
 {

@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Staff access (screens A.1–A.6): Admin, Head technician, Technician, Cashier.
+ * Acceso del personal (pantallas A.1–A.6): administrador, jefe de técnicos, técnico y cajera.
  */
 class StaffAuthController extends Controller
 {
@@ -26,7 +26,7 @@ class StaffAuthController extends Controller
             $request->validated('device_name'),
         );
 
-        // Password OK but MFA applies: Angular shows the "enter code" screen
+        // Contraseña correcta pero aplica MFA: Angular muestra la pantalla "escribe tu código"
         if ($result['mfa_required'] ?? false) {
             return response()->json([
                 'mfa_required' => true,

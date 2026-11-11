@@ -11,8 +11,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * Customers at the counter (C5 / C8): search, register and give them
- * portal access with a temporary password (RF-06).
+ * Clientes en mostrador (C5 / C8): buscar, registrar y darles
+ * acceso al portal con una contraseña temporal (RF-06).
  */
 class CustomerService
 {
@@ -59,15 +59,15 @@ class CustomerService
         return $customer;
     }
 
-    /** True when the customer still has no password of their own. */
+    /** True si el cliente todavía no tiene contraseña propia. */
     public function needsPortalAccess(Customer $customer): bool
     {
         return $customer->password === null || $customer->must_change_password;
     }
 
     /**
-     * New temporary password for the portal. Stored hashed for login and
-     * encrypted (never plain) so the reception sheet can be reprinted (C11).
+     * Nueva contraseña temporal del portal. Se guarda con hash para el acceso y
+     * cifrada (nunca en texto plano) para poder reimprimir la hoja de recepción (C11).
      *
      * @return array{temporary_password: string, expires_at: Carbon}
      */
@@ -77,9 +77,9 @@ class CustomerService
         $expiresAt = now()->addHours($this->settings->int('portal_temp_password_hours', 72));
 
         $customer->forceFill([
-            'password' => $plain, // hashed by the model cast
+            'password' => $plain, // el cast del modelo aplica el hash
             'must_change_password' => true,
-            'temporary_password_encrypted' => $plain, // encrypted by the model cast
+            'temporary_password_encrypted' => $plain, // el cast del modelo la cifra
             'temporary_password_expires_at' => $expiresAt,
             'failed_attempts' => 0,
             'locked_until' => null,

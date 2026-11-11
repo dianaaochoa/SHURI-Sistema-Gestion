@@ -20,11 +20,11 @@ class AppServiceProvider extends ServiceProvider
         // personal_access_tokens is created by our own migration
         Sanctum::ignoreMigrations();
 
-        // Singleton pattern: one shared instance per request
+        // Patrón Singleton: una sola instancia compartida por petición
         $this->app->singleton(SettingsService::class);
         $this->app->singleton(FolioService::class);
 
-        // Repository pattern: code depends on the contract, Eloquent is the implementation
+        // Patrón Repository: el código depende del contrato; Eloquent es la implementación
         $this->app->bind(OrderRepositoryInterface::class, OrderRepository::class);
     }
 
@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // One password policy for change, reset and temporary passwords (RNF-01)
+        // Una sola política de contraseñas para cambio, recuperación y temporales (RNF-01)
         Password::defaults(fn () => Password::min(8)->letters()->mixedCase()->numbers());
     }
 }

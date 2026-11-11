@@ -4,7 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Second login step: the 6-digit code received by email. */
+/** Segundo paso del acceso: el código de 6 dígitos que llegó por correo. */
 class VerifyTwoFactorRequest extends FormRequest
 {
     public function authorize(): bool
@@ -17,7 +17,7 @@ class VerifyTwoFactorRequest extends FormRequest
     {
         $rules = ['challenge_id' => ['required', 'string', 'size:64']];
 
-        // Resend only needs the challenge; verify also needs the code
+        // Reenviar solo necesita el reto; verificar también necesita el código
         if ($this->routeIs('auth.2fa.verify')) {
             $rules['code'] = ['required', 'digits:6'];
         }
@@ -37,7 +37,7 @@ class VerifyTwoFactorRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if ($this->has('code')) {
-            // Accept "123 456" or "123-456" typed by the user
+            // Acepta "123 456" o "123-456" escrito por el usuario
             $this->merge(['code' => preg_replace('/\D/', '', (string) $this->input('code'))]);
         }
     }

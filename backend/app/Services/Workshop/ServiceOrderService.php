@@ -17,9 +17,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Workshop business rules for service orders.
- * Reception (C5, RF-03): customer + device + order with a unique folio,
- * all in one transaction (RNF-04).
+ * Reglas de negocio del taller para las órdenes de servicio.
+ * Recepción (C5, RF-03): cliente + equipo + orden con folio único,
+ * todo en una sola transacción (RNF-04).
  */
 class ServiceOrderService
 {
@@ -52,14 +52,14 @@ class ServiceOrderService
                 'received_accessories' => $data['received_accessories'] ?? null,
                 'physical_condition' => $data['physical_condition'] ?? null,
                 'intake_checklist' => $data['intake_checklist'] ?? null,
-                'device_pin' => $data['device_pin'] ?? null, // encrypted by the model cast
+                'device_pin' => $data['device_pin'] ?? null, // el cast del modelo lo cifra
                 'promised_date' => $data['promised_date'] ?? null,
                 'diagnosis_due_at' => now()->addHours($this->settings->int('diagnosis_sla_hours', 24)),
                 'warranty_days' => $this->settings->int('default_warranty_days', 30),
                 'received_by' => $by->id,
             ]);
 
-            // First visit (or never created their password): portal access for the printed sheet
+            // Primera visita (o nunca creó su contraseña): acceso al portal para la hoja impresa
             $access = $this->customers->needsPortalAccess($customer)
                 ? ['email' => $customer->email] + $this->customers->issueTemporaryPassword($customer, $by)
                 : null;

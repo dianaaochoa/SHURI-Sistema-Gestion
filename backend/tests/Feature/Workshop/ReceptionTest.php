@@ -88,7 +88,7 @@ class ReceptionTest extends TestCase
         $this->assertSame(1, $order->cash_register_id);
         $this->assertNotNull($order->diagnosis_due_at);
 
-        // Portal access (RF-06): hashed for login, encrypted to reprint, never plain
+        // Acceso al portal (RF-06): con hash para entrar, cifrada para reimprimir, nunca en texto plano
         $customer = Customer::firstOrFail();
         $temporary = $response->json('portal_access.temporary_password');
         $this->assertTrue($customer->must_change_password);
@@ -192,12 +192,12 @@ class ReceptionTest extends TestCase
 
     public function test_nothing_is_saved_if_reception_fails_midway(): void
     {
-        // The folio fails after the customer and device were already inserted
+        // El folio falla después de que ya se insertaron el cliente y el equipo
         $this->mock(FolioService::class, fn ($mock) => $mock->shouldReceive('next')->andThrow(new \RuntimeException('sin folio')));
 
         $this->receive($this->newOrderPayload())->assertStatus(500);
 
-        // Transaction rolled back: no half-registered customer or device (RNF-04)
+        // Transacción revertida: no queda cliente ni equipo a medias (RNF-04)
         $this->assertDatabaseCount('customers', 0);
         $this->assertDatabaseCount('devices', 0);
     }

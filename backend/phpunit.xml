@@ -21,7 +21,7 @@
         <env name="APP_ENV" value="testing"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>
-        <!-- MySQL test database (SQLite can't run our CHECKs, triggers and views) -->
+        <!-- Base de datos de pruebas en MySQL (SQLite no soporta nuestros CHECK, triggers y vistas) -->
         <env name="DB_DATABASE" value="shuri_test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

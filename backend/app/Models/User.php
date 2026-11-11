@@ -100,12 +100,12 @@ class User extends Authenticatable
         return $this->hasMany(Sale::class, 'cashier_id');
     }
 
-    /** @var array<int, string>|null Permission codes cached for this request */
+    /** @var array<int, string>|null Códigos de permiso en caché para esta petición */
     private ?array $permissionCodesCache = null;
 
     /**
-     * Permission codes of the user's role plus any role they are covering
-     * today through an active substitution (e.g. technician covering the head).
+     * Códigos de permiso del rol del usuario más los del rol que esté cubriendo
+     * hoy por una suplencia activa (p. ej. un técnico que cubre al jefe).
      *
      * @return array<int, string>
      */

@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // Only the Angular SPA may call the API (comma-separated list in .env)
+    // Solo la SPA de Angular puede llamar a la API (lista separada por coma en .env)
     'allowed_origins' => explode(',', env('FRONTEND_URL', 'http://localhost:4200')),
 
     'allowed_origins_patterns' => [],

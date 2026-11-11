@@ -6,7 +6,7 @@ use App\Support\SecurityQuestions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/** Configure the security question used for password recovery. */
+/** Configurar la pregunta de seguridad para recuperar la contraseña. */
 class SecurityQuestionRequest extends FormRequest
 {
     public function authorize(): bool

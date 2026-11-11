@@ -4,7 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/** P1 Customer portal login: email + password (temporary on first access). */
+/** P1 Acceso al portal del cliente: correo + contraseña (temporal en el primer acceso). */
 class CustomerLoginRequest extends FormRequest
 {
     public function authorize(): bool

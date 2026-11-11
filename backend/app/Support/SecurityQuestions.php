@@ -5,8 +5,8 @@ namespace App\Support;
 use Illuminate\Support\Str;
 
 /**
- * Fixed catalog of security questions used for password recovery.
- * Only the key is stored; free-text questions tend to be weak.
+ * Catálogo fijo de preguntas de seguridad para recuperar la contraseña.
+ * Solo se guarda la clave; las preguntas escritas a mano suelen ser débiles.
  */
 final class SecurityQuestions
 {
@@ -31,7 +31,7 @@ final class SecurityQuestions
         return array_keys(self::ALL);
     }
 
-    /** "  Firulaís " and "firulais" are the same answer. */
+    /** "  Firulaís " y "firulais" son la misma respuesta. */
     public static function normalize(string $answer): string
     {
         return Str::of($answer)->ascii()->lower()->squish()->value();

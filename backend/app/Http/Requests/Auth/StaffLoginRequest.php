@@ -4,7 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/** A.1 Staff login: username or email + password. */
+/** A.1 Acceso del personal: usuario o correo + contraseña. */
 class StaffLoginRequest extends FormRequest
 {
     public function authorize(): bool

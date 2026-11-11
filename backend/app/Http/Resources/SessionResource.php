@@ -7,8 +7,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * One active session (Sanctum token) shown in "Mis sesiones" / AD7.
- * Never exposes the token itself.
+ * Una sesión activa (token de Sanctum) que se muestra en "Mis sesiones" / AD7.
+ * Nunca expone el token.
  *
  * @mixin PersonalAccessToken
  */

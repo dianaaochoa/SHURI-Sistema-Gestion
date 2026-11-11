@@ -8,14 +8,14 @@ use Illuminate\Support\Carbon;
 use RuntimeException;
 
 /**
- * Thrown when an account exceeded the allowed failed login attempts.
- * Rendered as HTTP 423 (Locked). Two kinds of lock:
- *  - Timed: locked_until = now + N minutes (unlocks by itself).
- *  - Until an admin unlocks it: locked_until = UNTIL_ADMIN (year 9999).
+ * Se lanza cuando una cuenta superó los intentos fallidos permitidos.
+ * Responde HTTP 423 (Locked). Hay dos tipos de bloqueo:
+ *  - Por tiempo: locked_until = ahora + N minutos (se desbloquea sola).
+ *  - Hasta que el administrador la desbloquee: locked_until = UNTIL_ADMIN (año 9999).
  */
 class AccountLockedException extends RuntimeException
 {
-    /** Date that never arrives: only the admin (or password recovery) clears it. */
+    /** Fecha que nunca llega: solo el administrador (o la recuperación de contraseña) la quita. */
     public const UNTIL_ADMIN = '9999-12-31 23:59:59';
 
     public function __construct(public readonly CarbonInterface $lockedUntil)

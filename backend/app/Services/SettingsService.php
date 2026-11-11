@@ -5,11 +5,11 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Reads the `settings` table (key = value) with typed values.
+ * Lee la tabla `settings` (clave = valor) con valores tipados.
  *
- * Registered as a singleton in AppServiceProvider (Singleton pattern):
- * the table is loaded once per request and every service shares the
- * same instance instead of hitting the database for each key.
+ * Registrado como singleton en AppServiceProvider (patrón Singleton):
+ * la tabla se carga una vez por petición y todos los servicios comparten
+ * la misma instancia en lugar de consultar la base de datos por cada clave.
  */
 class SettingsService
 {
@@ -28,7 +28,7 @@ class SettingsService
         return (int) $this->get($key, $default);
     }
 
-    /** Forget the loaded values (after the admin edits the settings). */
+    /** Olvida los valores cargados (después de que el administrador edita la configuración). */
     public function refresh(): void
     {
         $this->cache = null;

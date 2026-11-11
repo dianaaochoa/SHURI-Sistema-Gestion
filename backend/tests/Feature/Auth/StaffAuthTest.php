@@ -77,7 +77,7 @@ class StaffAuthTest extends TestCase
             ->assertJsonPath('unlock', 'admin')
             ->assertJsonPath('message', 'Tu cuenta está bloqueada por seguridad. Pide al administrador que la desbloquee.');
 
-        // Time does not unlock it; even the right password is rejected
+        // El tiempo no la desbloquea; incluso la contraseña correcta se rechaza
         $this->travel(1)->days();
         $this->postJson('/api/v1/auth/login', ['login' => 'carlos', 'password' => 'Password123'])
             ->assertStatus(423);

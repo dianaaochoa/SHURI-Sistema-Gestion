@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Customer as the counter sees it (C5 search, C8 list).
- * Never includes passwords or the encrypted temporary password.
+ * Cliente como lo ve el mostrador (C5 búsqueda, C8 lista).
+ * Nunca incluye contraseñas ni la contraseña temporal cifrada.
  *
  * @mixin Customer
  */

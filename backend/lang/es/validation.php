@@ -1,6 +1,6 @@
 <?php
 
-// Spanish validation messages used by the API. Missing keys fall back to English.
+// Mensajes de validación en español que usa la API. Las claves que falten usan el inglés.
 return [
     'after_or_equal' => 'La :attribute debe ser hoy o una fecha posterior.',
     'array' => 'El campo :attribute no tiene un formato válido.',

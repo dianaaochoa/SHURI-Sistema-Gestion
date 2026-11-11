@@ -6,8 +6,8 @@ use App\Models\ServiceOrder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
- * Repository pattern (README §8.3): services and controllers ask for
- * service orders through this contract instead of writing Eloquent queries.
+ * Patrón Repository (README §8.3): los servicios y controladores piden
+ * las órdenes de servicio a este contrato en lugar de escribir consultas de Eloquent.
  */
 interface OrderRepositoryInterface
 {
@@ -17,8 +17,8 @@ interface OrderRepositoryInterface
     public function findByFolio(string $folio): ?ServiceOrder;
 
     /**
-     * Filters: search (folio, customer, phone, device), status (code),
-     * technician_id, unassigned (bool), active (bool: not in a final state).
+     * Filtros: search (folio, cliente, teléfono, equipo), status (código),
+     * technician_id, unassigned (bool), active (bool: que no esté en un estado final).
      *
      * @param  array<string, mixed>  $filters
      */

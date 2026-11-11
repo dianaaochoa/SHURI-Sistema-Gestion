@@ -28,7 +28,7 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // Brute-force protection for login endpoints: per account and per IP
+        // Protección contra fuerza bruta en los endpoints de acceso: por cuenta y por IP
         RateLimiter::for('login', function (Request $request) {
             $account = mb_strtolower((string) ($request->input('login')
                 ?? $request->input('email')
