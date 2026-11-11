@@ -873,3 +873,12 @@ input {
   color: var(--color-primario);
   cursor: pointer;
 }
+
+/* ---------- Riel con nombres cortos del técnico (Figma T7, tablet) ----------
+   Va aquí porque el CSS del menú lateral ya está en el límite de 4 kB; los !important ganan a las reglas
+   del riel del componente, que llevan los atributos de encapsulado de Angular. */
+
+.destino__corta { display: none; }
+app-menu-lateral.riel .menu--riel-etiquetas:not(.menu--desplegado) { width: 80px !important; padding-left: 8px !important; padding-right: 8px !important; }
+app-menu-lateral.riel .menu--riel-etiquetas:not(.menu--desplegado) .destino { flex-direction: column; gap: 4px; width: 64px; padding: 10px 4px !important; }
+app-menu-lateral.riel .menu--riel-etiquetas:not(.menu--desplegado) .destino__corta { display: block; font-size: 10px; font-weight: 500; line-height: 12px; text-align: center; }

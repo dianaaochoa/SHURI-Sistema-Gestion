@@ -1,0 +1,68 @@
+<nav class="pestanas-t" aria-label="Secciones de la orden">
+  @for (p of pestanas; track p.id) {
+    <button type="button" class="pestana-t" [class.pestana-t--activa]="p.id === pestana()" [attr.aria-current]="p.id === pestana() ? 'page' : null" (click)="pestana.set(p.id)">{{ p.texto }}</button>
+  }
+</nav>
+
+<section class="contenido">
+  @switch (pestana()) {
+    @case ('trabajo') {
+      <h3 class="titulo-t"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>{{ garantia() ? 'Trabajo de garantía' : 'Trabajo autorizado' }}</h3>
+      @for (p of pasos(); track i; let i = $index) {
+        <label class="casilla paso-t" [class.paso-t--hecho]="marcados()[i]">
+          <input type="checkbox" [checked]="marcados()[i]" (change)="marcar(i, $any($event.target).checked)" />{{ p }}
+        </label>
+      }
+    }
+    @case ('refacciones') {
+      <h3 class="titulo-t"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>Refacciones de esta orden</h3>
+      @for (p of piezas(); track p.s.id) {
+        <div class="pieza-t">
+          <span><strong>{{ p.s.nombre }}</strong>{{ p.s.sku }} · {{ p.s.cantidad }} pza · {{ p.s.id }}</span>
+          <span class="estado estado--{{ p.tono }}">{{ p.texto }}</span>
+        </div>
+      } @empty {
+        <p class="tenue-t">Todavía no has pedido piezas para esta orden.</p>
+      }
+      <app-buscar-pieza placeholder="Pedir refacción o consumible…" [folio]="orden().folio" (elegida)="solicitar($event)" />
+      <p class="tenue-t">{{ pedida() || 'Las solicitudes llegan al jefe de técnicos; aquí verás cuando te entreguen la pieza.' }}</p>
+    }
+    @case ('fotos') {
+      <h3 class="titulo-t"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos</h3>
+      <p class="tenue-t">Recepción (caja)</p>
+      <app-fotos [cantidad]="4" [tamano]="88" />
+      <p class="tenue-t">De la reparación</p>
+      <app-fotos [cantidad]="fotos()" [tamano]="88" agregar="Agregar" (agregada)="fotos.set(fotos() + 1)" />
+    }
+    @case ('notas') {
+      <h3 class="titulo-t"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Notas de reparación (internas)</h3>
+      @for (n of notas(); track $index) {
+        <p class="nota-t">{{ n }}</p>
+      } @empty {
+        <p class="tenue-t">Sin notas todavía. Lo que escribas aquí no lo ve el cliente.</p>
+      }
+      <span class="campo__control campo__control--40 escribir">
+        <input class="campo__input" placeholder="Escribe una nota…" aria-label="Nota de reparación" [value]="nota()" (input)="nota.set($any($event.target).value)" (keydown.enter)="guardarNota()" />
+        <button type="button" class="boton boton--primario boton--32" [disabled]="!nota().trim()" (click)="guardarNota()">Guardar</button>
+      </span>
+    }
+    @case ('equipo') {
+      <app-ficha-equipo [orden]="orden()" [lineas]="lineas()" />
+    }
+  }
+</section>
+
+<aside class="acciones">
+  <button type="button" class="accion" (click)="tomarFoto()"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span><span><strong>Tomar foto</strong>Se adjunta a la orden</span></button>
+  <button type="button" class="accion" (click)="pestana.set('refacciones')"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span><span><strong>Pedir refacción</strong>Al jefe de técnicos</span></button>
+  <button type="button" class="accion" (click)="necesitoInfo.emit()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span><span><strong>Necesito información</strong>Pausa y avisa al jefe</span></button>
+  <button type="button" class="accion" (click)="pausar.emit()"><span class="icono" style="--icono: url(assets/pdv/pause.svg)"></span><span><strong>Pausar</strong>Elige el motivo</span></button>
+  <button type="button" class="accion accion--peligro" [disabled]="!!orden().danoAdicional" (click)="danoAdicional.emit()">
+    <span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>
+    <span><strong>{{ orden().danoAdicional ? 'Daño reportado' : garantia() ? 'Daño no cubierto' : 'Daño adicional' }}</strong>{{ orden().danoAdicional ? 'Esperando al jefe' : 'Pide re-cotización' }}</span>
+  </button>
+  <button type="button" class="accion accion--primaria" (click)="listo.emit()">
+    <span class="icono" style="--icono: url(assets/iconos/circle-check-sm.svg)"></span>
+    <span><strong>{{ garantia() ? 'Garantía lista' : 'Marcar como listo' }}</strong>{{ pendientes() ? pendientes() + (pendientes() === 1 ? ' paso pendiente' : ' pasos pendientes') : 'Todos los pasos hechos' }}</span>
+  </button>
+</aside>

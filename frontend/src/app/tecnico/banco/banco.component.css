@@ -39,6 +39,10 @@ h1 { font-size: 26px; font-weight: 700; color: var(--color-marino); }
   .cuerpo { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* Figma T7 · tablet: contenido y columna de acciones de 320 px bajo las pestañas */
+.cuerpo.cuerpo--tablet { grid-template-columns: minmax(0, 1fr) 320px; grid-template-rows: auto 1fr; }
+.pasos[hidden] { display: none; }
+
 @media (max-width: 768px) {
   .cabecera { flex-wrap: wrap; }
   .cabecera__texto { flex-basis: 100%; }

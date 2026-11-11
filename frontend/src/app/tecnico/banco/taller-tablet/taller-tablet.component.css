@@ -1,0 +1,29 @@
+/* Figma T7 · tablet: pestañas arriba, contenido a la izquierda y acciones grandes a la derecha. */
+:host { display: contents; }
+.pestanas-t { display: flex; grid-column: 1 / -1; gap: 24px; border-bottom: 1px solid var(--color-borde); }
+.pestana-t { padding: 0 2px 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: 14px; color: var(--color-texto-tenue); cursor: pointer; }
+.pestana-t--activa { border-bottom-color: var(--color-primario); font-weight: 600; color: var(--color-primario); }
+
+.contenido { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.titulo-t { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--color-marino); }
+.titulo-t .icono { width: 16px; height: 16px; color: var(--color-primario); }
+.paso-t { min-height: 56px; padding: 0 16px; border: 1px solid var(--color-borde); border-radius: 8px; font-size: 15px; color: var(--color-marino); }
+.paso-t input { width: 24px; height: 24px; border-radius: 6px; background-size: 14px 14px; }
+.paso-t--hecho { border-color: #c7e3e7; background: var(--color-primario-suave); font-weight: 600; }
+.pieza-t { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-borde); border-radius: 8px; font-size: 11px; color: var(--color-texto-tenue); }
+.pieza-t > span:first-child { flex: 1; }
+.pieza-t strong { display: block; font-size: 14px; font-weight: 600; color: var(--color-marino); }
+.tenue-t { font-size: 12px; color: var(--color-texto-tenue); }
+.nota-t { font-size: 14px; color: var(--color-texto-secundario); }
+.escribir { gap: 8px; padding-right: 4px; }
+
+.acciones { display: flex; flex-direction: column; gap: 12px; }
+.accion { display: flex; align-items: center; gap: 16px; min-height: 72px; padding: 0 20px; border: 1px solid var(--color-borde); border-radius: 12px; background: var(--color-superficie); font: inherit; font-size: 11px; text-align: left; color: var(--color-texto-tenue); cursor: pointer; }
+.accion:hover:not(:disabled) { border-color: var(--color-primario); }
+.accion strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-marino); }
+.accion .icono { width: 22px; height: 22px; color: var(--color-primario); }
+.accion--peligro { margin-top: auto; border-color: var(--color-peligro-suave); background: var(--color-peligro-suave); }
+.accion--peligro strong, .accion--peligro .icono { color: var(--color-peligro); }
+.accion--primaria { border-color: var(--color-primario); background: var(--color-primario); color: var(--color-superficie); }
+.accion--primaria strong, .accion--primaria .icono { color: var(--color-superficie); }
+.accion:disabled { opacity: 0.6; cursor: default; }

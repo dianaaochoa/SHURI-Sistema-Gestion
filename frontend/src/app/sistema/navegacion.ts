@@ -8,6 +8,8 @@ export interface DestinoMenu {
   /** Pantalla de Figma que le corresponde (p. ej. "C2"). */
   figma: string;
   insignia?: number;
+  /** Texto bajo el ícono en el riel de tablet (Figma T7: "Refacc."). Sin valor se usa la etiqueta. */
+  corta?: string;
 }
 
 export interface GrupoMenu {
@@ -21,6 +23,8 @@ export interface NavegacionRol {
   /** Línea de estado bajo la marca. Provisional: vendrá de la API (turno, órdenes abiertas, etc.). */
   resumen: string;
   grupos: GrupoMenu[];
+  /** Figma T7: en el riel de tablet cada ícono lleva su nombre corto debajo. */
+  rielConEtiquetas?: boolean;
 }
 
 const INICIO = (figma: string): GrupoMenu => ({
@@ -128,23 +132,24 @@ export const NAVEGACION: Record<Rol, NavegacionRol> = {
   tecnico: {
     prefijo: 'tecnico',
     resumen: '8 equipos asignados',
+    rielConEtiquetas: true,
     grupos: [
       INICIO('T1'),
       {
         titulo: 'MI TRABAJO',
         destinos: [
-          { etiqueta: 'Equipos asignados', icono: 'clip-list', ruta: 'equipos-asignados', figma: 'T2' },
-          { etiqueta: 'Banco de trabajo', icono: 'wrench', ruta: 'banco-de-trabajo', figma: 'T3' },
+          { etiqueta: 'Equipos asignados', icono: 'clip-list', ruta: 'equipos-asignados', figma: 'T2', corta: 'Equipos' },
+          { etiqueta: 'Banco de trabajo', icono: 'wrench', ruta: 'banco-de-trabajo', figma: 'T3', corta: 'Banco' },
           { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias', figma: 'T4' },
         ],
       },
       {
         titulo: 'MATERIAL',
-        destinos: [{ etiqueta: 'Refacciones', icono: 'package', ruta: 'refacciones', figma: 'T5' }],
+        destinos: [{ etiqueta: 'Refacciones', icono: 'package', ruta: 'refacciones', figma: 'T5', corta: 'Refacc.' }],
       },
       {
         titulo: 'REGISTRO',
-        destinos: [{ etiqueta: 'Mi historial', icono: 'history', ruta: 'mi-historial', figma: 'T6' }],
+        destinos: [{ etiqueta: 'Mi historial', icono: 'history', ruta: 'mi-historial', figma: 'T6', corta: 'Historial' }],
       },
     ],
   },

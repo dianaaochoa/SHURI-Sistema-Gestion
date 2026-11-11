@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 11 nov 2026 (técnico T6: Mi historial)
+- **Última actualización:** 11 nov 2026 (técnico T7: versión tablet · técnico completo)
 
 ---
 
@@ -75,7 +75,7 @@ flowchart LR
     T4["T4 Garantías<br/>T4.1 lista por etapa · T4.2 revisión y reporte"]:::hecho
     T5["T5 Refacciones<br/>T5.1 lista · T5.2 nueva solicitud · T5.3 devolver · T5.4 sin solicitudes"]:::hecho
     T6["T6 Mi historial<br/>T6.1 terminados por mes · T6.2 orden de solo lectura"]:::hecho
-    T["T7 versión tablet"]:::pendiente
+    T7["T7 Versión tablet<br/>riel con nombres · banco con pestañas y botones grandes"]:::hecho
   end
   subgraph POR["06 · Portal del cliente"]
     P["P1–P6"]:::pendiente
@@ -230,6 +230,7 @@ flowchart LR
     GTC["GarantiasTecnico<br/>T4.1 · RevisionGarantia T4.2"]:::comp
     RFT["RefaccionesTecnico<br/>T5.1 · T5.4 · NuevaSolicitud T5.2 · DevolverPieza T5.3"]:::comp
     HST["HistorialTecnico<br/>T6.1 · DetalleHistorial T6.2"]:::comp
+    TTB["TallerTablet<br/>T7 pestañas y acciones"]:::comp
     BPN["Paneles: Diagnóstico T3.1 · Espera T3.2<br/>Taller T3.3 / T3.10 · Devolver T3.9"]:::comp
     BMD["Modales: MarcarListo T3.4 · DañoAdicional T3.5<br/>Pausar T3.6 · SinReparación T3.7<br/>NecesitoInfo T3.8 · OrdenEnCurso T3.11"]:::comp
     BTS["BancoService<br/>equipo en curso y jornada<br/>(simulado)"]:::serv
@@ -443,7 +444,8 @@ flowchart LR
   HST --> OS & BTS & RS
   RFT --> RS
   GTC --> OS
-  BNC --> BPN & BMD & BTS
+  BNC --> BPN & BMD & BTS & TTB
+  TTB --> BTS & RS
   BPN & BMD --> OS & RS
   BNC --> JD
   EA --> BTS & MT
@@ -643,6 +645,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Ver” abre la orden en solo lectura (T6.2): diagnóstico y trabajo, fotos, notas, refacciones usadas y la vigencia de la garantía; si la garantía sigue abierta lleva a su revisión (T4.2).
 - En noviembre salen #1026 y #1021; en octubre, #1002, #0986 y #0957.
 
+**Versión tablet del técnico (T7, de 769 a 1180 px de ancho):**
+- El menú es un riel de 80 px con el nombre corto bajo cada ícono (Inicio, Equipos, Banco, Garantías, Refacc., Historial).
+- En el banco, una orden en taller o en garantía se ve como Figma T7: encabezado corto con el PIN, pestañas (Trabajo, Refacciones, Fotos, Notas, Equipo), pasos grandes para el dedo y botones de acción (Tomar foto, Pedir refacción, Necesito información, Pausar, Daño adicional y Marcar como listo con los pasos pendientes). Las demás etapas y las otras pantallas usan su vista normal.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -710,7 +716,8 @@ frontend/src/
     │   ├── garantias/         # T4.1 lista · revision-garantia/ T4.2 reporte para el jefe
     │   ├── refacciones/       # T5.1 · T5.4 · nueva-solicitud/ T5.2 · devolver-pieza/ T5.3
     │   ├── historial/         # T6.1 · detalle-historial/ T6.2 · historial.ts (qué cuenta como terminado y estado de la garantía)
-    │   └── banco/             # T3 · cabecera, cronómetro y etapas
+    │   ├── tablet.ts          # T7 · señal enTablet() (769–1180 px)
+    │   └── banco/             # T3 · cabecera, cronómetro y etapas (taller-tablet/ = T7)
     │       ├── banco-comun.css · modal-banco.css   # estilos de los paneles y de los modales
     │       ├── diagnostico-panel/ espera-panel/ taller-panel/ devolver-panel/   # T3.1 · T3.2 · T3.3 y T3.10 · T3.9
     │       ├── marcar-listo/ dano-adicional/ pausar/ sin-reparacion/ necesito-info/ orden-en-curso/   # T3.4–T3.8 · T3.11
@@ -1013,6 +1020,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Devolver pieza | `devolverPieza` crea la devolución que el jefe recibe en J5.3 con el estado que dijo el técnico (nueva, abierta o dañada) | El técnico usa los textos de Figma T5.3 (“Abierta, sin instalar”); el jefe confirma con los suyos. |
 | Mi historial (T6) | Hecho con el PNG `docs/diseno/05-tecnico/t6-mi-historial.png`. Cuenta los equipos que terminó (con fecha de “Listo”), estén por entregar, entregados, en bodega o de vuelta en garantía; no cuenta los “sin reparación” | La garantía cuenta desde la entrega o desde la reparación según Configuración (J9); si no se ha entregado, dice “Por entregar”. |
 | Tiempo de equipos anteriores al banco | `BancoService` les pone de 40 a 89 min según el folio (dato de prueba) para que “Tiempo” y “Tiempo promedio” tengan valores | Lo terminado en el banco usa su cronómetro real. Como el tiempo va por folio, una garantía en reparación arranca su cronómetro con el tiempo de la reparación original. |
+| Versión tablet (T7) | Hecho con el PNG `docs/diseno/05-tecnico/t7-version-tablet.png`. Rango 769–1180 px (`enTablet()`); el banco cambia a `TallerTabletComponent` solo en taller y garantía | “Tomar foto” suma una foto vacía y abre la pestaña Fotos; “Pedir refacción” abre la pestaña Refacciones con el buscador. El botón verde cuenta los pasos sin marcar. |
+| Riel con nombres | `rielConEtiquetas` en la navegación del técnico y `corta` por destino; los estilos van en `styles.css` con `!important` | El CSS del menú lateral ya está en el límite de 4 kB; los otros roles conservan su riel de solo íconos. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -1025,10 +1034,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T7 versión tablet) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1–T6.
+- [ ] Pantallas de cada rol: administrador (AD1–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 2.89 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 3.72 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1499,3 +1508,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - detalle de #1002: puerto de carga, 54 min, vigencia “29 oct – 28 nov · 18 días restantes”, solicitud de garantía y botón “Ir a la revisión de garantía”
   - buscar “galaxy” en noviembre dice “Ningún equipo coincide”
   - a 1366×768 la tabla cabe; a 360 px sin desplazamiento horizontal; sin errores en consola
+
+### 11 nov 2026 · Técnico T7: versión tablet (técnico completo)
+- Hecho con el PNG `docs/diseno/05-tecnico/t7-version-tablet.png`.
+- Riel del técnico con nombres cortos y `TallerTabletComponent` para el banco en tablet; `tecnico/tablet.ts` con la señal del rango.
+- Verificado como `cruiz`:
+  - a 1180×820 #1029 como Figma T7: “#1029 · Samsung S21”, pestañas, 5 pasos grandes y botones; marcar un paso cambia “2 pasos pendientes” a “1”; Tomar foto abre Fotos con una más; Pedir refacción abre Refacciones; Pausar y Marcar como listo abren sus modales
+  - #1043 (esperando) sigue con la vista normal; a 1024×768 también entra la vista tablet sin desplazamiento
+  - a 1440 vuelve el banco de escritorio y el menú de 184 px; a 360 px la vista de celular; sin errores en consola

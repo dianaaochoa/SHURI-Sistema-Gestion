@@ -2,10 +2,17 @@
   <div class="banco">
     <header class="cabecera">
       <div class="cabecera__texto">
-        <h1>Banco de trabajo · {{ o.folio }}</h1>
-        <p>{{ subtitulo() }}</p>
+        @if (compacto()) {
+          <h1>{{ tituloCorto() }}</h1>
+          <p>{{ subtituloCorto() }}</p>
+        } @else {
+          <h1>Banco de trabajo · {{ o.folio }}</h1>
+          <p>{{ subtitulo() }}</p>
+        }
       </div>
-      <span class="estado estado--{{ estado().tono }}">{{ estado().texto }}</span>
+      @if (!compacto()) {
+        <span class="estado estado--{{ estado().tono }}">{{ estado().texto }}</span>
+      }
       @if (modo() !== 'devolver') {
         <div class="reloj">
           <span class="reloj__texto">
@@ -27,7 +34,7 @@
       <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje() }}</p>
     }
 
-    <ol class="pasos" aria-label="Etapas de la orden">
+    <ol class="pasos" aria-label="Etapas de la orden" [hidden]="compacto()">
       @for (p of pasos; track p; let i = $index) {
         <li
           class="paso"
@@ -50,13 +57,17 @@
       }
     </ol>
 
-    <div class="cuerpo">
+    <div class="cuerpo" [class.cuerpo--tablet]="compacto()">
       @switch (modo()) {
         @case ('diagnostico') {
           <app-diagnostico-panel [orden]="o" (enviar)="enviarDiagnostico($event)" (sinReparacion)="modal.set('sin')" (necesitoInfo)="modal.set('info')" />
         }
         @case ('taller') {
-          <app-taller-panel [orden]="o" (pausar)="modal.set('pausar')" (necesitoInfo)="modal.set('info')" (danoAdicional)="modal.set('dano')" (listo)="modal.set('listo')" />
+          @if (compacto()) {
+            <app-taller-tablet [orden]="o" (pausar)="modal.set('pausar')" (necesitoInfo)="modal.set('info')" (danoAdicional)="modal.set('dano')" (listo)="modal.set('listo')" />
+          } @else {
+            <app-taller-panel [orden]="o" (pausar)="modal.set('pausar')" (necesitoInfo)="modal.set('info')" (danoAdicional)="modal.set('dano')" (listo)="modal.set('listo')" />
+          }
         }
         @case ('devolver') {
           <app-devolver-panel [orden]="o" (devolver)="devolver($event)" />

@@ -20,6 +20,8 @@ import { OrdenEnCursoComponent } from './orden-en-curso/orden-en-curso.component
 import { PausarComponent } from './pausar/pausar.component';
 import { SinReparacionComponent } from './sin-reparacion/sin-reparacion.component';
 import { TallerPanelComponent } from './taller-panel/taller-panel.component';
+import { TallerTabletComponent } from './taller-tablet/taller-tablet.component';
+import { enTablet } from '../tablet';
 
 type Modo = 'diagnostico' | 'espera' | 'taller' | 'devolver';
 type Modal = 'pausar' | 'info' | 'sin' | 'dano' | 'listo' | 'en-curso' | null;
@@ -42,6 +44,7 @@ const duracion = (ms: number) => {
     DiagnosticoPanelComponent,
     EsperaPanelComponent,
     TallerPanelComponent,
+    TallerTabletComponent,
     DevolverPanelComponent,
     PausarComponent,
     NecesitoInfoComponent,
@@ -80,6 +83,20 @@ export class BancoComponent {
   });
 
   protected readonly noEsSuya = computed(() => !!this.folio() && !this.orden());
+
+  /** Figma T7: en tablet la reparación se ve con pestañas y botones grandes, sin la barra de etapas. */
+  private readonly tablet = enTablet();
+  protected readonly compacto = computed(() => this.tablet() && !!this.orden() && this.modo() === 'taller');
+  /** "#1029 · Samsung S21" */
+  protected readonly tituloCorto = computed(() => {
+    const o = this.orden()!;
+    return `${o.folio} · ${o.ficha ? `${o.ficha.marca} ${o.ficha.modelo}`.trim() : o.equipo}`;
+  });
+  /** "Andrés Vega · En taller · Autorizado · PIN 2580" */
+  protected readonly subtituloCorto = computed(() => {
+    const o = this.orden()!;
+    return `${o.cliente.nombre} · ${this.estado().texto} · PIN ${o.ficha?.pin || '—'}`;
+  });
 
   protected readonly modo = computed<Modo>(() => {
     const o = this.orden()!;
