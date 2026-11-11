@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Cash\CashShiftController;
 use App\Http\Controllers\Api\Inventory\MovementController;
 use App\Http\Controllers\Api\Inventory\ProductController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\Pos\SaleController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
@@ -109,6 +110,13 @@ Route::prefix('v1')->group(function () {
             });
             Route::post('cash-shifts/{shift}/movements', [CashShiftController::class, 'movement'])->whereNumber('shift')->middleware('permission:cash.withdrawal');
             Route::post('cash-shifts/{shift}/review', [CashShiftController::class, 'review'])->whereNumber('shift')->middleware('permission:cash.review_closing');
+
+            // ── Punto de venta y entrega de equipos (C2, C3, C6 · RF-08, RF-14) ──
+            Route::middleware('permission:pos.sell')->group(function () {
+                Route::post('sales', [SaleController::class, 'store']);
+                Route::get('sales', [SaleController::class, 'index']);
+                Route::get('sales/{folio}', [SaleController::class, 'show']);
+            });
 
             // ── Notificaciones internas (campanita) ──
             Route::get('notifications', [NotificationController::class, 'index']);
