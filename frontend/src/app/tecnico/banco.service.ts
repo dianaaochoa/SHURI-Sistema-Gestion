@@ -51,6 +51,10 @@ export class BancoService {
     const enCurso: Record<string, string> = {};
     const tiempos: Record<string, Cronometro> = {};
     const pasos: Record<string, boolean[]> = {};
+    // Equipos que ya terminaron antes del banco (T6 "Tiempo"): de 40 a 89 min según el folio, solo como dato de prueba.
+    for (const o of this.ordenes()) {
+      if (o.listaDesde) tiempos[o.folio] = { acumulado: (40 + ((Number(o.folio.replace(/\D/g, '')) * 7) % 50)) * 60_000 };
+    }
     for (const t of TECNICOS) {
       const suyas = asignadas(t, this.ordenes());
       // Lo que ya tiene diagnóstico lleva tiempo de revisión (Figma T3.2: 00:42:10).

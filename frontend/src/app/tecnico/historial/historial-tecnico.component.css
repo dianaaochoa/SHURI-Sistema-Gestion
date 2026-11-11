@@ -1,0 +1,11 @@
+/* Figma T6.1 · usa jefe/lista-pagina.css para indicadores y tabla. */
+.mes { gap: 8px; width: 180px; }
+.buscar { gap: 8px; }
+td { white-space: nowrap; }
+.t-original { white-space: normal; }
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .t-cliente, .t-accion { display: none; }
+  td { white-space: normal; }
+}

@@ -1,0 +1,64 @@
+@if (viendo(); as o) {
+  <app-detalle-historial [orden]="o" (volver)="volver()" />
+} @else {
+  <div class="lista-pagina">
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Mi historial</h1>
+        <p class="encabezado-pagina__subtitulo">Equipos que terminaste. Útil para garantías y para revisar tu tiempo por reparación.</p>
+      </div>
+      <span class="campo__control campo__control--40 mes">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <select class="campo__input campo__select" aria-label="Mes" (change)="mes.set($any($event.target).value)">
+          @for (m of meses(); track m.id) {
+            <option [value]="m.id" [selected]="m.id === mes()">{{ m.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+    </header>
+
+    <section class="indicadores" aria-label="Resumen del mes">
+      @for (i of indicadores(); track i.titulo) {
+        <div class="indicador">
+          <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+          <span>
+            <span class="indicador__titulo">{{ i.titulo }}</span>
+            <span class="indicador__detalle">{{ i.detalle }}</span>
+          </span>
+        </div>
+      }
+    </section>
+
+    <label class="campo__control campo__control--40 buscar">
+      <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+      <input class="campo__input" type="search" placeholder="Buscar por folio, cliente, modelo o IMEI…" aria-label="Buscar por folio, cliente, modelo o IMEI" autocomplete="off" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+    </label>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Folio</th><th class="t-tiempo">Terminado</th><th class="t-cliente">Cliente</th><th>Equipo</th><th class="t-original">Trabajo</th><th class="t-vence">Tiempo</th><th>Garantía</th><th class="t-accion">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of filas(); track f.o.folio) {
+            <tr tabindex="0" (click)="ver(f.o)" (keydown.enter)="ver(f.o)">
+              <td class="t-folio">{{ f.o.folio }}</td>
+              <td class="t-tiempo">{{ f.terminado }}</td>
+              <td class="t-cliente">{{ f.o.cliente.nombre }}</td>
+              <td>{{ f.o.equipo }}</td>
+              <td class="t-original">{{ f.trabajo }}</td>
+              <td class="t-vence">{{ f.tiempo }}</td>
+              <td><span class="estado estado--{{ f.garantia.tono }}">{{ f.garantia.texto }}</span></td>
+              <td class="t-accion"><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); ver(f.o)">Ver</button></td>
+            </tr>
+          } @empty {
+            <tr><td class="vacio" colspan="8">{{ busqueda().trim() ? 'Ningún equipo coincide con la búsqueda.' : 'No terminaste equipos en este mes.' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

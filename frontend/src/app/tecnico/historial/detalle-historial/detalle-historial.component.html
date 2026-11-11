@@ -1,0 +1,58 @@
+<div class="detalle">
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <button type="button" class="enlace-banco" (click)="volver.emit()"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Volver a Mi historial</button>
+      <h1>Orden {{ orden().folio }} · {{ titulo() }}</h1>
+      <p>{{ subtitulo() }}</p>
+    </div>
+    <span class="estado estado--{{ estado().tono }}">{{ estado().texto }}</span>
+    <span class="estado estado--{{ garantia().tono }}">{{ garantia().texto === 'En revisión' ? 'Garantía en revisión' : garantia().texto }}</span>
+  </header>
+
+  <div class="cuerpo">
+    <div class="columna">
+      <section class="tarjeta-banco">
+        <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span>Diagnóstico y trabajo realizado</h3>
+        @for (d of trabajo(); track d[0]) {
+          <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+        }
+      </section>
+
+      <section class="tarjeta-banco">
+        <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos</h3>
+        <div class="fotos">
+          <div><p class="campo__etiqueta">Recepción</p><app-fotos [cantidad]="3" [tamano]="64" /></div>
+          <div><p class="campo__etiqueta">Salida</p><app-fotos [cantidad]="3" [tamano]="64" /></div>
+        </div>
+      </section>
+
+      <section class="tarjeta-banco crece">
+        <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Notas</h3>
+        @for (n of notas(); track $index) {
+          <p class="nota">{{ n }}</p>
+        } @empty {
+          <p class="tenue">Sin notas en esta orden.</p>
+        }
+      </section>
+    </div>
+
+    <aside class="lado">
+      <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>Refacciones usadas</h3>
+      @for (p of piezas(); track $index) {
+        <div class="pieza"><span class="pieza__texto"><strong>{{ p.nombre }}</strong><span>{{ p.detalle }}</span></span></div>
+      } @empty {
+        <p class="tenue">No se usaron refacciones del inventario.</p>
+      }
+      <div class="separador"></div>
+      <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Garantía</h3>
+      @for (d of vigencia(); track d[0]) {
+        <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+      }
+      @if (garantiaAbierta()) {
+        <div class="lado__pie">
+          <a class="boton boton--primario boton-grande" routerLink="/tecnico/garantias" [queryParams]="{ folio: orden().folio.replace('#', '') }"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Ir a la revisión de garantía</a>
+        </div>
+      }
+    </aside>
+  </div>
+</div>

@@ -63,6 +63,7 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
   'tecnico/banco-de-trabajo': () => import('./tecnico/banco/banco.component').then((m) => m.BancoComponent),
   'tecnico/garantias': () => import('./tecnico/garantias/garantias-tecnico.component').then((m) => m.GarantiasTecnicoComponent),
   'tecnico/refacciones': () => import('./tecnico/refacciones/refacciones-tecnico.component').then((m) => m.RefaccionesTecnicoComponent),
+  'tecnico/mi-historial': () => import('./tecnico/historial/historial-tecnico.component').then((m) => m.HistorialTecnicoComponent),
 };
 
 /** C1.6 Mi perfil (también A.6 Cambiar contraseña): la misma pantalla en todos los roles. */
