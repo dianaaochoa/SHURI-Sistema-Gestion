@@ -20,8 +20,6 @@ class PasswordChangeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        // Stand-in for any operational route behind "password.changed"
         Route::middleware(['api', 'auth:sanctum', 'actor:staff', 'password.changed'])
             ->get('/api/v1/_test/dashboard', fn () => ['ok' => true]);
     }
@@ -35,7 +33,6 @@ class PasswordChangeTest extends TestCase
             ->assertStatus(403)
             ->assertJsonPath('code', 'PASSWORD_CHANGE_REQUIRED');
 
-        // But can still see their profile to show the "create password" screen
         $this->withToken($token)->getJson('/api/v1/auth/me')
             ->assertOk()
             ->assertJsonPath('data.must_change_password', true);

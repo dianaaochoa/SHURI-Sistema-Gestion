@@ -4,7 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// Multi-session: each token is one session/device; store where it was opened from
 return new class extends Migration
 {
     public function up(): void

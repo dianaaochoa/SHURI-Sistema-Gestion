@@ -3,14 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-/*
- * Business rules that live in MySQL: immutable logs, chat inbox, role substitutions,
- * service-order workflow (abandoned -> disposed), storage fees and reporting views.
- *
- * Settings keys used here (table `settings`): pickup_grace_days, storage_fee_amount,
- * storage_fee_mode (per_day | one_time), abandonment_days, abandonment_notice_days,
- * allow_delivery_when_abandoned (0 | 1).
- */
+
 return new class extends Migration
 {
     public function up(): void
@@ -21,7 +14,6 @@ return new class extends Migration
         foreach ($this->views() as $sql) {
             DB::unprepared($sql);
         }
-        // migrate:fresh drops tables and views but not procedures, so recreate it
         DB::unprepared('DROP PROCEDURE IF EXISTS sp_process_storage');
         DB::unprepared($this->procedure());
     }
@@ -40,7 +32,6 @@ return new class extends Migration
     private function triggers(): array
     {
         return [
-            // Audit log and order log are append-only
             'trg_audit_logs_no_update' => <<<'SQL'
                 CREATE TRIGGER trg_audit_logs_no_update BEFORE UPDATE ON audit_logs FOR EACH ROW
                 BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La auditoría es inmutable'; END
@@ -57,8 +48,6 @@ return new class extends Migration
                 CREATE TRIGGER trg_order_logs_no_delete BEFORE DELETE ON order_logs FOR EACH ROW
                 BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La bitácora de la orden es inmutable'; END
                 SQL,
-
-            // Chat: messages cannot be edited or deleted; only marked as read
             'trg_messages_no_update' => <<<'SQL'
                 CREATE TRIGGER trg_messages_no_update BEFORE UPDATE ON messages FOR EACH ROW
                 BEGIN
@@ -73,7 +62,6 @@ return new class extends Migration
                 CREATE TRIGGER trg_messages_no_delete BEFORE DELETE ON messages FOR EACH ROW
                 BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Los mensajes no se pueden borrar'; END
                 SQL,
-            // Chat: every new message updates the head technician's inbox (J11)
             'trg_messages_inbox' => <<<'SQL'
                 CREATE TRIGGER trg_messages_inbox AFTER INSERT ON messages FOR EACH ROW
                 BEGIN
@@ -87,7 +75,6 @@ return new class extends Migration
                 END
                 SQL,
 
-            // Role substitutions (a technician covers the head technician)
             'trg_role_substitutions_insert' => <<<'SQL'
                 CREATE TRIGGER trg_role_substitutions_insert BEFORE INSERT ON role_substitutions FOR EACH ROW
                 BEGIN
@@ -116,8 +103,6 @@ return new class extends Migration
                   END IF;
                 END
                 SQL,
-
-            // Service-order workflow: automatic dates, final states, abandoned -> disposed, warranty
             'trg_service_orders_workflow' => <<<'SQL'
                 CREATE TRIGGER trg_service_orders_workflow BEFORE UPDATE ON service_orders FOR EACH ROW
                 BEGIN
@@ -164,7 +149,6 @@ return new class extends Migration
     private function views(): array
     {
         return [
-            // Devices waiting for pickup: days in storage, storage fee and abandonment alert
             'v_storage_devices' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_storage_devices AS
                 WITH cfg AS (
@@ -202,7 +186,6 @@ return new class extends Migration
                             ELSE 'grace_period' END                             AS alert
                 FROM base
                 SQL,
-            // Customer portal: order summary (P1, P2)
             'v_portal_orders' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_portal_orders AS
                 SELECT o.id AS service_order_id, o.folio, c.id AS customer_id, c.phone, c.email,
@@ -230,7 +213,6 @@ return new class extends Migration
                 LEFT JOIN users u      ON u.id = o.technician_id
                 LEFT JOIN v_storage_devices r ON r.service_order_id = o.id
                 SQL,
-            // Customer portal: timeline (only entries visible to the customer)
             'v_portal_timeline' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_portal_timeline AS
                 SELECT l.service_order_id, o.folio, c.email, l.created_at, l.type, l.description,
@@ -241,7 +223,6 @@ return new class extends Migration
                 LEFT JOIN order_statuses s ON s.id = l.new_status_id
                 WHERE l.visible_to_customer = 1
                 SQL,
-            // Effective roles: base role + active substitutions
             'v_effective_roles' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_effective_roles AS
                 SELECT u.id AS user_id, u.name, r.id AS role_id, r.slug, r.name AS role,
@@ -264,7 +245,6 @@ return new class extends Migration
                 JOIN permission_role pr ON pr.role_id = er.role_id
                 JOIN permissions p      ON p.id = pr.permission_id
                 SQL,
-            // J2.2 "Recommended": active workload per technician
             'v_technician_workload' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_technician_workload AS
                 SELECT u.id AS technician_id, u.name AS technician, u.specialty,
@@ -279,7 +259,6 @@ return new class extends Migration
                 WHERE u.is_active = 1 AND (o.id IS NULL OR (s.is_final = 0 AND s.awaiting_pickup = 0))
                 GROUP BY u.id, u.name, u.specialty
                 SQL,
-            // J3.1 Quotes waiting for the head technician (initial and additional)
             'v_orders_to_quote' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_orders_to_quote AS
                 SELECT q.id AS quote_id, q.folio AS quote_folio, q.type, q.is_urgent,
@@ -298,7 +277,6 @@ return new class extends Migration
                 LEFT JOIN labor_levels l ON l.id = q.labor_level_id
                 WHERE q.status = 'to_quote'
                 SQL,
-            // Stock minus parts reserved for service orders
             'v_available_stock' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_available_stock AS
                 SELECT p.id AS product_id, p.sku, p.name, p.stock,
@@ -310,7 +288,6 @@ return new class extends Migration
                 WHERE p.is_active = 1
                 GROUP BY p.id, p.sku, p.name, p.stock, p.min_stock
                 SQL,
-            // J11 Head technician inbox
             'v_message_inbox' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_message_inbox AS
                 SELECT cv.id AS conversation_id, cv.status, cv.awaiting_reply, cv.last_message_at,
@@ -353,7 +330,6 @@ return new class extends Migration
                 JOIN categories c ON c.id = p.category_id
                 WHERE p.is_active = 1 AND p.stock <= p.min_stock
                 SQL,
-            // C11 Cash closing: expected cash of a shift
             'v_shift_cash_summary' => <<<'SQL'
                 CREATE OR REPLACE VIEW v_shift_cash_summary AS
                 SELECT t.id AS cash_shift_id, t.cash_register_id, t.user_id, t.status, t.opened_at, t.opening_amount,
@@ -384,8 +360,6 @@ return new class extends Migration
         ];
     }
 
-    // Run once a day from the Laravel scheduler:
-    // $schedule->call(fn () => DB::statement('CALL sp_process_storage(NULL)'))->dailyAt('00:10');
     private function procedure(): string
     {
         return <<<'SQL'

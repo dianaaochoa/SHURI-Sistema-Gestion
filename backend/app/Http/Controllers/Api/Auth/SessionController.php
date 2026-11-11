@@ -9,10 +9,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-/**
- * "Mis sesiones": the logged-in staff member or customer manages
- * their own sessions on other devices.
- */
 class SessionController extends Controller
 {
     public function __construct(private readonly SessionService $sessions) {}
@@ -33,7 +29,7 @@ class SessionController extends Controller
         return response()->json(['message' => 'Sesión cerrada.']);
     }
 
-    /** DELETE /auth/sessions · DELETE /portal/sessions — keeps the current one */
+    /** DELETE /auth/sessions · DELETE /portal/sessions*/
     public function destroyOthers(Request $request): JsonResponse
     {
         $closed = $this->sessions->revokeOthers($request->user());

@@ -10,9 +10,6 @@ use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/**
- * Customer portal access (screen P1): email + temporary password on first access.
- */
 class CustomerAuthController extends Controller
 {
     public function __construct(private readonly AuthService $auth) {}

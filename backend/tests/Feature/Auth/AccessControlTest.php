@@ -10,9 +10,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
-/**
- * RBAC (RF-01) and separation between staff and customer tokens.
- */
 class AccessControlTest extends TestCase
 {
     use RefreshDatabase;
@@ -25,7 +22,6 @@ class AccessControlTest extends TestCase
     {
         parent::setUp();
 
-        // Stand-ins for real module routes
         Route::middleware(['api', 'auth:sanctum', 'actor:staff', 'password.changed', 'permission:pos.sell'])
             ->post('/api/v1/_test/sales', fn () => ['ok' => true]);
         Route::middleware(['api', 'auth:sanctum', 'actor:staff', 'password.changed', 'permission:orders.assign'])
@@ -63,14 +59,13 @@ class AccessControlTest extends TestCase
 
         RoleSubstitution::create([
             'user_id' => $technician->id,
-            'role_id' => 2, // head_technician
+            'role_id' => 2, 
             'reason' => 'Vacaciones del jefe',
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addDay(),
             'assigned_by' => $admin->id,
         ]);
 
-        // A real new HTTP request resolves the user again; simulate that here
         $this->app['auth']->forgetGuards();
 
         $this->withToken($token)->postJson('/api/v1/_test/assign')->assertOk();

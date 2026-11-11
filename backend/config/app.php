@@ -57,6 +57,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Customer portal (Angular): link in customer emails
+    'portal_url' => env('PORTAL_URL', 'http://localhost:4200/portal'),
+
     'asset_url' => env('ASSET_URL'),
 
     /*

@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Customer portal access (RF-06, screen P1).
+ * portal de cliente (RF-06, screen P1).
  */
 class CustomerAuthTest extends TestCase
 {

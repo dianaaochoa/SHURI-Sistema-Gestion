@@ -2,6 +2,8 @@
 
 // Spanish validation messages used by the API. Missing keys fall back to English.
 return [
+    'after_or_equal' => 'La :attribute debe ser hoy o una fecha posterior.',
+    'array' => 'El campo :attribute no tiene un formato válido.',
     'boolean' => 'El campo :attribute debe ser verdadero o falso.',
     'confirmed' => 'La confirmación de :attribute no coincide.',
     'date' => 'El campo :attribute no es una fecha válida.',
@@ -28,6 +30,8 @@ return [
         'uncompromised' => 'La :attribute apareció en una filtración de datos. Elige otra.',
     ],
     'required' => 'El campo :attribute es obligatorio.',
+    'required_with' => 'El campo :attribute es obligatorio.',
+    'required_without' => 'El campo :attribute es obligatorio.',
     'size' => [
         'string' => 'El :attribute no es válido.',
     ],

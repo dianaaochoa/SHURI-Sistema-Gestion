@@ -26,3 +26,4 @@ class DemoUsersSeeder extends Seeder
         }
     }
 }
+

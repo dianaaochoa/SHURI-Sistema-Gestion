@@ -8,10 +8,6 @@ use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/**
- * AD7 Users and permissions: unlock a staff account that was blocked
- * after too many failed logins. Route protected with permission:users.manage.
- */
 class UserLockController extends Controller
 {
     public function __construct(private readonly AuthService $auth) {}

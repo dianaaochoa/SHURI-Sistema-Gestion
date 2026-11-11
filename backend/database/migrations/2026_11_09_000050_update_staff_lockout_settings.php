@@ -3,12 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-/*
- * Aligns staff lockout with the prototype (A.2): 3 failed attempts and the
- * account stays locked until the admin unlocks it.
- * Only UPDATE: on a fresh install the rows do not exist yet and the
- * SettingsSeeder already inserts these values.
- */
 return new class extends Migration
 {
     public function up(): void

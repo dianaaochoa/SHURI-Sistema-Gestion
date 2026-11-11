@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\OrderRepositoryInterface;
+use App\Repositories\Eloquent\OrderRepository;
+use App\Services\FolioService;
 use App\Services\SettingsService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -17,8 +20,12 @@ class AppServiceProvider extends ServiceProvider
         // personal_access_tokens is created by our own migration
         Sanctum::ignoreMigrations();
 
-        // Singleton pattern: one shared settings instance per request
+        // Singleton pattern: one shared instance per request
         $this->app->singleton(SettingsService::class);
+        $this->app->singleton(FolioService::class);
+
+        // Repository pattern: code depends on the contract, Eloquent is the implementation
+        $this->app->bind(OrderRepositoryInterface::class, OrderRepository::class);
     }
 
     /**

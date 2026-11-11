@@ -10,11 +10,6 @@ use App\Services\Auth\PasswordRecoveryService;
 use App\Support\SecurityQuestions;
 use Illuminate\Http\JsonResponse;
 
-/**
- * "¿Olvidaste tu contraseña?" (Figma A.3) for staff and portal customers:
- * user → security question → temporary password by email → create password (A.5).
- * The route tells which one with ->defaults('actor', 'staff'|'customer').
- */
 class PasswordRecoveryController extends Controller
 {
     public function __construct(private readonly PasswordRecoveryService $recovery) {}

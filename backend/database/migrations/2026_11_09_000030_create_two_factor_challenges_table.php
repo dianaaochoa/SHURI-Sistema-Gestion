@@ -4,11 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/*
- * Pending second-factor logins. A row is created after the password is
- * correct; the session token is issued only when the emailed code matches.
- * Both the challenge id and the code are stored hashed.
- */
 return new class extends Migration
 {
     public function up(): void

@@ -9,9 +9,6 @@ use App\Services\Auth\AuthService;
 use App\Services\Auth\TwoFactorService;
 use Illuminate\Http\JsonResponse;
 
-/**
- * Second login step for staff (MFA by email code).
- */
 class TwoFactorController extends Controller
 {
     public function __construct(

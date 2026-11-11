@@ -5,7 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// MFA for staff: second factor = 6-digit code sent by email
 return new class extends Migration
 {
     private const EMAIL_TYPES = "'temporary_password','password_recovery','password_changed','order_registered','quote_pending','info_request','additional_charge','ready_for_pickup','storage_reminder','storage_fee_notice','abandonment_notice','warranty','warranty_ruling','chat_reply','invoice','test'";
@@ -13,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Secure by default: every staff account asks for the code
             $table->boolean('two_factor_enabled')->default(true)->after('must_change_password');
         });
 
