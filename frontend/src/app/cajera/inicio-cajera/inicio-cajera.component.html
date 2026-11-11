@@ -82,7 +82,7 @@
                   <span class="estado" [class]="'estado--' + panel.insignia.tono">{{ panel.insignia.valor }}</span>
                 </header>
                 @for (fila of panel.filas; track fila.titulo) {
-                  <a class="fila" [routerLink]="['/cajera', fila.ruta]">
+                  <a class="fila" [routerLink]="['/cajera', fila.ruta]" [queryParams]="fila.folio ? { folio: fila.folio } : null">
                     <span class="fila__texto">
                       <strong>{{ fila.titulo }}</strong>
                       <span>{{ fila.detalle }}</span>

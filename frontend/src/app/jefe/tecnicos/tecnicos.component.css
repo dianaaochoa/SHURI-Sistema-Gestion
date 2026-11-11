@@ -3,14 +3,14 @@
 
 /* Figma J7: tres tarjetas de 392 px */
 .tarjetas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.tarjeta { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); font: inherit; text-align: left; cursor: pointer; }
-.tarjeta:hover { border-color: var(--color-primario); }
-.tarjeta--elegida { border-color: var(--color-primario); box-shadow: 0 0 0 1px var(--color-primario); }
-.tarjeta__fila { display: flex; align-items: center; gap: 12px; }
+.tarjeta-tecnico { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); font: inherit; text-align: left; cursor: pointer; }
+.tarjeta-tecnico:hover { border-color: var(--color-primario); }
+.tarjeta-tecnico--elegida { border-color: var(--color-primario); box-shadow: 0 0 0 1px var(--color-primario); }
+.tarjeta-tecnico__fila { display: flex; align-items: center; gap: 12px; }
 .avatar-tecnico { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; background: var(--color-primario-suave); font-size: 14px; font-weight: 700; color: var(--color-primario); }
-.tarjeta__nombre { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
-.tarjeta__nombre strong { font-size: 15px; font-weight: 600; color: var(--color-marino); }
-.tarjeta__actual { font-size: 12px; color: var(--color-marino); }
+.tarjeta-tecnico__nombre { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.tarjeta-tecnico__nombre strong { font-size: 15px; font-weight: 600; color: var(--color-marino); }
+.tarjeta-tecnico__actual { font-size: 12px; color: var(--color-marino); }
 .cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .cifra { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--color-fondo); font-size: 10px; color: var(--color-texto-tenue); }
 .cifra strong { font-size: 16px; font-weight: 700; color: var(--color-marino); white-space: nowrap; }

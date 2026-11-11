@@ -27,6 +27,8 @@ export interface Fila {
   titulo: string;
   detalle: string;
   ruta: string;
+  /** Abre esa orden en la pantalla de destino (?folio=1021). */
+  folio?: string;
   estado?: { texto: string; tono: Tono };
   monto?: string;
 }

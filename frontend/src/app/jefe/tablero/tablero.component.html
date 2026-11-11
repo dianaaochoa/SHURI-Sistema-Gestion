@@ -75,25 +75,25 @@
           @if (cargando()) {
             <!-- J2.4 · Cargando -->
             @for (n of [1, 2]; track n) {
-              <div class="tarjeta tarjeta--esqueleto" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <div class="tarjeta-orden tarjeta-orden--esqueleto" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
             }
           } @else {
             @for (o of c.ordenes; track o.folio) {
-              <button type="button" class="tarjeta" [class.tarjeta--atrasada]="atrasada(o)" (click)="abrir(o)">
-                <span class="tarjeta__fila">
-                  <strong class="tarjeta__folio">{{ o.folio }}</strong>
+              <button type="button" class="tarjeta-orden" [class.tarjeta-orden--atrasada]="atrasada(o)" (click)="abrir(o)">
+                <span class="tarjeta-orden__fila">
+                  <strong class="tarjeta-orden__folio">{{ o.folio }}</strong>
                   @if (prioridadDe(o); as p) {
-                    <span class="tarjeta__prioridad tono--{{ p.tono }}">{{ p.texto }}</span>
+                    <span class="tarjeta-orden__prioridad tono--{{ p.tono }}">{{ p.texto }}</span>
                   }
-                  <span class="tarjeta__tiempo">{{ tiempo(o) }}</span>
+                  <span class="tarjeta-orden__tiempo">{{ tiempo(o) }}</span>
                 </span>
-                <span class="tarjeta__equipo">{{ o.equipo }}</span>
-                <span class="tarjeta__cliente">{{ o.cliente.nombre }}</span>
-                <span class="tarjeta__nota">{{ nota(o) }}</span>
+                <span class="tarjeta-orden__equipo">{{ o.equipo }}</span>
+                <span class="tarjeta-orden__cliente">{{ o.cliente.nombre }}</span>
+                <span class="tarjeta-orden__nota">{{ nota(o) }}</span>
                 @if (c.id === 'recibido') {
-                  <span class="tarjeta__fila tarjeta__fila--pie"><span class="tono--advertencia">Sin asignar</span><span class="tono--info">Asignar</span></span>
+                  <span class="tarjeta-orden__fila tarjeta-orden__fila--pie"><span class="tono--advertencia">Sin asignar</span><span class="tono--info">Asignar</span></span>
                 } @else {
-                  <span class="tarjeta__fila tarjeta__fila--pie">
+                  <span class="tarjeta-orden__fila tarjeta-orden__fila--pie">
                     <span class="avatar-chico" [attr.title]="o.tecnico.nombre">{{ o.tecnico.iniciales }}</span>
                     @if (etiqueta(o); as e) {
                       <span class="estado estado--{{ e.tono }}">{{ e.texto }}</span>

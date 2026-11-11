@@ -6,7 +6,7 @@
 
 /* ---------- Panel de marca ---------- */
 
-.panel {
+.portada {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -16,14 +16,14 @@
   color: var(--color-superficie);
 }
 
-.panel__elipse {
+.portada__elipse {
   position: absolute;
   pointer-events: none;
 }
 
-.panel__elipse--1 { top: -140px; right: -220px; }
-.panel__elipse--2 { bottom: -120px; left: -180px; }
-.panel__elipse--3 { bottom: 20px; right: -60px; }
+.portada__elipse--1 { top: -140px; right: -220px; }
+.portada__elipse--2 { bottom: -120px; left: -180px; }
+.portada__elipse--3 { bottom: 20px; right: -60px; }
 
 .marca {
   position: relative;
@@ -65,19 +65,19 @@
   color: var(--color-superficie);
 }
 
-.panel__mensaje {
+.portada__mensaje {
   position: relative;
   margin-top: clamp(40px, 16.25vh, 146px);
 }
 
-.panel__titulo {
+.portada__titulo {
   max-width: 560px;
   font-size: 40px;
   font-weight: 700;
   line-height: 48px;
 }
 
-.panel__descripcion {
+.portada__descripcion {
   max-width: 520px;
   margin-top: 20px;
   font-size: 16px;
@@ -191,7 +191,7 @@
 
 @media (max-width: 960px) {
   .acceso { grid-template-columns: 1fr; }
-  .panel { display: none; }
+  .portada { display: none; }
   .contenido { justify-content: flex-start; padding: 32px 16px; }
   .marca--compacta { display: flex; align-self: center; margin-bottom: 8px; }
   .marca--compacta .marca__texto { color: var(--color-texto-tenue); }

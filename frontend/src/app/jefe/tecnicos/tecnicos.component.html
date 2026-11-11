@@ -17,13 +17,13 @@
 
   <section class="tarjetas" aria-label="Técnicos">
     @for (c of tarjetas(); track c.tecnico.iniciales) {
-      <button type="button" class="tarjeta" [class.tarjeta--elegida]="filtro() === c.tecnico.iniciales" [attr.aria-pressed]="filtro() === c.tecnico.iniciales" (click)="alternarFiltro(c.tecnico.iniciales)">
-        <span class="tarjeta__fila">
+      <button type="button" class="tarjeta-tecnico" [class.tarjeta-tecnico--elegida]="filtro() === c.tecnico.iniciales" [attr.aria-pressed]="filtro() === c.tecnico.iniciales" (click)="alternarFiltro(c.tecnico.iniciales)">
+        <span class="tarjeta-tecnico__fila">
           <span class="avatar-tecnico" aria-hidden="true">{{ c.tecnico.iniciales }}</span>
-          <span class="tarjeta__nombre"><strong>{{ c.tecnico.nombre }}</strong><span>Técnico · Turno 9:00–18:00</span></span>
+          <span class="tarjeta-tecnico__nombre"><strong>{{ c.tecnico.nombre }}</strong><span>Técnico · Turno 9:00–18:00</span></span>
           <span class="estado estado--{{ c.estado.tono }}">{{ c.estado.texto }}</span>
         </span>
-        <span class="tarjeta__actual">{{ c.actual }}</span>
+        <span class="tarjeta-tecnico__actual">{{ c.actual }}</span>
         <span class="cifras">
           @for (x of c.cifras; track x.texto) {
             <span class="cifra"><strong>{{ x.valor }}</strong><span>{{ x.texto }}</span></span>

@@ -1,17 +1,17 @@
 /* Indicador de contraseña (Figma › componente "Indicador de contraseña") */
 
-.indicador {
+.fuerza {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.indicador__barras {
+.fuerza__barras {
   display: flex;
   gap: 4px;
 }
 
-.indicador__barra {
+.fuerza__barra {
   flex: 1;
   height: 4px;
   border-radius: 2px;
@@ -19,21 +19,21 @@
   transition: background-color 0.2s;
 }
 
-.indicador__barra--activa {
+.fuerza__barra--activa {
   background: var(--nivel-color);
 }
 
-.indicador__nivel {
+.fuerza__nivel {
   font-size: 12px;
   color: var(--color-texto-tenue);
 }
 
-.indicador__nivel strong {
+.fuerza__nivel strong {
   font-weight: 600;
   color: var(--nivel-color);
 }
 
-.indicador__requisitos {
+.fuerza__requisitos {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -42,7 +42,7 @@
   list-style: none;
 }
 
-.indicador__requisitos li {
+.fuerza__requisitos li {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -50,11 +50,11 @@
   color: var(--color-texto-tenue);
 }
 
-.indicador__requisitos li.cumple {
+.fuerza__requisitos li.cumple {
   color: var(--color-marino);
 }
 
-.indicador__pendiente {
+.fuerza__pendiente {
   width: 14px;
   height: 14px;
   flex-shrink: 0;

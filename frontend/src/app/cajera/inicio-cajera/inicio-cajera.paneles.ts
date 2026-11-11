@@ -47,6 +47,7 @@ export function panelListos(ordenes: Orden[]): Panel {
         detalle: `${o.cliente.nombre} · lista ${o.listaDesde ? hace(o.listaDesde) : ''}`.trim(),
         estado: { texto: debe > 0 ? `Saldo ${formatearDinero(debe, true)}` : 'Pagado', tono: 'neutro' },
         ruta: 'entrega-de-equipo',
+        folio: o.folio.replace('#', ''),
       };
     }),
     enlace: { texto: 'Ir a Entrega de equipo', ruta: 'entrega-de-equipo' },
@@ -64,6 +65,7 @@ export function panelBodega(ordenes: Orden[]): Panel {
       titulo: `${o.folio} · ${o.equipo}`,
       detalle: `${o.cliente.nombre} · ${diasDesde(o.listaDesde ?? o.recibido)} días sin recoger`,
       ruta: 'ordenes-de-servicio',
+      folio: o.folio.replace('#', ''),
     })),
     enlace: { texto: 'Revisar en Órdenes de servicio', ruta: 'ordenes-de-servicio' },
   };

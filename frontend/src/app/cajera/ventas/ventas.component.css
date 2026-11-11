@@ -56,6 +56,7 @@
 
 @media (max-width: 768px) {
   .encabezado-pagina { flex-wrap: wrap; }
+  .periodo, .periodo__opciones { max-width: 100%; }
   .periodo__opciones { overflow-x: auto; }
   .filtros > .campo__control, .filtros > .filtros__buscar { flex: 1 1 160px; width: auto; }
   .col-fecha, .col-articulos, .col-metodo { display: none; }

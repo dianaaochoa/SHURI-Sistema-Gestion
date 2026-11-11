@@ -89,7 +89,7 @@ export class InicioJefeComponent {
     }),
     ...PREGUNTAS_TECNICOS.map((p) => ({
       icono: 'menu/wrench', tono: 'info' as Tono, titulo: `${p.folio} · ${p.tecnico} ${p.asunto}`,
-      detalle: `${p.detalle} · ${hace(p.fecha)}`, accion: 'Escribir', ruta: 'mensajes',
+      detalle: `${p.detalle} · ${hace(p.fecha)}`, accion: 'Escribir', ruta: 'mensajes', folio: p.folio,
     })),
     ...this.porCotizar()
       .filter((o) => !atrasada(o))
