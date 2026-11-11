@@ -1,0 +1,100 @@
+<div class="lista-pagina">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Equipos asignados</h1>
+      <p class="encabezado-pagina__subtitulo">Tu carga de trabajo · Órdenes asignadas a {{ tecnico?.nombre }} ({{ tecnico?.iniciales }})</p>
+    </div>
+    <p class="actualizado">Última actualización · {{ actualizado }}</p>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen">
+    @for (i of indicadores(); track i.titulo) {
+      <button type="button" class="indicador indicador--boton" [class.indicador--activo]="total() && grupo() === i.grupo && i.grupo" (click)="grupo.set(i.grupo)">
+        <span class="indicador__valor indicador__valor--conteo">{{ i.valor }}</span>
+        <span>
+          <span class="indicador__titulo">{{ i.titulo }}</span>
+          <span class="indicador__detalle">{{ i.detalle }}</span>
+        </span>
+      </button>
+    }
+  </section>
+
+  <div class="filtros">
+    <label class="campo__control campo__control--40 filtros__buscar">
+      <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+      <input class="campo__input" type="search" placeholder="Buscar folio, equipo o estatus" aria-label="Buscar folio, equipo o estatus" autocomplete="off" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+    </label>
+    <span class="campo__control campo__control--40">
+      <select class="campo__input campo__select" aria-label="Estado" (change)="grupo.set($any($event.target).value)">
+        <option value="" [selected]="!grupo()">Todos los estados</option>
+        @for (g of grupos; track g.id) {
+          <option [value]="g.id" [selected]="grupo() === g.id">{{ g.texto }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+    <span class="campo__control campo__control--40">
+      <select class="campo__input campo__select" aria-label="Prioridad" (change)="prioridad.set($any($event.target).value)">
+        <option value="" [selected]="!prioridad()">Todas las prioridades</option>
+        @for (p of prioridades; track p.id) {
+          <option [value]="p.id" [selected]="prioridad() === p.id">{{ p.texto }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+    <p class="filtros__resultados">{{ filas().length }} {{ filas().length === 1 ? 'resultado' : 'resultados' }}</p>
+  </div>
+
+  @if (!total()) {
+    <!-- T2.2 · Sin equipos -->
+    <div class="sin-equipos">
+      <span class="sin-equipos__icono"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span></span>
+      <p class="sin-equipos__titulo">No tienes equipos asignados</p>
+      <p class="sin-equipos__texto">El jefe de técnicos te asigna los equipos. Te avisaremos aquí y en Inicio cuando llegue uno nuevo.</p>
+    </div>
+  } @else {
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Folio</th><th class="t-cliente">Cliente</th><th>Equipo</th><th class="t-falla">Falla</th><th>Estado</th><th class="t-prioridad">Prioridad</th><th class="t-fecha">Fecha</th><th class="t-accion">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of filas(); track f.o.folio) {
+            <tr [class.en-curso]="f.enCurso" tabindex="0" (click)="abrir(f)" (keydown.enter)="abrir(f)">
+              <td class="t-folio">{{ f.o.folio }}</td>
+              <td class="t-cliente">{{ f.o.cliente.nombre }}</td>
+              <td class="t-equipo-fuerte">{{ f.o.equipo }}</td>
+              <td class="t-falla">{{ f.falla }}</td>
+              <td><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
+              <td class="t-prioridad" [class.alta]="f.o.prioridad === 'alta' || f.o.prioridad === 'urgente'">{{ f.o.prioridad === 'urgente' ? 'Urgente' : f.o.prioridad === 'alta' ? 'Alta' : 'Normal' }}</td>
+              <td class="t-fecha">{{ f.fecha }}<small [class.alerta]="f.alerta">{{ f.nota }}</small></td>
+              <td class="t-accion">
+                @if (f.enCurso) {
+                  <button type="button" class="boton boton--primario boton--40 abrir-banco" (click)="$event.stopPropagation(); abrir(f)">Abrir banco</button>
+                } @else {
+                  <button type="button" class="enlace-accion" (click)="$event.stopPropagation(); abrir(f)">{{ f.accion }}<img src="assets/cajera/chev-r-primario.svg" width="14" height="14" alt="" /></button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="vacio" colspan="8">
+                No hay equipos con estos filtros.
+                @if (hayFiltros()) {
+                  <button type="button" class="enlace-accion" (click)="limpiar()">Limpiar filtros</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p class="pie-tabla"><span>Mostrando {{ filas().length }} de {{ total() }} órdenes · Solo tus equipos</span><span>Página 1 de 1</span></p>
+    </div>
+
+    @if (ultimaNota(); as nota) {
+      <p class="nota"><img src="assets/pdv/info.svg" width="16" height="16" alt="" />{{ nota }}</p>
+    }
+  }
+</div>

@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 10 nov 2026 (técnico T1: Inicio)
+- **Última actualización:** 10 nov 2026 (técnico T2: Equipos asignados)
 
 ---
 
@@ -70,7 +70,8 @@ flowchart LR
   end
   subgraph TEC["05 · Técnico"]
     T1["T1 Inicio<br/>T1.1 sigue con esto · avisos · mi día<br/>T1.2 notificaciones · T1.3 menú"]:::hecho
-    T["T2–T7"]:::pendiente
+    T2["T2 Equipos asignados<br/>T2.1 lista con filtros · T2.2 sin equipos"]:::hecho
+    T["T3–T7"]:::pendiente
   end
   subgraph POR["06 · Portal del cliente"]
     P["P1–P6"]:::pendiente
@@ -220,6 +221,7 @@ flowchart LR
   end
   subgraph TECNICO["tecnico/"]
     TI["InicioTecnico<br/>T1.1"]:::comp
+    EA["EquiposAsignados<br/>T2.1 · T2.2"]:::comp
     BTS["BancoService<br/>equipo en curso y jornada<br/>(simulado)"]:::serv
     MT["mi-trabajo.ts<br/>asignadas, trabajables, cola"]:::serv
   end
@@ -427,7 +429,8 @@ flowchart LR
   CFS --> RT9
   ET & PB --> RT9
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
-  SL --> TI
+  SL --> TI & EA
+  EA --> BTS & MT
   TI --> BTS & MT & RS
   BTS & MT --> OS
   ML --> MT
@@ -599,6 +602,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Indicadores de sus equipos (asignados, por cotizar, por aprobar, en taller y garantías), el equipo en curso con su cronómetro, la cola por fecha prometida, avisos (piezas entregadas, aprobaciones, dictámenes, equipos nuevos) y “Mi día”.
 - “Continuar”, “Ir a mi banco” y cada equipo de la cola llevan al banco de trabajo (T3, todavía pendiente). La campana (T1.2) y el menú de usuario (T1.3) son los del menú lateral.
 
+**Equipos asignados (`/tecnico/equipos-asignados`, usuario `cruiz`):**
+- Tabla con sus equipos: el que trae en el banco va primero y resaltado con “Abrir banco”; los demás por fecha. Buscador (folio, cliente, equipo, falla o estatus), filtros de estado y prioridad, e indicadores que filtran al hacer clic.
+- “Abrir banco” y “Ver orden” llevan al banco de trabajo (T3) y “Revisar” a Garantías (T4); las dos siguen pendientes. Si no tiene equipos se ve el estado vacío de T2.2.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -661,7 +668,8 @@ frontend/src/
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
-    │   └── inicio-tecnico/    # T1.1 (usa los estilos de inicio-jefe)
+    │   ├── inicio-tecnico/    # T1.1 (usa los estilos de inicio-jefe)
+    │   └── equipos-asignados/ # T2.1 · T2.2 (usa jefe/lista-pagina.css)
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .paneles.ts: paneles con datos reales)
@@ -943,6 +951,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Inicio del técnico (T1) | Hecho con el PNG `docs/diseno/05-tecnico/t1-inicio.png`. Todo sale de las órdenes de la app: Carlos tiene 5 equipos (Figma: 8) y su equipo en curso es #1029 | El paso (3 de 6), el cronómetro (desde hace 45 min) y la jornada (3 h 40 min, 25 min en pausa) son de prueba en `BancoService` hasta que existan el banco (T3) y la API. |
 | Cola del técnico | Muestra todos sus equipos sin terminar, también los que esperan al jefe o al cliente, con su etiqueta (Diagnóstico, Por cotizar, Por aprobar, En taller, En pausa, Garantía) | En Figma solo aparecen equipos que puede trabajar; con los datos de prueba la cola quedaría vacía. |
 | Técnico de la sesión | Se busca por nombre en `TECNICOS` (`tecnicoDe`) | Con la API vendrá en la sesión. El resumen del menú (“5 equipos asignados”) usa el mismo conteo. |
+| Equipos asignados (T2) | Hecho con el PNG `docs/diseno/05-tecnico/t2-equipos-asignados.png`. Estados para el técnico: Diagnóstico, Por cotizar, Por aprobar, Cargo adicional, En taller, En pausa · refacción y Garantía (revisar, con el jefe, en taller); la acción es “Abrir banco” si puede trabajarlo, “Revisar” en garantías por revisar y “Ver orden” si espera a alguien | En celular se ocultan cliente, falla, prioridad, fecha y acción: la fila entera abre el equipo. |
+| Estado vacío de T2.2 | Usa los mismos 4 indicadores de T2.1 en cero | Figma T2.2 muestra otros títulos (Recibidos, En diagnóstico); se dejó uno solo para que la pantalla no cambie al quedarse sin equipos. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -955,7 +965,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T2–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico va T1.
+- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T3–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1 y T2.
 - [ ] Inicio del técnico: paso, cronómetro y jornada son de prueba (`BancoService`); los avisos se arman con las órdenes y Refacciones, no con la campana.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
@@ -1379,3 +1389,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - Verificado como `cruiz`:
   - a 1440×900: 5 asignados, 1 por cotizar, 1 por aprobar, 1 en taller, 2 garantías “con el jefe”; en curso #1029 Samsung S21 · Andrés Vega con el cronómetro corriendo; cola #1043, #0986, #1002 y #1035; aviso “Refacción entregada · Batería iPhone 14 para #1043”; “Mi día” 3 h 40 min y 1 refacción pendiente
   - a 1366×768 y 360 px sin desplazamiento horizontal (en celular 2 × 2 indicadores y “Continuar” a lo ancho); sin errores en consola
+
+### 10 nov 2026 · Técnico T2: Equipos asignados
+- Hecho con el PNG `docs/diseno/05-tecnico/t2-equipos-asignados.png` (T2.1 lista y T2.2 sin equipos).
+- `EquiposAsignadosComponent` reusa `jefe/lista-pagina.css`; el estado, la nota bajo la fecha y la acción de cada fila salen de la orden (`filaDe`).
+- Verificado como `cruiz`:
+  - a 1440×900: 5 equipos; #1029 primero y resaltado (“En curso · 00:45”, “Abrir banco”); buscar “iphone” deja 3; “zzz” muestra “No hay equipos con estos filtros” y “Limpiar filtros” regresa los 5; el indicador Garantías filtra 2 y marca el select
+  - clic en #0986 abre `/tecnico/banco-de-trabajo?folio=0986`
+  - sin órdenes (reasignadas en memoria) aparece T2.2 con los indicadores en 0
+  - a 1366×768 la tabla cabe; a 360 px queda Folio · Equipo · Estado sin desplazamiento; sin errores en consola
