@@ -159,6 +159,7 @@ class CatalogSeeder extends Seeder
         ]);
 
         $this->call(SettingsSeeder::class);
+        $this->call(CategorySeeder::class);
 
         $year = (int) $now->format('Y');
         DB::table('sequences')->insert(array_map(

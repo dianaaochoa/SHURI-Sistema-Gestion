@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\Auth\PasswordRecoveryController;
 use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\Auth\StaffAuthController;
 use App\Http\Controllers\Api\Auth\TwoFactorController;
+use App\Http\Controllers\Api\Inventory\MovementController;
+use App\Http\Controllers\Api\Inventory\ProductController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
@@ -79,6 +82,23 @@ Route::prefix('v1')->group(function () {
                 Route::post('{folio}/diagnosis', [WorkbenchController::class, 'diagnosis']);
             });
             Route::get('labor-levels', [WorkbenchController::class, 'laborLevels'])->middleware('permission:orders.repair,orders.quote');
+
+            // ── Inventario (C7, J6, AD4 · RF-02) ──
+            Route::middleware('permission:inventory.view')->group(function () {
+                Route::get('categories', [ProductController::class, 'categories']);
+                Route::get('products', [ProductController::class, 'index']);
+                Route::get('products/{product}', [ProductController::class, 'show'])->whereNumber('product');
+                Route::get('inventory/movements', [MovementController::class, 'index']);
+            });
+            Route::post('products', [ProductController::class, 'store'])->middleware('permission:catalog.prices,inventory.stock_in');
+            Route::put('products/{product}', [ProductController::class, 'update'])->whereNumber('product')->middleware('permission:catalog.prices');
+            Route::post('inventory/stock-in', [MovementController::class, 'stockIn'])->middleware('permission:inventory.stock_in');
+            Route::post('inventory/adjustments', [MovementController::class, 'adjust'])->middleware('permission:inventory.adjust');
+
+            // ── Notificaciones internas (campanita) ──
+            Route::get('notifications', [NotificationController::class, 'index']);
+            Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
+            Route::post('notifications/{id}/read', [NotificationController::class, 'read']);
 
             Route::middleware('permission:customers.manage,orders.receive')->group(function () {
                 Route::get('customers', [CustomerController::class, 'index']);

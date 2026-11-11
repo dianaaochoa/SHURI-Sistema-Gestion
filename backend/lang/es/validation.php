@@ -29,6 +29,7 @@ return [
         'symbols' => 'La :attribute debe contener al menos un símbolo.',
         'uncompromised' => 'La :attribute apareció en una filtración de datos. Elige otra.',
     ],
+    'prohibited' => 'El campo :attribute no se puede enviar aquí.',
     'required' => 'El campo :attribute es obligatorio.',
     'required_if' => 'El campo :attribute es obligatorio.',
     'required_with' => 'El campo :attribute es obligatorio.',
