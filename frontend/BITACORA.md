@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 9 nov 2026 (corrección: cerrar turno en Corte de caja)
+- **Última actualización:** 10 nov 2026 (pendientes de cajera y jefe: caja, inventario, Inicio y plazos)
 
 ---
 
@@ -646,7 +646,7 @@ frontend/src/
     │       └── resumen-orden/     # panel derecho con la orden
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
-    │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
+    │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .paneles.ts: paneles con datos reales)
     │   ├── abrir-turno/       # C1.3 modal de conteo del fondo
     │   ├── salir-con-turno/   # C1.7 modal al cerrar sesión con caja abierta
     │   ├── ordenes/           # C4
@@ -917,6 +917,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Mensajes de clientes (J11) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j11-mensajes-de-clientes.png` (Figma sin llamadas). Las conversaciones usan órdenes de la app: María (#1024) tiene un daño adicional en lugar de la garantía de Figma | Las respuestas rápidas se editan en Configuración (J9, nueva sección) y se guardan al escribir. |
 | Interruptor | Clase global `.interruptor` (Figma J11 “Disponible hoy”) | Para reusar en otros “sí/no”. |
 | Fondo al cerrar turno (C10.4) | Sigue al conteo: el fondo asignado ($1,000) pero nunca más de lo contado, hasta que la cajera lo escriba. Si falta algo para cerrar, se dice junto al botón | Antes se quedaba en $1,000 aunque se contara menos y el cierre se rechazaba con un error pequeño junto al campo. |
+| Inicio de la cajera (C1.1 / C1.2) | Indicadores y paneles se calculan (`inicio-cajera.paneles.ts`): ventas y efectivo del turno (C10), ventas en espera, listos, por enviar a bodega, stock bajo, último corte y avisos de inventario | Ya no coinciden con las cifras de Figma; `inicio-cajera.datos.ts` quedó con los tipos y los accesos rápidos. |
+| Inventario al vender | Cobrar una venta baja el stock; cancelarla lo regresa; una devolución “Buen estado · regresa a venta” lo suma. El buscador del punto de venta muestra los disponibles de Inventario | Los productos temporales no tocan el inventario. |
+| Anticipo devuelto (C6.2) | Al entregar sin reparar con revisión perdonada, el anticipo sale de la caja como “Devolución de anticipo” (cobro negativo en la orden) | Antes solo se mostraba en el panel de cobro. |
+| Plazos en caja | `DIAS_PARA_RECOGER` y `DIAS_GARANTIA` pasaron a `diasParaRecoger()` y `diasGarantia()`, que leen Configuración (J9); las cláusulas de la orden impresa (C11) también | Cambiar los días en J9 cambia caja, garantías y el papel. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -931,43 +935,38 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
 - [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T1–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
-- [ ] Configuración (J9): se guarda en memoria; caja todavía usa sus constantes de garantía (30 días) y plazo para recoger (30 días).
+- [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
 - [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
-- [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5). El anticipo a devolver en C6.2 todavía no sale de la caja en el corte.
-- [ ] Tablero: fotos reales, tiempo trabajado sin pausas y “Ver solicitud” (lleva a Refacciones, J11, aún pendiente). La prioridad y las asignaciones viven en memoria.
-- [ ] El resumen del menú del jefe (“14 órdenes abiertas”) sigue fijo; debe usar el mismo conteo que J1.
+- [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5).
+- [ ] Tablero: fotos reales y tiempo trabajado sin pausas (llegan con el técnico, T). La prioridad y las asignaciones viven en memoria.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
 - [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
-- [ ] El anticipo de la orden nueva no entra todavía a la caja ni al corte; el PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
+- [ ] El PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
 - [ ] Los clientes viven en memoria (`ClientesService`): altas, ediciones y contraseñas temporales se pierden al recargar. La contraseña temporal no se envía de verdad.
 - [ ] Algunos clientes de prueba tienen un teléfono en Punto de venta y otro en Órdenes (Laura Medina, Raúl Ortiz, Andrés Vega, Pedro Núñez): se unen por nombre. La API debe tener un solo registro con un id.
 - [ ] Editar un cliente no cambia los datos ya guardados en sus órdenes.
-- [ ] El cobro de la entrega no entra a la caja ni al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
+- [ ] El cobro de la entrega entra a la caja (corte C10) pero no al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
 - [ ] “Entregar equipo” abre C6 con `?folio=`; C6 debe leerlo y marcar la orden como terminada al cobrar el saldo.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
-- [ ] El panel “Ventas en espera” del inicio de la cajera (C1.1) sigue con datos fijos; debe leer `VentaService.pausadas`.
 - [ ] “Crear cliente nuevo” (C2.5) debe abrir el alta de cliente con el nombre buscado cuando exista C9.
 - [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
 - [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
 - [ ] Los montos del cobro (efectivo, mixto) se ven como 500 en vez de $500.00 mientras se escriben.
 - [ ] Las ventas cobradas, cancelaciones y devoluciones viven en memoria (`HistorialVentasService`): se pierden al recargar. Deben ir a la API.
-- [ ] El panel “Ventas recientes” y “Vendido en el turno” del inicio de la cajera siguen fijos; deben leer el historial.
-- [ ] Cancelar y devolver no mueven inventario ni la caja todavía (el efectivo reembolsado debe restarse en el corte, C10).
 - [ ] La nota de crédito y el “cambio por otro” solo se registran; falta su flujo (saldo del cliente y nueva venta).
-- [ ] El inventario no baja al vender; “disponibles” es fijo en el catálogo de prueba.
 - [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
 - [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
 - [ ] El corte cierra el turno de la caja, pero no revisa que la cajera que cierra sea la que abrió.
-- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta todavía usa su propio catálogo (`catalogo.datos.ts`, precios sin IVA); debe leer el inventario cuando exista la API.
+- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta ya toma los disponibles de Inventario, pero sus nombres y precios (sin IVA) siguen en `catalogo.datos.ts`; debe leer el inventario cuando exista la API.
 - [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
 - [ ] Retiros, ingresos, pagos a proveedor y cortes viven en memoria (el turno abierto sí queda en el navegador): al recargar con el turno abierto, el arqueo pierde esos movimientos.
-- [ ] Los pedidos del jefe son datos de prueba; deben venir de su módulo (J6). Avisar al técnico y al jefe solo se anota en el historial de la orden.
+- [ ] Los pedidos del jefe se crean en Refacciones (J5) y viven en memoria. Avisar al técnico y al jefe solo se anota en el historial de la orden.
 - [ ] La foto del producto y la de la factura no se suben a ningún lado (la del producto solo se ve mientras dura la sesión).
 
 ---
@@ -1327,3 +1326,15 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - Causa: en “Cerrar turno” el “Efectivo que se queda como fondo” arrancaba en $1,000 fijo. Si la cajera contaba por denominación menos de $1,000 (o el arqueo daba menos), el fondo quedaba mayor que lo contado y el botón no hacía nada visible: el error “Entre $0.00 y …” aparecía solo bajo ese campo.
 - `CerrarTurnoComponent`: el fondo es un cálculo (asignado, tope lo contado) hasta que la cajera lo escribe; aviso “No se puede cerrar todavía: …” junto al botón con lo que falte (conteo, comentario por diferencia o fondo).
 - Verificado como `amartinez`: turno con esperado $1,899 y $800 contados por denominación → fondo $800 solo, pide comentario y al escribirlo cierra (corte C-0412, fondo $800); turno con fondo escrito a mano de $500 → “A gerencia se entregan $1,399.00” y cierra; sin errores en consola.
+
+### 10 nov 2026 · Pendientes de cajera y jefe
+- Menú del jefe: el texto bajo el logo cuenta las órdenes abiertas igual que su Inicio (18).
+- Caja usa la configuración (J9): plazo para recoger y días de garantía en Órdenes, Entrega, Garantías, tickets y cláusulas de la orden impresa.
+- Anticipo devuelto al entregar sin reparar: sale de la caja y aparece en el corte como “Devolución de anticipo”.
+- Inventario: baja al vender, regresa al cancelar y con devoluciones en buen estado; el punto de venta muestra esos disponibles.
+- Inicio de la cajera y el aviso de salir con turno abierto usan datos reales (corte, ventas, órdenes, inventario).
+- Verificado como `amartinez` y `jlopez`:
+  - caja cerrada: 3 listos, 3 por enviar a bodega, último corte C-0411 y avisos (PED-0123 llega hoy, sin existencias)
+  - vender 2 cargadores ACC-020 lo baja de 32 a 30, cancelar lo regresa a 32; vender 1 y devolverlo en buen estado vuelve a 32; el punto de venta dice “31 disponibles” tras una venta
+  - con turno abierto: “$290 vendido · 1 venta · 2 en espera”, efectivo en caja $1,290; entregar #1038 sin reparar con revisión perdonada deja “Devolución de anticipo #1038 · −$300.00” y el esperado en $990
+  - menú del jefe “18 órdenes abiertas” como su indicador; sin errores en consola
