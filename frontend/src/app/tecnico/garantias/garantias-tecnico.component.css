@@ -1,0 +1,8 @@
+tr.por-revisar:first-child { background: var(--color-primario-suave); }
+td { white-space: nowrap; }
+.t-original, .t-detalle { min-width: 160px; white-space: normal; }
+
+@media (max-width: 600px) {
+  .t-detalle, .t-accion { display: none; }
+  td { white-space: normal; }
+}

@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 10 nov 2026 (técnico T3: Banco de trabajo)
+- **Última actualización:** 11 nov 2026 (técnico T4: Garantías)
 
 ---
 
@@ -72,7 +72,8 @@ flowchart LR
     T1["T1 Inicio<br/>T1.1 sigue con esto · avisos · mi día<br/>T1.2 notificaciones · T1.3 menú"]:::hecho
     T2["T2 Equipos asignados<br/>T2.1 lista con filtros · T2.2 sin equipos"]:::hecho
     T3["T3 Banco de trabajo<br/>T3.1 diagnóstico · T3.2 esperando · T3.3 en taller · T3.9 devolver · T3.10 garantía<br/>modales: listo, daño adicional, pausa, sin reparación, necesito info, orden en curso"]:::hecho
-    T["T4–T7"]:::pendiente
+    T4["T4 Garantías<br/>T4.1 lista por etapa · T4.2 revisión y reporte"]:::hecho
+    T["T5–T7"]:::pendiente
   end
   subgraph POR["06 · Portal del cliente"]
     P["P1–P6"]:::pendiente
@@ -224,6 +225,7 @@ flowchart LR
     TI["InicioTecnico<br/>T1.1"]:::comp
     EA["EquiposAsignados<br/>T2.1 · T2.2"]:::comp
     BNC["Banco<br/>T3 cabecera, cronómetro y etapas"]:::comp
+    GTC["GarantiasTecnico<br/>T4.1 · RevisionGarantia T4.2"]:::comp
     BPN["Paneles: Diagnóstico T3.1 · Espera T3.2<br/>Taller T3.3 / T3.10 · Devolver T3.9"]:::comp
     BMD["Modales: MarcarListo T3.4 · DañoAdicional T3.5<br/>Pausar T3.6 · SinReparación T3.7<br/>NecesitoInfo T3.8 · OrdenEnCurso T3.11"]:::comp
     BTS["BancoService<br/>equipo en curso y jornada<br/>(simulado)"]:::serv
@@ -433,7 +435,8 @@ flowchart LR
   CFS --> RT9
   ET & PB --> RT9
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
-  SL --> TI & EA & BNC
+  SL --> TI & EA & BNC & GTC
+  GTC --> OS
   BNC --> BPN & BMD & BTS
   BPN & BMD --> OS & RS
   BNC --> JD
@@ -619,6 +622,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Para ver las demás vistas sin otro usuario (desde la consola, mientras no exista la API): el jefe asigna #1041 → diagnóstico; dictamina #1002 “aplica” → garantía; caja registra que #1035 se rechazó → devolver.
 - “Enviar diagnóstico”, “No tiene reparación”, “Reportar daño adicional” y “Necesito información” llegan al jefe (J3, J1); “Marcar como listo” y “Devolver a caja” pasan la orden a caja (C6).
 
+**Garantías del técnico (`/tecnico/garantias`, usuario `cruiz`):**
+- Lista de sus garantías abiertas por etapa (por revisar, esperando dictamen, en reparación) con indicadores que filtran; “Cerradas este mes” cuenta las ya resueltas.
+- “Revisar” abre T4.2: reparación original, lo que reporta el cliente, evidencia y el reporte para el jefe (falla, relación con la reparación, mal uso, trabajo y recomendación). Al enviarlo queda “Esperando dictamen” y el jefe lo ve en J4.2. “Ver reporte” lo muestra sin editar y “Abrir banco” lleva a la reparación (T3.10).
+- Las garantías de prueba de Carlos ya traen reporte; para ver una “Por revisar” hay que recibir una en caja (C4.5) asignada a él.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -683,6 +691,7 @@ frontend/src/
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
     │   ├── inicio-tecnico/    # T1.1 (usa los estilos de inicio-jefe)
     │   ├── equipos-asignados/ # T2.1 · T2.2 (usa jefe/lista-pagina.css)
+    │   ├── garantias/         # T4.1 lista · revision-garantia/ T4.2 reporte para el jefe
     │   └── banco/             # T3 · cabecera, cronómetro y etapas
     │       ├── banco-comun.css · modal-banco.css   # estilos de los paneles y de los modales
     │       ├── diagnostico-panel/ espera-panel/ taller-panel/ devolver-panel/   # T3.1 · T3.2 · T3.3 y T3.10 · T3.9
@@ -978,6 +987,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Presupuesto rechazado (T3.9) | La orden sigue entregable en caja como antes; el técnico la ve hasta que la arma y la devuelve (`devueltoACaja`) | Así caja no espera al técnico si el cliente llega antes. |
 | PIN del equipo | Caja ya lo guarda al recibir (`ficha.pin`, C5) y el técnico lo ve en su banco; no se imprime | Las órdenes de prueba no tienen PIN y muestran “—”. |
 | Fotos | Espacios vacíos con cámara; “Agregar” suma uno. Los modales piden al menos una foto donde Figma las marca obligatorias | Sin cámara ni almacenamiento hasta la API. |
+| Garantías del técnico (T4) | Hecho con el PNG `docs/diseno/05-tecnico/t4-garantias.png`. Pestañas Todas, Por revisar, Esperando dictamen y En reparación; la columna “Días restantes” usa la misma cuenta que J4 (días usados de la garantía) | En celular quedan folio, cliente y estado; la fila abre la revisión. |
+| Reporte de garantía | `OrdenesService.enviarReporteGarantia` guarda `garantia.reporte` con los campos que ya leía el jefe (J4.2); el motivo se arma con la relación y el mal uso (“pieza defectuosa”, “humedad posterior”) y, si no aplica, un costo sugerido opcional | El técnico solo recomienda; el dictamen sigue siendo del jefe. |
+| Técnico de la reparación original | Muestra el técnico actual de la orden | Al recibir la garantía, caja reasigna la orden; con la API habrá que guardar quién hizo la reparación original. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -990,9 +1002,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T4–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1–T3.
+- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T5–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos; del técnico van T1–T4.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 2.36 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 2.69 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1436,3 +1448,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - #1002 garantía aprobada (T3.10): marcar lista sin pruebas avisa “Falta marcar 6 pruebas”; con todo queda “Garantía lista” y se avisa en el portal
   - necesito información pausa #1029 con el mensaje; daño adicional con flex de cámara frontal llega al jefe ($380 + $150); solicitar adhesivo crea R-216; sin reparación de #1041 queda “con el jefe”
   - a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
+
+### 11 nov 2026 · Técnico T4: Garantías
+- Hecho con el PNG `docs/diseno/05-tecnico/t4-garantias.png` (T4.1 lista y T4.2 revisión de garantía).
+- `GarantiasTecnicoComponent` (reusa `jefe/lista-pagina.css`) y `RevisionGarantiaComponent` (reusa los estilos del banco); `OrdenesService.enviarReporteGarantia`.
+- Verificado como `cruiz` (caja y jefe simulados desde la consola):
+  - lista con #1002 y #0986 “Esperando dictamen”; caja recibe #0998 en garantía asignada a Carlos → aparece primero “Por revisar · 9 de 30 · Revisar”
+  - T4.2 de #0998 como Figma; reporte “No, daño posterior · Humedad · no aplica · $450” → aviso “queda Esperando dictamen”, el jefe lo recibe como “No aplica · humedad posterior”
+  - el jefe aplica #0986 → pestaña En reparación “Aprobada · Abrir banco”; “Ver reporte” de #1002 muestra el reporte sin editar
+  - a 1366×768 la tabla cabe; a 360 px quedan folio, cliente y estado sin desplazamiento; sin errores en consola

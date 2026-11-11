@@ -1,0 +1,110 @@
+<div class="revision">
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <button type="button" class="enlace-banco" (click)="volver.emit('')"><span class="icono girado" style="--icono: url(assets/cajera/chev-r.svg)"></span>Garantías</button>
+      <h1>Revisión de garantía · {{ orden().folio }}</h1>
+      <p>{{ subtitulo() }}</p>
+    </div>
+    <span class="estado estado--{{ estado().tono }}">{{ estado().texto }}</span>
+    <span class="estado estado--exito">{{ dias() }}</span>
+  </header>
+
+  <div class="cuerpo">
+    <div class="columna">
+      <section class="tarjeta-banco">
+        <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/history.svg)"></span>{{ original().titulo }}</h3>
+        @for (d of original().datos; track d[0]) {
+          <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+        }
+      </section>
+
+      <section class="tarjeta-banco">
+        <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Lo que reporta el cliente</h3>
+        <p class="cita">“{{ orden().garantia!.falla }}”</p>
+        <p class="dato"><span>Condición al recibir</span><strong>{{ orden().garantia!.condicion || 'Sin observaciones' }}</strong></p>
+      </section>
+
+      <section class="tarjeta-banco crece">
+        <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Evidencia de tu revisión</h3>
+        <p class="tenue">Fotos y video del fallo, sellos y estado físico</p>
+        <app-fotos [cantidad]="fotos()" [agregar]="enviado() ? '' : 'Agregar'" (agregada)="fotos.set(fotos() + 1)" />
+      </section>
+    </div>
+
+    <aside class="lado">
+      <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>Reporte para el jefe de técnicos</h3>
+
+      @if (enviado()) {
+        @for (d of reporteEnviado(); track d[0]) {
+          <p class="dato dato--alto"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+        }
+        @if (orden().garantia?.decision; as decision) {
+          <p class="aviso aviso--exito">Dictamen de {{ decision.por }}: {{ decision.texto }}</p>
+        }
+        <div class="lado__pie">
+          @if (etapa() === 'en-reparacion') {
+            <a class="boton boton--primario boton-grande" routerLink="/tecnico/banco-de-trabajo" [queryParams]="{ folio: orden().folio.replace('#', '') }"><span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span>Abrir banco</a>
+          } @else {
+            <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/shield.svg); color: var(--color-primario)"></span>Tu reporte ya está con el jefe. Si aplica la garantía, la orden regresa a tu banco.</p>
+          }
+        </div>
+      } @else {
+        <label class="campo">
+          <span class="campo__etiqueta">Falla encontrada *</span>
+          <textarea class="campo__area" rows="3" placeholder="Qué encontraste al revisar el equipo" [class.campo__area--error]="intentado() && faltaHallazgo()" [value]="hallazgo()" (input)="hallazgo.set($any($event.target).value)"></textarea>
+          @if (intentado() && faltaHallazgo()) {
+            <span class="campo__error">Describe lo que encontraste (al menos 10 caracteres).</span>
+          }
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">¿Está relacionada con la reparación original? *</span>
+          <span class="campo__control campo__control--40">
+            <select class="campo__input campo__select" (change)="relacion.set($any($event.target).value)">
+              @for (r of relaciones; track r) {
+                <option [value]="r" [selected]="r === relacion()">{{ r }}</option>
+              }
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Señales de mal uso</span>
+          <span class="campo__control campo__control--40">
+            <select class="campo__input campo__select" (change)="malUso.set($any($event.target).value)">
+              @for (m of malUsos; track m) {
+                <option [value]="m" [selected]="m === malUso()">{{ m }}</option>
+              }
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Trabajo necesario</span>
+          <textarea class="campo__area" rows="2" placeholder="Qué habría que hacer" [value]="trabajo()" (input)="trabajo.set($any($event.target).value)"></textarea>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Recomendación (no es el dictamen)</span>
+          <span class="campo__control campo__control--40">
+            <select class="campo__input campo__select" (change)="aplica.set($any($event.target).value === 'si')">
+              <option value="si" [selected]="aplica()">Creo que aplica (sin costo)</option>
+              <option value="no" [selected]="!aplica()">Creo que no aplica (costo extra)</option>
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </span>
+        </label>
+        @if (!aplica()) {
+          <label class="campo">
+            <span class="campo__etiqueta">Costo sugerido para el cliente (IVA incluido)</span>
+            <span class="campo__control campo__control--40">
+              <input class="campo__input" type="number" min="0" placeholder="Opcional" [value]="costo() ?? ''" (input)="costo.set($any($event.target).valueAsNumber || null)" />
+            </span>
+          </label>
+        }
+        <div class="lado__pie">
+          <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/shield.svg); color: var(--color-primario)"></span>Tú no decides si aplica. El jefe revisa tu reporte y da el dictamen; el cliente lo verá en su portal.</p>
+          <button type="button" class="boton boton--primario boton-grande" (click)="mandar()"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Enviar reporte al jefe</button>
+        </div>
+      }
+    </aside>
+  </div>
+</div>

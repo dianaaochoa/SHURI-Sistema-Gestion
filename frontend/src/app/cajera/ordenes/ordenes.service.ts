@@ -1154,6 +1154,20 @@ export class OrdenesService {
     });
   }
 
+  /** T4.2 · El técnico revisa la garantía y manda su reporte; el jefe da el dictamen (J4.2). */
+  enviarReporteGarantia(folio: string, reporte: Omit<ReporteGarantia, 'fecha'>, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) =>
+      o.garantia
+        ? {
+            ...o,
+            garantia: { ...o.garantia, reporte: { ...reporte, fecha: ahora } },
+            historial: [...o.historial, { fecha: ahora, texto: `${por.split(' ')[0]} envió su reporte de garantía` }],
+          }
+        : o,
+    );
+  }
+
   /** T3.9 · Presupuesto rechazado: el técnico arma el equipo como llegó y lo devuelve a caja. */
   devolverACaja(folio: string, nota: string, por: string): void {
     const ahora = ahoraIso();
