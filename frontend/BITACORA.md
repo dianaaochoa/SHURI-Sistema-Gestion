@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 11 nov 2026 (técnico T7: versión tablet · técnico completo)
+- **Última actualización:** 11 nov 2026 (administrador AD1: Inicio)
 
 ---
 
@@ -37,7 +37,8 @@ flowchart LR
   end
 
   subgraph ADM["02 · Administrador"]
-    AD["AD1–AD9"]:::pendiente
+    AD1["AD1 Inicio<br/>AD1.1 resumen del negocio · AD1.2 notificaciones · AD1.3 menú"]:::hecho
+    AD["AD2–AD9"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -222,6 +223,10 @@ flowchart LR
     RDC["Redactar<br/>J11.2 respuestas rápidas"]:::comp
     RO["ResumenOrden<br/>panel de la orden"]:::comp
     MS["MensajesService<br/>conversaciones, respuestas<br/>rápidas y disponible (simulado)"]:::serv
+  end
+  subgraph ADMIN["administrador/"]
+    IAD["InicioAdmin<br/>AD1.1"]:::comp
+    NEG["negocio.ts<br/>utilidad, lo que más deja<br/>y de dónde viene el dinero"]:::serv
   end
   subgraph TECNICO["tecnico/"]
     TI["InicioTecnico<br/>T1.1"]:::comp
@@ -440,7 +445,8 @@ flowchart LR
   CFS --> RT9
   ET & PB --> RT9
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
-  SL --> TI & EA & BNC & GTC & RFT & HST
+  SL --> TI & EA & BNC & GTC & RFT & HST & IAD
+  IAD --> ESV & NEG & COS & INS & OS & HV
   HST --> OS & BTS & RS
   RFT --> RS
   GTC --> OS
@@ -645,6 +651,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Ver” abre la orden en solo lectura (T6.2): diagnóstico y trabajo, fotos, notas, refacciones usadas y la vigencia de la garantía; si la garantía sigue abierta lleva a su revisión (T4.2).
 - En noviembre salen #1026 y #1021; en octubre, #1002, #0986 y #0957.
 
+**Inicio del administrador (`/administrador/inicio`, usuario `vcastillo`):**
+- Indicadores de ingresos, utilidad bruta (con margen), efectivo en caja y órdenes en taller; el selector cambia entre hoy, esta semana y este mes.
+- Ingresos de los últimos 14 días (hoy resaltado), el mes a la fecha contra el mes anterior, ticket promedio, de dónde viene el dinero y lo que más deja.
+- “Atención”: corte con faltante de la última semana, pago a proveedor a crédito por vencer, productos bajo el mínimo, descuentos del día, equipo sin recoger más de 30 días y la tasa de garantías contra la meta de 5 %. Sus enlaces llevan a AD2–AD9 (pendientes).
+- El resumen del menú dice “Caja 01 abierta / cerrada” según la caja real.
+
 **Versión tablet del técnico (T7, de 769 a 1180 px de ancho):**
 - El menú es un riel de 80 px con el nombre corto bajo cada ícono (Inicio, Equipos, Banco, Garantías, Refacc., Historial).
 - En el banco, una orden en taller o en garantía se ve como Figma T7: encabezado corto con el PIN, pestañas (Trabajo, Refacciones, Fotos, Notas, Equipo), pasos grandes para el dedo y botones de acción (Tomar foto, Pedir refacción, Necesito información, Pausar, Daño adicional y Marcar como listo con los pasos pendientes). Las demás etapas y las otras pantallas usan su vista normal.
@@ -708,6 +720,9 @@ frontend/src/
     │       ├── chat/              # J11.1 · J11.4 conversación
     │       ├── redactar/          # J11.2 respuestas rápidas, compartir estado, foto y mensaje
     │       └── resumen-orden/     # panel derecho con la orden
+    ├── administrador/         # 02 · Administrador
+    │   ├── negocio.ts         # utilidad (costo de Inventario y margen de taller de prueba), lo que más deja, origen del dinero
+    │   └── inicio-admin/      # AD1.1
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1022,22 +1037,26 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Tiempo de equipos anteriores al banco | `BancoService` les pone de 40 a 89 min según el folio (dato de prueba) para que “Tiempo” y “Tiempo promedio” tengan valores | Lo terminado en el banco usa su cronómetro real. Como el tiempo va por folio, una garantía en reparación arranca su cronómetro con el tiempo de la reparación original. |
 | Versión tablet (T7) | Hecho con el PNG `docs/diseno/05-tecnico/t7-version-tablet.png`. Rango 769–1180 px (`enTablet()`); el banco cambia a `TallerTabletComponent` solo en taller y garantía | “Tomar foto” suma una foto vacía y abre la pestaña Fotos; “Pedir refacción” abre la pestaña Refacciones con el buscador. El botón verde cuenta los pasos sin marcar. |
 | Riel con nombres | `rielConEtiquetas` en la navegación del técnico y `corta` por destino; los estilos van en `styles.css` con `!important` | El CSS del menú lateral ya está en el límite de 4 kB; los otros roles conservan su riel de solo íconos. |
+| Inicio del administrador (AD1) | Hecho con el PNG `docs/diseno/02-administrador/ad1-inicio.png`. Ingresos, gráfica y tablas salen de `EstadisticasService` (el mismo historial de prueba de C9 más las ventas y órdenes de la app; `suma()` pasó a público) | Las cifras no son las de Figma (octubre); el día de hoy usa lo real de la app. |
+| Utilidad bruta | Mostrador: precio sin IVA menos el costo de Inventario (40 % si el producto no está); taller: margen fijo de prueba del 50 % (`MARGEN_TALLER_DEMO`) | Con la API de reportes vendrá el costo real de cada reparación. |
+| Pagos a proveedor | Las entradas a crédito vencen a los 30 días (`DIAS_CREDITO_DEMO`) | Las entradas no guardan plazo de crédito todavía. |
+| Avisos del administrador (AD1.2) | Los 4 de Figma (contraseña, corte con faltante, pago a proveedor y timbres) como datos de prueba | Se conectan cuando existan AD3, AD5, AD6 y AD7. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
 
 - [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
-- [ ] El texto de resumen bajo la marca (“Caja 01 · Turno abierto”, “14 órdenes abiertas”…) es fijo en `navegacion.ts`; debe venir de la API.
+- [ ] El texto de resumen bajo la marca ya se calcula para los 4 roles (caja, órdenes abiertas, equipos asignados, estado de la caja); con la API vendrá del servidor.
 - [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos.
+- [ ] Pantallas de cada rol: administrador (AD2–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador va AD1.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 3.72 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 4.17 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1516,3 +1535,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 1180×820 #1029 como Figma T7: “#1029 · Samsung S21”, pestañas, 5 pasos grandes y botones; marcar un paso cambia “2 pasos pendientes” a “1”; Tomar foto abre Fotos con una más; Pedir refacción abre Refacciones; Pausar y Marcar como listo abren sus modales
   - #1043 (esperando) sigue con la vista normal; a 1024×768 también entra la vista tablet sin desplazamiento
   - a 1440 vuelve el banco de escritorio y el menú de 184 px; a 360 px la vista de celular; sin errores en consola
+
+### 11 nov 2026 · Administrador AD1: Inicio
+- Hecho con el PNG `docs/diseno/02-administrador/ad1-inicio.png` (AD1.1 resumen; AD1.2 y AD1.3 son la campana y el menú de usuario, con los avisos de Figma).
+- Nuevo `administrador/`: `InicioAdminComponent` y `negocio.ts`; el menú del administrador muestra el estado real de la caja.
+- Verificado como `vcastillo`:
+  - a 1440×900 como Figma AD1.1: hoy $1,189 de mostrador, 18 órdenes en taller (1 atrasada), 14 barras con hoy resaltado, “vs octubre +19 %”, lo que más deja con reparaciones del taller arriba y 5 avisos (faltante del 10 nov, pago a MovilTec, 11 productos bajo el mínimo, descuentos del día y #0939 con 57 días)
+  - “Este mes” cambia los indicadores a $31,339 y 54 % de margen, igual que la gráfica
+  - la campana muestra los 4 avisos de AD1.2; a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola

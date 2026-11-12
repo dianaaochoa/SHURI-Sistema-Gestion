@@ -55,6 +55,7 @@ export class MenuLateralComponent {
       const abiertas = this.ordenes.ordenes().filter((o) => EN_TALLER.includes(o.estado)).length;
       return `${abiertas} ${abiertas === 1 ? 'orden abierta' : 'órdenes abiertas'}`;
     }
+    if (this.sesion()?.rol === 'administrador') return `Caja 01 ${this.caja.abierta() ? 'abierta' : 'cerrada'}`;
     if (this.sesion()?.rol === 'tecnico') {
       const n = asignadas(tecnicoDe(this.sesion()?.nombre), this.ordenes.ordenes()).length;
       return `${n} ${n === 1 ? 'equipo asignado' : 'equipos asignados'}`;
