@@ -20,7 +20,10 @@ use Illuminate\Validation\ValidationException;
  */
 class WorkbenchService
 {
-    public function __construct(private readonly OrderRepositoryInterface $orders) {}
+    public function __construct(
+        private readonly OrderRepositoryInterface $orders,
+        private readonly QuoteService $quotes,
+    ) {}
 
     /** @param  array<string, mixed>  $filters */
     public function myOrders(User $technician, array $filters): LengthAwarePaginator
@@ -131,6 +134,11 @@ class WorkbenchService
                 'status_id' => OrderStatus::idFor($target),
                 'updated_by' => $technician->id,
             ])->save();
+
+            // Con reparación, el diagnóstico deja el presupuesto "por cotizar" para el jefe (J3)
+            if ($repairable) {
+                $this->quotes->draftFromDiagnosis($order, $technician, $data);
+            }
         });
     }
 

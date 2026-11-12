@@ -12,9 +12,11 @@ use App\Http\Controllers\Api\Inventory\MovementController;
 use App\Http\Controllers\Api\Inventory\ProductController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Portal\PortalOrderController;
+use App\Http\Controllers\Api\Portal\PortalQuoteController;
 use App\Http\Controllers\Api\Pos\SaleController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
+use App\Http\Controllers\Api\Workshop\QuoteController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
 use App\Http\Controllers\Api\Workshop\WorkbenchController;
 use Illuminate\Support\Facades\Route;
@@ -86,6 +88,15 @@ Route::prefix('v1')->group(function () {
             });
             Route::get('labor-levels', [WorkbenchController::class, 'laborLevels'])->middleware('permission:orders.repair,orders.quote');
 
+            // ── Taller: cotización del jefe y liberación de equipos (J3, J8 · RF-10, RF-17) ──
+            Route::middleware('permission:orders.quote')->group(function () {
+                Route::get('quotes/to-quote', [QuoteController::class, 'toQuote']);
+                Route::get('quotes/{folio}', [QuoteController::class, 'show']);
+                Route::post('quotes/{folio}/send', [QuoteController::class, 'send']);
+                Route::post('quotes/{folio}/return', [QuoteController::class, 'returnToTechnician']);
+                Route::post('service-orders/{folio}/release', [QuoteController::class, 'release']);
+            });
+
             // ── Inventario (C7, J6, AD4 · RF-02) ──
             Route::middleware('permission:inventory.view')->group(function () {
                 Route::get('categories', [ProductController::class, 'categories']);
@@ -150,6 +161,11 @@ Route::prefix('v1')->group(function () {
         Route::middleware('password.changed')->group(function () {
             Route::get('orders', [PortalOrderController::class, 'index']);
             Route::get('orders/{folio}', [PortalOrderController::class, 'show']);
+
+            // Presupuesto: ver, aprobar o rechazar (RF-07)
+            Route::get('orders/{folio}/quote', [PortalQuoteController::class, 'show']);
+            Route::post('quotes/{folio}/approve', [PortalQuoteController::class, 'approve']);
+            Route::post('quotes/{folio}/reject', [PortalQuoteController::class, 'reject']);
         });
     });
 
