@@ -1,0 +1,43 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-sin-reparacion" (click)="$event.stopPropagation()" (keydown.escape)="cerrar.emit()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-sin-reparacion">Confirmar equipo sin reparación · {{ orden().folio }}</h2>
+        <p class="modal__subtitulo">{{ orden().cliente.nombre }} · {{ orden().equipo }} · Reporte de {{ orden().tecnico.nombre }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="motivo">
+      <strong>Motivo del técnico: {{ orden().sinReparacion?.motivo?.toLowerCase() }}</strong>
+      <span>“{{ orden().sinReparacion?.texto }}”</span>
+      <div class="fotos">
+        @for (n of [1, 2]; track n) {
+          <span class="foto-vacia" role="img" [attr.aria-label]="'Foto del técnico ' + n"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
+        }
+      </div>
+    </div>
+
+    <label class="campo">
+      <span class="campo__etiqueta">Mensaje que verá el cliente (portal P2.6)</span>
+      <textarea class="texto" rows="2" maxlength="400" [value]="mensajeElegido()" (input)="mensaje.set($any($event.target).value)"></textarea>
+    </label>
+
+    <fieldset class="cobro">
+      <legend class="campo__etiqueta">Cobro de revisión</legend>
+      <label class="opcion-radio" [class.opcion-radio--elegida]="cobrar()">
+        <input type="radio" name="cobro" [checked]="cobrar()" (change)="cobrar.set(true)" />
+        <span class="opcion-radio__texto"><strong>Cobrar revisión {{ dinero(cobro) }}</strong><span>{{ detalleCobrar() }}</span></span>
+      </label>
+      <label class="opcion-radio" [class.opcion-radio--elegida]="!cobrar()">
+        <input type="radio" name="cobro" [checked]="!cobrar()" (change)="cobrar.set(false)" />
+        <span class="opcion-radio__texto"><strong>No cobrar revisión</strong><span>{{ detalleNoCobrar() }}</span></span>
+      </label>
+    </fieldset>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="regresar.emit()"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Regresar al técnico</button>
+      <button type="button" class="boton boton--44 confirmar" [disabled]="!mensajeElegido().trim()" (click)="confirmar()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Confirmar sin reparación</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-recotizacion" (click)="$event.stopPropagation()" (keydown.escape)="cerrar.emit()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-recotizacion">Re-cotización · {{ orden().folio }}</h2>
+        <p class="modal__subtitulo">{{ orden().cliente.nombre }} · {{ orden().equipo }} · {{ tecnico() }} encontró un daño adicional durante la reparación</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="reporte">
+      <p>“{{ orden().danoAdicional?.texto }}” · {{ orden().danoAdicional?.urgente ? 'Urgente: el equipo no funciona sin esto' : 'No urgente: el equipo funciona' }}</p>
+      <span class="foto-vacia" role="img" aria-label="Foto del daño"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
+    </div>
+
+    @if (autorizado(); as a) {
+      <p class="renglon"><span>Ya autorizado ({{ a.fecha }})</span><strong>{{ a.texto }}</strong></p>
+    }
+
+    <h3 class="campo__etiqueta">Conceptos nuevos</h3>
+    @for (c of renglones(); track i; let i = $index) {
+      <div class="concepto">
+        <span class="concepto__icono"><span class="icono" [style.--icono]="c.tipo === 'mano-obra' ? 'url(assets/menu/wrench.svg)' : 'url(assets/menu/package.svg)'"></span></span>
+        <span class="concepto__texto"><strong>{{ c.descripcion }}</strong><span>{{ c.linea }}</span></span>
+        <label class="precio">$<input type="number" min="0" step="0.01" [attr.aria-label]="'Precio de ' + c.descripcion" [value]="c.precio.toFixed(2)" (change)="cambiarPrecio(i, $any($event.target).value)" /></label>
+      </div>
+    }
+
+    <hr />
+    <p class="renglon"><span>Adicional para el cliente</span><strong>{{ dinero(adicional()) }}</strong></p>
+    <p class="renglon"><span>Nuevo total de la orden</span><strong>{{ dinero(nuevoTotal()) }}</strong></p>
+
+    <p class="aviso aviso--info"><img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />El cliente decide solo sobre lo nuevo. Si lo rechaza, {{ tecnico() }} termina lo ya autorizado y entrega.</p>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="button" class="boton boton--primario boton--44" [disabled]="adicional() <= 0" (click)="enviar()">
+        <span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Enviar re-cotización al cliente
+      </button>
+    </div>
+  </div>
+</div>

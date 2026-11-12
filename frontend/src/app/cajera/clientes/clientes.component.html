@@ -1,0 +1,103 @@
+<div class="clientes">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Clientes</h1>
+      <p class="encabezado-pagina__subtitulo">Registro de clientes, sus equipos y su acceso al portal de seguimiento.</p>
+    </div>
+    <button type="button" class="boton boton--primario boton--40" (click)="modal.set('nuevo')">
+      <img src="assets/inventario/plus-blanco.svg" width="16" height="16" alt="" />Nuevo cliente
+    </button>
+  </header>
+
+  <div class="herramientas">
+    <label class="campo__control campo__control--40 herramientas__buscar">
+      <img src="assets/inventario/search.svg" width="16" height="16" alt="" />
+      <input class="campo__input" type="search" autocomplete="off" placeholder="Buscar por nombre, teléfono o correo" aria-label="Buscar cliente" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+    </label>
+    <label class="campo__control campo__control--40 herramientas__filtro">
+      <select class="campo__input campo__select" aria-label="Filtrar clientes" (change)="filtro.set($any($event.target).value)">
+        @for (f of filtros; track f.id) {
+          <option [value]="f.id" [selected]="f.id === filtro()">{{ f.texto }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </label>
+  </div>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  <div class="columnas">
+    <section class="tabla-clientes" aria-label="Clientes">
+      <table>
+        <thead>
+          <tr><th>Cliente</th><th class="t-telefono">Teléfono</th><th>Equipos activos</th><th class="t-visita">Última visita</th><th class="t-total">Total gastado</th></tr>
+        </thead>
+        <tbody>
+          @for (r of lista(); track r.cliente.id) {
+            <tr
+              tabindex="0"
+              [attr.aria-selected]="r.cliente.id === elegido()?.cliente?.id"
+              [class.elegida]="r.cliente.id === elegido()?.cliente?.id"
+              (click)="elegir(r)"
+              (keydown.enter)="elegir(r)"
+              (keydown.arrowdown)="mover($event, 1)"
+              (keydown.arrowup)="mover($event, -1)"
+            >
+              <td class="t-nombre">{{ r.cliente.nombre }}<span class="t-sub">{{ r.cliente.telefono }}</span></td>
+              <td class="t-telefono t-tenue">{{ r.cliente.telefono ?? '—' }}</td>
+              <td>
+                @if (r.equipos; as e) {
+                  <span class="estado estado--{{ e.tono }}">{{ e.texto }}</span>
+                } @else {
+                  <span class="estado estado--neutro">Sin equipos</span>
+                }
+              </td>
+              <td class="t-visita t-tenue">{{ visita(r.ultimaVisita) }}</td>
+              <td class="t-total">{{ dinero(r.total) }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="t-vacia">
+                No hay clientes con “{{ busqueda() }}”.
+                <button type="button" class="enlace" (click)="modal.set('nuevo')">Registrar cliente nuevo</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    @if (elegido(); as r) {
+      <app-ficha-cliente
+        class="columnas__ficha"
+        [resumen]="r"
+        (historial)="modal.set('historial')"
+        (editar)="modal.set('editar')"
+        (nuevaOrden)="nuevaOrden()"
+        (generarTemporal)="generarTemporal()"
+        (aviso)="aviso.set($event)"
+      />
+    }
+  </div>
+</div>
+
+@switch (modal()) {
+  @case ('nuevo') {
+    <app-nuevo-cliente [desdeClientes]="true" [busqueda]="busqueda()" (cerrar)="modal.set(null)" (guardado)="guardado($event)" />
+  }
+  @case ('editar') {
+    <app-nuevo-cliente [desdeClientes]="true" [inicial]="elegido()?.cliente ?? null" (cerrar)="modal.set(null)" (guardado)="guardado($event)" />
+  }
+  @case ('historial') {
+    @if (elegido(); as r) {
+      <app-historial-cliente [resumen]="r" (cerrar)="modal.set(null)" (nuevaOrden)="nuevaOrden()" />
+    }
+  }
+  @case ('temporal') {
+    @if (elegido(); as r) {
+      <app-contrasena-temporal [cliente]="r.cliente" [contrasena]="temporal()" (cerrar)="modal.set(null)" />
+    }
+  }
+}

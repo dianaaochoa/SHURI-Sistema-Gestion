@@ -1,0 +1,31 @@
+/* Figma J5.5: modal de 640 px */
+.modal { max-width: 640px; }
+.dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.campo { min-width: 0; }
+.campo__control img { pointer-events: none; }
+input::-webkit-calendar-picker-indicator { display: none; }
+.boton .icono { width: 16px; height: 16px; }
+
+.buscador { position: relative; }
+.resultados { position: absolute; top: calc(100% + 4px); right: 0; left: 0; z-index: 2; margin: 0; padding: 4px; list-style: none; }
+.resultados button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: none; font: inherit; font-size: 13px; text-align: left; color: var(--color-marino); cursor: pointer; }
+.resultados button:hover { background: var(--color-primario-suave); }
+.resultados span { display: flex; flex-direction: column; gap: 2px; }
+.resultados small { font-size: 11px; color: var(--color-texto-tenue); }
+
+.tabla { position: relative; overflow-x: auto; border: 1px solid var(--color-borde); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-marino); }
+th { padding: 10px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap; }
+td { padding: 8px 10px; border-top: 1px solid var(--color-borde); white-space: nowrap; }
+.t-nombre { min-width: 130px; font-weight: 600; white-space: normal; }
+.t-importe { font-weight: 600; }
+.entrada { width: 80px; height: 30px; padding: 0 6px; border: 1px solid var(--color-borde); border-radius: 6px; background: var(--color-superficie); font: inherit; color: inherit; }
+.entrada--chica { width: 52px; }
+.quitar { display: flex; padding: 4px; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+.vacio { color: var(--color-texto-tenue); }
+.total { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-texto-tenue); }
+.total strong { font-size: 14px; color: var(--color-marino); }
+
+@media (max-width: 520px) {
+  .dos { grid-template-columns: 1fr; }
+}

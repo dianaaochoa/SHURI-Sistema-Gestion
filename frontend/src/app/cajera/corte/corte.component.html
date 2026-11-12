@@ -1,0 +1,80 @@
+<div class="corte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Corte de caja</h1>
+      <p class="encabezado-pagina__subtitulo">{{ pestana() === 'turno' ? subtitulo() : 'Historial de cortes del negocio · Puedes reimprimir cualquier corte' }}</p>
+    </div>
+    @if (pestana() === 'turno') {
+      @if (caja.abierta()) {
+        <div class="acciones">
+          <button type="button" class="boton boton--contorno boton--40" (click)="movimiento.set('retiro')">
+            <span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>Registrar retiro
+          </button>
+          <button type="button" class="boton boton--contorno boton--40" (click)="movimiento.set('ingreso')">
+            <span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Registrar ingreso
+          </button>
+        </div>
+      }
+    } @else {
+      <div class="acciones">
+        <label class="campo__control campo__control--40 filtro">
+          <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+          <select class="campo__input campo__select" aria-label="Mes" (change)="mes.set($any($event.target).value)">
+            @for (m of meses(); track m.clave) {
+              <option [value]="m.clave" [selected]="m.clave === mesElegido()">{{ m.texto }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </label>
+        <label class="campo__control campo__control--40 filtro">
+          <select class="campo__input campo__select" aria-label="Cajera" (change)="cajera.set($any($event.target).value)">
+            <option value="" [selected]="!cajera()">Todas las cajeras</option>
+            @for (c of cajeras(); track c) {
+              <option [value]="c" [selected]="c === cajera()">{{ c }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </label>
+      </div>
+    }
+  </header>
+
+  <nav class="pestanas" aria-label="Secciones del corte">
+    <button type="button" [class.activa]="pestana() === 'turno'" [attr.aria-current]="pestana() === 'turno' ? 'page' : null" (click)="pestana.set('turno')">Turno actual</button>
+    <button type="button" [class.activa]="pestana() === 'historial'" [attr.aria-current]="pestana() === 'historial' ? 'page' : null" (click)="pestana.set('historial'); aviso.set(null)">Historial de cortes</button>
+  </nav>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  @if (pestana() === 'turno') {
+    @if (caja.abierta()) {
+      <app-turno-actual (cerrado)="turnoCerrado($event)" />
+    } @else {
+      <section class="cerrada">
+        <span class="cerrada__icono"><img src="assets/cajera/lock-grande.svg" width="28" height="28" alt="" /></span>
+        <h2>La caja está cerrada</h2>
+        <p>Abre un turno para vender, cobrar entregas y registrar retiros. Los cortes anteriores están en el historial.</p>
+        <div class="cerrada__acciones">
+          <button type="button" class="boton boton--contorno boton--44" (click)="pestana.set('historial')">Ver historial de cortes</button>
+          <button type="button" class="boton boton--primario boton--44" (click)="abrir.set(true)">
+            <img src="assets/cajera/unlock-blanco.svg" width="16" height="16" alt="" />Abrir turno
+          </button>
+        </div>
+      </section>
+    }
+  } @else {
+    <app-historial-cortes [mes]="mesElegido()" [cajera]="cajera()" />
+  }
+</div>
+
+@if (movimiento(); as tipo) {
+  <app-movimiento-efectivo [tipoInicial]="tipo" (cerrar)="movimiento.set(null)" (registrado)="movimientoRegistrado($event)" />
+}
+@if (cerrado(); as c) {
+  <app-turno-cerrado [corte]="c" (cerrar)="cerrado.set(null); pestana.set('historial')" (abrirTurno)="abrirNuevo()" (cerrarSesion)="salir()" />
+}
+@if (abrir()) {
+  <app-abrir-turno (cerrar)="abrir.set(false)" />
+}

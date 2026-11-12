@@ -1,0 +1,78 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal cierre" role="dialog" aria-modal="true" aria-labelledby="titulo-cierre" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-cierre">Cerrar turno</h2>
+        <p class="modal__subtitulo">{{ subtitulo() }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/inventario/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <div class="conteos">
+      @for (grupo of grupos; track $index; let monedas = $last) {
+        <table class="conteo">
+          <thead><tr><th>Denominación</th><th class="c-cantidad">Cantidad</th><th class="c-importe">Importe</th></tr></thead>
+          <tbody>
+            @for (d of grupo; track d.valor) {
+              <tr>
+                <td>{{ d.etiqueta }}</td>
+                <td class="c-cantidad">
+                  <input type="number" min="0" inputmode="numeric" placeholder="0" [attr.aria-label]="'Cantidad de ' + d.etiqueta" [value]="cantidades()[d.valor] || ''" (input)="cambiar(d.valor, $any($event.target).value)" />
+                </td>
+                <td class="c-importe">{{ dinero(importe(d.valor)) }}</td>
+              </tr>
+            }
+            @if (monedas) {
+              <tr>
+                <td>Centavos</td>
+                <td class="c-cantidad">
+                  <input type="number" min="0" max="0.99" step="0.1" inputmode="decimal" placeholder="—" aria-label="Importe en centavos" [value]="centavos() || ''" (input)="cambiarCentavos($any($event.target).value)" />
+                </td>
+                <td class="c-importe">{{ dinero(centavos()) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <div class="totales" aria-live="polite">
+      <p><span>Efectivo esperado</span><strong>{{ dinero(esperado()) }}</strong></p>
+      <p><span>Efectivo contado</span><strong>{{ dinero(contado()) }}</strong></p>
+      <p class="dif" [class.dif--falta]="diferencia() < 0" [class.dif--sobra]="diferencia() > 0">
+        <span>Diferencia · {{ diferencia() < 0 ? 'faltante' : diferencia() > 0 ? 'sobrante' : 'cuadra' }}</span>
+        <strong>{{ diferencia() > 0 ? '+' : '' }}{{ dinero(diferencia()) }}</strong>
+      </p>
+    </div>
+    @if (intentado() && errores()['contado']; as e) { <p class="campo__error">{{ e }}</p> }
+
+    <div class="campos">
+      <div class="campo">
+        <label class="campo__etiqueta" for="cierre-comentario">Comentario (obligatorio si hay diferencia)</label>
+        <textarea id="cierre-comentario" class="area" [class.area--error]="intentado() && errores()['comentario']" rows="2" [value]="comentario()" (input)="comentario.set($any($event.target).value)"></textarea>
+        @if (intentado() && errores()['comentario']; as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="cierre-fondo">Efectivo que se queda como fondo</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['fondo']">
+          <span class="moneda">$</span>
+          <input id="cierre-fondo" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" [value]="fondo()" (input)="fondo.set(+$any($event.target).value)" />
+        </div>
+        @if (intentado() && errores()['fondo']; as e) {
+          <p class="campo__error">{{ e }}</p>
+        } @else {
+          <p class="nota">A gerencia se entregan {{ dinero(contado() - fondo()) }}</p>
+        }
+      </div>
+    </div>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Seguir contando</button>
+      <button type="button" class="boton boton--primario boton--44" (click)="cerrarTurno()">
+        <span class="icono" style="--icono: url(assets/cajera/lock.svg)"></span>Cerrar turno e imprimir corte
+      </button>
+    </div>
+  </section>
+</div>

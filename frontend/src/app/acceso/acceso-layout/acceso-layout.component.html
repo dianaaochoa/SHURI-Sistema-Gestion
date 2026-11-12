@@ -1,0 +1,63 @@
+<div class="acceso">
+  <aside class="panel">
+    <img class="panel__elipse panel__elipse--1" src="assets/acceso/elipse-1.svg" width="520" height="520" alt="" />
+    <img class="panel__elipse panel__elipse--2" src="assets/acceso/elipse-2.svg" width="460" height="460" alt="" />
+    <img class="panel__elipse panel__elipse--3" src="assets/acceso/elipse-3.svg" width="260" height="260" alt="" />
+
+    <div class="marca">
+      <span class="marca__logo"><img src="assets/acceso/logo-shuri.png" alt="" /></span>
+      <span class="marca__texto">
+        <strong>SHURI</strong>
+        <span>Reparaciones y Ventas</span>
+      </span>
+    </div>
+
+    <div class="panel__mensaje">
+      <p class="panel__titulo">Tu mostrador y tu taller, en un solo lugar</p>
+      <p class="panel__descripcion">
+        Vende, recibe equipos, sigue cada reparación y mantén informados a tus clientes desde su celular.
+      </p>
+      <ul class="chips">
+        <li class="chip"><img src="assets/iconos/cart.svg" width="16" height="16" alt="" />Ventas y caja</li>
+        <li class="chip"><img src="assets/iconos/wrench.svg" width="16" height="16" alt="" />Reparaciones</li>
+        <li class="chip"><img src="assets/iconos/smartphone.svg" width="16" height="16" alt="" />Portal del cliente</li>
+      </ul>
+    </div>
+
+    <div class="escena" aria-hidden="true">
+      <div class="flotante flotante--cobros">
+        <span class="flotante__icono flotante__icono--primario">
+          <img src="assets/iconos/chart.svg" width="20" height="20" alt="" />
+        </span>
+        <span class="flotante__texto">
+          <strong>$9,656 cobrados hoy</strong>
+          <span>Mostrador y taller · Caja 01</span>
+        </span>
+      </div>
+      <div class="flotante flotante--orden">
+        <span class="flotante__icono flotante__icono--exito">
+          <img src="assets/iconos/package-check.svg" width="20" height="20" alt="" />
+        </span>
+        <span class="flotante__texto">
+          <strong>#1026 · iPhone 11 listo</strong>
+          <span>Se avisó a Laura en su portal</span>
+        </span>
+        <span class="estado-listo">Listo</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="contenido">
+    <div class="marca marca--compacta">
+      <span class="marca__logo"><img src="assets/acceso/logo-shuri.png" alt="" /></span>
+      <span class="marca__texto">
+        <strong>SHURI</strong>
+        <span>Reparaciones y Ventas</span>
+      </span>
+    </div>
+
+    <router-outlet />
+
+    <p class="contenido__pie">© 2026 SHURI Reparaciones y Ventas · v1.0</p>
+  </main>
+</div>

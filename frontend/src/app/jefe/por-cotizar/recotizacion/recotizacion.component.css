@@ -1,0 +1,20 @@
+/* Figma J3.4: modal de 640 px */
+.modal { max-width: 640px; }
+.reporte { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 8px; background: var(--color-advertencia-suave); font-size: 12px; font-weight: 600; color: var(--color-advertencia); }
+.renglon { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--color-texto-tenue); }
+.renglon strong { font-size: 13px; font-weight: 600; text-align: right; color: var(--color-marino); }
+.concepto { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-borde); border-radius: 8px; }
+.concepto__icono { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: var(--color-primario-suave); color: var(--color-primario); }
+.concepto__texto { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.concepto__texto strong { font-size: 14px; font-weight: 600; color: var(--color-marino); }
+.precio { display: flex; align-items: center; font-size: 14px; font-weight: 700; color: var(--color-marino); }
+.precio input { width: 84px; height: 32px; padding: 0 6px; border: 1px solid transparent; border-radius: 6px; font: inherit; text-align: right; color: inherit; }
+.precio input:hover, .precio input:focus { border-color: var(--color-borde); outline: 0; }
+hr { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--color-borde); }
+.boton .icono { width: 16px; height: 16px; }
+
+@media (max-width: 520px) {
+  .concepto { flex-wrap: wrap; }
+  .concepto__texto { flex-basis: calc(100% - 48px); }
+  .precio { margin-left: 48px; }
+}

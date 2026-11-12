@@ -1,0 +1,69 @@
+:host { display: block; height: 100%; }
+.tablero { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+
+/* J2.5 */
+.sin-conexion { align-items: center; color: var(--color-peligro); font-weight: 600; }
+.sin-conexion__texto { flex: 1; }
+.sin-conexion__boton { display: flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.sin-conexion__boton .icono { width: 14px; height: 14px; }
+.tablero--sin-conexion .columnas { opacity: 0.7; }
+
+.encabezado-pagina .boton .icono { width: 16px; height: 16px; }
+
+.herramientas { display: flex; align-items: center; gap: 12px; }
+.herramientas__buscar { width: 340px; }
+.herramientas__filtro { width: 200px; }
+.herramientas__filtro img { pointer-events: none; }
+.herramientas__chips { display: flex; gap: 8px; margin-left: auto; }
+.chip { border: 1px solid transparent; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.chip--activo { border-color: currentColor; }
+
+/* Figma J2.1: 6 columnas grises con tarjetas blancas */
+.columnas { display: grid; flex: 1; grid-template-columns: repeat(6, minmax(170px, 1fr)); gap: 12px; min-height: 0; }
+.columna { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 8px 8px 12px; overflow-y: auto; border-radius: 8px; background: var(--color-fondo-tenue); }
+.columna__titulo { display: flex; align-items: center; gap: 6px; padding: 4px 4px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--color-marino); }
+.columna__punto { width: 7px; height: 7px; border-radius: 999px; }
+.columna__cuenta { margin-left: auto; font-weight: 500; color: var(--color-texto-tenue); }
+.columna__vacia { padding: 8px 4px; font-size: 12px; color: var(--color-texto-tenue); }
+
+.tarjeta { display: flex; flex-shrink: 0; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); font: inherit; font-size: 11px; text-align: left; color: var(--color-texto-tenue); cursor: pointer; }
+.tarjeta:hover { border-color: var(--color-primario); }
+.tarjeta:focus-visible { outline: 2px solid var(--color-acento); outline-offset: 2px; }
+.tarjeta--atrasada { border-color: var(--color-peligro); }
+.tarjeta--atrasada .tarjeta__tiempo { color: var(--color-peligro); }
+.tarjeta__fila { display: flex; align-items: center; gap: 6px; }
+.tarjeta__fila--pie { justify-content: space-between; margin-top: 4px; font-size: 12px; font-weight: 600; }
+.tarjeta__folio { font-size: 13px; font-weight: 700; color: var(--color-marino); }
+.tarjeta__prioridad { font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.tarjeta__tiempo { margin-left: auto; white-space: nowrap; }
+.tarjeta__equipo { font-size: 12px; font-weight: 600; color: var(--color-marino); }
+.tarjeta__nota { overflow: hidden; color: var(--color-marino); text-overflow: ellipsis; white-space: nowrap; }
+.tarjeta .estado { padding: 3px 8px; }
+.tono--peligro { color: var(--color-peligro); }
+.tono--advertencia { color: var(--color-advertencia); }
+.tono--info { color: var(--color-primario); }
+.avatar-chico { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; background: var(--color-primario-suave); font-size: 8px; font-weight: 700; color: var(--color-primario); }
+
+/* J2.4 */
+.tarjeta--esqueleto { gap: 10px; cursor: default; }
+.tarjeta--esqueleto span { height: 8px; border-radius: 4px; background: var(--color-fondo-tenue); animation: latido 1.2s ease-in-out infinite; }
+.tarjeta--esqueleto span:nth-child(1) { width: 40%; }
+.tarjeta--esqueleto span:nth-child(2) { width: 80%; }
+.tarjeta--esqueleto span:nth-child(3) { width: 60%; }
+@keyframes latido { 50% { opacity: 0.5; } }
+
+@media (max-width: 1280px) {
+  .herramientas { flex-wrap: wrap; }
+  .herramientas__buscar { flex: 1; width: auto; min-width: 220px; }
+}
+
+/* Celular: las columnas se recorren de lado dentro del tablero */
+@media (max-width: 768px) {
+  :host, .tablero { height: auto; }
+  .encabezado-pagina { flex-wrap: wrap; }
+  .herramientas__filtro { flex: 1; width: auto; min-width: 140px; }
+  .herramientas__chips { margin-left: 0; }
+  .columnas { grid-template-columns: repeat(6, 78%); overflow-x: auto; scroll-snap-type: x mandatory; }
+  .columna { scroll-snap-align: start; overflow: visible; }
+  .sin-conexion { flex-wrap: wrap; }
+}

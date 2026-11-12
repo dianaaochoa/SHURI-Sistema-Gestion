@@ -1,0 +1,125 @@
+<div class="detalle">
+  <header class="encabezado">
+    <div class="encabezado__texto">
+      <button type="button" class="volver" (click)="volver.emit()"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Volver al tablero</button>
+      <h1 class="encabezado-pagina__titulo">{{ titulo() }}</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo() }}</p>
+    </div>
+    <div class="encabezado__acciones">
+      <span class="estado estado--{{ estado().tono }}">{{ estado().texto }}</span>
+      <button type="button" class="boton boton--contorno boton--40" (click)="reasignar.emit()">
+        <span class="icono" style="--icono: url(assets/menu/users.svg)"></span>Reasignar
+      </button>
+      <button type="button" class="boton boton--contorno boton--40" (click)="abrirPrioridad()">
+        <span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Cambiar prioridad
+      </button>
+    </div>
+  </header>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  <section class="panel seguimiento" aria-label="Seguimiento">
+    <app-seguimiento-orden [paso]="paso()" />
+  </section>
+
+  <div class="columnas">
+    <div class="principal">
+      @if (pausa(); as p) {
+        <div class="pausa">
+          <img src="assets/pdv/pause.svg" width="20" height="20" alt="" />
+          <span class="pausa__texto"><strong>{{ p.titulo }}</strong><span>{{ p.detalle }}</span></span>
+          @if (p.solicitud) {
+            <a class="enlace-primario" routerLink="/jefe/refacciones" [queryParams]="{ solicitud: p.solicitud }"><img src="assets/cajera/chev-r-primario.svg" width="14" height="14" alt="" />Ver solicitud</a>
+          }
+        </div>
+      }
+      @if (atraso(); as mensaje) {
+        <p class="aviso aviso--error"><img src="assets/pdv/alert-peligro.svg" width="16" height="16" alt="" />{{ mensaje }}</p>
+      }
+
+      <section class="panel" aria-labelledby="titulo-resumen">
+        <h2 class="panel__titulo" id="titulo-resumen"><span class="icono" style="--icono: url(assets/menu/clip-list.svg)"></span>Resumen</h2>
+        <dl class="resumen">
+          @for (r of resumen(); track r.texto) {
+            <div><dt>{{ r.texto }}</dt><dd>{{ r.valor }}</dd></div>
+          }
+        </dl>
+      </section>
+
+      <section class="panel fotos" aria-labelledby="titulo-fotos">
+        <h2 class="panel__titulo" id="titulo-fotos"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span>Fotos</h2>
+        <div class="fotos__grupos">
+          <div>
+            <h3>Recepción</h3>
+            <div class="fotos__lista">
+              @for (n of [1, 2, 3]; track n) {
+                <span class="foto" role="img" [attr.aria-label]="'Foto de recepción ' + n"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
+              }
+            </div>
+          </div>
+          <div>
+            <h3>Del técnico</h3>
+            <div class="fotos__lista">
+              @for (n of [1, 2].slice(0, fotosTecnico()); track n) {
+                <span class="foto" role="img" [attr.aria-label]="'Foto del técnico ' + n"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
+              } @empty {
+                <p class="vacio">Aún no sube fotos</p>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel historial" aria-labelledby="titulo-historial">
+      <h2 class="panel__titulo" id="titulo-historial"><span class="icono" style="--icono: url(assets/inventario/history.svg)"></span>Historial de la orden</h2>
+      <ol class="eventos">
+        @for (e of eventos(); track $index) {
+          <li class="evento" [class.evento--nota]="e.nota">
+            <strong>{{ e.nota ? 'Nota interna' : e.texto }}</strong>
+            <span>{{ e.nota ? e.texto + ' · ' : '' }}{{ e.cuando }}</span>
+          </li>
+        }
+      </ol>
+      @if (escribiendo()) {
+        <form class="nota" (submit)="$event.preventDefault(); guardarNota()">
+          <label class="oculto" for="nota-interna">Nota interna</label>
+          <textarea #campoNota id="nota-interna" class="nota__texto" rows="3" maxlength="300" placeholder="Solo la ve el equipo del taller" [value]="nota()" (input)="nota.set($any($event.target).value)"></textarea>
+          <div class="modal__acciones">
+            <button type="button" class="boton boton--contorno boton--40" (click)="escribiendo.set(false)">Cancelar</button>
+            <button type="submit" class="boton boton--primario boton--40" [disabled]="!nota().trim()">Guardar nota</button>
+          </div>
+        </form>
+      } @else {
+        <button type="button" class="boton boton--contorno boton--44 boton--bloque" (click)="escribiendo.set(true)">
+          <span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Agregar nota interna
+        </button>
+      }
+    </section>
+  </div>
+</div>
+
+@if (cambiandoPrioridad()) {
+  <div class="modal-fondo" (click)="cambiandoPrioridad.set(false)">
+    <div class="modal modal--chico" role="dialog" aria-modal="true" aria-labelledby="titulo-prioridad" (click)="$event.stopPropagation()" (keydown.escape)="cambiandoPrioridad.set(false)">
+      <div class="modal__encabezado">
+        <div>
+          <h2 class="modal__titulo" id="titulo-prioridad">Cambiar prioridad · {{ orden().folio }}</h2>
+          <p class="modal__subtitulo">Las urgentes y altas van primero en el tablero y en el Inicio del técnico.</p>
+        </div>
+        <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cambiandoPrioridad.set(false)"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+      </div>
+      <div class="selector" role="radiogroup" aria-label="Prioridad">
+        @for (p of prioridades; track p[0]) {
+          <button type="button" class="selector__opcion" role="radio" [attr.aria-checked]="p[0] === prioridadNueva()" [class.selector__opcion--elegida]="p[0] === prioridadNueva()" (click)="prioridadNueva.set(p[0])">{{ p[1].texto }}</button>
+        }
+      </div>
+      <div class="modal__acciones">
+        <button type="button" class="boton boton--contorno boton--44" (click)="cambiandoPrioridad.set(false)">Cancelar</button>
+        <button type="button" class="boton boton--primario boton--44" (click)="guardarPrioridad()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}

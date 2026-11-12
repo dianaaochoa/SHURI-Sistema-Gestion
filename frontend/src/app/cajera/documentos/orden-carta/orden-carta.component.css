@@ -1,0 +1,30 @@
+/* Figma C11: hoja carta (8.5 × 11 in = 816 × 1056 px) */
+.carta { display: flex; flex-direction: column; gap: 14px; width: 816px; min-height: 1056px; padding: 44px 48px 32px; background: #fff; font: 12px/1.4 var(--fuente); color: var(--color-marino); }
+.carta p { margin: 0; }
+.carta__encabezado { display: flex; align-items: flex-start; gap: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--color-primario); }
+.marca { display: flex; align-items: center; gap: 10px; margin-top: 22px; }
+.marca div { display: flex; flex-direction: column; }
+.marca strong { font-size: 18px; }
+.marca span { font-size: 12px; color: var(--color-texto-tenue); }
+.negocio { display: flex; flex: 1; flex-direction: column; gap: 2px; font-size: 11px; color: var(--color-texto-secundario); }
+.negocio strong { font-size: 16px; color: var(--color-marino); }
+.folio { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 14px; border: 1px solid var(--color-primario); border-radius: 8px; font-size: 11px; color: var(--color-texto-secundario); }
+.folio__titulo { font-size: 11px; font-weight: 700; color: var(--color-marino); }
+.folio strong { font-size: 22px; color: var(--color-primario); }
+
+.dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.caja { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--color-borde); border-radius: 8px; }
+.caja h2 { font-size: 10px; font-weight: 700; color: var(--color-primario); }
+dl { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 8px; margin: 0; }
+dt { color: var(--color-texto-tenue); }
+dd { margin: 0; font-weight: 600; }
+.caja--seguimiento { flex-direction: row; align-items: center; justify-content: space-between; border-color: transparent; background: var(--color-primario-suave); }
+.fuerte { font-weight: 600; }
+.qr { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 64px; height: 64px; border: 1px solid var(--color-marino); border-radius: 4px; font-weight: 700; }
+.clausulas { columns: 2; column-gap: 24px; margin: 0; padding-left: 16px; font-size: 10px; color: var(--color-texto-secundario); }
+.clausulas li { margin-bottom: 6px; break-inside: avoid; }
+.espacio { flex: 1; }
+.firmas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; }
+.firmas p { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 6px; border-top: 1px solid var(--color-marino); font-size: 11px; color: var(--color-texto-secundario); }
+.firmas strong { color: var(--color-marino); }
+.pie { display: flex; justify-content: space-between; font-size: 10px; color: var(--color-texto-tenue); }

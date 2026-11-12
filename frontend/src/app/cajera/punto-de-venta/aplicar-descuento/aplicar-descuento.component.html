@@ -1,0 +1,119 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section class="modal descuento" role="dialog" aria-modal="true" aria-labelledby="titulo-descuento" (click)="$event.stopPropagation()">
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-descuento">Aplicar descuento</h2>
+        <p class="modal__subtitulo">Venta {{ venta.folio() }} · Total actual {{ dinero(antes()) }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/pdv/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <p class="campo__etiqueta" id="aplicar-a">Aplicar a</p>
+    <div class="selector" role="radiogroup" aria-labelledby="aplicar-a">
+      <button
+        type="button"
+        role="radio"
+        class="selector__opcion"
+        [class.selector__opcion--elegida]="alcance() === 'venta'"
+        [attr.aria-checked]="alcance() === 'venta'"
+        (click)="cambiarAlcance('venta')"
+      >
+        <span class="icono" [style.--icono]="'url(assets/cajera/cart.svg)'"></span>Toda la venta
+      </button>
+      <button
+        type="button"
+        role="radio"
+        class="selector__opcion"
+        [class.selector__opcion--elegida]="alcance() === 'articulo'"
+        [attr.aria-checked]="alcance() === 'articulo'"
+        (click)="cambiarAlcance('articulo')"
+      >
+        <span class="icono" [style.--icono]="'url(assets/pdv/tag.svg)'"></span>Un artículo
+      </button>
+    </div>
+
+    @if (alcance() === 'articulo') {
+      <div class="campo">
+        <label class="campo__etiqueta" for="descuento-articulo">Artículo</label>
+        <div class="campo__control campo__control--40">
+          <select id="descuento-articulo" class="campo__input campo__select" [value]="sku()" (change)="sku.set($any($event.target).value); cambiarAlcance('articulo')">
+            @for (linea of venta.lineas(); track linea.sku) {
+              <option [value]="linea.sku">{{ linea.nombre }} · {{ linea.cantidad }} pz</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </div>
+      </div>
+    }
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="descuento-valor">Descuento</label>
+      <div class="descuento__fila">
+        <div class="alternar descuento__unidad" role="radiogroup" aria-label="Unidad del descuento">
+          <button type="button" role="radio" [class.alternar--activo]="modo() === '%'" [attr.aria-checked]="modo() === '%'" (click)="cambiarModo('%')">%</button>
+          <button type="button" role="radio" [class.alternar--activo]="modo() === '$'" [attr.aria-checked]="modo() === '$'" (click)="cambiarModo('$')">$</button>
+        </div>
+        <div class="campo__control campo__control--40 descuento__valor" [class.campo__control--error]="excede()">
+          @if (modo() === '$') {
+            <span class="descuento__simbolo">$</span>
+          }
+          <input
+            id="descuento-valor"
+            class="campo__input"
+            inputmode="decimal"
+            autocomplete="off"
+            [value]="valor() ?? ''"
+            (input)="leer($any($event.target).value)"
+          />
+          @if (modo() === '%') {
+            <span class="descuento__simbolo">%</span>
+          }
+        </div>
+        <img src="assets/pdv/transfer-16.svg" width="16" height="16" alt="" />
+        <output class="descuento__equivalente">
+          = {{ modo() === '%' ? dinero(monto()) : (porcentaje() | number: '1.0-2') + ' %' }}
+        </output>
+      </div>
+      @if (excede()) {
+        <span class="campo__error">El máximo permitido es {{ maximo }} %.</span>
+      }
+    </div>
+
+    <p class="descuento__ayuda">
+      Escribe el porcentaje o cambia a $ para escribir la cantidad; el equivalente se calcula solo. Máximo permitido:
+      {{ maximo }}% (lo define el administrador).
+    </p>
+
+    @if (alcance() === 'venta') {
+      <div class="campo">
+        <label class="campo__etiqueta" for="motivo">Motivo del descuento</label>
+        <div class="campo__control campo__control--40">
+          <select id="motivo" class="campo__input campo__select" [(ngModel)]="motivo">
+            @for (opcion of motivos; track opcion) {
+              <option [value]="opcion">{{ opcion }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </div>
+      </div>
+    }
+
+    <dl class="resumen">
+      <div><dt>Total antes del descuento</dt><dd>{{ dinero(antes()) }}</dd></div>
+      <div>
+        <dt>Descuento ({{ porcentaje() | number: '1.0-2' }} %)</dt>
+        <dd class="resumen__descuento">− {{ dinero(antes() - nuevoTotal()) }}</dd>
+      </div>
+      <div class="resumen__total"><dt>Nuevo total</dt><dd>{{ dinero(nuevoTotal()) }}</dd></div>
+    </dl>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="quitar()">Quitar descuento</button>
+      <button type="button" class="boton boton--primario boton--44" [disabled]="excede() || !valor()" (click)="aplicar()">
+        <img src="assets/pdv/check-blanco.svg" width="16" height="16" alt="" />Aplicar descuento
+      </button>
+    </div>
+  </section>
+</div>

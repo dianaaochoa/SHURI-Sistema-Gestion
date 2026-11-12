@@ -1,0 +1,70 @@
+<header class="ficha__encabezado">
+  <span class="ficha__avatar" aria-hidden="true">{{ iniciales() }}</span>
+  <div>
+    <h2 class="ficha__nombre">{{ cliente().nombre }}</h2>
+    <p class="ficha__desde">{{ desde() }}</p>
+  </div>
+</header>
+
+<ul class="contacto">
+  @if (cliente().telefono) {
+    <li><img src="assets/ordenes/call-gris.svg" width="16" height="16" alt="Teléfono" />{{ cliente().telefono }}</li>
+  }
+  @if (cliente().correo) {
+    <li><img src="assets/ordenes/mail-gris.svg" width="16" height="16" alt="Correo" />{{ cliente().correo }}</li>
+  }
+  @if (cliente().comentarios) {
+    <li class="contacto__nota">{{ cliente().comentarios }}</li>
+  }
+</ul>
+
+<section class="portal" aria-labelledby="titulo-portal">
+  <h3 id="titulo-portal">Acceso al portal del cliente</h3>
+  @if (cliente().correo) {
+    <p class="renglon"><span>Usuario</span><strong>{{ cliente().correo }}</strong></p>
+    <p class="renglon"><span>Contraseña</span><strong>{{ contrasena() }}</strong></p>
+    <div class="portal__acciones">
+      <button type="button" (click)="generarTemporal.emit()"><span class="icono" style="--icono: url(assets/inventario/pencil.svg)"></span>Generar contraseña temporal</button>
+      <button type="button" (click)="enviarCorreo()"><span class="icono" style="--icono: url(assets/pdv/send-primario.svg)"></span>Enviar por correo</button>
+    </div>
+  } @else {
+    <p class="portal__sin">Sin correo no puede entrar al portal. <button type="button" class="enlace" (click)="editar.emit()">Agregar correo</button></p>
+  }
+</section>
+
+<section class="bloque" aria-labelledby="titulo-equipos">
+  <h3 id="titulo-equipos">Equipos</h3>
+  @for (e of equipos(); track e.folio) {
+    @if (e.orden) {
+      <a class="equipo" routerLink="/cajera/ordenes-de-servicio" [queryParams]="{ folio: e.orden.replace('#', '') }">
+        <span class="equipo__texto"><strong>{{ e.descripcion.split(' · ')[0] }}</strong><span>Folio {{ e.folio }} · Recibido {{ visita(e.fecha) }}</span></span>
+        <span class="estado estado--{{ e.estado.tono }}">{{ e.estado.texto }}</span>
+      </a>
+    } @else {
+      <div class="equipo">
+        <span class="equipo__texto"><strong>{{ e.descripcion.split(' · ')[0] }}</strong><span>Folio {{ e.folio }} · {{ visita(e.fecha) }}</span></span>
+        <span class="estado estado--{{ e.estado.tono }}">{{ e.estado.texto }}</span>
+      </div>
+    }
+  } @empty {
+    <p class="vacio">No ha dejado equipos en el taller.</p>
+  }
+</section>
+
+<section class="bloque" aria-labelledby="titulo-compras">
+  <h3 id="titulo-compras">Compras recientes</h3>
+  @for (c of compras(); track c.folio) {
+    <p class="renglon"><span>{{ c.folio }} · {{ c.descripcion }} · {{ visita(c.fecha) }}</span><strong>{{ dinero(c.monto ?? 0) }}</strong></p>
+  } @empty {
+    <p class="vacio">Sin compras en mostrador.</p>
+  }
+</section>
+
+<span class="espacio"></span>
+<div class="botones">
+  <button type="button" class="boton boton--contorno boton--40" (click)="historial.emit()"><span class="icono" style="--icono: url(assets/menu/history.svg)"></span>Historial</button>
+  <button type="button" class="boton boton--contorno boton--40" (click)="editar.emit()"><span class="icono" style="--icono: url(assets/inventario/pencil.svg)"></span>Editar</button>
+</div>
+<button type="button" class="boton boton--primario boton--44 boton--bloque" (click)="nuevaOrden.emit()">
+  <span class="icono" style="--icono: url(assets/menu/clip-plus.svg)"></span>Nueva orden para este cliente
+</button>

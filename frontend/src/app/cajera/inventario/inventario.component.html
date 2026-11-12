@@ -1,0 +1,97 @@
+<div class="inventario">
+  <header class="encabezado-pagina">
+    @switch (vista()) {
+      @case ('entradas') {
+        <div>
+          <h1 class="encabezado-pagina__titulo">Inventario</h1>
+          <p class="encabezado-pagina__subtitulo">Registra la mercancía que llega del proveedor. El stock y el costo promedio se actualizan al guardar.</p>
+        </div>
+        <button type="button" class="boton boton--contorno boton--40" (click)="ir('historial')">
+          <img src="assets/inventario/list-primario.svg" width="16" height="16" alt="" />Historial de entradas
+        </button>
+      }
+      @case ('historial') {
+        <div>
+          <h1 class="encabezado-pagina__titulo">Historial de entradas</h1>
+          <p class="encabezado-pagina__subtitulo">Mercancía recibida en caja · contra pedido del jefe o compra directa</p>
+        </div>
+        <div class="encabezado__acciones">
+          <label class="campo__control campo__control--40 inventario__mes">
+            <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+            <select class="campo__input campo__select" aria-label="Mes" [value]="mesElegido()" (change)="mes.set($any($event.target).value)">
+              @for (m of meses(); track m.clave) {
+                <option [value]="m.clave" [selected]="m.clave === mesElegido()">{{ m.texto }}</option>
+              }
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </label>
+          <button type="button" class="boton boton--contorno boton--40" (click)="ir('entradas')">Registrar entrada</button>
+        </div>
+      }
+      @case ('ajustes') {
+        <div>
+          <h1 class="encabezado-pagina__titulo">Ajustes de inventario</h1>
+          <p class="encabezado-pagina__subtitulo">Correcciones de stock por merma, daño, conteo físico o uso interno. Cada ajuste queda registrado con su motivo.</p>
+        </div>
+        <button type="button" class="boton boton--primario boton--40" (click)="ajustar(null)">
+          <img src="assets/inventario/plus-blanco.svg" width="16" height="16" alt="" />Nuevo ajuste
+        </button>
+      }
+      @default {
+        <div>
+          <h1 class="encabezado-pagina__titulo">Inventario y Catálogo</h1>
+          <p class="encabezado-pagina__subtitulo">{{ inventario.productos().length }} productos · almacén · Disponible = stock − apartadas para reparaciones</p>
+        </div>
+        <button type="button" class="boton boton--primario boton--40" (click)="alta.set({ producto: null })">
+          <img src="assets/inventario/plus-blanco.svg" width="16" height="16" alt="" />Añadir Producto
+        </button>
+      }
+    }
+  </header>
+
+  <nav class="pestanas" aria-label="Secciones de inventario">
+    @for (p of pestanas; track p.vista) {
+      <button type="button" class="pestanas__opcion" [class.pestanas__opcion--activa]="pestanaActiva() === p.vista" [attr.aria-current]="pestanaActiva() === p.vista ? 'page' : null" (click)="ir(p.vista)">
+        {{ p.texto }}
+      </button>
+    }
+  </nav>
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
+
+  @switch (vista()) {
+    @case ('entradas') {
+      <app-entrada (registrada)="ir('historial'); avisar($event)" (aviso)="avisar($event)" />
+    }
+    @case ('historial') {
+      <app-historial-entradas [mes]="mesElegido()" />
+    }
+    @case ('ajustes') {
+      <app-ajustes (movimientos)="movimientos.set($event)" />
+    }
+    @default {
+      <app-catalogo
+        class="inventario__contenido"
+        (editar)="alta.set({ producto: $event })"
+        (movimientos)="movimientos.set($event)"
+        (importar)="importar.set(true)"
+        (aviso)="avisar($event)"
+      />
+    }
+  }
+</div>
+
+@if (alta(); as a) {
+  <app-alta-producto [producto]="a.producto" (cerrar)="alta.set(null)" (guardado)="guardado($event.texto, $event.cerrar)" />
+}
+@if (importar()) {
+  <app-importar-excel (cerrar)="importar.set(false)" (importado)="importar.set(false); avisar($event)" />
+}
+@if (ajuste(); as a) {
+  <app-ajuste-inventario [skuInicial]="a.sku" (cerrar)="ajuste.set(null)" (aplicado)="ajusteAplicado($event)" />
+}
+@if (movimientos(); as sku) {
+  <app-movimientos [sku]="sku" (cerrar)="movimientos.set(null)" (ajustar)="ajustar(sku)" (editar)="movimientos.set(null); alta.set({ producto: inventario.buscar(sku)! })" />
+}

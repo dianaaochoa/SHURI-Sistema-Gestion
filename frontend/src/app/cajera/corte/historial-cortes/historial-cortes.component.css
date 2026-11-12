@@ -1,0 +1,51 @@
+:host { display: flex; flex: 1; flex-direction: column; gap: 16px; min-height: 0; }
+
+.indicadores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.cifra { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); font-size: 11px; color: var(--color-texto-tenue); }
+.cifra strong { font-size: 26px; font-weight: 700; color: var(--color-marino); white-space: nowrap; }
+.cifra span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cifra b { font-size: 13px; font-weight: 600; color: var(--color-marino); }
+.falta { color: var(--color-advertencia) !important; }
+.sobra { color: var(--color-primario) !important; }
+.exito, .cuadra { color: var(--color-exito) !important; }
+
+/* Figma C10.2: tabla de 812 px y detalle de 380 px */
+.columnas { display: flex; flex: 1; align-items: stretch; gap: 16px; min-height: 0; }
+.tabla-cortes { flex: 1; align-self: flex-start; max-height: 100%; min-width: 0; overflow: auto; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-marino); }
+th { position: sticky; top: 0; height: 40px; padding: 0 8px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; color: var(--color-texto-secundario); white-space: nowrap; }
+td { height: 46px; padding: 0 8px; border-top: 1px solid var(--color-borde); white-space: nowrap; }
+th:first-child, td:first-child { padding-left: 16px; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--color-fondo); }
+tbody tr:focus-visible { outline: 2px solid var(--color-acento); outline-offset: -2px; }
+tbody tr.elegida { background: var(--color-primario-suave); }
+.num { text-align: right; }
+.fuerte { font-weight: 600; }
+.tenue { color: var(--color-texto-tenue); }
+.vacia { height: 72px; text-align: center; color: var(--color-texto-tenue); }
+
+.detalle { display: flex; flex-shrink: 0; flex-direction: column; gap: 10px; width: 380px; padding: 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+.detalle__encabezado { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.detalle h2 { font-size: 16px; font-weight: 700; color: var(--color-marino); }
+.detalle__encabezado p { margin-top: 4px; font-size: 12px; color: var(--color-texto-tenue); }
+.renglon { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--color-texto-tenue); }
+.renglon strong { color: var(--color-marino); }
+.renglon--dif { align-items: center; font-weight: 600; color: var(--color-marino); }
+.renglon--dif strong { font-size: 20px; color: inherit; }
+hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--color-borde); }
+.comentario { font-size: 12px; color: var(--color-texto-tenue); }
+.espacio { flex: 1; }
+
+@media (max-width: 1280px) {
+  :host { flex: none; }
+  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .columnas { flex-direction: column; }
+  .tabla-cortes { align-self: stretch; max-height: none; }
+  .detalle { width: auto; }
+}
+
+@media (max-width: 640px) {
+  .indicadores { grid-template-columns: minmax(0, 1fr); }
+  .h-turno, .h-esperado, .h-contado { display: none; }
+}

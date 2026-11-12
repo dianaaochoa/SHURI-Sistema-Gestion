@@ -1,0 +1,128 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <section
+    class="modal abrir-turno"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-abrir-turno"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-abrir-turno">Abrir turno de caja</h2>
+        <p class="modal__subtitulo">La caja está cerrada. Cuenta el fondo inicial para empezar a vender.</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
+        <img src="assets/cajera/x.svg" width="20" height="20" alt="" />
+      </button>
+    </header>
+
+    <div class="abrir-turno__datos">
+      <div class="campo">
+        <span class="campo__etiqueta">Cajera</span>
+        <div class="campo__control campo__control--40 campo__control--fijo">
+          <img src="assets/cajera/user.svg" width="16" height="16" alt="" />
+          <span>{{ cajera }}</span>
+        </div>
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="caja">Caja</label>
+        <div class="campo__control campo__control--40">
+          <select id="caja" class="campo__input campo__select" [(ngModel)]="cajaElegida">
+            @for (caja of cajas; track caja) {
+              <option [value]="caja">{{ caja }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </div>
+      </div>
+      <div class="campo">
+        <label class="campo__etiqueta" for="turno">Turno</label>
+        <div class="campo__control campo__control--40">
+          <select id="turno" class="campo__input campo__select" [(ngModel)]="turnoElegido">
+            @for (turno of turnos; track turno) {
+              <option [value]="turno">{{ turno }} · {{ fecha }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </div>
+      </div>
+    </div>
+
+    <p class="campo__etiqueta">Conteo del fondo inicial</p>
+
+    <div class="abrir-turno__conteos">
+      @for (grupo of [billetes, monedas]; track $index; let esMonedas = $last) {
+        <table class="conteo">
+          <thead>
+            <tr>
+              <th>Denominación</th>
+              <th class="conteo__cantidad">Cantidad</th>
+              <th class="conteo__importe">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of grupo; track d.valor) {
+              <tr>
+                <td>{{ d.etiqueta }}</td>
+                <td class="conteo__cantidad">
+                  <input
+                    type="number"
+                    min="0"
+                    inputmode="numeric"
+                    [attr.aria-label]="'Cantidad de ' + d.etiqueta"
+                    [value]="cantidades()[d.valor] || 0"
+                    (input)="cambiarCantidad(d.valor, $any($event.target).value)"
+                    (focus)="$any($event.target).select()"
+                  />
+                </td>
+                <td class="conteo__importe">{{ dinero(importe(d.valor)) }}</td>
+              </tr>
+            }
+            @if (esMonedas) {
+              <tr>
+                <td>Centavos</td>
+                <td class="conteo__cantidad">
+                  <input
+                    type="number"
+                    min="0"
+                    max="0.99"
+                    step="0.1"
+                    inputmode="decimal"
+                    placeholder="—"
+                    aria-label="Importe en centavos"
+                    [value]="centavos() || ''"
+                    (input)="cambiarCentavos($any($event.target).value)"
+                  />
+                </td>
+                <td class="conteo__importe">{{ dinero(centavos()) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <div class="total" [class.total--diferencia]="diferencia() !== 0" aria-live="polite">
+      <div>
+        <p class="total__titulo">Fondo inicial contado</p>
+        <p class="total__detalle">
+          @if (diferencia() === 0) {
+            Coincide con el fondo asignado ({{ dinero(fondoAsignado) }})
+          } @else {
+            {{ diferencia() > 0 ? 'Sobran' : 'Faltan' }} {{ dinero(diferencia() < 0 ? -diferencia() : diferencia()) }}
+            respecto al fondo asignado ({{ dinero(fondoAsignado) }})
+          }
+        </p>
+      </div>
+      <p class="total__importe">{{ dinero(total()) }}</p>
+    </div>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Salir</button>
+      <button type="button" class="boton boton--primario boton--44" [disabled]="!total()" (click)="abrir()">
+        <img src="assets/cajera/unlock-blanco.svg" width="16" height="16" alt="" />
+        Abrir caja y empezar a vender
+      </button>
+    </div>
+  </section>
+</div>

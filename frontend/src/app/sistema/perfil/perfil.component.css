@@ -1,0 +1,38 @@
+.perfil { display: flex; flex-direction: column; gap: 16px; }
+
+/* Figma C1.6: dos tarjetas de 596 px */
+.columnas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.tarjeta-perfil { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); }
+h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--color-marino); }
+h2 .icono { width: 18px; height: 18px; color: var(--color-primario); }
+
+.persona { display: flex; align-items: center; gap: 14px; }
+.persona__avatar { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 999px; background: var(--color-primario-suave); font-size: 20px; font-weight: 700; color: var(--color-primario); }
+.persona__nombre { margin-bottom: 4px; font-size: 18px; font-weight: 700; color: var(--color-marino); }
+
+.datos { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.datos div { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+.datos dt { color: var(--color-texto-tenue); }
+.datos dd { margin: 0; font-weight: 600; text-align: right; color: var(--color-marino); }
+
+.campo__control { gap: 8px; }
+.seguridad { display: flex; flex-direction: column; gap: 6px; margin-top: -4px; }
+.seguridad__barras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.seguridad__barras span { height: 4px; border-radius: 999px; background: var(--color-borde); }
+.seguridad__barras .activa { background: var(--nivel); }
+.seguridad__nivel { font-size: 12px; color: var(--color-texto-tenue); }
+.seguridad__nivel strong { color: var(--nivel); }
+.seguridad__requisitos { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--color-texto-tenue); }
+.seguridad__requisitos li { display: flex; align-items: center; gap: 6px; }
+.seguridad__requisitos .cumple { color: var(--color-marino); }
+.acciones { display: flex; justify-content: flex-end; }
+
+@media (max-width: 960px) {
+  .columnas { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .acciones .boton { flex: 1; }
+  .datos div { flex-direction: column; gap: 2px; }
+  .datos dd { text-align: left; }
+}

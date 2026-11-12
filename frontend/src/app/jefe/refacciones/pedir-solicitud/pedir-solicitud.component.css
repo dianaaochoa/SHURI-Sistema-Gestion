@@ -1,0 +1,14 @@
+/* Figma J5.2: modal de 560 px */
+.modal { max-width: 560px; }
+.tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.campo { min-width: 0; }
+.campo__control { font-size: 14px; color: var(--color-marino); }
+.campo__control img { pointer-events: none; }
+input::-webkit-calendar-picker-indicator { display: none; }
+.casilla { font-size: 14px; color: var(--color-marino); }
+.boton .icono { width: 16px; height: 16px; }
+
+@media (max-width: 520px) {
+  .tres, .dos { grid-template-columns: 1fr; }
+}

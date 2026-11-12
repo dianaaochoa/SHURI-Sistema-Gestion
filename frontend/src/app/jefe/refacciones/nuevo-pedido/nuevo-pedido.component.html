@@ -1,0 +1,105 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-nuevo-pedido" (click)="$event.stopPropagation()" (keydown.escape)="cerrar.emit()" (submit)="$event.preventDefault(); registrar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-nuevo-pedido">Nuevo pedido a proveedor</h2>
+        <p class="modal__subtitulo">Para surtir stock o varias órdenes a la vez · folio {{ folio }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Proveedor *</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="proveedor.set($any($event.target).value)">
+            @for (p of proveedores; track p) {
+              <option [value]="p" [selected]="p === proveedor()">{{ p }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Llega</span>
+        <span class="campo__control campo__control--40">
+          <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+          <input class="campo__input" type="date" [value]="llega()" (click)="$any($event.target).showPicker?.()" (input)="llega.set($any($event.target).value)" />
+        </span>
+      </label>
+    </div>
+
+    <div class="buscador">
+      <label class="campo__control campo__control--40">
+        <img src="assets/inventario/search.svg" width="16" height="16" alt="" />
+        <input class="campo__input" type="search" autocomplete="off" placeholder="Agregar refacción…" aria-label="Agregar refacción" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+      </label>
+      @if (resultados().length) {
+        <ul class="resultados popover" role="listbox">
+          @for (p of resultados(); track p.sku) {
+            <li><button type="button" (click)="agregar(p)"><span>{{ p.nombre }}<small>{{ p.sku }} · {{ p.stock }} en stock · {{ p.proveedor }}</small></span><strong>{{ dinero(p.costo) }}</strong></button></li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Refacción</th><th>Para</th><th>Cant.</th><th>Costo</th><th>Importe</th><th><span class="oculto">Quitar</span></th></tr></thead>
+        <tbody>
+          @for (l of lineas(); track i; let i = $index) {
+            <tr>
+              <td class="t-nombre">{{ l.nombre }}</td>
+              <td>
+                <select class="entrada" aria-label="Para" (change)="cambiar(i, 'orden', $any($event.target).value)">
+                  <option value="" [selected]="!l.orden">Stock</option>
+                  @for (o of ordenes(); track o) {
+                    <option [value]="o" [selected]="o === l.orden">{{ o }}</option>
+                  }
+                </select>
+              </td>
+              <td><input class="entrada entrada--chica" type="number" min="1" step="1" aria-label="Cantidad" [value]="l.cantidad" (change)="cambiar(i, 'cantidad', $any($event.target).value)" /></td>
+              <td><input class="entrada" type="number" min="0" step="0.01" aria-label="Costo" [value]="l.costo.toFixed(2)" (change)="cambiar(i, 'costo', $any($event.target).value)" /></td>
+              <td class="t-importe">{{ dinero(l.cantidad * l.costo) }}</td>
+              <td><button type="button" class="quitar" [attr.aria-label]="'Quitar ' + l.nombre" (click)="quitar(i)"><img src="assets/inventario/x-peligro.svg" width="14" height="14" alt="" /></button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="vacio">Busca arriba las refacciones que vas a pedir.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Forma de pago *</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="pago.set($any($event.target).value)">
+            @for (p of pagos; track p.id) {
+              <option [value]="p.id" [selected]="p.id === pago()">{{ p.texto }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Recibe</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="recibe.set($any($event.target).value)">
+            @for (r of recibeOpciones; track r) {
+              <option [value]="r" [selected]="r === recibe()">{{ r }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+    </div>
+
+    <p class="total"><span>Total del pedido</span><strong>{{ dinero(total()) }}</strong></p>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44" [disabled]="!lineas().length"><span class="icono" style="--icono: url(assets/menu/cart.svg)"></span>Registrar pedido</button>
+    </div>
+  </form>
+</div>

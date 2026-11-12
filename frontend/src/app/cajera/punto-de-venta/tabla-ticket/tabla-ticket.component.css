@@ -1,0 +1,33 @@
+:host { display: block; }
+.tabla { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; color: var(--color-marino); }
+.tabla th { height: 40px; padding: 0 4px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; color: var(--color-texto-tenue); }
+.tabla td { height: 56px; padding: 0 4px; border-bottom: 1px solid var(--color-borde); }
+.tabla :is(th, td):first-child { padding-left: 16px; }
+.col-sku { width: 92px; font-size: 12px; color: var(--color-texto-tenue); }
+.col-nombre { font-weight: 500; }
+.col-cantidad { width: 104px; }
+.tabla .col-dinero { width: 116px; text-align: right; }
+.col-total { font-weight: 600; }
+.tabla .col-descuento { width: 96px; text-align: center; }
+.col-quitar { width: 48px; text-align: center; }
+.temporal { margin-left: 6px; padding: 2px 6px; font-size: 11px; }
+.cantidad { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.cantidad__boton { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--color-borde); border-radius: 999px; background: none; cursor: pointer; }
+.cantidad__boton--sumar { border-color: var(--color-primario-suave); background: var(--color-primario-suave); }
+.cantidad__boton:disabled { opacity: 0.4; cursor: not-allowed; }
+.descuento { width: 56px; height: 32px; border: 1px solid var(--color-borde); border-radius: 8px; background: none; font-size: 12px; text-align: center; }
+.descuento:focus { outline: 0; border-color: var(--color-primario); }
+.quitar { padding: 4px; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+.quitar:hover { background: var(--color-peligro-suave); }
+.nota { display: flex; align-items: center; gap: 8px; padding: 16px; font-size: 12px; color: var(--color-texto-tenue); }
+
+/* Celular: la tabla cabe sin scroll horizontal (descripción, cantidad, total y quitar). */
+@media (max-width: 768px) {
+  .tabla { min-width: 0; table-layout: fixed; }
+  .col-sku, .tabla th:nth-child(4), .tabla td:nth-child(4), .col-descuento { display: none; }
+  .tabla :is(th, td):nth-child(2) { padding-left: 16px; }
+  .col-cantidad { width: 92px; }
+  .tabla .col-dinero { width: 84px; }
+  .col-quitar { width: 36px; }
+}
+tbody tr:focus-visible { outline: 2px solid var(--color-acento); outline-offset: -2px; background: var(--color-primario-suave); }
