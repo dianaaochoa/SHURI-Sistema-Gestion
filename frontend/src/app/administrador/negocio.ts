@@ -64,3 +64,41 @@ export function origenDinero(d: DiaEstadistico, buscar: (sku: string) => Product
     { texto: 'Refacciones sueltas', monto: refacciones, porcentaje: Math.round((refacciones / total) * 100), color: '#a7b4c2' },
   ];
 }
+
+/** Descuentos del historial de prueba: 1.7 % de lo vendido en mostrador (Figma AD2.1); los de la app son reales. */
+export const DESCUENTO_DEMO = 0.017;
+
+export interface FilaCategoria {
+  categoria: string;
+  ventas: number;
+  costo: number;
+  utilidad: number;
+  margen: number | null;
+  participacion: number | null;
+}
+
+/** "Utilidad por categoría" (Figma AD2.1): reparaciones, accesorios, refacciones sueltas, descuentos y total. */
+export function porCategoria(d: DiaEstadistico, descuentos: number, buscar: (sku: string) => ProductoInventario | undefined): FilaCategoria[] {
+  const grupos: Record<string, { ventas: number; costo: number }> = {
+    Reparaciones: { ventas: d.reparaciones, costo: sinIva(d.reparaciones) * (1 - MARGEN_TALLER_DEMO) },
+    Accesorios: { ventas: 0, costo: 0 },
+    'Refacciones sueltas': { ventas: 0, costo: 0 },
+  };
+  for (const [nombre, p] of Object.entries(d.productos)) {
+    const producto = buscar(SKU_POR_NOMBRE[nombre] ?? '');
+    const grupo = producto?.categoria === 'Refacciones' ? grupos['Refacciones sueltas'] : grupos['Accesorios'];
+    grupo.ventas += p.ingresos;
+    grupo.costo += producto ? producto.costo * p.piezas : sinIva(p.ingresos) * 0.4;
+  }
+  const total = Object.values(grupos).reduce((s, g) => s + g.ventas, 0) || 1;
+  const filas: FilaCategoria[] = Object.entries(grupos).map(([categoria, g]) => {
+    const utilidad = sinIva(g.ventas) - g.costo;
+    return { categoria, ventas: g.ventas, costo: g.costo, utilidad, margen: g.ventas ? Math.round((utilidad / sinIva(g.ventas)) * 100) : 0, participacion: Math.round((g.ventas / total) * 100) };
+  });
+  filas.push({ categoria: 'Descuentos', ventas: -descuentos, costo: 0, utilidad: -sinIva(descuentos), margen: null, participacion: null });
+  const ventas = filas.reduce((s, f) => s + f.ventas, 0);
+  const costo = filas.reduce((s, f) => s + f.costo, 0);
+  const utilidad = filas.reduce((s, f) => s + f.utilidad, 0);
+  filas.push({ categoria: 'Total', ventas, costo, utilidad, margen: ventas ? Math.round((utilidad / sinIva(ventas)) * 100) : 0, participacion: 100 });
+  return filas;
+}

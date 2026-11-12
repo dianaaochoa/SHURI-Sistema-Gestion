@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 11 nov 2026 (administrador AD1: Inicio)
+- **Última actualización:** 11 nov 2026 (administrador AD2: Reportes)
 
 ---
 
@@ -38,7 +38,8 @@ flowchart LR
 
   subgraph ADM["02 · Administrador"]
     AD1["AD1 Inicio<br/>AD1.1 resumen del negocio · AD1.2 notificaciones · AD1.3 menú"]:::hecho
-    AD["AD2–AD9"]:::pendiente
+    AD2["AD2 Reportes<br/>AD2.1 ventas y utilidad · AD2.2 desempeño del taller · AD2.3 mes sin ventas"]:::hecho
+    AD["AD3–AD9"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -226,6 +227,9 @@ flowchart LR
   end
   subgraph ADMIN["administrador/"]
     IAD["InicioAdmin<br/>AD1.1"]:::comp
+    VYU["VentasUtilidad<br/>AD2.1 · AD2.3"]:::comp
+    TRP["TallerReporte<br/>AD2.2"]:::comp
+    RPT["reportes.ts<br/>meses y exportar CSV"]:::serv
     NEG["negocio.ts<br/>utilidad, lo que más deja<br/>y de dónde viene el dinero"]:::serv
   end
   subgraph TECNICO["tecnico/"]
@@ -447,6 +451,9 @@ flowchart LR
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
   SL --> TI & EA & BNC & GTC & RFT & HST & IAD
   IAD --> ESV & NEG & COS & INS & OS & HV
+  SL --> VYU & TRP
+  VYU --> ESV & NEG & RPT & COS & HV
+  TRP --> OS & ESV & BTS & RPT
   HST --> OS & BTS & RS
   RFT --> RS
   GTC --> OS
@@ -657,6 +664,11 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Atención”: corte con faltante de la última semana, pago a proveedor a crédito por vencer, productos bajo el mínimo, descuentos del día, equipo sin recoger más de 30 días y la tasa de garantías contra la meta de 5 %. Sus enlaces llevan a AD2–AD9 (pendientes).
 - El resumen del menú dice “Caja 01 abierta / cerrada” según la caja real.
 
+**Reportes del administrador (`/administrador/ventas-y-utilidad` y `/administrador/taller`):**
+- Ventas y utilidad (AD2.1) por mes: ventas contra el mes anterior, utilidad bruta, ticket promedio, descuentos, ventas por semana, utilidad por categoría, cómo se cobró en mostrador, quién cobró, devoluciones, cancelaciones y faltantes. Si el mes no tiene ventas sale AD2.3 con “Ver el mes anterior”.
+- Desempeño del taller (AD2.2) por mes, con las órdenes de la app: recibidas y entregadas, presupuestos aprobados, tiempo a cotizar contra el SLA, tasa de garantías, tabla por técnico, órdenes por resultado y motivos de rechazo.
+- “Exportar Excel” descarga un CSV con lo que se ve (Excel lo abre con acentos).
+
 **Versión tablet del técnico (T7, de 769 a 1180 px de ancho):**
 - El menú es un riel de 80 px con el nombre corto bajo cada ícono (Inicio, Equipos, Banco, Garantías, Refacc., Historial).
 - En el banco, una orden en taller o en garantía se ve como Figma T7: encabezado corto con el PIN, pestañas (Trabajo, Refacciones, Fotos, Notas, Equipo), pasos grandes para el dedo y botones de acción (Tomar foto, Pedir refacción, Necesito información, Pausar, Daño adicional y Marcar como listo con los pasos pendientes). Las demás etapas y las otras pantallas usan su vista normal.
@@ -722,7 +734,10 @@ frontend/src/
     │       └── resumen-orden/     # panel derecho con la orden
     ├── administrador/         # 02 · Administrador
     │   ├── negocio.ts         # utilidad (costo de Inventario y margen de taller de prueba), lo que más deja, origen del dinero
-    │   └── inicio-admin/      # AD1.1
+    │   ├── reportes.ts · reportes.css   # meses, exportar CSV y estilos de AD2
+    │   ├── inicio-admin/      # AD1.1
+    │   ├── ventas-utilidad/   # AD2.1 · AD2.3
+    │   └── taller-reporte/    # AD2.2
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1041,6 +1056,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Utilidad bruta | Mostrador: precio sin IVA menos el costo de Inventario (40 % si el producto no está); taller: margen fijo de prueba del 50 % (`MARGEN_TALLER_DEMO`) | Con la API de reportes vendrá el costo real de cada reparación. |
 | Pagos a proveedor | Las entradas a crédito vencen a los 30 días (`DIAS_CREDITO_DEMO`) | Las entradas no guardan plazo de crédito todavía. |
 | Avisos del administrador (AD1.2) | Los 4 de Figma (contraseña, corte con faltante, pago a proveedor y timbres) como datos de prueba | Se conectan cuando existan AD3, AD5, AD6 y AD7. |
+| Ventas y utilidad (AD2.1) | Hecho con el PNG `docs/diseno/02-administrador/ad2-reportes.png`. Mismo origen que AD1 y C9 (`EstadisticasService.suma`); utilidad por categoría con `porCategoria` (costo de Inventario y margen de taller de prueba) | Los descuentos del historial de prueba son el 1.7 % de mostrador (`DESCUENTO_DEMO`); los de la app son los reales. |
+| Quién cobró | La parte de cada cajera según sus cortes del mes, aplicada a las ventas del mes | Los cortes de prueba y el historial de prueba son independientes; sin esto las cajeras sumaban más que el mes. Los cortes de prueba solo cubren ~40 días. |
+| Cómo se cobró | Solo mostrador (el historial no guarda con qué se pagaron las reparaciones) | Figma lo muestra para todo; el título dice “en mostrador”. |
+| Desempeño del taller (AD2.2) | Con las órdenes de la app (pocas: 10 recibidas en octubre); la tasa de garantías usa las entregas del mes de Estadísticas, como AD1 y J4. Las garantías de cada técnico se miden contra todo lo que ha terminado | Las garantías del mes vienen de reparaciones de meses anteriores; contra lo terminado en el mes daba más de 100 %. “En pausa” cuenta sus órdenes pausadas ahora. |
+| Exportar Excel | CSV con BOM (`exportarCsv`) en lugar de .xlsx | No hay librería de Excel en el proyecto; Excel lo abre igual. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -1053,10 +1073,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD2–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador va AD1.
+- [ ] Pantallas de cada rol: administrador (AD3–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1 y AD2.
+- [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 4.17 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 4.36 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1543,3 +1564,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - a 1440×900 como Figma AD1.1: hoy $1,189 de mostrador, 18 órdenes en taller (1 atrasada), 14 barras con hoy resaltado, “vs octubre +19 %”, lo que más deja con reparaciones del taller arriba y 5 avisos (faltante del 10 nov, pago a MovilTec, 11 productos bajo el mínimo, descuentos del día y #0939 con 57 días)
   - “Este mes” cambia los indicadores a $31,339 y 54 % de margen, igual que la gráfica
   - la campana muestra los 4 avisos de AD1.2; a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
+
+### 11 nov 2026 · Administrador AD2: Reportes
+- Hecho con el PNG `docs/diseno/02-administrador/ad2-reportes.png` (AD2.1 ventas y utilidad, AD2.2 desempeño del taller, AD2.3 mes sin ventas).
+- `VentasUtilidadComponent`, `TallerReporteComponent`, `reportes.ts` (meses y CSV) y `porCategoria` en `negocio.ts`.
+- Verificado como `vcastillo`:
+  - octubre: $89,453 (+18 % vs septiembre), 53 % de margen, 5 semanas, utilidad por categoría y faltantes en cortes; noviembre: $31,339 repartidos entre Ana Martínez ($17,439) y Luis Peña ($13,900), 1 devolución de $174
+  - taller de noviembre: 11 recibidas, tabla por técnico y órdenes por resultado; octubre: 10 recibidas, 5 entregadas, 13 h 42 a cotizar (4 fuera del SLA)
+  - a 1366×768 las tablas caben; a 360 px las tablas quedan sin desplazamiento (se ocultan costo, participación, ingreso, tiempo y estado); sin errores en consola
+  - AD2.3 no se pudo ver con los datos de prueba: todos los meses tienen ventas

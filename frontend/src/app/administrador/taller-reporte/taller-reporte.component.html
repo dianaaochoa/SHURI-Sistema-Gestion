@@ -1,0 +1,84 @@
+<div class="reporte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Desempeño del taller</h1>
+      <p class="encabezado-pagina__subtitulo">Órdenes, tiempos, presupuestos y garantías · {{ mes().texto }}</p>
+    </div>
+    <div class="acciones">
+      <span class="campo__control campo__control--40 mes">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <select class="campo__input campo__select" aria-label="Mes" (change)="mesId.set($any($event.target).value)">
+          @for (m of meses; track m.id) {
+            <option [value]="m.id" [selected]="m.id === mesId()">{{ m.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+      <button type="button" class="boton boton--contorno boton--40" (click)="exportar()"><span class="icono" style="--icono: url(assets/inventario/download-primario.svg)"></span>Exportar Excel</button>
+    </div>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen del taller">
+    @for (i of indicadores(); track i.titulo) {
+      <div class="indicador">
+        <p class="indicador__valor valor--{{ i.tono }}">{{ i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ i.detalle }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/users.svg)"></span>Por técnico</h2>
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Técnico</th><th>Terminadas</th><th class="t-ingreso">Ingreso generado</th><th class="t-tiempo">Tiempo promedio</th><th class="t-pausa">En pausa</th><th>Garantías</th><th class="t-aplicadas">Aplicadas sin costo</th><th class="t-estado">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of tecnicos(); track t.nombre) {
+            <tr>
+              <td class="t-nombre">{{ t.nombre }}</td>
+              <td>{{ t.terminadas }}</td>
+              <td class="t-ingreso">{{ dinero(t.ingreso) }}</td>
+              <td class="t-tiempo">{{ t.tiempo }}</td>
+              <td class="t-pausa">{{ t.pausa }}</td>
+              <td><span class="estado estado--{{ t.garantias.tono }}">{{ t.garantias.texto }}</span></td>
+              <td class="t-aplicadas">{{ t.aplicadas }}</td>
+              <td class="t-estado"><span class="estado estado--{{ t.estado.tono }}">{{ t.estado.texto }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="dos-paneles">
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/chart.svg)"></span>Órdenes por resultado</h2>
+      <div class="grafica" role="img" aria-label="Órdenes del mes por resultado">
+        @for (r of resultados(); track r.texto) {
+          <div class="grafica__col" [title]="r.texto + ': ' + r.valor">
+            <span class="grafica__valor">{{ r.valor }}</span>
+            <span class="grafica__barra" [class.grafica__barra--fuerte]="r.fuerte" [style.height.%]="r.alto"></span>
+            <span class="grafica__etiqueta">{{ r.texto }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/tecnico/x-circulo.svg)"></span>Por qué rechazan presupuestos</h2>
+      @for (m of motivos(); track m.texto) {
+        <p class="dato"><span>{{ m.texto }}</span><strong>{{ m.valor }}</strong></p>
+      } @empty {
+        <p class="dato"><span>Ningún presupuesto rechazado en {{ mes().texto.toLowerCase() }}.</span></p>
+      }
+      <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Los motivos se capturan al rechazar en caja o en el portal. Úsalos para ajustar el tabulador de mano de obra.</p>
+    </section>
+  </div>
+</div>
