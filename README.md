@@ -208,7 +208,7 @@ Cada riesgo se evalúa por **Probabilidad (P)** y **Gravedad (G)**, en una escal
 | R7 | Error de captura técnica que muestre un estatus equivocado al cliente. | 3 | 4 | 🟠 Alto | Confusión del cliente o visitas innecesarias a la sucursal. | Corregir el estado de inmediato y aclarar la situación con el cliente por el chat del portal. | Cuadro de confirmación antes de guardar un cambio de estatus; cada cambio queda en la bitácora. |
 | R8 | Caída del servidor local o del servicio web durante el horario de atención. | 2 | 5 | 🟠 Alto | No se puede cobrar en caja ni registrar la recepción de equipos. | Usar notas físicas de contingencia y capturarlas en el sistema al restablecerse el servicio. | Servidor de alta disponibilidad o infraestructura en la nube con respaldo. |
 | R10 | Retraso del cliente en responder un presupuesto en la plataforma. | 3 | 2 | 🟡 Moderado | La reparación se detiene por falta de autorización. | Si pasan más de 48 horas sin respuesta, enviar un recordatorio por correo y un mensaje del Jefe de Técnicos por el chat. | Aviso destacado de "Presupuesto pendiente" en el portal y correo automático al cliente (RF-17). |
-| R12 | Inconsistencia de existencias por el descuento incorrecto de refacciones. | 2 | 2 | 🟢 Bajo | Diferencias entre el inventario del sistema y el stock físico del almacén. | Ajuste manual en el módulo de inventario después de una auditoría. | El técnico debe seleccionar la refacción del catálogo digital antes de usarla; cada movimiento queda en `movimientos_inventario`. |
+| R12 | Inconsistencia de existencias por el descuento incorrecto de refacciones. | 2 | 2 | 🟢 Bajo | Diferencias entre el inventario del sistema y el stock físico del almacén. | Ajuste manual en el módulo de inventario después de una auditoría. | El técnico debe seleccionar la refacción del catálogo digital antes de usarla; cada movimiento queda en `inventory_movements`. |
 | R14 | Confusión del cliente sobre el horario de entrega en la sucursal. | 1 | 2 | 🟢 Muy bajo | El cliente acude fuera del horario de atención a recoger su equipo. | Atenderlo en el siguiente horario hábil, explicándole la política de la sucursal. | Mostrar la dirección y el horario de atención en el portal del cliente (pantalla P4). |
 
 ### 7.4 Definition of Done
@@ -386,7 +386,7 @@ El detalle de **todas las pantallas** (49 secciones de Figma), el sistema de dis
 | Entregado | "El servicio ha sido completado y el equipo ha sido entregado al cliente." | 🟢 Verde |
 | Rechazado / En abandono | — (uso interno) | 🔴 Rojo / ⚪ Gris |
 
-Cada mensaje se guarda en `estados_orden.mensaje_cliente`, y su color en `estados_orden.color_hex`. El campo `paso_portal` (1 a 6) indica qué paso se ilumina en la barra de avance de la pantalla P2.
+Cada mensaje se guarda en `order_statuses.customer_message`, y su color en `order_statuses.color_hex`. El campo `portal_step` (1 a 6) indica qué paso se ilumina en la barra de avance de la pantalla P2.
 
 **Tipografía:** fuentes sans-serif modernas (Inter / Roboto) para lectura óptima en paneles densos y pantallas móviles.
 
@@ -697,52 +697,52 @@ Vista simplificada con las tablas principales y cómo se conectan.
 
 ```mermaid
 erDiagram
-    cajas |o--o{ users : "caja_id"
+    cash_registers |o--o{ users : "cash_register_id"
     roles ||--o{ users : "role_id"
-    clientes ||--o{ equipos : "cliente_id"
-    clientes ||--o{ conversaciones : "cliente_id"
-    conversaciones ||--o{ mensajes : "conversacion_id"
-    users |o--o{ ordenes_servicio : "tecnico_id y otros"
-    cajas |o--o{ ordenes_servicio : "caja_id"
-    clientes ||--o{ ordenes_servicio : "cliente_id"
-    equipos ||--o{ ordenes_servicio : "equipo_id"
-    estados_orden ||--o{ ordenes_servicio : "estado_id"
-    clientes |o--o{ presupuestos : "cliente_id"
-    ordenes_servicio |o--o{ presupuestos : "orden_id"
-    estados_orden |o--o{ bitacora_orden : "estado_anterior_id, estado_nuevo_id"
-    garantias |o--o{ bitacora_orden : "garantia_id"
-    ordenes_servicio ||--o{ bitacora_orden : "orden_id"
-    presupuestos |o--o{ bitacora_orden : "presupuesto_id"
-    clientes ||--o{ garantias : "cliente_id"
-    ordenes_servicio ||--o{ garantias : "orden_id"
-    ordenes_servicio ||--o{ orden_refacciones : "orden_id"
-    productos ||--o{ orden_refacciones : "producto_id"
-    categorias ||--o{ productos : "categoria_id"
-    proveedores |o--o{ productos : "proveedor_id"
-    proveedores ||--o{ compras : "proveedor_id"
-    compras |o--o{ movimientos_inventario : "compra_id"
-    ordenes_servicio |o--o{ movimientos_inventario : "orden_servicio_id"
-    productos ||--o{ movimientos_inventario : "producto_id"
-    ventas |o--o{ movimientos_inventario : "venta_id"
-    cajas ||--o{ turnos_caja : "caja_id"
-    users |o--o{ turnos_caja : "user_id y otros"
-    users |o--o{ ventas : "cajera_id y otros"
-    cajas |o--o{ ventas : "caja_id"
-    clientes |o--o{ ventas : "cliente_id"
-    facturas |o--o{ ventas : "factura_id"
-    turnos_caja |o--o{ ventas : "turno_id"
-    ordenes_servicio |o--o{ venta_detalles : "orden_servicio_id"
-    productos |o--o{ venta_detalles : "producto_id"
-    ventas ||--o{ venta_detalles : "venta_id"
-    turnos_caja |o--o{ pagos : "turno_id"
-    ventas ||--o{ pagos : "venta_id"
-    clientes |o--o{ facturas : "cliente_id"
-    facturas |o--o{ facturas : "sustituida_por"
+    customers ||--o{ devices : "customer_id"
+    customers ||--o{ conversations : "customer_id"
+    conversations ||--o{ messages : "conversation_id"
+    users |o--o{ service_orders : "technician_id y otros"
+    cash_registers |o--o{ service_orders : "cash_register_id"
+    customers ||--o{ service_orders : "customer_id"
+    devices ||--o{ service_orders : "device_id"
+    order_statuses ||--o{ service_orders : "status_id"
+    customers |o--o{ quotes : "customer_id"
+    service_orders |o--o{ quotes : "service_order_id"
+    order_statuses |o--o{ order_logs : "previous_status_id, new_status_id"
+    warranties |o--o{ order_logs : "warranty_id"
+    service_orders ||--o{ order_logs : "service_order_id"
+    quotes |o--o{ order_logs : "quote_id"
+    customers ||--o{ warranties : "customer_id"
+    service_orders ||--o{ warranties : "service_order_id"
+    service_orders ||--o{ order_parts : "service_order_id"
+    products ||--o{ order_parts : "product_id"
+    categories ||--o{ products : "category_id"
+    suppliers |o--o{ products : "supplier_id"
+    suppliers ||--o{ purchases : "supplier_id"
+    purchases |o--o{ inventory_movements : "purchase_id"
+    service_orders |o--o{ inventory_movements : "service_order_id"
+    products ||--o{ inventory_movements : "product_id"
+    sales |o--o{ inventory_movements : "sale_id"
+    cash_registers ||--o{ cash_shifts : "cash_register_id"
+    users |o--o{ cash_shifts : "user_id y otros"
+    users |o--o{ sales : "cashier_id y otros"
+    cash_registers |o--o{ sales : "cash_register_id"
+    customers |o--o{ sales : "customer_id"
+    invoices |o--o{ sales : "invoice_id"
+    cash_shifts |o--o{ sales : "cash_shift_id"
+    service_orders |o--o{ sale_items : "service_order_id"
+    products |o--o{ sale_items : "product_id"
+    sales ||--o{ sale_items : "sale_id"
+    cash_shifts |o--o{ payments : "cash_shift_id"
+    sales ||--o{ payments : "sale_id"
+    customers |o--o{ invoices : "customer_id"
+    invoices |o--o{ invoices : "replaced_by"
 ```
 
 ### 14.4 Diagrama de estados de una orden de servicio
 
-Los estados viven en la tabla catálogo `estados_orden`. Cada cambio queda en `bitacora_orden` y actualiza su fecha en `ordenes_servicio` (`fecha_asignacion`, `fecha_cotizacion`, `fecha_aprobacion`, `fecha_listo`, `fecha_entrega`, `fecha_abandono`, `fecha_desecho`). La **pausa** no es un estado: el técnico la marca con `en_pausa` sin perder el estado actual.
+Los estados viven en la tabla catálogo `order_statuses`. Cada cambio queda en `order_logs` y actualiza su fecha en `service_orders` (`assigned_at`, `quoting_started_at`, `approved_at`, `ready_at`, `delivered_at`, `abandoned_at`, `disposed_at`). La **pausa** no es un estado: el técnico la marca con `is_paused` sin perder el estado actual.
 
 ```mermaid
 stateDiagram-v2
@@ -773,7 +773,7 @@ stateDiagram-v2
     EnAbandono : En abandono
 ```
 
-Una orden **entregada** puede abrir una **garantía** (tabla `garantias`), que sigue su propio flujo: solicitada → recibida → en revisión → por dictaminar → aprobada / rechazada → en reparación → terminada → entregada.
+Una orden **entregada** puede abrir una **garantía** (tabla `warranties`), que sigue su propio flujo: solicitada → recibida → en revisión → por dictaminar → aprobada / rechazada → en reparación → terminada → entregada.
 
 ---
 
@@ -788,71 +788,71 @@ El diccionario **columna por columna** (tipo de dato, obligatoriedad, valor por 
 | Tabla | Módulo | Propósito |
 |---|---|---|
 | [`roles`](backend/README.md#roles) | Seguridad y personal | Catálogo de los 4 roles internos del sistema. |
-| [`permisos`](backend/README.md#permisos) | Seguridad y personal | Acciones que se pueden permitir o negar (ej. "Aplicar descuentos"). |
-| [`rol_permiso`](backend/README.md#rol_permiso) | Seguridad y personal | Qué permisos tiene cada rol (relación muchos a muchos). |
+| [`permissions`](backend/README.md#permissions) | Seguridad y personal | Acciones que se pueden permitir o negar (ej. "Aplicar descuentos"). |
+| [`permission_role`](backend/README.md#permission_role) | Seguridad y personal | Qué permisos tiene cada rol (relación muchos a muchos). |
 | [`users`](backend/README.md#users) | Seguridad y personal | Personal interno que inicia sesión en el sistema. |
 | [`password_reset_tokens`](backend/README.md#password_reset_tokens) | Seguridad y personal | Tokens de Laravel para que el personal restablezca su contraseña. |
 | [`personal_access_tokens`](backend/README.md#personal_access_tokens) | Seguridad y personal | Tokens de sesión de Laravel Sanctum (personal y clientes). |
-| [`clientes`](backend/README.md#clientes) | Clientes y portal | Clientes finales. El **correo** es su usuario del portal. |
-| [`cliente_password_reset_tokens`](backend/README.md#cliente_password_reset_tokens) | Clientes y portal | Solicitudes de "Recuperar contraseña" del portal del cliente. |
-| [`cliente_datos_fiscales`](backend/README.md#cliente_datos_fiscales) | Clientes y portal | Datos para facturar a un cliente (RFC, razón social, etc.). |
-| [`equipos`](backend/README.md#equipos) | Clientes y portal | Dispositivos de los clientes (celulares, laptops, etc.). |
-| [`conversaciones`](backend/README.md#conversaciones) | Clientes y portal | Chat del portal entre el cliente y el Jefe de Técnicos (pantallas P5 y J11). |
-| [`mensajes`](backend/README.md#mensajes) | Clientes y portal | Cada mensaje escrito en una conversación. Solo inserción: los mensajes no se editan ni se borran. |
-| [`estados_orden`](backend/README.md#estados_orden) | Taller (órdenes de servicio) | Catálogo de estados por los que pasa una orden de servicio. |
-| [`ordenes_servicio`](backend/README.md#ordenes_servicio) | Taller (órdenes de servicio) | Cada equipo recibido para reparación (orden con folio único). |
-| [`orden_tiempos`](backend/README.md#orden_tiempos) | Taller (órdenes de servicio) | Cronómetro de trabajo del técnico por orden, incluidas las pausas. |
-| [`orden_archivos`](backend/README.md#orden_archivos) | Taller (órdenes de servicio) | Fotos y archivos de una orden (recepción, evidencia, entrega, garantía). |
-| [`bitacora_orden`](backend/README.md#bitacora_orden) | Taller (órdenes de servicio) | Historial inmutable de todo lo que pasa en una orden. Alimenta la línea de tiempo del portal. |
-| [`garantias`](backend/README.md#garantias) | Taller (órdenes de servicio) | Solicitudes de garantía sobre una reparación ya entregada. |
-| [`presupuestos`](backend/README.md#presupuestos) | Cotización y presupuestos | Cotizaciones: las que propone el técnico, las que cotiza el jefe y las de mostrador. |
-| [`presupuesto_detalles`](backend/README.md#presupuesto_detalles) | Cotización y presupuestos | Renglones de un presupuesto (refacciones y mano de obra). |
-| [`servicios`](backend/README.md#servicios) | Cotización y presupuestos | Tabulador de mano de obra y servicios con su precio. |
-| [`categorias`](backend/README.md#categorias) | Inventario, refacciones y compras | Agrupación de productos (Pantallas, Baterías, Audífonos…). |
-| [`productos`](backend/README.md#productos) | Inventario, refacciones y compras | Catálogo maestro de refacciones, accesorios y consumibles con su existencia. |
-| [`historial_precios`](backend/README.md#historial_precios) | Inventario, refacciones y compras | Registro de cada cambio de costo o precio de un producto. |
-| [`movimientos_inventario`](backend/README.md#movimientos_inventario) | Inventario, refacciones y compras | Kardex: cada entrada o salida de stock con existencia antes y después. |
-| [`orden_refacciones`](backend/README.md#orden_refacciones) | Inventario, refacciones y compras | Refacciones usadas en una orden de servicio (descuentan stock). |
-| [`solicitudes_refaccion`](backend/README.md#solicitudes_refaccion) | Inventario, refacciones y compras | Piezas que el técnico le pide al Jefe de Técnicos. |
-| [`devoluciones_refaccion`](backend/README.md#devoluciones_refaccion) | Inventario, refacciones y compras | Piezas que el técnico regresa al almacén. |
-| [`proveedores`](backend/README.md#proveedores) | Inventario, refacciones y compras | Empresas a las que se les compra mercancía. |
-| [`pedidos_proveedor`](backend/README.md#pedidos_proveedor) | Inventario, refacciones y compras | Pedidos de mercancía hechos a un proveedor. |
-| [`pedido_detalles`](backend/README.md#pedido_detalles) | Inventario, refacciones y compras | Renglones de un pedido a proveedor. |
-| [`compras`](backend/README.md#compras) | Inventario, refacciones y compras | Entradas de mercancía con factura del proveedor (cuentas por pagar). |
-| [`compra_detalles`](backend/README.md#compra_detalles) | Inventario, refacciones y compras | Productos y cantidades de cada compra. |
-| [`pagos_proveedor`](backend/README.md#pagos_proveedor) | Inventario, refacciones y compras | Pagos realizados a proveedores por una compra. |
-| [`cajas`](backend/README.md#cajas) | Caja y punto de venta | Cajas registradoras físicas de la sucursal. |
-| [`turnos_caja`](backend/README.md#turnos_caja) | Caja y punto de venta | Apertura y corte de cada turno de caja. |
-| [`movimientos_caja`](backend/README.md#movimientos_caja) | Caja y punto de venta | Retiros o ingresos de efectivo durante un turno. |
-| [`ventas`](backend/README.md#ventas) | Caja y punto de venta | Cada cobro en mostrador (ticket): productos, reparaciones, anticipos, almacenaje. |
-| [`venta_detalles`](backend/README.md#venta_detalles) | Caja y punto de venta | Renglones de una venta. |
-| [`pagos`](backend/README.md#pagos) | Caja y punto de venta | Formas de pago de una venta (puede haber varias = pago mixto). |
-| [`devoluciones_venta`](backend/README.md#devoluciones_venta) | Caja y punto de venta | Devoluciones de mercancía vendida. |
-| [`devolucion_detalles`](backend/README.md#devolucion_detalles) | Caja y punto de venta | Qué renglones y cantidades se devolvieron. |
-| [`notas_credito`](backend/README.md#notas_credito) | Caja y punto de venta | Saldo a favor del cliente generado por una devolución. |
-| [`facturas`](backend/README.md#facturas) | Caja y punto de venta | Facturas electrónicas (CFDI) individuales o globales. |
-| [`configuracion`](backend/README.md#configuracion) | Sistema, notificaciones y auditoría | Parámetros del sistema editables por el administrador (clave = valor). |
-| [`secuencias`](backend/README.md#secuencias) | Sistema, notificaciones y auditoría | Contadores para generar folios consecutivos por año. |
-| [`correos_enviados`](backend/README.md#correos_enviados) | Sistema, notificaciones y auditoría | Registro de cada correo enviado a clientes o personal. Nunca guarda contraseñas. |
+| [`customers`](backend/README.md#customers) | Clientes y portal | Clientes finales. El **correo** es su usuario del portal. |
+| [`customer_password_reset_tokens`](backend/README.md#customer_password_reset_tokens) | Clientes y portal | Solicitudes de "Recuperar contraseña" del portal del cliente. |
+| [`customer_tax_profiles`](backend/README.md#customer_tax_profiles) | Clientes y portal | Datos para facturar a un cliente (RFC, razón social, etc.). |
+| [`devices`](backend/README.md#devices) | Clientes y portal | Dispositivos de los clientes (celulares, laptops, etc.). |
+| [`conversations`](backend/README.md#conversations) | Clientes y portal | Chat del portal entre el cliente y el Jefe de Técnicos (pantallas P5 y J11). |
+| [`messages`](backend/README.md#messages) | Clientes y portal | Cada mensaje escrito en una conversación. Solo inserción: los mensajes no se editan ni se borran. |
+| [`order_statuses`](backend/README.md#order_statuses) | Taller (órdenes de servicio) | Catálogo de estados por los que pasa una orden de servicio. |
+| [`service_orders`](backend/README.md#service_orders) | Taller (órdenes de servicio) | Cada equipo recibido para reparación (orden con folio único). |
+| [`order_time_logs`](backend/README.md#order_time_logs) | Taller (órdenes de servicio) | Cronómetro de trabajo del técnico por orden, incluidas las pausas. |
+| [`order_files`](backend/README.md#order_files) | Taller (órdenes de servicio) | Fotos y archivos de una orden (recepción, evidencia, entrega, garantía). |
+| [`order_logs`](backend/README.md#order_logs) | Taller (órdenes de servicio) | Historial inmutable de todo lo que pasa en una orden. Alimenta la línea de tiempo del portal. |
+| [`warranties`](backend/README.md#warranties) | Taller (órdenes de servicio) | Solicitudes de garantía sobre una reparación ya entregada. |
+| [`quotes`](backend/README.md#quotes) | Cotización y presupuestos | Cotizaciones: las que propone el técnico, las que cotiza el jefe y las de mostrador. |
+| [`quote_items`](backend/README.md#quote_items) | Cotización y presupuestos | Renglones de un presupuesto (refacciones y mano de obra). |
+| [`services`](backend/README.md#services) | Cotización y presupuestos | Tabulador de mano de obra y servicios con su precio. |
+| [`categories`](backend/README.md#categories) | Inventario, refacciones y compras | Agrupación de productos (Pantallas, Baterías, Audífonos…). |
+| [`products`](backend/README.md#products) | Inventario, refacciones y compras | Catálogo maestro de refacciones, accesorios y consumibles con su existencia. |
+| [`price_histories`](backend/README.md#price_histories) | Inventario, refacciones y compras | Registro de cada cambio de costo o precio de un producto. |
+| [`inventory_movements`](backend/README.md#inventory_movements) | Inventario, refacciones y compras | Kardex: cada entrada o salida de stock con existencia antes y después. |
+| [`order_parts`](backend/README.md#order_parts) | Inventario, refacciones y compras | Refacciones usadas en una orden de servicio (descuentan stock). |
+| [`part_requests`](backend/README.md#part_requests) | Inventario, refacciones y compras | Piezas que el técnico le pide al Jefe de Técnicos. |
+| [`part_returns`](backend/README.md#part_returns) | Inventario, refacciones y compras | Piezas que el técnico regresa al almacén. |
+| [`suppliers`](backend/README.md#suppliers) | Inventario, refacciones y compras | Empresas a las que se les compra mercancía. |
+| [`purchase_orders`](backend/README.md#purchase_orders) | Inventario, refacciones y compras | Pedidos de mercancía hechos a un proveedor. |
+| [`purchase_order_items`](backend/README.md#purchase_order_items) | Inventario, refacciones y compras | Renglones de un pedido a proveedor. |
+| [`purchases`](backend/README.md#purchases) | Inventario, refacciones y compras | Entradas de mercancía con factura del proveedor (cuentas por pagar). |
+| [`purchase_items`](backend/README.md#purchase_items) | Inventario, refacciones y compras | Productos y cantidades de cada compra. |
+| [`supplier_payments`](backend/README.md#supplier_payments) | Inventario, refacciones y compras | Pagos realizados a proveedores por una compra. |
+| [`cash_registers`](backend/README.md#cash_registers) | Caja y punto de venta | Cajas registradoras físicas de la sucursal. |
+| [`cash_shifts`](backend/README.md#cash_shifts) | Caja y punto de venta | Apertura y corte de cada turno de caja. |
+| [`cash_movements`](backend/README.md#cash_movements) | Caja y punto de venta | Retiros o ingresos de efectivo durante un turno. |
+| [`sales`](backend/README.md#sales) | Caja y punto de venta | Cada cobro en mostrador (ticket): productos, reparaciones, anticipos, almacenaje. |
+| [`sale_items`](backend/README.md#sale_items) | Caja y punto de venta | Renglones de una venta. |
+| [`payments`](backend/README.md#payments) | Caja y punto de venta | Formas de pago de una venta (puede haber varias = pago mixto). |
+| [`sale_returns`](backend/README.md#sale_returns) | Caja y punto de venta | Devoluciones de mercancía vendida. |
+| [`sale_return_items`](backend/README.md#sale_return_items) | Caja y punto de venta | Qué renglones y cantidades se devolvieron. |
+| [`credit_notes`](backend/README.md#credit_notes) | Caja y punto de venta | Saldo a favor del cliente generado por una devolución. |
+| [`invoices`](backend/README.md#invoices) | Caja y punto de venta | Facturas electrónicas (CFDI) individuales o globales. |
+| [`settings`](backend/README.md#settings) | Sistema, notificaciones y auditoría | Parámetros del sistema editables por el administrador (clave = valor). |
+| [`sequences`](backend/README.md#sequences) | Sistema, notificaciones y auditoría | Contadores para generar folios consecutivos por año. |
+| [`sent_emails`](backend/README.md#sent_emails) | Sistema, notificaciones y auditoría | Registro de cada correo enviado a clientes o personal. Nunca guarda contraseñas. |
 | [`notifications`](backend/README.md#notifications) | Sistema, notificaciones y auditoría | Notificaciones internas (campanita) de Laravel. |
 | [`jobs`](backend/README.md#jobs) | Sistema, notificaciones y auditoría | Cola de trabajos de Laravel (envío de correos en segundo plano). |
 | [`failed_jobs`](backend/README.md#failed_jobs) | Sistema, notificaciones y auditoría | Trabajos de la cola que fallaron. |
-| [`auditoria`](backend/README.md#auditoria) | Sistema, notificaciones y auditoría | Registro inmutable de las acciones del personal (no se puede editar ni borrar). |
+| [`audit_logs`](backend/README.md#audit_logs) | Sistema, notificaciones y auditoría | Registro inmutable de las acciones del personal (no se puede editar ni borrar). |
 
 ### 15.2 Reglas de integridad
 
 | Regla | Implementación |
 |---|---|
-| El stock nunca queda negativo (RF-02). | Validación en el servicio + `lockForUpdate()` sobre `productos` antes de descontar. |
-| Cobro y descuento de stock son atómicos (RNF-04). | `DB::transaction()` sobre `ventas`, `venta_detalles`, `pagos` y `movimientos_inventario`; si algo falla se hace *rollback*. |
+| El stock nunca queda negativo (RF-02). | Validación en el servicio + `lockForUpdate()` sobre `products` antes de descontar. |
+| Cobro y descuento de stock son atómicos (RNF-04). | `DB::transaction()` sobre `sales`, `sale_items`, `payments` y `inventory_movements`; si algo falla se hace *rollback*. |
 | No se borran registros con historial. | Usuarios, clientes y productos se desactivan (`activo = 0`); las llaves foráneas usan `RESTRICT`. |
-| Totales siempre correctos. | `ordenes_servicio.total`, `presupuestos.total` y `orden_tiempos.minutos` son columnas calculadas por MySQL. |
-| Un técnico no trabaja dos órdenes a la vez. | `orden_tiempos.tecnico_en_curso` es UNIQUE. |
-| Una caja solo tiene un turno abierto. | `turnos_caja.caja_abierta` es UNIQUE. |
-| Folios consecutivos sin huecos. | Tabla `secuencias` (contador por tipo de folio y año). |
-| Bitácora, mensajes y auditoría inmutables. | `bitacora_orden`, `mensajes` y `auditoria` son de solo inserción. |
-| Acceso seguro al portal (RF-06, RNF-01). | `clientes.email` UNIQUE + contraseña Bcrypt + `intentos_fallidos` / `bloqueado_hasta`. |
-| Datos sensibles protegidos. | `ordenes_servicio.pin_equipo` y `users.clave_autorizacion` se guardan cifrados. |
+| Totales siempre correctos. | `service_orders.total`, `quotes.total` y `order_time_logs.minutes` son columnas calculadas por MySQL. |
+| Un técnico no trabaja dos órdenes a la vez. | `order_time_logs.active_technician_id` es UNIQUE. |
+| Una caja solo tiene un turno abierto. | `cash_shifts.open_cash_register_id` es UNIQUE. |
+| Folios consecutivos sin huecos. | Tabla `sequences` (contador por tipo de folio y año). |
+| Bitácora, mensajes y auditoría inmutables. | `order_logs`, `messages` y `audit_logs` son de solo inserción. |
+| Acceso seguro al portal (RF-06, RNF-01). | `customers.email` UNIQUE + contraseña Bcrypt + `failed_attempts` / `locked_until`. |
+| Datos sensibles protegidos. | `service_orders.device_pin` y `users.authorization_code` se guardan cifrados. |
 
 ---
 
