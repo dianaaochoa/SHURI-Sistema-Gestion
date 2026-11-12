@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Cash\CashShiftController;
 use App\Http\Controllers\Api\Inventory\MovementController;
 use App\Http\Controllers\Api\Inventory\ProductController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\Portal\PortalOrderController;
 use App\Http\Controllers\Api\Pos\SaleController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
@@ -145,6 +146,13 @@ Route::prefix('v1')->group(function () {
         Route::delete('sessions', [SessionController::class, 'destroyOthers']);
         Route::delete('sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
 
-        Route::middleware('password.changed')->group(function () {});
+        // P1 / P2 · RF-06: solo después de crear su propia contraseña
+        Route::middleware('password.changed')->group(function () {
+            Route::get('orders', [PortalOrderController::class, 'index']);
+            Route::get('orders/{folio}', [PortalOrderController::class, 'show']);
+        });
     });
+
+    // P4 Información de la sucursal: pública (dirección y horario, riesgo R14)
+    Route::get('portal/info', [PortalOrderController::class, 'info']);
 });
