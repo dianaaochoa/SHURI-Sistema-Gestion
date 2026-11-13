@@ -1,0 +1,34 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-cancelar" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); confirmar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-cancelar">Cancelar factura {{ id() }}</h2>
+        <p class="modal__subtitulo">{{ subtitulo() }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <fieldset class="opciones">
+      <legend class="campo__etiqueta">Motivo de cancelación (SAT) *</legend>
+      @for (m of motivos; track m[0]) {
+        <label class="opcion-radio" [class.opcion-radio--elegida]="motivo() === m[0]">
+          <input type="radio" name="motivo" [checked]="motivo() === m[0]" (change)="motivo.set(m[0])" />
+          <span class="opcion-radio__texto"><strong>{{ m[1].texto }}</strong><span>{{ m[1].detalle }}</span></span>
+        </label>
+      }
+    </fieldset>
+
+    @if (motivo() === '01') {
+      <label class="campo">
+        <span class="campo__etiqueta">Factura que la sustituye</span>
+        <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" readonly [value]="sustituta()" /></span>
+      </label>
+    }
+
+    <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Si el cliente ya la aceptó, el SAT puede pedir su aceptación. Queda registrado en la bitácora con tu nombre.</p>
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Volver</button>
+      <button type="submit" class="boton boton--peligro boton--44"><span class="icono" style="--icono: url(assets/pdv/x.svg)"></span>Cancelar factura</button>
+    </div>
+  </form>
+</div>

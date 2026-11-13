@@ -1,0 +1,25 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-factura" (click)="$event.stopPropagation()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-factura">Factura {{ id() }}</h2>
+        <p class="modal__subtitulo"><span class="estado estado--{{ estado().tono }}">{{ estado().texto }}</span></p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="datos">
+      @for (d of datos(); track d[0]) {
+        <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+      }
+    </div>
+
+    <div class="modal__acciones">
+      @if (factura().estado === 'timbrada') {
+        <button type="button" class="boton boton--peligro-contorno boton--44" (click)="cancelar.emit(id())">Cancelar factura</button>
+      }
+      <button type="button" class="boton boton--contorno boton--44" (click)="xml()"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>XML</button>
+      <button type="button" class="boton boton--primario boton--44" (click)="pdf()"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>PDF</button>
+    </div>
+  </div>
+</div>

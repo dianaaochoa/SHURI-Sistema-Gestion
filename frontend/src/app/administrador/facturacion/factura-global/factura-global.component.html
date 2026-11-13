@@ -1,0 +1,23 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-global" (click)="$event.stopPropagation()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-global">Factura global · {{ mes().texto.toLowerCase() }}</h2>
+        <p class="modal__subtitulo">Ventas que nadie facturó, a nombre de Público en general (XAXX010101000)</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="datos">
+      @for (d of calculo().datos; track d[0]) {
+        <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+      }
+    </div>
+
+    <p class="aviso aviso--{{ aviso().tono }}"><span class="icono" style="--icono: url(assets/inventario/calendar.svg)"></span>{{ aviso().texto }}</p>
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="verTickets()"><span class="icono" style="--icono: url(assets/inventario/list-primario.svg)"></span>Ver tickets incluidos</button>
+      <button type="button" class="boton boton--primario boton--44" [disabled]="bloqueada()" (click)="timbrar()"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Timbrar factura global</button>
+    </div>
+  </div>
+</div>

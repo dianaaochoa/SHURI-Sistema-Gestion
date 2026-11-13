@@ -19,6 +19,7 @@ import { TablaTicketComponent } from './tabla-ticket/tabla-ticket.component';
 import { Pago, ProductoTemporal, VentaCobrada, VentaService } from './venta.service';
 import { VentasEnEsperaComponent } from './ventas-en-espera/ventas-en-espera.component';
 import { DocumentosService } from '../documentos/documentos.service';
+import { FacturacionService } from '../../administrador/facturacion.service';
 
 type Modal = 'cobro' | 'cancelar' | 'temporal' | 'cliente' | 'descuento' | 'pausar' | 'espera' | 'impresora' | 'atajos';
 
@@ -69,6 +70,7 @@ export class PuntoDeVentaComponent {
   protected readonly dispositivos = inject(DispositivosService);
   private readonly documentos = inject(DocumentosService);
   private readonly historial = inject(HistorialVentasService);
+  private readonly facturacion = inject(FacturacionService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly barra = viewChild.required(BarraBusquedaComponent);
@@ -126,6 +128,7 @@ export class PuntoDeVentaComponent {
     const cobrada = this.venta.cobrar(pago);
     this.dispositivos.registrarVenta(cobrada);
     this.historial.registrar(cobrada, this.auth.sesion()?.nombre ?? '');
+    if (pago.factura) this.facturacion.timbrar({ cliente: cobrada.cliente.nombre, rfc: pago.factura.rfc, origen: `Venta ${cobrada.folio}`, total: cobrada.total, pidio: 'Caja' });
     this.aviso.set(this.mensajeCobro(cobrada));
     if (cobrada.imprimir && !this.documentos.venta(cobrada.folio)) {
       this.mostrarErrorImpresion(cobrada);

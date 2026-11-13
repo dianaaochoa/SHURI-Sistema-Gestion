@@ -11,6 +11,7 @@ import { MetodoSimple } from '../punto-de-venta/venta.service';
 import { CobroEntregaComponent, TipoEntrega } from './cobro-entrega/cobro-entrega.component';
 import { QuienRecogeComponent, Recoge } from './quien-recoge/quien-recoge.component';
 import { DocumentosService } from '../documentos/documentos.service';
+import { FacturacionService } from '../../administrador/facturacion.service';
 
 const METODO_TEXTO: Record<MetodoSimple, string> = { efectivo: 'en efectivo', tarjeta: 'con tarjeta', transferencia: 'por transferencia' };
 
@@ -26,6 +27,7 @@ export class EntregaComponent {
   private readonly ordenes = inject(OrdenesService);
   private readonly dispositivos = inject(DispositivosService);
   private readonly documentos = inject(DocumentosService);
+  private readonly facturacion = inject(FacturacionService);
   private readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
   private readonly buscador = viewChild<ElementRef<HTMLInputElement>>('buscador');
 
@@ -208,6 +210,7 @@ export class EntregaComponent {
     // Se lee antes de entregar: después, orden() ya es la siguiente de la lista.
     const tipo = this.tipo();
     const cobrado = saldo(o);
+    const totalFactura = this.dineroSaldo(o);
     const recoge = this.recoge();
     const entregada = this.ordenes.entregar(o.folio, { recoge: recoge?.nombre || o.cliente.nombre, pagado: cobrado, metodo: this.metodo(), cajera: this.cajera });
     const impreso = this.documentos.orden(o.folio, 'entrega');
@@ -216,7 +219,11 @@ export class EntregaComponent {
     const devuelto = -(entregada?.entrega?.cobrado ?? 0);
     if (devuelto > 0) partes.push(`devueltos ${formatearDinero(devuelto)} del anticipo en efectivo`);
     if (tipo === 'normal') partes.push(`garantía hasta el ${diaMes(sumarDias(new Date().toISOString(), diasGarantia()))}`);
-    if (this.factura()) partes.push('factura enviada por correo');
+    const datos = this.factura();
+    if (datos) {
+      const folio = this.facturacion.timbrar({ cliente: o.cliente.nombre, rfc: datos.rfc, origen: `Orden ${o.folio}`, total: totalFactura, pidio: 'Caja' });
+      partes.push(`factura ${folio} enviada por correo`);
+    }
     if (!impreso) partes.push('no se pudo imprimir el comprobante');
     this.aviso.set(partes.join(' · '));
     this.error.set(null);
