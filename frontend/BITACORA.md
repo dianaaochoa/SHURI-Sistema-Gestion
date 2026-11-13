@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 12 nov 2026 (administrador AD3: Cortes de caja)
+- **Última actualización:** 13 nov 2026 (administrador AD4: Catálogo y precios)
 
 ---
 
@@ -40,7 +40,8 @@ flowchart LR
     AD1["AD1 Inicio<br/>AD1.1 resumen del negocio · AD1.2 notificaciones · AD1.3 menú"]:::hecho
     AD2["AD2 Reportes<br/>AD2.1 ventas y utilidad · AD2.2 desempeño del taller · AD2.3 mes sin ventas"]:::hecho
     AD3["AD3 Cortes de caja<br/>AD3.1 cortes del mes · AD3.2 revisión y visto bueno"]:::hecho
-    AD["AD4–AD9"]:::pendiente
+    AD4["AD4 Catálogo y precios<br/>AD4.1 catálogo con costos · AD4.2 editar precio · AD4.3 ajustar en grupo"]:::hecho
+    AD["AD5–AD9"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -232,6 +233,7 @@ flowchart LR
     TRP["TallerReporte<br/>AD2.2"]:::comp
     RPT["reportes.ts<br/>meses y exportar CSV"]:::serv
     CAD["CortesAdmin<br/>AD3.1 · DetalleCorte AD3.2"]:::comp
+    CTA["CatalogoAdmin<br/>AD4.1 · EditarPrecio AD4.2<br/>AjustarPrecios AD4.3"]:::comp
     NEG["negocio.ts<br/>utilidad, lo que más deja<br/>y de dónde viene el dinero"]:::serv
   end
   subgraph TECNICO["tecnico/"]
@@ -453,7 +455,8 @@ flowchart LR
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
   SL --> TI & EA & BNC & GTC & RFT & HST & IAD
   IAD --> ESV & NEG & COS & INS & OS & HV
-  SL --> VYU & TRP & CAD
+  SL --> VYU & TRP & CAD & CTA
+  CTA --> INS
   CAD --> COS & HV & RPT
   VYU --> ESV & NEG & RPT & COS & HV
   TRP --> OS & ESV & BTS & RPT
@@ -676,6 +679,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Cortes del mes (los tres últimos meses) con pestañas Por revisar, Todos y Revisados, indicadores (cortes, diferencia acumulada, por revisar, pagos a proveedor) y páginas de 8. Con un turno abierto aparece arriba “Hoy · Abierto · Ver en vivo”.
 - “Revisar” abre AD3.2: movimientos del turno, arqueo, comentario de la cajera y la decisión (descontar a la cajera, absorber o investigar con nota). Queda con el nombre de quien revisó y deja de avisar en el Inicio (AD1).
 
+**Catálogo y precios (`/administrador/catalogo-y-precios`):**
+- Los productos de Inventario que se venden, con costo promedio, precio, margen (verde desde 50 %, ámbar de 35 a 49 %, rojo debajo de 35 %) y proveedor. Buscador, filtros de categoría y margen, y páginas de 9.
+- Clic en un producto (AD4.2): precio, stock mínimo y proveedor principal, con el margen calculado al escribir y el historial de costo de sus compras.
+- “Ajustar precios” (AD4.3): por categoría y proveedor, subir o bajar un porcentaje, fijar un margen sobre el costo o redondear (terminar en $0 o $9), con vista previa.
+- “Añadir producto” abre el mismo alta de Inventario de caja (C7.1).
+
 **Versión tablet del técnico (T7, de 769 a 1180 px de ancho):**
 - El menú es un riel de 80 px con el nombre corto bajo cada ícono (Inicio, Equipos, Banco, Garantías, Refacc., Historial).
 - En el banco, una orden en taller o en garantía se ve como Figma T7: encabezado corto con el PIN, pestañas (Trabajo, Refacciones, Fotos, Notas, Equipo), pasos grandes para el dedo y botones de acción (Tomar foto, Pedir refacción, Necesito información, Pausar, Daño adicional y Marcar como listo con los pasos pendientes). Las demás etapas y las otras pantallas usan su vista normal.
@@ -745,7 +754,8 @@ frontend/src/
     │   ├── inicio-admin/      # AD1.1
     │   ├── ventas-utilidad/   # AD2.1 · AD2.3
     │   ├── taller-reporte/    # AD2.2
-    │   └── cortes/            # AD3.1 · detalle-corte/ AD3.2
+    │   ├── cortes/            # AD3.1 · detalle-corte/ AD3.2
+    │   └── catalogo/          # AD4.1 · editar-precio/ AD4.2 · ajustar-precios/ AD4.3
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1072,6 +1082,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Cortes de caja (AD3) | Hecho con el PNG `docs/diseno/02-administrador/ad3-cortes-de-caja.png`. `Corte.revision` guarda la decisión (descontar, absorber o investigar), quién y cuándo; `revisionDe()` da el estado (Revisado si cuadró, Por revisar, Descontado, Absorbido, En investigación) | Los cortes de prueba con diferencia de hace más de 3 días ya vienen revisados; “En investigación” sigue contando como por revisar. |
 | Movimientos de un corte | `CorteService.movimientosEntre()` sirve para el turno abierto y para cualquier corte cerrado | Los cortes de prueba no tienen sus ventas en la app: AD3.2 muestra la apertura y una nota; su arqueo sí es el del corte. |
 | Arqueo (AD3.2) | Fondo + ventas + reparaciones − lo cobrado con tarjeta o transferencia − retiros − pagos = efectivo esperado | Figma no muestra el renglón de tarjeta y transferencia, pero sin él el arqueo no cuadra. |
+| Catálogo y precios (AD4) | Hecho con el PNG `docs/diseno/02-administrador/ad4-catalogo-y-precios.png`. Lee y cambia los productos de `InventarioService`; los cambios de precio quedan en `cambiosPrecio` (antes, después, motivo y quién) para la bitácora (AD8) | “Costo subió” cuenta los productos cuya última compra de los últimos 30 días costó más que su costo promedio. |
+| Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -1084,12 +1096,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD4–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD3.
+- [ ] Pantallas de cada rol: administrador (AD5–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD4.
 - [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 5.25 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 6.25 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1118,7 +1130,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
 - [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
 - [ ] El corte cierra el turno de la caja, pero no revisa que la cajera que cierra sea la que abrió.
-- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta ya toma los disponibles de Inventario, pero sus nombres y precios (sin IVA) siguen en `catalogo.datos.ts`; debe leer el inventario cuando exista la API.
+- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta ya toma los disponibles de Inventario, pero sus nombres y precios (sin IVA) siguen en `catalogo.datos.ts`; debe leer el inventario cuando exista la API. **Por eso los precios que cambia el administrador en AD4 todavía no llegan al punto de venta** (el aviso de AD4.2 describe cómo funcionará).
 - [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
 - [ ] Retiros, ingresos, pagos a proveedor y cortes viven en memoria (el turno abierto sí queda en el navegador): al recargar con el turno abierto, el arqueo pierde esos movimientos.
 - [ ] Los pedidos del jefe se crean en Refacciones (J5) y viven en memoria. Avisar al técnico y al jefe solo se anota en el historial de la orden.
@@ -1595,3 +1607,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - sobrante de +$20: “Investigar” sin nota marca el error; con nota queda “En investigación” y sigue en Por revisar
   - a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
   - “Ver en vivo” no se probó: la caja estaba cerrada en esta sesión
+
+### 13 nov 2026 · Administrador AD4: Catálogo y precios
+- Hecho con el PNG `docs/diseno/02-administrador/ad4-catalogo-y-precios.png` (AD4.1 catálogo, AD4.2 editar precio, AD4.3 ajustar en grupo).
+- `CatalogoAdminComponent`, `EditarPrecioComponent` y `AjustarPreciosComponent`; en `InventarioService`: `historialCosto`, `cambiarPrecio`, `ajustarPrecios` y `cambiosPrecio`.
+- Verificado como `vcastillo`:
+  - 22 productos, $28,384 a costo, 52 % de margen promedio, 1 con costo que subió; páginas de 9
+  - Pantalla OLED iPhone 13: $2,400 → $2,200 baja el margen de 42 % a 36 % mientras se escribe; la fila cambia y queda el registro con “Verónica Castillo”
+  - Accesorios +5 % terminando en $0: vista previa (Mica $100 → $110) y “Aplicar a 9 productos”; con margen fijo de 100 % el botón se desactiva y con 50 % los precios dejan 50 %
+  - filtros: Consumibles 1, margen alto 14, “iphone” 7; “Añadir producto” abre el alta de C7.1
+  - a 1366×768 la tabla cabe; a 360 px tabla y modales sin desplazamiento; sin errores en consola

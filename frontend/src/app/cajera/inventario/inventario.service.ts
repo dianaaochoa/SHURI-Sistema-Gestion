@@ -52,6 +52,16 @@ export interface Movimiento {
   folio: string;
 }
 
+export interface CambioPrecio {
+  fecha: string;
+  sku: string;
+  nombre: string;
+  antes: number;
+  despues: number;
+  motivo: string;
+  por: string;
+}
+
 export interface NuevaEntrada {
   proveedor: string;
   documento: string;
@@ -145,6 +155,36 @@ export class InventarioService {
   /** J5.3 · Una pieza que regresa del taller vuelve al stock. */
   devolver(sku: string, cantidad: number): void {
     this.productos.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, stock: p.stock + cantidad } : p)));
+  }
+
+  // ---------- Precios del administrador (AD4) ----------
+  /** Cambios de precio hechos por el administrador (los leerá la bitácora, AD8). */
+  readonly cambiosPrecio = signal<CambioPrecio[]>([]);
+
+  /** Costo de cada compra del producto, de la más reciente a la más antigua (AD4.2 "Historial de costo"). */
+  historialCosto(sku: string): { fecha: string; documento: string; costo: number }[] {
+    return this.entradas()
+      .flatMap((e) => e.lineas.filter((l) => l.sku === sku).map((l) => ({ fecha: e.fecha, documento: e.pedido ?? e.folio, costo: l.costo })))
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }
+
+  /** AD4.2 · Precio, mínimo y proveedor principal de un producto. */
+  cambiarPrecio(sku: string, datos: { precio: number; minimo: number; proveedor: string }, por: string): void {
+    const antes = this.buscar(sku);
+    if (!antes) return;
+    this.productos.update((lista) => lista.map((p) => (p.sku === sku ? { ...p, ...datos, precio: redondear(datos.precio) } : p)));
+    if (antes.precio !== datos.precio) this.cambiosPrecio.update((l) => [{ fecha: new Date().toISOString(), sku, nombre: antes.nombre, antes: antes.precio, despues: redondear(datos.precio), motivo: 'Precio editado', por }, ...l]);
+  }
+
+  /** AD4.3 · Ajuste de precios en grupo. */
+  ajustarPrecios(cambios: { sku: string; precio: number }[], motivo: string, por: string): void {
+    const nuevos = new Map(cambios.map((c) => [c.sku, redondear(c.precio)]));
+    const fecha = new Date().toISOString();
+    const registro = this.productos()
+      .filter((p) => nuevos.has(p.sku) && nuevos.get(p.sku) !== p.precio)
+      .map((p) => ({ fecha, sku: p.sku, nombre: p.nombre, antes: p.precio, despues: nuevos.get(p.sku)!, motivo, por }));
+    this.productos.update((lista) => lista.map((p) => (nuevos.has(p.sku) ? { ...p, precio: nuevos.get(p.sku)! } : p)));
+    this.cambiosPrecio.update((l) => [...registro, ...l]);
   }
 
   // ---------- Alta y edición (C7.1) ----------

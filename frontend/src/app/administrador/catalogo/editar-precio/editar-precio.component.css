@@ -1,0 +1,7 @@
+.modal { max-width: 600px; }
+.dos { row-gap: 14px; }
+.solo-lectura { background: var(--color-fondo); }
+.solo-lectura input { color: var(--color-texto-secundario); }
+.signo { font-size: 14px; color: var(--color-texto-tenue); }
+.bajo { color: var(--color-peligro); font-weight: 600; }
+.historial { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 8px; background: var(--color-fondo); }

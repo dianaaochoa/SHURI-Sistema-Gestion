@@ -1,0 +1,66 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-precio" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); guardar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-precio">Editar producto · {{ producto().sku }}</h2>
+        <p class="modal__subtitulo">{{ subtitulo() }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Costo promedio</span>
+        <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" readonly [value]="dinero(producto().costo)" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Último costo de compra</span>
+        <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" readonly [value]="ultimo()" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Precio de venta (IVA incluido) *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && !(precioActual() > 0)">
+          <span class="signo">$</span>
+          <input class="campo__input" type="number" min="0" step="0.01" [value]="precioActual()" (input)="precio.set($any($event.target).valueAsNumber)" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Margen resultante</span>
+        <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" readonly [value]="margen() + '%'" [class.bajo]="margen() < 35" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Stock mínimo</span>
+        <span class="campo__control campo__control--40"><input class="campo__input" type="number" min="0" [value]="minimoActual()" (input)="minimo.set($any($event.target).valueAsNumber)" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Proveedor principal</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="proveedor.set($any($event.target).value)">
+            @for (p of proveedores(); track p) {
+              <option [value]="p" [selected]="p === proveedorActual()">{{ p }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+    </div>
+
+    <div class="historial">
+      <p class="campo__etiqueta">Historial de costo</p>
+      @for (h of historial(); track $index) {
+        <p class="dato"><span>{{ h.texto }}</span><strong>{{ h.costo }}</strong></p>
+      } @empty {
+        <p class="dato"><span>Todavía no hay compras de este producto.</span></p>
+      }
+    </div>
+
+    @if (intentado() && invalido()) {
+      <p class="campo__error">Escribe un precio mayor a cero y un stock mínimo válido.</p>
+    }
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>El nuevo precio aplica desde ahora en el punto de venta y en los presupuestos nuevos. Los presupuestos ya enviados conservan su precio.</p>
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Guardar precio</button>
+    </div>
+  </form>
+</div>
