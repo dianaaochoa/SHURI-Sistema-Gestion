@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Portal\PortalQuoteController;
 use App\Http\Controllers\Api\Pos\SaleController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
+use App\Http\Controllers\Api\Workshop\PartRequestController;
 use App\Http\Controllers\Api\Workshop\QuoteController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
 use App\Http\Controllers\Api\Workshop\WorkbenchController;
@@ -98,6 +99,22 @@ Route::prefix('v1')->group(function () {
                 Route::post('{folio}/diagnosis', [WorkbenchController::class, 'diagnosis']);
             });
             Route::get('labor-levels', [WorkbenchController::class, 'laborLevels'])->middleware('permission:orders.repair,orders.quote');
+
+            // ── Taller: refacciones (T5 técnico, J5 jefe · RF-05) ──
+            Route::middleware('permission:parts.request')->group(function () {
+                Route::post('my/orders/{folio}/part-requests', [PartRequestController::class, 'store']);
+                Route::get('my/part-requests', [PartRequestController::class, 'mine']);
+                Route::post('my/part-requests/{folio}/cancel', [PartRequestController::class, 'cancel']);
+                Route::get('my/order-parts', [PartRequestController::class, 'myParts']);
+                Route::post('my/order-parts/{orderPart}/return', [PartRequestController::class, 'returnPart'])->whereNumber('orderPart');
+            });
+            Route::middleware('permission:parts.handle')->group(function () {
+                Route::get('part-requests', [PartRequestController::class, 'index']);
+                Route::post('part-requests/{folio}/deliver', [PartRequestController::class, 'deliver']);
+                Route::post('part-requests/{folio}/reject', [PartRequestController::class, 'reject']);
+                Route::get('part-returns', [PartRequestController::class, 'returns']);
+                Route::post('part-returns/{partReturn}/receive', [PartRequestController::class, 'receive'])->whereNumber('partReturn');
+            });
 
             // ── Taller: cotización del jefe y liberación de equipos (J3, J8 · RF-10, RF-17) ──
             Route::middleware('permission:orders.quote')->group(function () {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Workshop\DiagnosisRequest;
 use App\Http\Resources\ServiceOrderResource;
 use App\Models\LaborLevel;
+use App\Models\OrderPart;
 use App\Models\ServiceOrder;
 use App\Services\Workshop\WorkbenchService;
 use Illuminate\Http\JsonResponse;
@@ -93,6 +94,16 @@ class WorkbenchController extends Controller
         return response()->json([
             'data' => new ServiceOrderResource($order),
             'timer' => $this->workbench->timer($order),
+            // Refacciones entregadas para esta orden (RF-05)
+            'parts' => OrderPart::with('product:id,sku,name')->where('service_order_id', $order->id)->get()
+                ->map(fn (OrderPart $p) => [
+                    'id' => $p->id,
+                    'product' => $p->product?->name,
+                    'sku' => $p->product?->sku,
+                    'quantity' => $p->quantity,
+                    'returned_quantity' => $p->returned_quantity,
+                    'unit_price' => (float) $p->unit_price,
+                ]),
         ]);
     }
 }
