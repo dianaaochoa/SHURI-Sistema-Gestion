@@ -1,0 +1,50 @@
+<div class="reporte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Permisos por rol</h1>
+      <p class="encabezado-pagina__subtitulo">Qué puede hacer cada rol. Los cambios aplican la próxima vez que entren.</p>
+    </div>
+    <div class="acciones">
+      <button type="button" class="boton boton--contorno boton--40" (click)="volver.emit()">{{ cambios() ? 'Descartar' : 'Volver a usuarios' }}</button>
+      <button type="button" class="boton boton--primario boton--40" [disabled]="!cambios()" (click)="guardar()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Guardar cambios</button>
+    </div>
+  </header>
+
+  <div class="tabla">
+    <table>
+      <thead>
+        <tr>
+          <th>Permiso</th>
+          @for (r of roles; track r.rol) { <th><span class="largo">{{ r.texto }}</span><span class="corto" aria-hidden="true">{{ cortos[r.rol] }}</span></th> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of permisos; track p.clave) {
+          <tr>
+            <td class="t-nombre t-permiso">{{ p.texto }}</td>
+            @for (r of roles; track r.rol) {
+              <td>
+                <span class="celda">
+                  <input type="checkbox" [checked]="borrador()[p.clave][r.rol]" [disabled]="fijo(p.clave, r.rol)" [attr.aria-label]="p.texto + ' · ' + r.texto" (change)="marcar(p.clave, r.rol, $any($event.target).checked)" />
+                  @if (p.clave === 'descuentos' && r.rol === 'cajera' && borrador()[p.clave][r.rol]) {
+                    <span class="campo__control nivel">
+                      <select class="campo__input campo__select" aria-label="Descuento máximo de la cajera" (change)="descuento.set(+$any($event.target).value)">
+                        @for (n of niveles; track n) { <option [value]="n" [selected]="n === descuento()">{{ textoDescuento(n) }}</option> }
+                      </select>
+                      <img src="assets/cajera/chev-d.svg" width="14" height="14" alt="" />
+                    </span>
+                  } @else if (p.notas?.[r.rol]) {
+                    <span class="nota">{{ p.notas?.[r.rol] }}</span>
+                  }
+                </span>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/pdv/percent.svg)"></span>Descuento de la cajera: tú eliges el máximo, de 0% a 20%. En el punto de venta no puede aplicar más de ese límite y cada descuento queda en la bitácora.</p>
+  <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/history.svg)"></span>Las acciones sensibles (descuentos mayores, cancelaciones, ajustes de inventario, perdonar almacenaje) siempre quedan en la bitácora.</p>
+</div>

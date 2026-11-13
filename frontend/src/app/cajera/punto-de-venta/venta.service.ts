@@ -1,9 +1,10 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../acceso/auth.service';
 import { CATALOGO, Producto } from './catalogo.datos';
 import { CLIENTES, Cliente, DatosFiscales, PUBLICO_GENERAL } from './clientes.datos';
 
 export const IVA = 0.16;
-/** Descuento máximo para la cajera (Figma C2.6: "lo define el administrador"). Vendrá de la configuración (AD9). */
+/** Descuento máximo por omisión; el de cada cajera lo define el administrador en AD7 (Figma C2.6). */
 export const DESCUENTO_MAXIMO = 10;
 
 export interface Linea {
@@ -146,6 +147,9 @@ function pausadasDemo(): VentaPausada[] {
  */
 @Injectable({ providedIn: 'root' })
 export class VentaService {
+  private readonly auth = inject(AuthService);
+  /** Lo que la cajera con sesión puede descontar (AD7); el administrador no tiene límite. */
+  readonly descuentoMaximo = computed(() => this.auth.perfil()?.descuentoMaximo ?? (this.auth.sesion()?.rol === 'administrador' ? 100 : DESCUENTO_MAXIMO));
   private readonly lineasActuales = signal<Linea[]>([]);
   private readonly numeroFolio = signal(865);
   private siguienteFolio = 866;
@@ -215,7 +219,7 @@ export class VentaService {
 
   /** Descuento de una línea en %, de 0 al máximo permitido. */
   fijarDescuento(sku: string, porcentaje: number): void {
-    const descuento = Math.min(DESCUENTO_MAXIMO, Math.max(0, Math.round(porcentaje * 100) / 100 || 0));
+    const descuento = Math.min(this.descuentoMaximo(), Math.max(0, Math.round(porcentaje * 100) / 100 || 0));
     this.lineasActuales.update((lineas) => lineas.map((l) => (l.sku === sku ? { ...l, descuento } : l)));
   }
 

@@ -8,7 +8,8 @@ import { claveDia } from '../../cajera/estadisticas/estadisticas.datos';
 import { EstadisticasService } from '../../cajera/estadisticas/estadisticas.service';
 import { InventarioService } from '../../cajera/inventario/inventario.service';
 import { OrdenesService } from '../../cajera/ordenes/ordenes.service';
-import { DESCUENTO_MAXIMO, calcularTotales } from '../../cajera/punto-de-venta/venta.service';
+import { calcularTotales } from '../../cajera/punto-de-venta/venta.service';
+import { PermisosService } from '../permisos.service';
 import { HistorialVentasService } from '../../cajera/ventas/historial-ventas.service';
 import { atrasada } from '../../jefe/etapas';
 import { EN_TALLER } from '../../jefe/tecnicos/carga';
@@ -47,6 +48,7 @@ export class InicioAdminComponent {
   private readonly corte = inject(CorteService);
   private readonly caja = inject(CajaService);
   private readonly proveedores = inject(ProveedoresService);
+  private readonly permisos = inject(PermisosService);
   private readonly buscar = (sku: string) => this.inventario.buscar(sku);
 
   protected readonly periodo = signal<Periodo>('hoy');
@@ -157,7 +159,7 @@ export class InicioAdminComponent {
     const conDescuento = this.ventas().filter((v) => v.estado !== 'cancelada' && new Date(v.fecha).getTime() >= this.hoy.getTime() && (v.descuento || v.lineas.some((l) => l.descuento)));
     if (conDescuento.length) {
       const monto = conDescuento.reduce((s, v) => s + calcularTotales(v.lineas, v.descuento).descuento * 1.16, 0);
-      avisos.push({ icono: 'menu/history', tono: 'info', titulo: 'Descuentos del día', detalle: `${conDescuento.length} · ${dinero(monto)} · máximo permitido ${DESCUENTO_MAXIMO}%`, accion: 'Bitácora', ruta: 'bitacora' });
+      avisos.push({ icono: 'menu/history', tono: 'info', titulo: 'Descuentos del día', detalle: `${conDescuento.length} · ${dinero(monto)} · máximo de caja ${this.permisos.descuentoCajera()}%`, accion: 'Bitácora', ruta: 'bitacora' });
     }
 
     const enBodega = this.ordenes()

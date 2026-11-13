@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 13 nov 2026 (administrador AD6: Facturación)
+- **Última actualización:** 13 nov 2026 (administrador AD7: Usuarios y permisos)
 
 ---
 
@@ -43,7 +43,8 @@ flowchart LR
     AD4["AD4 Catálogo y precios<br/>AD4.1 catálogo con costos · AD4.2 editar precio · AD4.3 ajustar en grupo"]:::hecho
     AD5["AD5 Proveedores<br/>AD5.1 lista y compras · AD5.2 registrar pago · AD5.3 nuevo proveedor"]:::hecho
     AD6["AD6 Facturación<br/>AD6.1 facturas del mes · AD6.2 cancelar · AD6.3 factura global"]:::hecho
-    AD["AD7–AD9"]:::pendiente
+    AD7["AD7 Usuarios y permisos<br/>AD7.1 lista · AD7.2 nuevo/editar · AD7.3 permisos por rol · AD7.4 contraseña temporal"]:::hecho
+    AD["AD8–AD9"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -347,7 +348,9 @@ flowchart LR
   PVS["ProveedoresService<br/>condiciones, facturas a crédito<br/>y pagos (simulado)"]:::serv
   FCS["FacturacionService<br/>CFDI timbrados, cancelaciones<br/>y timbres (simulado)"]:::serv
 
-  AUTH["AuthService<br/>(simulado)"]:::serv
+  AUTH["AuthService<br/>sesión, cuentas del personal,<br/>bloqueos y pedidos (simulado)"]:::serv
+  USA["UsuariosAdmin AD7.1<br/>UsuarioForm AD7.2 · PermisosRol AD7.3<br/>AsignarTemporal AD7.4"]:::comp
+  PMS["PermisosService<br/>permisos por rol (simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
   CAJA["CajaService<br/>turno, retiros, ingresos y<br/>pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
@@ -415,6 +418,8 @@ flowchart LR
   PDV --> CAJA
   NAV --> RUT & ML & PP
   IS & OC & CC & ML & MU & PP --> AUTH
+  SL --> USA
+  USA --> AUTH & PMS
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
   IC & AT & ST --> FMT
@@ -502,10 +507,18 @@ npm run build      # compilación de producción
 | `amartinez` | `Shuri2026!` | Cajera → `/cajera/inicio` |
 | `jlopez` | `Shuri2026!` | Jefe de técnicos → `/jefe/inicio` |
 | `cruiz` | `Shuri2026!` | Técnico → `/tecnico/inicio` |
-| `nuevo` | `temporal123` | Simula primer ingreso → A.5 (técnico) |
+| `lortega` | `temporal123` | Simula primer ingreso → A.5 (técnico Luis Ortega) |
+| `lpena`, `mvega` | `Shuri2026!` | Cajero vespertino y técnica de AD7 |
+| `rsanchez` | `Shuri2026!` | Inactivo: “Tu usuario está desactivado” |
 | cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
 
-Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana Martínez, Jorge López, Carlos Ruiz).
+Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
+
+**Usuarios y permisos (`/administrador/usuarios-y-permisos`):**
+- Activos e inactivos con rol, turno o área, último acceso, tipo de acceso y estado (activo, en turno, pendiente, bloqueado).
+- El aviso amarillo muestra el último pedido de “¿Olvidaste tu contraseña?” (A.3); “Asignar contraseña temporal” (AD7.4) genera una clave tipo `Q8T-3ZK`, puede desbloquear la cuenta y quita el pedido. Al entrar con ella, el login manda a A.5.
+- “Nuevo usuario” (AD7.2) sugiere el usuario a partir del nombre, pide rol, caja y turno (cajeras) u horario (taller) y el descuento máximo; “Editar” permite cambiar datos, desactivar o reactivar (no a uno mismo) y asignar temporal.
+- “Permisos por rol” (AD7.3): matriz de 12 permisos; el descuento de la cajera (0 a 20 %) es el valor por omisión de las cajeras nuevas. El punto de venta ya respeta el descuento máximo de cada cajera.
 
 **Caja de la cajera:**
 - La primera vez entra con la **caja cerrada** (C1.2).
@@ -781,7 +794,9 @@ frontend/src/
     │   ├── proveedores/       # AD5.1 · registrar-pago/ AD5.2 · nuevo-proveedor/ AD5.3
     │   ├── proveedores.service.ts
     │   ├── facturacion/       # AD6.1 · detalle-factura/ · cancelar-factura/ AD6.2 · factura-global/ AD6.3 · archivos-cfdi.ts
-    │   └── facturacion.service.ts
+    │   ├── facturacion.service.ts
+    │   ├── usuarios/          # AD7.1 · usuario-form/ AD7.2 · permisos-rol/ AD7.3 · asignar-temporal/ AD7.4 · temporal.ts
+    │   └── permisos.service.ts
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1111,6 +1126,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Catálogo y precios (AD4) | Hecho con el PNG `docs/diseno/02-administrador/ad4-catalogo-y-precios.png`. Lee y cambia los productos de `InventarioService`; los cambios de precio quedan en `cambiosPrecio` (antes, después, motivo y quién) para la bitácora (AD8) | “Costo subió” cuenta los productos cuya última compra de los últimos 30 días costó más que su costo promedio. |
 | Proveedores (AD5) | `ProveedoresService` guarda condición de pago, límite y qué surte; las compras son las entradas de `InventarioService` y los pagos en efectivo usan `CajaService.pagarProveedor` (entran al corte) | Los días de crédito salen de la condición del proveedor (antes eran fijos en AD1). Un pago se aplica a una sola factura y no puede pasar su saldo. |
 | Facturación (AD6) | `FacturacionService` guarda los CFDI con serie A y folio consecutivo; el punto de venta y la entrega llaman a `timbrar()` cuando el cliente pidió factura | El timbrado, el UUID, el XML y el PDF son simulados (emisor con el RFC genérico de pruebas del SAT) hasta conectar el PAC. La global toma ventas y cobros del taller de `EstadisticasService` y resta lo facturado aparte. |
+| Usuarios y permisos (AD7) | Las cuentas viven en `AuthService` (sin exponer contraseñas); el login respeta inactivos, bloqueos y contraseñas temporales | El puesto que se muestra (“Cajero”, “Administradora”) lo guarda el administrador; no se deduce del nombre. “En turno”: cajera con su turno de caja abierto o técnico que entró hoy dentro de su horario. |
 | Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
@@ -1124,14 +1140,15 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD7–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD6.
+- [ ] Pantallas de cada rol: administrador (AD8–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD7.
+- [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
 - [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); los datos fiscales del emisor deben salir de Configuración (AD9); la autofactura del portal (P) todavía no existe; las cancelaciones aún no aparecen en la bitácora (AD8).
 - [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja, y los pagos no entran a la bitácora (AD8).
 - [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 6.45 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 9 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1669,3 +1686,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - global de noviembre bloqueada (mes en curso); octubre: 121 ventas y 69 entregas por $89,453.20 con aviso de plazo vencido; al timbrarla ya no deja repetirla; “Ver tickets incluidos” descarga 31 días
   - pestañas y “No hay facturas con error en noviembre 2026”
   - a 1366×768 la tabla cabe; a 360 px se ocultan fecha, RFC, origen y pidió y la tabla y los modales caben; sin errores nuevos en consola
+
+### 13 nov 2026 · Administrador AD7: Usuarios y permisos
+- Hecho con el PNG `docs/diseno/02-administrador/ad7-usuarios-y-permisos.png` (AD7.1 a AD7.4).
+- `AuthService` ahora guarda las cuentas del personal (crear, editar, desactivar, temporal, bloqueos, pedidos de contraseña); `PermisosService` nuevo; el usuario de prueba `nuevo` pasó a ser `lortega`.
+- Verificado como `vcastillo`:
+  - 7 activos (1 admin · 2 caja · 4 taller), 1 temporal, aviso del pedido de Ana; asignarle temporal quita el aviso
+  - nuevo usuario Daniela Ortiz Méndez → `dortiz`, errores de nombre, usuario y correo; queda Pendiente
+  - desactivar a Luis Peña → Inactivos (2) y su login dice “desactivado”; 3 fallos de `cruiz` → Bloqueado; temporal con desbloqueo → entra, A.5 pide la nueva y llega a su inicio
+  - no puede quitarse el rol ni desactivarse a sí misma; permisos: 2 cambios guardados y el descuento de 15 % pasa a las cajeras nuevas
+  - a 1366×768 y 360 px tablas y modales sin desplazamiento (encabezados cortos en permisos)
