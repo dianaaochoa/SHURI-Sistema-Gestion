@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { formatearDinero, saludoDelDia } from '../../compartido/formato';
 import { CajaService } from '../../cajera/caja.service';
-import { CorteService } from '../../cajera/corte/corte.service';
+import { CorteService, revisionDe } from '../../cajera/corte/corte.service';
 import { claveDia } from '../../cajera/estadisticas/estadisticas.datos';
 import { EstadisticasService } from '../../cajera/estadisticas/estadisticas.service';
 import { InventarioService } from '../../cajera/inventario/inventario.service';
@@ -125,7 +125,7 @@ export class InicioAdminComponent {
     const semana = Date.now() - 7 * DIA;
     const faltante = this.corte
       .cortes()
-      .filter((c) => c.contado < c.esperado && new Date(c.hasta).getTime() >= semana)
+      .filter((c) => c.contado < c.esperado && revisionDe(c).pendiente && new Date(c.hasta).getTime() >= semana)
       .sort((a, b) => b.hasta.localeCompare(a.hasta))[0];
     if (faltante)
       avisos.push({ icono: 'menu/receipt', tono: 'peligro', titulo: 'Corte con faltante sin revisar', detalle: `${diaMes(new Date(faltante.hasta))} ${faltante.turno.toLowerCase()} · −${formatearDinero(faltante.esperado - faltante.contado)} · ${faltante.cajera}`, accion: 'Revisar', ruta: 'cortes-de-caja' });

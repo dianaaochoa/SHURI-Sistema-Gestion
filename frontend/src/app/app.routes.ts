@@ -61,6 +61,7 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
   'administrador/inicio': () => import('./administrador/inicio-admin/inicio-admin.component').then((m) => m.InicioAdminComponent),
   'administrador/ventas-y-utilidad': () => import('./administrador/ventas-utilidad/ventas-utilidad.component').then((m) => m.VentasUtilidadComponent),
   'administrador/taller': () => import('./administrador/taller-reporte/taller-reporte.component').then((m) => m.TallerReporteComponent),
+  'administrador/cortes-de-caja': () => import('./administrador/cortes/cortes-admin.component').then((m) => m.CortesAdminComponent),
   // Técnico
   'tecnico/inicio': () => import('./tecnico/inicio-tecnico/inicio-tecnico.component').then((m) => m.InicioTecnicoComponent),
   'tecnico/equipos-asignados': () => import('./tecnico/equipos-asignados/equipos-asignados.component').then((m) => m.EquiposAsignadosComponent),

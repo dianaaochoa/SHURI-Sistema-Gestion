@@ -38,6 +38,26 @@ export interface Corte {
   comentario: string;
   /** Renglones del corte impreso (C11). Los cortes de prueba no lo traen. */
   desglose?: Desglose;
+  /** Visto bueno del administrador cuando hubo diferencia (AD3.2). */
+  revision?: RevisionCorte;
+}
+
+export type DecisionCorte = 'descontar' | 'absorber' | 'investigar';
+
+export interface RevisionCorte {
+  decision: DecisionCorte;
+  fecha: string;
+  por: string;
+  nota?: string;
+}
+
+/** Cómo queda el corte para el administrador (AD3.1). */
+export function revisionDe(c: Corte): { texto: string; tono: string; pendiente: boolean } {
+  if (c.revision?.decision === 'descontar') return { texto: 'Descontado', tono: 'neutro', pendiente: false };
+  if (c.revision?.decision === 'absorber') return { texto: 'Absorbido', tono: 'neutro', pendiente: false };
+  if (c.revision?.decision === 'investigar') return { texto: 'En investigación', tono: 'advertencia', pendiente: true };
+  if (c.contado === c.esperado) return { texto: 'Revisado', tono: 'exito', pendiente: false };
+  return { texto: 'Por revisar', tono: 'advertencia', pendiente: true };
 }
 
 export interface Desglose {
@@ -103,6 +123,11 @@ function cortesDemo(): Corte[] {
         transferencias,
         fondoQueQueda: 1000,
         comentario: dif < 0 ? 'Faltante por cambio mal entregado, se reportó a gerencia.' : dif > 0 ? 'Sobrante: un cliente no esperó su cambio.' : '',
+        // Los cortes con diferencia de hace más de 3 días ya los revisó la administradora (AD3).
+        revision:
+          dif !== 0 && d > 3
+            ? { decision: dif < 0 && i % 2 === 0 ? 'descontar' : 'absorber', fecha: new Date(dia.getFullYear(), dia.getMonth(), dia.getDate() + 1, 10).toISOString(), por: 'Verónica Castillo' }
+            : undefined,
       });
     }
   }
@@ -122,9 +147,13 @@ export class CorteService {
   /** Todo lo que movió dinero desde que se abrió el turno, del más reciente al más antiguo. */
   readonly movimientos = computed<MovimientoTurno[]>(() => {
     const turno = this.caja.turno();
-    if (!turno) return [];
-    const en = (iso: string) => iso >= turno.desde;
-    const lista: MovimientoTurno[] = [{ fecha: turno.desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: turno.fondo }];
+    return turno ? this.movimientosEntre(turno.desde, '9999', turno.fondo) : [];
+  });
+
+  /** Movimientos de un tramo (turno abierto o un corte cerrado, AD3.2). */
+  movimientosEntre(desde: string, hasta: string, fondo: number): MovimientoTurno[] {
+    const en = (iso: string) => iso >= desde && iso <= hasta;
+    const lista: MovimientoTurno[] = [{ fecha: desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: fondo }];
 
     for (const v of this.ventas.ventas()) {
       if (en(v.fecha) && v.estado !== 'cancelada') lista.push({ fecha: v.fecha, concepto: `Venta ${v.folio} · ${resumenVenta(v)}`, metodo: v.metodo, monto: v.total });
@@ -149,7 +178,12 @@ export class CorteService {
       if (en(m.fecha)) lista.push({ fecha: m.fecha, concepto: m.tipo === 'retiro' ? `Retiro · ${m.motivo}` : `Ingreso · ${m.motivo}`, metodo: 'efectivo', monto: m.tipo === 'retiro' ? -m.monto : m.monto });
     }
     return lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
-  });
+  }
+
+  /** AD3.2 · Visto bueno del administrador: la diferencia se descuenta, se absorbe o se investiga. */
+  revisar(folio: string, decision: DecisionCorte, nota: string, por: string): void {
+    this.cortes.update((lista) => lista.map((c) => (c.folio === folio ? { ...c, revision: { decision, fecha: new Date().toISOString(), por, nota: nota.trim() || undefined } } : c)));
+  }
 
   /** Cifras del turno abierto (C10.1). */
   readonly resumen = computed(() => {

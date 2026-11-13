@@ -1,0 +1,100 @@
+@if (viendo()) {
+  <app-detalle-corte [corte]="corteVisto()" (volver)="volver($event)" />
+} @else {
+  <div class="reporte">
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Cortes de caja</h1>
+        <p class="encabezado-pagina__subtitulo">Todos los turnos de Caja 01 · Revisa las diferencias y deja tu visto bueno</p>
+      </div>
+      <div class="acciones">
+        <span class="campo__control campo__control--40 mes">
+          <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+          <select class="campo__input campo__select" aria-label="Mes" (change)="cambiarMes($any($event.target).value)">
+            @for (m of meses; track m.id) {
+              <option [value]="m.id" [selected]="m.id === mesId()">{{ m.texto }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+        <button type="button" class="boton boton--contorno boton--40" (click)="exportar()"><span class="icono" style="--icono: url(assets/inventario/download-primario.svg)"></span>Exportar Excel</button>
+      </div>
+    </header>
+
+    <section class="indicadores" aria-label="Resumen de cortes">
+      @for (i of indicadores(); track i.titulo) {
+        <div class="indicador">
+          <p class="indicador__valor valor--{{ i.tono }}">{{ i.valor }}</p>
+          <div>
+            <p class="indicador__titulo">{{ i.titulo }}</p>
+            <p class="indicador__detalle">{{ i.detalle }}</p>
+          </div>
+        </div>
+      }
+    </section>
+
+    <nav class="pestanas" aria-label="Vistas">
+      @for (p of pestanas(); track p.id) {
+        <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" [attr.aria-current]="p.id === vista() ? 'page' : null" (click)="elegir(p.id)">{{ p.texto }}</button>
+      }
+    </nav>
+
+    @if (aviso()) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+    }
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Turno</th><th class="t-caja">Caja</th><th class="t-cajera">Cajera</th><th class="t-num">Esperado</th><th class="t-num">Contado</th><th>Diferencia</th><th class="t-pagos">Pagos a proveedor</th><th>Estado</th><th class="t-accion">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (abierto(); as a) {
+            @if (vista() !== 'revisados' && pagina() === 0) {
+              <tr tabindex="0" (click)="abrir('vivo')" (keydown.enter)="abrir('vivo')">
+                <td class="t-dia">Hoy</td><td>{{ a.turno }}</td><td class="t-caja">{{ a.caja }}</td><td class="t-cajera">{{ a.cajera }}</td><td class="t-num">{{ dinero(a.esperado) }}</td><td class="t-num">—</td><td>—</td><td class="t-pagos">—</td>
+                <td><span class="estado estado--info">Abierto</span></td>
+                <td class="t-accion"><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); abrir('vivo')">Ver en vivo</button></td>
+              </tr>
+            }
+          }
+          @for (f of filas(); track f.c.folio) {
+            <tr [class.resaltada]="f.accion === 'Revisar'" tabindex="0" (click)="abrir(f.c.folio)" (keydown.enter)="abrir(f.c.folio)">
+              <td class="t-dia">{{ f.dia }}</td>
+              <td>{{ f.c.turno }}</td>
+              <td class="t-caja">{{ f.c.caja }}</td>
+              <td class="t-cajera">{{ f.c.cajera }}</td>
+              <td class="t-num">{{ dinero(f.c.esperado) }}</td>
+              <td class="t-num">{{ dinero(f.c.contado) }}</td>
+              <td [class.dif-menos]="f.dif < 0" [class.dif-mas]="f.dif > 0" [class.dif-cero]="f.dif === 0">{{ f.dif > 0 ? '+' : f.dif < 0 ? '−' : '' }}{{ dinero(f.dif < 0 ? -f.dif : f.dif) }}</td>
+              <td class="t-pagos">{{ dinero(f.pagos) }}</td>
+              <td><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
+              <td class="t-accion"><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); abrir(f.c.folio)">{{ f.accion }}</button></td>
+            </tr>
+          } @empty {
+            @if (!abierto() || vista() === 'revisados') {
+              <tr><td class="vacio" colspan="10">No hay cortes aquí.</td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pie">
+      <p class="tenue">Mostrando {{ filas().length }} de {{ total() }} cortes</p>
+      @if (paginas() > 1) {
+        <div class="paginas">
+          <button type="button" class="pagina" [disabled]="pagina() === 0" (click)="pagina.set(pagina() - 1)" aria-label="Anterior">‹</button>
+          @for (i of numeros(); track i) {
+            <button type="button" class="pagina" [class.pagina--activa]="i === pagina()" (click)="pagina.set(i)">{{ i + 1 }}</button>
+          }
+          <button type="button" class="pagina" [disabled]="pagina() === paginas() - 1" (click)="pagina.set(pagina() + 1)" aria-label="Siguiente">›</button>
+        </div>
+      }
+    </div>
+
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Al revisar un corte decides si la diferencia se descuenta a la cajera, se absorbe o se investiga. Queda en la bitácora con tu nombre.</p>
+  </div>
+}

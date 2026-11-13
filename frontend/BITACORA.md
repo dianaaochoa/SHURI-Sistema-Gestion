@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 11 nov 2026 (administrador AD2: Reportes)
+- **Última actualización:** 12 nov 2026 (administrador AD3: Cortes de caja)
 
 ---
 
@@ -39,7 +39,8 @@ flowchart LR
   subgraph ADM["02 · Administrador"]
     AD1["AD1 Inicio<br/>AD1.1 resumen del negocio · AD1.2 notificaciones · AD1.3 menú"]:::hecho
     AD2["AD2 Reportes<br/>AD2.1 ventas y utilidad · AD2.2 desempeño del taller · AD2.3 mes sin ventas"]:::hecho
-    AD["AD3–AD9"]:::pendiente
+    AD3["AD3 Cortes de caja<br/>AD3.1 cortes del mes · AD3.2 revisión y visto bueno"]:::hecho
+    AD["AD4–AD9"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -230,6 +231,7 @@ flowchart LR
     VYU["VentasUtilidad<br/>AD2.1 · AD2.3"]:::comp
     TRP["TallerReporte<br/>AD2.2"]:::comp
     RPT["reportes.ts<br/>meses y exportar CSV"]:::serv
+    CAD["CortesAdmin<br/>AD3.1 · DetalleCorte AD3.2"]:::comp
     NEG["negocio.ts<br/>utilidad, lo que más deja<br/>y de dónde viene el dinero"]:::serv
   end
   subgraph TECNICO["tecnico/"]
@@ -451,7 +453,8 @@ flowchart LR
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
   SL --> TI & EA & BNC & GTC & RFT & HST & IAD
   IAD --> ESV & NEG & COS & INS & OS & HV
-  SL --> VYU & TRP
+  SL --> VYU & TRP & CAD
+  CAD --> COS & HV & RPT
   VYU --> ESV & NEG & RPT & COS & HV
   TRP --> OS & ESV & BTS & RPT
   HST --> OS & BTS & RS
@@ -669,6 +672,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Desempeño del taller (AD2.2) por mes, con las órdenes de la app: recibidas y entregadas, presupuestos aprobados, tiempo a cotizar contra el SLA, tasa de garantías, tabla por técnico, órdenes por resultado y motivos de rechazo.
 - “Exportar Excel” descarga un CSV con lo que se ve (Excel lo abre con acentos).
 
+**Cortes de caja del administrador (`/administrador/cortes-de-caja`):**
+- Cortes del mes (los tres últimos meses) con pestañas Por revisar, Todos y Revisados, indicadores (cortes, diferencia acumulada, por revisar, pagos a proveedor) y páginas de 8. Con un turno abierto aparece arriba “Hoy · Abierto · Ver en vivo”.
+- “Revisar” abre AD3.2: movimientos del turno, arqueo, comentario de la cajera y la decisión (descontar a la cajera, absorber o investigar con nota). Queda con el nombre de quien revisó y deja de avisar en el Inicio (AD1).
+
 **Versión tablet del técnico (T7, de 769 a 1180 px de ancho):**
 - El menú es un riel de 80 px con el nombre corto bajo cada ícono (Inicio, Equipos, Banco, Garantías, Refacc., Historial).
 - En el banco, una orden en taller o en garantía se ve como Figma T7: encabezado corto con el PIN, pestañas (Trabajo, Refacciones, Fotos, Notas, Equipo), pasos grandes para el dedo y botones de acción (Tomar foto, Pedir refacción, Necesito información, Pausar, Daño adicional y Marcar como listo con los pasos pendientes). Las demás etapas y las otras pantallas usan su vista normal.
@@ -737,7 +744,8 @@ frontend/src/
     │   ├── reportes.ts · reportes.css   # meses, exportar CSV y estilos de AD2
     │   ├── inicio-admin/      # AD1.1
     │   ├── ventas-utilidad/   # AD2.1 · AD2.3
-    │   └── taller-reporte/    # AD2.2
+    │   ├── taller-reporte/    # AD2.2
+    │   └── cortes/            # AD3.1 · detalle-corte/ AD3.2
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1061,6 +1069,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Cómo se cobró | Solo mostrador (el historial no guarda con qué se pagaron las reparaciones) | Figma lo muestra para todo; el título dice “en mostrador”. |
 | Desempeño del taller (AD2.2) | Con las órdenes de la app (pocas: 10 recibidas en octubre); la tasa de garantías usa las entregas del mes de Estadísticas, como AD1 y J4. Las garantías de cada técnico se miden contra todo lo que ha terminado | Las garantías del mes vienen de reparaciones de meses anteriores; contra lo terminado en el mes daba más de 100 %. “En pausa” cuenta sus órdenes pausadas ahora. |
 | Exportar Excel | CSV con BOM (`exportarCsv`) en lugar de .xlsx | No hay librería de Excel en el proyecto; Excel lo abre igual. |
+| Cortes de caja (AD3) | Hecho con el PNG `docs/diseno/02-administrador/ad3-cortes-de-caja.png`. `Corte.revision` guarda la decisión (descontar, absorber o investigar), quién y cuándo; `revisionDe()` da el estado (Revisado si cuadró, Por revisar, Descontado, Absorbido, En investigación) | Los cortes de prueba con diferencia de hace más de 3 días ya vienen revisados; “En investigación” sigue contando como por revisar. |
+| Movimientos de un corte | `CorteService.movimientosEntre()` sirve para el turno abierto y para cualquier corte cerrado | Los cortes de prueba no tienen sus ventas en la app: AD3.2 muestra la apertura y una nota; su arqueo sí es el del corte. |
+| Arqueo (AD3.2) | Fondo + ventas + reparaciones − lo cobrado con tarjeta o transferencia − retiros − pagos = efectivo esperado | Figma no muestra el renglón de tarjeta y transferencia, pero sin él el arqueo no cuadra. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
@@ -1073,11 +1084,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD3–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1 y AD2.
+- [ ] Pantallas de cada rol: administrador (AD4–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD3.
+- [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 4.36 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 5.25 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1573,3 +1585,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - taller de noviembre: 11 recibidas, tabla por técnico y órdenes por resultado; octubre: 10 recibidas, 5 entregadas, 13 h 42 a cotizar (4 fuera del SLA)
   - a 1366×768 las tablas caben; a 360 px las tablas quedan sin desplazamiento (se ocultan costo, participación, ingreso, tiempo y estado); sin errores en consola
   - AD2.3 no se pudo ver con los datos de prueba: todos los meses tienen ventas
+
+### 12 nov 2026 · Administrador AD3: Cortes de caja
+- Hecho con el PNG `docs/diseno/02-administrador/ad3-cortes-de-caja.png` (AD3.1 cortes del mes y AD3.2 revisión).
+- `CortesAdminComponent` y `DetalleCorteComponent`; en `CorteService`: `revision`, `revisionDe()`, `revisar()` y `movimientosEntre()`. El Inicio (AD1) solo avisa de faltantes sin revisar.
+- Verificado como `vcastillo`:
+  - noviembre: 20 cortes, −$70 acumulado (4 faltantes, 2 sobrantes), 3 por revisar y páginas de 8
+  - corte del 11 nov matutino: arqueo $1,000 + $6,720 + $3,744 − $2,957 − $1,000 = $7,507 esperado, $7,477 contado, faltante −$30 con el comentario de Ana; “Descontar a la cajera” lo deja “Descontado” y Por revisar baja a 2; el Inicio pasa a avisar del siguiente faltante
+  - sobrante de +$20: “Investigar” sin nota marca el error; con nota queda “En investigación” y sigue en Por revisar
+  - a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
+  - “Ver en vivo” no se probó: la caja estaba cerrada en esta sesión

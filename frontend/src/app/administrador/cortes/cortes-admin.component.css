@@ -1,0 +1,22 @@
+/* Figma AD3.1 · usa ../reportes.css */
+.pestanas { display: flex; gap: 24px; border-bottom: 1px solid var(--color-borde); overflow-x: auto; }
+.pestana { flex-shrink: 0; padding: 0 2px 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: 14px; color: var(--color-texto-tenue); cursor: pointer; }
+.pestana--activa { border-bottom-color: var(--color-primario); font-weight: 600; color: var(--color-primario); }
+.tabla { background: var(--color-superficie); }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--color-primario-suave); }
+tr.resaltada { background: var(--color-primario-suave); }
+.t-dia { font-weight: 600; }
+.dif-menos { font-weight: 600; color: var(--color-peligro); }
+.dif-mas { font-weight: 600; color: var(--color-advertencia); }
+.dif-cero { color: var(--color-exito); }
+.enlace-accion { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primario); cursor: pointer; }
+.pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tenue { font-size: 12px; color: var(--color-texto-tenue); }
+.paginas { display: flex; gap: 6px; }
+.pagina { min-width: 28px; height: 28px; border: 1px solid var(--color-borde); border-radius: 6px; background: var(--color-superficie); font: inherit; font-size: 12px; color: var(--color-marino); cursor: pointer; }
+.pagina--activa { border-color: var(--color-primario); background: var(--color-primario); color: var(--color-superficie); }
+.pagina:disabled { opacity: 0.4; cursor: default; }
+
+@media (max-width: 1100px) { .t-caja, .t-pagos { display: none; } }
+@media (max-width: 768px) { .t-cajera, .t-num, .t-accion { display: none; } }
