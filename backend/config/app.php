@@ -60,6 +60,9 @@ return [
     // Portal del cliente (Angular): enlace en los correos al cliente
     'portal_url' => env('PORTAL_URL', 'http://localhost:4200/portal'),
 
+    // Acceso del personal (Angular): enlace en el correo de alta de empleados (AD7)
+    'staff_login_url' => env('STAFF_LOGIN_URL', 'http://localhost:4200/iniciar-sesion'),
+
     'asset_url' => env('ASSET_URL'),
 
     /*

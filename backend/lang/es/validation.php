@@ -8,6 +8,7 @@ return [
     'confirmed' => 'La confirmación de :attribute no coincide.',
     'date' => 'El campo :attribute no es una fecha válida.',
     'different' => 'La :attribute debe ser diferente a la contraseña actual.',
+    'date_format' => 'El campo :attribute no tiene el formato :format.',
     'digits' => 'El :attribute debe tener :digits dígitos.',
     'email' => 'El campo :attribute debe ser un correo válido.',
     'exists' => 'El :attribute seleccionado no existe.',

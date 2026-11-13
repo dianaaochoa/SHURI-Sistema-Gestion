@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\UserLockController;
 use App\Http\Controllers\Api\Admin\UserSessionController;
 use App\Http\Controllers\Api\Auth\CustomerAuthController;
@@ -59,6 +60,16 @@ Route::prefix('v1')->group(function () {
                 Route::delete('users/{user}/sessions', [UserSessionController::class, 'destroyAll']);
                 Route::delete('users/{user}/sessions/{session}', [UserSessionController::class, 'destroy'])->whereNumber('session');
                 Route::post('users/{user}/unlock', [UserLockController::class, 'unlock']);
+
+                // AD7 Usuarios y permisos (RF-01, RF-14)
+                Route::get('roles', [UserController::class, 'roles']);
+                Route::get('users', [UserController::class, 'index']);
+                Route::post('users', [UserController::class, 'store']);
+                Route::get('users/{user}', [UserController::class, 'show'])->whereNumber('user');
+                Route::put('users/{user}', [UserController::class, 'update'])->whereNumber('user');
+                Route::post('users/{user}/activate', [UserController::class, 'activate'])->whereNumber('user');
+                Route::post('users/{user}/deactivate', [UserController::class, 'deactivate'])->whereNumber('user');
+                Route::post('users/{user}/temporary-password', [UserController::class, 'temporaryPassword'])->whereNumber('user');
             });
 
             // recepcion
