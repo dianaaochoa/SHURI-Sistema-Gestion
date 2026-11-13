@@ -12,7 +12,8 @@ import { DESCUENTO_MAXIMO, calcularTotales } from '../../cajera/punto-de-venta/v
 import { HistorialVentasService } from '../../cajera/ventas/historial-ventas.service';
 import { atrasada } from '../../jefe/etapas';
 import { EN_TALLER } from '../../jefe/tecnicos/carga';
-import { DIAS_CREDITO_DEMO, META_GARANTIAS, masRentables, origenDinero, utilidadDe } from '../negocio';
+import { META_GARANTIAS, masRentables, origenDinero, utilidadDe } from '../negocio';
+import { ProveedoresService } from '../proveedores.service';
 
 type Periodo = 'hoy' | 'semana' | 'mes';
 
@@ -45,6 +46,7 @@ export class InicioAdminComponent {
   private readonly ventas = inject(HistorialVentasService).ventas;
   private readonly corte = inject(CorteService);
   private readonly caja = inject(CajaService);
+  private readonly proveedores = inject(ProveedoresService);
   private readonly buscar = (sku: string) => this.inventario.buscar(sku);
 
   protected readonly periodo = signal<Periodo>('hoy');
@@ -130,15 +132,18 @@ export class InicioAdminComponent {
     if (faltante)
       avisos.push({ icono: 'menu/receipt', tono: 'peligro', titulo: 'Corte con faltante sin revisar', detalle: `${diaMes(new Date(faltante.hasta))} ${faltante.turno.toLowerCase()} · −${formatearDinero(faltante.esperado - faltante.contado)} · ${faltante.cajera}`, accion: 'Revisar', ruta: 'cortes-de-caja' });
 
-    const credito = this.inventario
-      .entradas()
-      .filter((e) => e.pago === 'credito')
-      .map((e) => ({ e, vence: new Date(new Date(e.fecha).getTime() + DIAS_CREDITO_DEMO * DIA) }))
-      .filter((x) => x.vence.getTime() >= this.hoy.getTime())
-      .sort((a, b) => a.vence.getTime() - b.vence.getTime())[0];
+    // La factura a crédito que vence primero, con su saldo y el plazo del proveedor (AD5).
+    const credito = this.proveedores.porPagar()[0];
     if (credito) {
       const dias = Math.ceil((credito.vence.getTime() - Date.now()) / DIA);
-      avisos.push({ icono: 'menu/truck', tono: 'advertencia', titulo: 'Pago a proveedor por vencer', detalle: `${credito.e.proveedor} · ${formatearDinero(credito.e.total)} · vence ${diaMes(credito.vence)}`, accion: `${dias} ${dias === 1 ? 'día' : 'días'}`, ruta: 'proveedores' });
+      avisos.push({
+        icono: 'menu/truck',
+        tono: dias < 0 ? 'peligro' : 'advertencia',
+        titulo: dias < 0 ? 'Pago a proveedor vencido' : 'Pago a proveedor por vencer',
+        detalle: `${credito.entrada.proveedor} · ${formatearDinero(credito.saldo)} · vence ${diaMes(credito.vence)}`,
+        accion: dias < 0 ? 'Vencido' : `${dias} ${dias === 1 ? 'día' : 'días'}`,
+        ruta: 'proveedores',
+      });
     }
 
     const productos = this.inventario.productos();

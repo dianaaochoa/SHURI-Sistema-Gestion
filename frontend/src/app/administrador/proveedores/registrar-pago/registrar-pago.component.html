@@ -1,0 +1,49 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-pago" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); registrar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-pago">Registrar pago · {{ factura().entrada.proveedor }}</h2>
+        <p class="modal__subtitulo">{{ subtitulo() }}</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Monto *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && !!error() && !(montoActual() > 0 && montoActual() <= factura().saldo + 0.005)">
+          <input class="campo__input" type="number" min="0" step="0.01" [value]="montoActual()" (input)="monto.set($any($event.target).valueAsNumber)" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Fecha</span>
+        <span class="campo__control campo__control--40"><input class="campo__input" type="date" [max]="hoy" [value]="fecha()" (input)="fecha.set($any($event.target).value)" /></span>
+      </label>
+    </div>
+
+    <fieldset class="opciones">
+      <legend class="campo__etiqueta">¿De dónde sale el dinero?</legend>
+      <label class="opcion-radio" [class.opcion-radio--elegida]="origen() === 'transferencia'">
+        <input type="radio" name="origen" [checked]="origen() === 'transferencia'" (change)="origen.set('transferencia')" />
+        <span class="opcion-radio__texto"><strong>Transferencia bancaria</strong><span>No afecta la caja</span></span>
+      </label>
+      <label class="opcion-radio" [class.opcion-radio--elegida]="origen() === 'caja'" [style.opacity]="cajaAbierta() ? null : 0.6">
+        <input type="radio" name="origen" [checked]="origen() === 'caja'" [disabled]="!cajaAbierta()" (change)="origen.set('caja')" />
+        <span class="opcion-radio__texto"><strong>Efectivo de caja</strong><span>{{ cajaAbierta() ? 'Se registra en el corte como pago a proveedor' : 'No hay turno de caja abierto' }}</span></span>
+      </label>
+    </fieldset>
+
+    <label class="campo">
+      <span class="campo__etiqueta">Referencia</span>
+      <span class="campo__control campo__control--40"><input class="campo__input" maxlength="60" placeholder="Ej. SPEI 0412-8891" [value]="referencia()" (input)="referencia.set($any($event.target).value)" /></span>
+    </label>
+
+    @if (intentado() && error()) {
+      <p class="campo__error" role="alert">{{ error() }}</p>
+    }
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Registrar pago</button>
+    </div>
+  </form>
+</div>

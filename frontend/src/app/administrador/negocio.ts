@@ -7,8 +7,6 @@ import { DiaEstadistico, NOMBRE_POR_SKU } from '../cajera/estadisticas/estadisti
  * - la de reparaciones usa un margen fijo de prueba (mano de obra y refacciones juntas).
  */
 export const MARGEN_TALLER_DEMO = 0.5;
-/** Días de crédito de los proveedores para avisar del pago (dato de prueba). */
-export const DIAS_CREDITO_DEMO = 30;
 /** Meta de la tasa de garantías del taller (Figma AD1.1). */
 export const META_GARANTIAS = 5;
 

@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 13 nov 2026 (administrador AD4: Catálogo y precios)
+- **Última actualización:** 13 nov 2026 (administrador AD5: Proveedores)
 
 ---
 
@@ -41,7 +41,8 @@ flowchart LR
     AD2["AD2 Reportes<br/>AD2.1 ventas y utilidad · AD2.2 desempeño del taller · AD2.3 mes sin ventas"]:::hecho
     AD3["AD3 Cortes de caja<br/>AD3.1 cortes del mes · AD3.2 revisión y visto bueno"]:::hecho
     AD4["AD4 Catálogo y precios<br/>AD4.1 catálogo con costos · AD4.2 editar precio · AD4.3 ajustar en grupo"]:::hecho
-    AD["AD5–AD9"]:::pendiente
+    AD5["AD5 Proveedores<br/>AD5.1 lista y compras · AD5.2 registrar pago · AD5.3 nuevo proveedor"]:::hecho
+    AD["AD6–AD9"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -234,6 +235,7 @@ flowchart LR
     RPT["reportes.ts<br/>meses y exportar CSV"]:::serv
     CAD["CortesAdmin<br/>AD3.1 · DetalleCorte AD3.2"]:::comp
     CTA["CatalogoAdmin<br/>AD4.1 · EditarPrecio AD4.2<br/>AjustarPrecios AD4.3"]:::comp
+    PRV["ProveedoresAdmin<br/>AD5.1 · RegistrarPago AD5.2<br/>NuevoProveedor AD5.3"]:::comp
     NEG["negocio.ts<br/>utilidad, lo que más deja<br/>y de dónde viene el dinero"]:::serv
   end
   subgraph TECNICO["tecnico/"]
@@ -340,6 +342,7 @@ flowchart LR
   COS["CorteService<br/>movimientos y arqueo del turno,<br/>cortes anteriores (simulado)"]:::serv
   ESV["EstadisticasService<br/>historial de prueba por día<br/>+ ventas y órdenes de la app"]:::serv
   CLSV["ClientesService<br/>registro único: une clientes de<br/>caja, órdenes y ventas (simulado)"]:::serv
+  PVS["ProveedoresService<br/>condiciones, facturas a crédito<br/>y pagos (simulado)"]:::serv
 
   AUTH["AuthService<br/>(simulado)"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
@@ -455,8 +458,10 @@ flowchart LR
   GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
   SL --> TI & EA & BNC & GTC & RFT & HST & IAD
   IAD --> ESV & NEG & COS & INS & OS & HV
-  SL --> VYU & TRP & CAD & CTA
+  SL --> VYU & TRP & CAD & CTA & PRV
   CTA --> INS
+  PRV --> PVS
+  PVS --> INS & CAJA
   CAD --> COS & HV & RPT
   VYU --> ESV & NEG & RPT & COS & HV
   TRP --> OS & ESV & BTS & RPT
@@ -685,6 +690,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Ajustar precios” (AD4.3): por categoría y proveedor, subir o bajar un porcentaje, fijar un margen sobre el costo o redondear (terminar en $0 o $9), con vista previa.
 - “Añadir producto” abre el mismo alta de Inventario de caja (C7.1).
 
+**Proveedores (`/administrador/proveedores`):**
+- Por pagar, comprado este mes, pagado desde caja y pedidos incompletos. La tabla de proveedores muestra contacto, qué surte, condición y lo que se les debe; clic en uno para ver su detalle a la derecha.
+- “Últimas compras” son las entradas de mercancía de caja (C7.3) con cómo se pagaron; las de crédito dicen cuándo vencen y si están parciales.
+- “Registrar pago” (AD5.2) abona a la factura que vence primero: transferencia (no toca la caja) o efectivo de caja (solo con turno abierto; entra al corte como pago a proveedor). El aviso de AD1 se actualiza.
+- “Ver estado de cuenta” descarga un CSV con compras, pagos y saldo. “Nuevo proveedor” (AD5.3) lo agrega también a las listas de pedidos del jefe y entradas de caja.
+
 **Versión tablet del técnico (T7, de 769 a 1180 px de ancho):**
 - El menú es un riel de 80 px con el nombre corto bajo cada ícono (Inicio, Equipos, Banco, Garantías, Refacc., Historial).
 - En el banco, una orden en taller o en garantía se ve como Figma T7: encabezado corto con el PIN, pestañas (Trabajo, Refacciones, Fotos, Notas, Equipo), pasos grandes para el dedo y botones de acción (Tomar foto, Pedir refacción, Necesito información, Pausar, Daño adicional y Marcar como listo con los pasos pendientes). Las demás etapas y las otras pantallas usan su vista normal.
@@ -755,7 +766,9 @@ frontend/src/
     │   ├── ventas-utilidad/   # AD2.1 · AD2.3
     │   ├── taller-reporte/    # AD2.2
     │   ├── cortes/            # AD3.1 · detalle-corte/ AD3.2
-    │   └── catalogo/          # AD4.1 · editar-precio/ AD4.2 · ajustar-precios/ AD4.3
+    │   ├── catalogo/          # AD4.1 · editar-precio/ AD4.2 · ajustar-precios/ AD4.3
+    │   ├── proveedores/       # AD5.1 · registrar-pago/ AD5.2 · nuevo-proveedor/ AD5.3
+    │   └── proveedores.service.ts
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1083,6 +1096,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Movimientos de un corte | `CorteService.movimientosEntre()` sirve para el turno abierto y para cualquier corte cerrado | Los cortes de prueba no tienen sus ventas en la app: AD3.2 muestra la apertura y una nota; su arqueo sí es el del corte. |
 | Arqueo (AD3.2) | Fondo + ventas + reparaciones − lo cobrado con tarjeta o transferencia − retiros − pagos = efectivo esperado | Figma no muestra el renglón de tarjeta y transferencia, pero sin él el arqueo no cuadra. |
 | Catálogo y precios (AD4) | Hecho con el PNG `docs/diseno/02-administrador/ad4-catalogo-y-precios.png`. Lee y cambia los productos de `InventarioService`; los cambios de precio quedan en `cambiosPrecio` (antes, después, motivo y quién) para la bitácora (AD8) | “Costo subió” cuenta los productos cuya última compra de los últimos 30 días costó más que su costo promedio. |
+| Proveedores (AD5) | `ProveedoresService` guarda condición de pago, límite y qué surte; las compras son las entradas de `InventarioService` y los pagos en efectivo usan `CajaService.pagarProveedor` (entran al corte) | Los días de crédito salen de la condición del proveedor (antes eran fijos en AD1). Un pago se aplica a una sola factura y no puede pasar su saldo. |
 | Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
@@ -1096,12 +1110,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD5–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD4.
+- [ ] Pantallas de cada rol: administrador (AD6–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD5.
+- [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja, y los pagos no entran a la bitácora (AD8).
 - [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 6.25 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 6.35 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1617,3 +1632,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - Accesorios +5 % terminando en $0: vista previa (Mica $100 → $110) y “Aplicar a 9 productos”; con margen fijo de 100 % el botón se desactiva y con 50 % los precios dejan 50 %
   - filtros: Consumibles 1, margen alto 14, “iphone” 7; “Añadir producto” abre el alta de C7.1
   - a 1366×768 la tabla cabe; a 360 px tabla y modales sin desplazamiento; sin errores en consola
+
+### 13 nov 2026 · Administrador AD5: Proveedores
+- Hecho con el PNG `docs/diseno/02-administrador/ad5-proveedores.png` (AD5.1 lista y compras, AD5.2 registrar pago, AD5.3 nuevo proveedor).
+- `ProveedoresService` nuevo; `ProveedoresAdminComponent`, `RegistrarPagoComponent` y `NuevoProveedorComponent`. El aviso de pago de AD1 ya usa las facturas reales.
+- Verificado como `vcastillo`:
+  - FAC-A-20931 por $10,759: pago de $5,000 por transferencia con referencia → “Parcial $5,759” y Por pagar baja; después de otro pago de $759 de caja, el Inicio avisa $5,000
+  - con la caja cerrada la opción de efectivo se desactiva; con turno abierto el pago entra a `pagosAProveedor` y “Pagado desde caja” sube de $348 a $1,107
+  - monto mayor al saldo marca error; Escape cierra
+  - nuevo proveedor: pide nombre y teléfono, detecta nombre repetido, RFC inválido y crédito sin límite; al guardar queda elegido
+  - el estado de cuenta descarga compras, pagos y saldo
+  - a 1366×768 todo cabe; a 360 px tablas y modales sin desplazamiento; sin errores en consola
