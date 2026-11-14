@@ -1,5 +1,6 @@
 import { Component, HostListener, inject, input, output, signal } from '@angular/core';
 import { AuthService, CuentaUsuario } from '../../../acceso/auth.service';
+import { BitacoraService } from '../../bitacora.service';
 import { generarTemporal } from '../temporal';
 
 /** AD7.4 · Asignar contraseña temporal (pedido de "¿Olvidaste tu contraseña?" o desde Editar). */
@@ -21,6 +22,7 @@ import { generarTemporal } from '../temporal';
 })
 export class AsignarTemporalComponent {
   private readonly auth = inject(AuthService);
+  private readonly bitacora = inject(BitacoraService);
 
   readonly cuenta = input.required<CuentaUsuario>();
   readonly cerrar = output<void>();
@@ -47,7 +49,10 @@ export class AsignarTemporalComponent {
 
   protected asignar(): void {
     const c = this.cuenta();
+    const pidio = this.auth.solicitudes().find((s) => s.usuario === c.usuario);
     this.auth.asignarTemporal(c.usuario, this.clave(), this.desbloquear());
+    const hora = pidio ? ` · pidió restablecer a las ${new Date(pidio.fecha).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}` : '';
+    this.bitacora.registrar('temporal', `Asignada a ${c.usuario}${hora}${this.desbloquear() ? ' · desbloqueada' : ''}`, 'Usuarios', '/administrador/usuarios-y-permisos');
     const extra = [this.desbloquear() ? 'cuenta desbloqueada' : '', this.cerrarSesiones() ? 'sesiones en otros equipos cerradas' : ''].filter(Boolean).join(', ');
     this.asignada.emit(`Contraseña temporal ${this.clave()} asignada a ${c.nombre}${extra ? ` (${extra})` : ''}. Al entrar creará la suya.`);
   }

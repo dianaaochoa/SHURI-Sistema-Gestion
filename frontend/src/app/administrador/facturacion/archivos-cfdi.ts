@@ -1,5 +1,6 @@
 import { formatearDinero } from '../../compartido/formato';
 import { Cfdi, ESTADOS_CFDI, MOTIVOS_CANCELACION, serieFolio } from '../facturacion.service';
+import { descargar, pdfDeLineas } from '../pdf-simple';
 
 /** Emisor de prueba (RFC genérico de pruebas del SAT) hasta que AD9 guarde los datos fiscales del negocio. */
 const EMISOR = { rfc: 'EKU9003173C9', nombre: 'SHURI REPARACION Y VENTA', regimen: '626', cp: '06700' };
@@ -11,15 +12,6 @@ const fechaLocal = (iso: string) => {
 };
 
 const sinIva = (total: number) => Math.round((total / 1.16) * 100) / 100;
-
-function descargar(nombre: string, contenido: Blob): void {
-  const url = URL.createObjectURL(contenido);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 const atributo = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
@@ -44,16 +36,6 @@ export function descargarXml(c: Cfdi): void {
   descargar(`${serieFolio(c)}.xml`, new Blob([xml], { type: 'application/xml' }));
 }
 
-/** Texto en WinAnsi para el PDF: acentos con escapes octales; lo demás fuera de Latin-1 se cambia. */
-const pdfTexto = (t: string) =>
-  t
-    .replace(/[–—]/g, '-')
-    .replace(/[\\()]/g, '\\$&')
-    .replace(/[^\x20-\x7e]/g, (ch) => {
-      const c = ch.charCodeAt(0);
-      return c < 256 ? `\\${c.toString(8).padStart(3, '0')}` : '?';
-    });
-
 /** Representación impresa sencilla del CFDI (una hoja carta). */
 export function descargarPdf(c: Cfdi): void {
   const subtotal = sinIva(c.total);
@@ -72,22 +54,5 @@ export function descargarPdf(c: Cfdi): void {
     '',
     `Estado: ${ESTADOS_CFDI[c.estado].texto}${c.cancelacion ? ` · motivo ${MOTIVOS_CANCELACION[c.cancelacion.motivo].texto}` : ''}`,
   ];
-  const flujo = `BT /F1 11 Tf 16 TL 56 760 Td ${lineas.map((l) => `(${pdfTexto(l)}) '`).join(' ')} ET`;
-  const objetos = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
-    `<< /Length ${flujo.length} >>\nstream\n${flujo}\nendstream`,
-  ];
-  let pdf = '%PDF-1.4\n';
-  const posiciones: number[] = [];
-  objetos.forEach((o, i) => {
-    posiciones.push(pdf.length);
-    pdf += `${i + 1} 0 obj\n${o}\nendobj\n`;
-  });
-  const xref = pdf.length;
-  pdf += `xref\n0 ${objetos.length + 1}\n0000000000 65535 f \n${posiciones.map((p) => `${String(p).padStart(10, '0')} 00000 n \n`).join('')}`;
-  pdf += `trailer\n<< /Size ${objetos.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  descargar(`${serieFolio(c)}.pdf`, new Blob([pdf], { type: 'application/pdf' }));
+  descargar(`${serieFolio(c)}.pdf`, pdfDeLineas(lineas, 11));
 }

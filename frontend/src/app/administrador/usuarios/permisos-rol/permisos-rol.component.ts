@@ -1,5 +1,6 @@
 import { Component, computed, inject, output, signal } from '@angular/core';
 import { Rol } from '../../../acceso/auth.service';
+import { BitacoraService } from '../../bitacora.service';
 import { ClavePermiso, MatrizPermisos, NIVELES_DESCUENTO, PERMISOS, PermisosService, ROLES, textoDescuento } from '../../permisos.service';
 
 /** AD7.3 · Permisos por rol. Los cambios se guardan juntos con "Guardar cambios". */
@@ -11,6 +12,7 @@ import { ClavePermiso, MatrizPermisos, NIVELES_DESCUENTO, PERMISOS, PermisosServ
 })
 export class PermisosRolComponent {
   private readonly servicio = inject(PermisosService);
+  private readonly bitacora = inject(BitacoraService);
 
   readonly volver = output<void>();
   readonly guardado = output<string>();
@@ -44,6 +46,7 @@ export class PermisosRolComponent {
 
   protected guardar(): void {
     const n = this.cambios();
+    this.bitacora.registrar('permisos', `${n} ${n === 1 ? 'cambio' : 'cambios'} · descuento de cajera ${textoDescuento(this.descuento()).toLowerCase()}`, 'Usuarios', '/administrador/usuarios-y-permisos');
     this.servicio.guardar(this.borrador(), this.descuento());
     this.guardado.emit(`Permisos guardados (${n} ${n === 1 ? 'cambio' : 'cambios'}). Aplican la próxima vez que entren.`);
   }

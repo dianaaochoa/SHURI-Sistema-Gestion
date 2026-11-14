@@ -1,6 +1,7 @@
 import { Component, HostListener, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { AuthService, CuentaUsuario, Rol, Turno } from '../../../acceso/auth.service';
 import { CajaService } from '../../../cajera/caja.service';
+import { BitacoraService } from '../../bitacora.service';
 import { NIVELES_DESCUENTO, PermisosService, ROLES } from '../../permisos.service';
 import { generarTemporal, sugerirUsuario } from '../temporal';
 
@@ -26,6 +27,7 @@ const HORARIOS = ['9:00–18:00', '10:00–19:00', '8:00–17:00'];
 export class UsuarioFormComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly permisos = inject(PermisosService);
+  private readonly bitacora = inject(BitacoraService);
   protected readonly cajas = inject(CajaService).cajas;
 
   /** null = nuevo usuario. */
@@ -112,9 +114,11 @@ export class UsuarioFormComponent implements OnInit {
     };
     if (anterior) {
       this.auth.editarUsuario(anterior.usuario, datos);
+      this.bitacora.registrar('usuario', `Cambios a ${anterior.usuario} · ${etiqueta}${anterior.rol !== rol ? ` (antes ${anterior.puesto})` : ''}`, 'Usuarios', '/administrador/usuarios-y-permisos');
       this.guardado.emit(`Cambios de ${datos.nombre} guardados. Aplican la próxima vez que entre.`);
     } else {
       this.auth.crearUsuario({ ...datos, usuario: this.usuario() }, this.clave());
+      this.bitacora.registrar('usuario', `Alta de ${this.usuario()} · ${etiqueta} · con contraseña temporal`, 'Usuarios', '/administrador/usuarios-y-permisos');
       this.guardado.emit(`${datos.nombre} (${this.usuario()}) creado con la contraseña temporal ${this.clave()}. Entrégasela en persona: al entrar creará la suya.`);
     }
   }
@@ -123,6 +127,7 @@ export class UsuarioFormComponent implements OnInit {
     const c = this.cuenta();
     if (!c || this.esYo()) return;
     this.auth.editarUsuario(c.usuario, { activo: !c.activo });
+    this.bitacora.registrar('usuario', `${c.activo ? 'Desactivó' : 'Reactivó'} a ${c.usuario}`, 'Usuarios', '/administrador/usuarios-y-permisos');
     this.guardado.emit(c.activo ? `${c.nombre} quedó inactivo: ya no puede entrar al sistema.` : `${c.nombre} se reactivó.`);
   }
 

@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 13 nov 2026 (administrador AD7: Usuarios y permisos)
+- **Última actualización:** 14 nov 2026 (administrador AD8: Bitácora)
 
 ---
 
@@ -44,7 +44,8 @@ flowchart LR
     AD5["AD5 Proveedores<br/>AD5.1 lista y compras · AD5.2 registrar pago · AD5.3 nuevo proveedor"]:::hecho
     AD6["AD6 Facturación<br/>AD6.1 facturas del mes · AD6.2 cancelar · AD6.3 factura global"]:::hecho
     AD7["AD7 Usuarios y permisos<br/>AD7.1 lista · AD7.2 nuevo/editar · AD7.3 permisos por rol · AD7.4 contraseña temporal"]:::hecho
-    AD["AD8–AD9"]:::pendiente
+    AD8["AD8 Bitácora<br/>AD8.1 acciones sensibles · AD8.2 exportar"]:::hecho
+    AD["AD9 Configuración"]:::pendiente
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -351,6 +352,8 @@ flowchart LR
   AUTH["AuthService<br/>sesión, cuentas del personal,<br/>bloqueos y pedidos (simulado)"]:::serv
   USA["UsuariosAdmin AD7.1<br/>UsuarioForm AD7.2 · PermisosRol AD7.3<br/>AsignarTemporal AD7.4"]:::comp
   PMS["PermisosService<br/>permisos por rol (simulado)"]:::serv
+  BTA["BitacoraAdmin AD8.1<br/>ExportarBitacora AD8.2"]:::comp
+  BTS["BitacoraService<br/>solo agrega: junta precios, ajustes,<br/>pagos, facturas, cortes, caja, descuentos"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
   CAJA["CajaService<br/>turno, retiros, ingresos y<br/>pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
@@ -419,7 +422,10 @@ flowchart LR
   NAV --> RUT & ML & PP
   IS & OC & CC & ML & MU & PP --> AUTH
   SL --> USA
-  USA --> AUTH & PMS
+  USA --> AUTH & PMS & BTS
+  SL --> BTA
+  BTA --> BTS
+  BTS --> INS & CAJA & COS & FCS & PVS
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
   IC & AT & ST --> FMT
@@ -518,6 +524,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - Activos e inactivos con rol, turno o área, último acceso, tipo de acceso y estado (activo, en turno, pendiente, bloqueado).
 - El aviso amarillo muestra el último pedido de “¿Olvidaste tu contraseña?” (A.3); “Asignar contraseña temporal” (AD7.4) genera una clave tipo `Q8T-3ZK`, puede desbloquear la cuenta y quita el pedido. Al entrar con ella, el login manda a A.5.
 - “Nuevo usuario” (AD7.2) sugiere el usuario a partir del nombre, pide rol, caja y turno (cajeras) u horario (taller) y el descuento máximo; “Editar” permite cambiar datos, desactivar o reactivar (no a uno mismo) y asignar temporal.
+- Cada alta, cambio, desactivación, contraseña temporal y cambio de permisos queda en la Bitácora (AD8).
 - “Permisos por rol” (AD7.3): matriz de 12 permisos; el descuento de la cajera (0 a 20 %) es el valor por omisión de las cajeras nuevas. El punto de venta ya respeta el descuento máximo de cada cajera.
 
 **Caja de la cajera:**
@@ -796,7 +803,10 @@ frontend/src/
     │   ├── facturacion/       # AD6.1 · detalle-factura/ · cancelar-factura/ AD6.2 · factura-global/ AD6.3 · archivos-cfdi.ts
     │   ├── facturacion.service.ts
     │   ├── usuarios/          # AD7.1 · usuario-form/ AD7.2 · permisos-rol/ AD7.3 · asignar-temporal/ AD7.4 · temporal.ts
-    │   └── permisos.service.ts
+    │   ├── permisos.service.ts
+    │   ├── bitacora/          # AD8.1 · exportar-bitacora/ AD8.2
+    │   ├── bitacora.service.ts
+    │   └── pdf-simple.ts      # PDF de texto sin librerías (facturas y bitácora)
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1127,6 +1137,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Proveedores (AD5) | `ProveedoresService` guarda condición de pago, límite y qué surte; las compras son las entradas de `InventarioService` y los pagos en efectivo usan `CajaService.pagarProveedor` (entran al corte) | Los días de crédito salen de la condición del proveedor (antes eran fijos en AD1). Un pago se aplica a una sola factura y no puede pasar su saldo. |
 | Facturación (AD6) | `FacturacionService` guarda los CFDI con serie A y folio consecutivo; el punto de venta y la entrega llaman a `timbrar()` cuando el cliente pidió factura | El timbrado, el UUID, el XML y el PDF son simulados (emisor con el RFC genérico de pruebas del SAT) hasta conectar el PAC. La global toma ventas y cobros del taller de `EstadisticasService` y resta lo facturado aparte. |
 | Usuarios y permisos (AD7) | Las cuentas viven en `AuthService` (sin exponer contraseñas); el login respeta inactivos, bloqueos y contraseñas temporales | El puesto que se muestra (“Cajero”, “Administradora”) lo guarda el administrador; no se deduce del nombre. “En turno”: cajera con su turno de caja abierto o técnico que entró hoy dentro de su horario. |
+| Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
@@ -1140,7 +1151,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD8–AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD7.
+- [ ] Pantallas de cada rol: administrador (AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD8.
+- [ ] Bitácora: el almacenaje perdonado (J8) y los dictámenes de garantía (J4) solo salen en los datos de prueba; falta registrarlos cuando el jefe los hace.
 - [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
 - [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); los datos fiscales del emisor deben salir de Configuración (AD9); la autofactura del portal (P) todavía no existe; las cancelaciones aún no aparecen en la bitácora (AD8).
 - [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja, y los pagos no entran a la bitácora (AD8).
@@ -1696,3 +1708,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - desactivar a Luis Peña → Inactivos (2) y su login dice “desactivado”; 3 fallos de `cruiz` → Bloqueado; temporal con desbloqueo → entra, A.5 pide la nueva y llega a su inicio
   - no puede quitarse el rol ni desactivarse a sí misma; permisos: 2 cambios guardados y el descuento de 15 % pasa a las cajeras nuevas
   - a 1366×768 y 360 px tablas y modales sin desplazamiento (encabezados cortos en permisos)
+
+### 14 nov 2026 · Administrador AD8: Bitácora
+- Hecho con el PNG `docs/diseno/02-administrador/ad8-bitacora.png` (AD8.1 bitácora, AD8.2 exportar).
+- `BitacoraService`, `BitacoraAdminComponent` y `ExportarBitacoraComponent`; `pdf-simple.ts` sale de lo que hacía el PDF de facturas y ahora lo usan los dos. AD7 registra sus acciones.
+- Verificado como `vcastillo`:
+  - las 8 acciones de Figma con la misma distancia entre ellas; filtros por periodo y acción, páginas de 8 (“Mostrando 8 de 62 acciones de los últimos 30 días”, 1 2 … 8)
+  - salen la factura A-0409 cancelada, los cortes revisados y los ajustes de Inventario; asignar contraseña temporal a Ana y guardar permisos aparecen arriba al instante
+  - “Ver” lleva al módulo; exportar: fechas del 1 del mes a hoy, error si “Desde” es después de “Hasta”, .xls con 39 filas, CSV sin la columna Detalle al quitar la casilla y PDF de 2 hojas con la tabla de posiciones correcta
+  - a 1366×768 la tabla cabe; a 360 px el detalle pasa debajo de la acción y la tabla y el modal caben; sin errores en consola
