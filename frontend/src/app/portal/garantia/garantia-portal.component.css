@@ -1,0 +1,6 @@
+/* Figma P3 · 8 pasos en dos filas */
+:host { display: contents; }
+.ocho { display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 12px; }
+.ocho .paso:nth-child(4n + 1)::before { display: none; }
+.utilizada { align-self: flex-start; }
+.pie__nota { font-size: 12px; font-weight: 600; text-align: center; color: var(--color-primario); }

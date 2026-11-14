@@ -159,6 +159,8 @@ export interface DecisionGarantia {
   concepto?: string;
   costo?: number;
   por: string;
+  /** Con costo: lo que respondió el cliente en su portal (P3.2). */
+  respuesta?: { fecha: string; acepta: boolean };
 }
 
 export interface FichaRecepcion {
@@ -258,7 +260,10 @@ export function saldo(orden: Orden): number {
   // Almacenaje de la política de bodega (J8.2): se suma a lo que falta cobrar al entregar.
   const almacenaje = ENTREGABLES.includes(orden.estado) ? (orden.almacenaje?.monto ?? 0) : 0;
   if (orden.estado === 'sin-reparacion' && orden.revision?.cobrar) return redondear(Math.max(0, orden.revision.monto - orden.anticipo) + almacenaje);
-  if (['sin-reparacion', 'garantia-lista', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return almacenaje;
+  // Garantía con costo extra que el cliente aceptó (P3.2): se cobra al entregar.
+  const extra = orden.garantia?.decision?.tipo === 'con-costo' && orden.garantia.decision.respuesta?.acepta ? (orden.garantia.decision.costo ?? 0) : 0;
+  if (orden.estado === 'garantia-lista') return redondear(extra + almacenaje);
+  if (['sin-reparacion', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return almacenaje;
   return redondear(Math.max(0, orden.presupuesto.total - orden.anticipo) + almacenaje);
 }
 
@@ -870,6 +875,34 @@ export class OrdenesService {
       garantia: { recibida: ahoraIso(), falla: falla.trim(), dictamen: 'En revisión', resolucion: '', condicion: condicion.trim() || undefined, recibio: cajera },
       historial: [...o.historial, { fecha: ahoraIso(), texto: `Recibido en garantía por ${cajera}: ${falla.trim()}` }],
     }));
+  }
+
+  /** P3.1 · El cliente pide la garantía desde su portal; lleva el equipo al taller con el mismo folio. */
+  solicitarGarantiaPortal(folio: string, falla: string, desde: string, fotos: number): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      estado: 'en-garantia',
+      garantia: { recibida: ahora, falla: `${falla.trim()}${desde ? ` (desde el ${desde})` : ''}`, dictamen: 'En revisión', resolucion: '' },
+      historial: [...o.historial, { fecha: ahora, texto: `Garantía solicitada desde el portal${fotos ? ` con ${fotos} ${fotos === 1 ? 'foto' : 'fotos'}` : ''}` }],
+    }));
+  }
+
+  /** P3.2 · El cliente acepta o rechaza el costo extra del dictamen. Si rechaza, se devuelve sin reparar. */
+  responderGarantia(folio: string, acepta: boolean): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const d = o.garantia?.decision;
+      if (!o.garantia || !d || d.tipo !== 'con-costo' || d.respuesta) return o;
+      const decision = { ...d, respuesta: { fecha: ahora, acepta } };
+      return {
+        ...o,
+        estado: acepta ? o.estado : 'garantia-lista',
+        listaDesde: acepta ? o.listaDesde : ahora,
+        garantia: { ...o.garantia, decision, resolucion: acepta ? o.garantia.resolucion : 'Se devuelve sin reparar: el cliente rechazó el costo extra.' },
+        historial: [...o.historial, { fecha: ahora, texto: acepta ? `Costo extra de $${(d.costo ?? 0).toFixed(2)} aceptado en el portal` : 'Costo extra rechazado en el portal: se devuelve sin reparar' }],
+      };
+    });
   }
 
   /** C4.7 */

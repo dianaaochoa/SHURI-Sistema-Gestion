@@ -142,6 +142,23 @@ export class PortalService {
     return true;
   }
 
+  /** P3.1 · Solo si la orden ya se entregó, sigue en garantía y no se ha usado. */
+  solicitarGarantia(folio: string, falla: string, desde: string, fotos: number): boolean {
+    const o = this.ordenDe(folio);
+    if (!o || o.estado !== 'terminada' || o.garantia || !o.entrega || !falla.trim()) return false;
+    this.ordenes.solicitarGarantiaPortal(o.folio, falla.trim().slice(0, 300), desde, fotos);
+    return true;
+  }
+
+  /** P3.2 · Acepta o rechaza el costo extra del dictamen de garantía. */
+  responderGarantia(folio: string, acepta: boolean): boolean {
+    const o = this.ordenDe(folio);
+    const d = o?.garantia?.decision;
+    if (!o || !d || d.tipo !== 'con-costo' || d.respuesta) return false;
+    this.ordenes.responderGarantia(o.folio, acepta);
+    return true;
+  }
+
   /** P2.11 · Calificación del servicio (una por folio). */
   readonly calificaciones = signal<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>({});
 
@@ -160,9 +177,12 @@ export class PortalService {
     if (!c) return [];
     this.ordenes.ordenes();
     const activos = this.clientes.ordenesDe(c).map((o) => {
-      const e = ESTADO_PORTAL[o.estado];
+      const d = o.garantia?.decision;
+      // Figma P1.2: dictamen con costo extra que espera la respuesta del cliente.
+      const esperaGarantia = d?.tipo === 'con-costo' && !d.respuesta && o.estado === 'en-garantia';
+      const e = esperaGarantia ? { texto: 'Garantía · requiere tu respuesta', tono: 'advertencia', pasos: 5, responder: true } : ESTADO_PORTAL[o.estado];
       const entregado = o.entrega?.fecha ? `Entregado ${diaMes(o.entrega.fecha)}` : '';
-      const detalle = o.garantia?.decision && o.estado === 'en-garantia' ? 'Dictamen de garantía listo' : entregado || o.trabajo || `Recibido ${diaMes(o.recibido)}`;
+      const detalle = d && o.estado === 'en-garantia' ? 'Dictamen de garantía listo' : entregado || o.trabajo || `Recibido ${diaMes(o.recibido)}`;
       return { folio: o.folio, equipo: o.equipo, detalle: `Folio ${o.folio} · ${detalle}`, estado: { texto: e.texto, tono: e.tono }, pasos: e.pasos, responder: !!e.responder, orden: o };
     });
     const folios = new Set(activos.map((a) => a.folio));

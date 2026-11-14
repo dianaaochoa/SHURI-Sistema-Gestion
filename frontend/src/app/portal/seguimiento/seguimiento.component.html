@@ -8,6 +8,9 @@
 
 <main class="columna">
   @if (v(); as v) {
+    @if (v.variante === 'garantia') {
+      <app-garantia-portal [orden]="orden()!" [telefono]="telefono" (clausulas)="clausulas.set(true)" />
+    } @else {
     <div class="cabeza">
       <span class="estado estado--{{ v.badge.tono }}">{{ v.badge.texto }}</span>
       <h1 class="titulo-pagina">{{ v.titulo }}</h1>
@@ -160,7 +163,7 @@
             <p class="garantia"><strong>{{ v.garantia.quedan }}</strong><span>{{ v.garantia.quedan === 1 ? 'día de garantía restante' : 'días de garantía restantes' }}<small>Vence el {{ v.garantia.vence }} · Folio {{ orden()?.folio }}</small></span></p>
             <span class="barra-garantia"><span [style.width.%]="v.garantia.porcentaje"></span></span>
             <p class="tenue">Cuenta desde la entrega y se solicita con el mismo folio. No cubre golpes, humedad ni manipulación de terceros.</p>
-            <a class="boton boton--contorno boton--44" [href]="'tel:' + telefono"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Solicitar garantía</a>
+            <button type="button" class="boton boton--contorno boton--44" (click)="solicitando.set(true)"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Solicitar garantía</button>
           </section>
         }
         <section class="tarjeta">
@@ -218,6 +221,7 @@
         <button type="button" class="boton boton--contorno boton--44" (click)="clausulas.set(true)"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas</button>
       </div>
     }
+    }
   } @else {
     @if (archivado(); as a) {
       <div class="cabeza">
@@ -254,6 +258,9 @@
       </div>
     </div>
   </div>
+}
+@if (solicitando() && orden(); as o) {
+  <app-solicitar-garantia [orden]="o" (cerrar)="solicitando.set(false)" (enviada)="solicitando.set(false)" />
 }
 @if (clausulas()) {
   <app-informacion-modal tipo="clausulas" (cerrar)="clausulas.set(false)" />

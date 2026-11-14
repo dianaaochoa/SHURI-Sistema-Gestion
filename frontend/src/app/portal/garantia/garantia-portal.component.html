@@ -1,0 +1,112 @@
+@if (v(); as v) {
+  <div class="cabeza">
+    <span class="estado estado--{{ v.tono }}">{{ v.badge }}</span>
+    <h1 class="titulo-pagina">{{ v.titulo }}</h1>
+    <p class="sub">{{ v.sub }}</p>
+  </div>
+
+  @if (aviso()) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+  }
+
+  <section class="tarjeta pasos" aria-label="Avance de la garantía">
+    <ol class="pasos__lista ocho">
+      @for (p of pasos; track i; let i = $index) {
+        <li class="paso paso--{{ pasoEstado(i + 1) }}" [attr.aria-current]="pasoEstado(i + 1) === 'actual' ? 'step' : null">
+          <span class="paso__marca">
+            @switch (pasoEstado(i + 1)) {
+              @case ('hecho') { <img src="assets/pdv/check-blanco.svg" width="14" height="14" alt="Listo" /> }
+              @case ('error') { <img src="assets/pdv/x.svg" width="12" height="12" alt="No" /> }
+              @default { {{ i + 1 }} }
+            }
+          </span>
+          <span class="paso__texto">{{ p }}</span>
+        </li>
+      }
+    </ol>
+    <p class="pasos__linea" [class.pasos__linea--error]="v.error">{{ v.linea }}</p>
+  </section>
+
+  @if (v.fase === 'cerrada') {
+    <section class="tarjeta">
+      <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span>Qué se hizo</p>
+      <p class="tenue">{{ v.realizado }}</p>
+      @if (v.aceptoCosto) { <p class="dato"><span>Costo extra pagado</span><strong>{{ v.costo }}</strong></p> }
+      @if (v.entregado) { <p class="dato"><span>Entregado</span><strong>{{ v.entregado }}</strong></p> }
+    </section>
+    <section class="tarjeta">
+      <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Estado de la garantía</p>
+      <span class="estado estado--neutro utilizada">Garantía utilizada</span>
+      <p class="tenue">La garantía del folio {{ orden().folio }} ya se usó y quedó cerrada. Si vuelves a tener una falla, acude al taller para una nueva revisión.</p>
+    </section>
+  } @else {
+    @if (v.fase !== 'rechazada') {
+      <section class="tarjeta">
+        <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Lo que reportaste</p>
+        <p>“{{ v.falla }}”</p>
+      </section>
+    }
+    @if (v.fase === 'revision' && !v.enTaller) {
+      <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Lleva tu equipo a SHURI con el folio {{ orden().folio }}. El técnico lo revisa y aquí verás su dictamen.</p>
+    }
+    @if (v.fase === 'revision' && v.enTaller) {
+      <p class="tenue">Tu equipo ya está en el taller. Te avisaremos aquí y por correo cuando el técnico tenga su dictamen.</p>
+    }
+    @if (v.dictamen) {
+      <section class="tarjeta">
+        <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/inventario/search.svg)"></span>{{ v.fase === 'rechazada' ? 'Dictamen técnico' : '¿Qué pasó? · Dictamen técnico' }}</p>
+        <p class="tenue">{{ v.dictamen }}</p>
+        <p class="dato"><span>Revisión de garantía</span><strong>Sin costo</strong></p>
+        @if (v.fase === 'costo' || v.aceptoCosto) {
+          <p class="dato"><span>{{ v.concepto }}</span><strong>{{ v.costo }}</strong></p>
+          @if (v.fase === 'costo') { <p class="restante"><span>Costo extra</span><strong>{{ v.costo }}</strong></p> }
+        } @else if (v.fase === 'aprobada') {
+          <p class="dato"><span>{{ v.concepto }}</span><strong>Sin costo</strong></p>
+        }
+        @if (v.fase === 'aprobada') { <p class="restante restante--chico"><span>Total a pagar</span><strong>{{ v.totalPagar }}</strong></p> }
+      </section>
+    }
+    @if (v.fase === 'rechazada' || v.fase === 'lista') {
+      <section class="tarjeta">
+        <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/portal/map-pin.svg)"></span>{{ v.fase === 'lista' ? 'Recoge en SHURI' : 'Recoge tu equipo' }}</p>
+        <p>{{ v.fase === 'lista' ? 'Lleva tu folio ' + orden().folio + ' y una identificación.' : 'Se devuelve en las mismas condiciones en que lo trajiste. Recógelo en SHURI con tu folio ' + orden().folio + '.' }}</p>
+        @if (v.fase === 'lista') { <p class="restante restante--chico"><span>Total a pagar</span><strong>{{ v.totalPagar }}</strong></p> }
+      </section>
+      <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>{{ v.plazo }}</p>
+    }
+  }
+
+  <span class="espacio"></span>
+  @if (v.fase === 'costo') {
+    <div class="pie pie--decision">
+      <button type="button" class="texto-enlace" (click)="clausulas.emit()"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas y condiciones</button>
+      <div class="pie__botones">
+        <button type="button" class="boton boton--peligro-contorno boton--44" (click)="confirmar.set('rechazar')">Rechazar</button>
+        <button type="button" class="boton boton--primario boton--44" (click)="confirmar.set('aceptar')">Aceptar costo extra</button>
+      </div>
+    </div>
+  } @else if (v.fase === 'aprobada') {
+    <div class="pie pie--decision">
+      <button type="button" class="texto-enlace" (click)="clausulas.emit()"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas y condiciones</button>
+      <p class="pie__nota">Te avisaremos cuando esté listo. Recógelo con el mismo folio {{ orden().folio }}.</p>
+    </div>
+  } @else {
+    <div class="pie">
+      <a class="boton boton--contorno boton--44" [href]="'tel:' + telefono()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
+      <button type="button" class="boton boton--contorno boton--44" (click)="clausulas.emit()"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas</button>
+    </div>
+  }
+
+  @if (confirmar(); as accion) {
+    <div class="modal-fondo" (click)="confirmar.set(null)">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-costo" (click)="$event.stopPropagation()">
+        <h2 class="modal__titulo" id="titulo-costo">{{ accion === 'aceptar' ? '¿Aceptas el costo extra de ' + v.costo + '?' : '¿Rechazas el costo extra?' }}</h2>
+        <p class="tenue">{{ accion === 'aceptar' ? 'El técnico repara tu equipo y lo pagas al recogerlo.' : 'Tu equipo se devuelve sin reparar, como lo trajiste. La revisión de garantía no tiene costo.' }}</p>
+        <div class="modal__acciones">
+          <button type="button" class="boton boton--contorno boton--44" (click)="confirmar.set(null)">Volver</button>
+          <button type="button" class="boton boton--44" [class.boton--primario]="accion === 'aceptar'" [class.boton--peligro]="accion === 'rechazar'" (click)="responder()">{{ accion === 'aceptar' ? 'Sí, acepto' : 'Sí, rechazo' }}</button>
+        </div>
+      </div>
+    </div>
+  }
+}

@@ -8,9 +8,11 @@ import { Orden, saldo } from '../../cajera/ordenes/ordenes.service';
 import { formatearDinero } from '../../compartido/formato';
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { InformacionModalComponent } from '../compartido/informacion-modal.component';
+import { GarantiaPortalComponent } from '../garantia/garantia-portal.component';
+import { SolicitarGarantiaComponent } from '../garantia/solicitar-garantia.component';
 import { PortalService } from '../portal.service';
 
-type Variante = 'recibido' | 'revision' | 'dato' | 'presupuesto' | 'rechazado' | 'sin-reparacion' | 'taller' | 'adicional' | 'listo' | 'entregado';
+type Variante = 'garantia' | 'recibido' | 'revision' | 'dato' | 'presupuesto' | 'rechazado' | 'sin-reparacion' | 'taller' | 'adicional' | 'listo' | 'entregado';
 
 const DIA = 86_400_000;
 const PASOS = ['Recibido', 'Revisión', 'Aprobación', 'Taller', 'Listo', 'Terminado'];
@@ -25,6 +27,8 @@ const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-MX', { hour: 
 /** Qué pantalla de Figma P2 corresponde al estado de la orden. */
 function varianteDe(o: Orden): Variante {
   const esperaCliente = !!o.pausa && /cliente/i.test(o.pausa.motivo);
+  // P3: la orden ya tiene garantía (solicitada, dictaminada, lista o cerrada).
+  if (o.garantia && ['en-garantia', 'garantia-lista', 'terminada'].includes(o.estado)) return 'garantia';
   switch (o.estado) {
     case 'terminada':
     case 'sin-reparar-entregada':
@@ -49,6 +53,7 @@ function varianteDe(o: Orden): Variante {
 }
 
 const VARIANTES: Record<Variante, { badge: string; tono: string; titulo: string; paso: number; error?: boolean; linea: string }> = {
+  garantia: { badge: 'Garantía', tono: 'info', titulo: 'Seguimiento de garantía', paso: 7, linea: '' },
   recibido: { badge: 'Equipo recibido', tono: 'info', titulo: 'Recibimos tu equipo', paso: 1, linea: 'RECIBIDO · En espera de revisión' },
   revision: { badge: 'En diagnóstico', tono: 'info', titulo: 'Estamos revisando tu equipo', paso: 2, linea: 'REVISIÓN · Revisión técnica en curso' },
   dato: { badge: 'Acción requerida', tono: 'advertencia', titulo: 'Necesitamos un dato tuyo', paso: 2, linea: 'REVISIÓN · En pausa, esperando tu respuesta' },
@@ -65,7 +70,7 @@ const VARIANTES: Record<Variante, { badge: string; tono: string; titulo: string;
 @Component({
   selector: 'app-seguimiento',
   standalone: true,
-  imports: [RouterLink, InformacionModalComponent],
+  imports: [RouterLink, InformacionModalComponent, GarantiaPortalComponent, SolicitarGarantiaComponent],
   templateUrl: './seguimiento.component.html',
   styleUrls: ['../portal.css', './seguimiento.component.css', './tarjetas.css'],
 })
@@ -77,6 +82,8 @@ export class SeguimientoComponent {
   protected readonly gustos = GUSTOS;
   protected readonly telefono = NEGOCIO.telefono.replace(/\s/g, '');
   protected readonly clausulas = signal(false);
+  /** P3.1 · hoja para solicitar la garantía. */
+  protected readonly solicitando = signal(false);
   protected readonly confirmar = signal<'aprobar' | 'rechazar' | null>(null);
   protected readonly nota = signal('');
   /** Aviso de la última acción; se oculta cuando la orden cambia de estado. */
