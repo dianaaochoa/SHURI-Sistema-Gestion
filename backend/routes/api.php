@@ -14,12 +14,14 @@ use App\Http\Controllers\Api\Inventory\ProductController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Portal\PortalOrderController;
 use App\Http\Controllers\Api\Portal\PortalQuoteController;
+use App\Http\Controllers\Api\Portal\PortalWarrantyController;
 use App\Http\Controllers\Api\Pos\SaleController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
 use App\Http\Controllers\Api\Workshop\PartRequestController;
 use App\Http\Controllers\Api\Workshop\QuoteController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
+use App\Http\Controllers\Api\Workshop\WarrantyController;
 use App\Http\Controllers\Api\Workshop\WorkbenchController;
 use Illuminate\Support\Facades\Route;
 
@@ -99,6 +101,26 @@ Route::prefix('v1')->group(function () {
                 Route::post('{folio}/diagnosis', [WorkbenchController::class, 'diagnosis']);
             });
             Route::get('labor-levels', [WorkbenchController::class, 'laborLevels'])->middleware('permission:orders.repair,orders.quote');
+
+            // ── Taller: garantías (C4 mostrador, J4 jefe, T4 técnico · RF-11) ──
+            Route::middleware('permission:warranties.rule,orders.receive,orders.deliver')->group(function () {
+                Route::get('warranties', [WarrantyController::class, 'index']);
+                Route::get('warranties/{folio}', [WarrantyController::class, 'show']);
+            });
+            Route::middleware('permission:orders.receive')->group(function () {
+                Route::post('service-orders/{folio}/warranties', [WarrantyController::class, 'storeAtCounter']);
+                Route::post('warranties/{folio}/receive', [WarrantyController::class, 'receive']);
+            });
+            Route::middleware('permission:warranties.rule')->group(function () {
+                Route::post('warranties/{folio}/assign', [WarrantyController::class, 'assign']);
+                Route::post('warranties/{folio}/rule', [WarrantyController::class, 'rule']);
+            });
+            Route::post('warranties/{folio}/deliver', [WarrantyController::class, 'deliver'])->middleware('permission:orders.deliver');
+            Route::middleware('permission:orders.repair')->group(function () {
+                Route::get('my/warranties', [WarrantyController::class, 'mine']);
+                Route::post('my/warranties/{folio}/review', [WarrantyController::class, 'review']);
+                Route::post('my/warranties/{folio}/finish', [WarrantyController::class, 'finish']);
+            });
 
             // ── Taller: refacciones (T5 técnico, J5 jefe · RF-05) ──
             Route::middleware('permission:parts.request')->group(function () {
@@ -194,6 +216,11 @@ Route::prefix('v1')->group(function () {
             Route::get('orders/{folio}/quote', [PortalQuoteController::class, 'show']);
             Route::post('quotes/{folio}/approve', [PortalQuoteController::class, 'approve']);
             Route::post('quotes/{folio}/reject', [PortalQuoteController::class, 'reject']);
+
+            // P3 Garantía, solo si se solicita (RF-11)
+            Route::get('orders/{folio}/warranty', [PortalWarrantyController::class, 'show']);
+            Route::post('orders/{folio}/warranty', [PortalWarrantyController::class, 'store']);
+            Route::post('warranties/{folio}/answer', [PortalWarrantyController::class, 'answer']);
         });
     });
 

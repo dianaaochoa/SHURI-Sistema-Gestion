@@ -22,11 +22,11 @@ class CheckoutRequest extends FormRequest
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
 
             'items' => ['required', 'array', 'min:1', 'max:50'],
-            'items.*.type' => ['required', 'in:product,service_order'],
+            'items.*.type' => ['required', 'in:product,service_order,warranty'],
             'items.*.product_id' => ['required_if:items.*.type,product', 'nullable', 'integer'],
             'items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
             'items.*.discount_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'items.*.folio' => ['required_if:items.*.type,service_order', 'nullable', 'string', 'max:20'],
+            'items.*.folio' => ['required_if:items.*.type,service_order,warranty', 'nullable', 'string', 'max:20'],
             'items.*.picked_up_by_name' => ['nullable', 'string', 'max:150'],
 
             'payments' => ['nullable', 'array', 'max:5'],

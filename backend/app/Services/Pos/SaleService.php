@@ -9,12 +9,14 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\ServiceOrder;
 use App\Models\User;
+use App\Models\Warranty;
 use App\Services\AuditService;
 use App\Services\Cash\CashShiftService;
 use App\Services\FolioService;
 use App\Services\Inventory\InventoryService;
 use App\Services\SettingsService;
 use App\Services\Workshop\ServiceOrderService;
+use App\Services\Workshop\WarrantyService;
 use App\Support\OrderBalance;
 use App\Support\OrderStatusFlow;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -35,6 +37,7 @@ class SaleService
         private readonly FolioService $folios,
         private readonly SettingsService $settings,
         private readonly AuditService $audit,
+        private readonly WarrantyService $warranties,
     ) {}
 
     /** @param  array<string, mixed>  $data  validado por CheckoutRequest */
@@ -94,6 +97,13 @@ class SaleService
                     continue;
                 }
 
+                // Costo extra de una garantía: al cobrarse, el equipo se entrega (RF-11)
+                if ($line['type'] === 'additional_charge') {
+                    $this->warranties->markDelivered($line['warranty'], $cashier);
+
+                    continue;
+                }
+
                 $this->inventory->move($line['product']->id, 'sale', -$line['quantity'], $cashier,
                     "Venta {$sale->folio}", ['sale_id' => $sale->id], $authorizer);
             }
@@ -122,6 +132,7 @@ class SaleService
     {
         $lines = [];
         $orderIds = [];
+        $warrantyIds = [];
 
         foreach ($items as $i => $item) {
             if ($item['type'] === 'product') {
@@ -147,12 +158,40 @@ class SaleService
                 continue;
             }
 
-            // Liquidación de una orden de taller (C6)
+            // Órdenes y garantías se entregan: hace falta el permiso de entregar equipos
             if (! $cashier->hasPermission('orders.deliver')) {
                 throw new HttpResponseException(response()->json([
                     'message' => 'No tienes permiso para entregar equipos.', 'code' => 'FORBIDDEN',
                 ], 403));
             }
+
+            // Costo extra de una garantía "procede con costo" ya reparada (RF-11)
+            if ($item['type'] === 'warranty') {
+                $warranty = Warranty::with('serviceOrder.device')->where('folio', $item['folio'])->lockForUpdate()->first();
+
+                if (! $warranty || $warranty->status !== 'finished' || (float) $warranty->extra_cost <= 0) {
+                    throw ValidationException::withMessages([
+                        "items.{$i}.folio" => "La garantía {$item['folio']} no tiene un costo extra por cobrar.",
+                    ]);
+                }
+                if (in_array($warranty->id, $warrantyIds, true)) {
+                    throw ValidationException::withMessages(["items.{$i}.folio" => "La garantía {$warranty->folio} ya está en el ticket."]);
+                }
+                $warrantyIds[] = $warranty->id;
+
+                $cost = (float) $warranty->extra_cost;
+                $lines[] = [
+                    'type' => 'additional_charge', 'product' => null, 'order' => $warranty->serviceOrder,
+                    'description' => "Garantía {$warranty->folio} · costo extra",
+                    'quantity' => 1, 'unit_price' => $cost, 'gross' => $cost,
+                    'discount_pct' => 0.0, 'discount_amount' => 0.0, 'subtotal' => $cost,
+                    'picked_up_by_name' => null, 'warranty' => $warranty,
+                ];
+
+                continue;
+            }
+
+            // Liquidación de una orden de taller (C6)
 
             $order = ServiceOrder::with(['status', 'device'])->where('folio', $item['folio'])->lockForUpdate()->first();
 
