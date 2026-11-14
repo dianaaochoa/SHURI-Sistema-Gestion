@@ -1,3 +1,4 @@
+<app-aviso-chat />
 <header class="barra">
   <div class="barra__interior">
     <a class="atras" routerLink="/portal/mis-equipos" aria-label="Volver a Mis equipos"><img src="assets/cajera/chev-r.svg" width="16" height="16" alt="" /></a>
@@ -9,7 +10,7 @@
 <main class="columna">
   @if (v(); as v) {
     @if (v.variante === 'garantia') {
-      <app-garantia-portal [orden]="orden()!" [telefono]="telefono" (clausulas)="clausulas.set(true)" />
+      <app-garantia-portal [orden]="orden()!" [chat]="chat()" (clausulas)="clausulas.set(true)" />
     } @else {
     <div class="cabeza">
       <span class="estado estado--{{ v.badge.tono }}">{{ v.badge.texto }}</span>
@@ -25,7 +26,7 @@
       <section class="tarjeta tarjeta--advertencia">
         <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Necesitamos que nos contestes</p>
         <p>{{ v.pausa }} Tu reparación está en pausa hasta que nos contactes. Por seguridad, no escribas contraseñas ni tu PIN aquí.</p>
-        <a class="boton boton--primario boton--44" [href]="'tel:' + telefono"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Responder al jefe de técnicos</a>
+        <a class="boton boton--primario boton--44" [routerLink]="chat()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Responder por chat al jefe de técnicos</a>
       </section>
     }
 
@@ -217,7 +218,7 @@
       </div>
     } @else {
       <div class="pie">
-        <a class="boton boton--contorno boton--44" [href]="'tel:' + telefono"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
+        <a class="boton boton--contorno boton--44" [routerLink]="chat()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
         <button type="button" class="boton boton--contorno boton--44" (click)="clausulas.set(true)"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas</button>
       </div>
     }

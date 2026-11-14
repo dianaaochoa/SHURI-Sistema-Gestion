@@ -92,7 +92,7 @@
     </div>
   } @else {
     <div class="pie">
-      <a class="boton boton--contorno boton--44" [href]="'tel:' + telefono()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
+      <a class="boton boton--contorno boton--44" [routerLink]="chat()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
       <button type="button" class="boton boton--contorno boton--44" (click)="clausulas.emit()"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas</button>
     </div>
   }

@@ -1,0 +1,71 @@
+<header class="cabecera">
+  <div class="cabecera__fila">
+    <a class="atras" [routerLink]="orden() ? '/portal/equipo/' + orden()!.folio.replace('#', '') : '/portal/mis-equipos'" aria-label="Volver"><img src="assets/cajera/chev-r.svg" width="16" height="16" alt="" /></a>
+    <span class="avatar" aria-hidden="true">{{ iniciales }}</span>
+    <span class="persona"><strong>{{ jefe }}</strong><small [class.apagado]="!disponible() || !horario.abierto">Jefe de técnicos</small></span>
+  </div>
+  @if (orden(); as o) {
+    <div class="folio">
+      <span class="icono" style="--icono: url(assets/iconos/smartphone.svg)"></span>
+      <span class="folio__texto">Folio {{ o.folio }} · {{ o.equipo }}</span>
+      @if (estado(); as e) { <span class="estado estado--{{ e.tono }}">{{ e.texto }}</span> }
+    </div>
+  }
+</header>
+
+@if (orden()) {
+  @if (!disponible()) {
+    <p class="franja"><span class="icono" style="--icono: url(assets/menu/history.svg)"></span>{{ primerNombre }} no está disponible hoy. Tu mensaje queda guardado y te responderá mañana a partir de las 9:00. Si tu equipo está listo, puedes pasar por él con tu folio.</p>
+  } @else if (!horario.abierto) {
+    <p class="franja"><span class="icono" style="--icono: url(assets/menu/history.svg)"></span>Estamos fuera de horario. {{ primerNombre }} te responderá {{ horario.cuando }}. Tu mensaje queda guardado.</p>
+  }
+
+  <main class="mensajes" #lista aria-live="polite">
+    @for (d of dias(); track d.dia) {
+      <p class="dia">{{ d.dia }}</p>
+      @for (m of d.mensajes; track $index) {
+        @switch (m.de) {
+          @case ('cliente') {
+            <div class="burbuja burbuja--mia"><p>{{ m.texto }}</p><small>{{ m.hora }} · {{ m.estado }}</small></div>
+          }
+          @case ('estado') {
+            <div class="tarjeta-estado">
+              <p class="tarjeta-estado__titulo"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Tu equipo</p>
+              <span class="estado estado--{{ m.tono ?? 'info' }}">{{ m.texto }}</span>
+              <a class="enlace-ver" [routerLink]="'/portal/equipo/' + orden()!.folio.replace('#', '')">Ver seguimiento</a>
+            </div>
+          }
+          @case ('foto') {
+            <div class="burbuja"><p class="foto"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span>{{ m.texto }}</p><small>{{ m.hora }}</small></div>
+          }
+          @default {
+            <div class="burbuja"><p>{{ m.texto }}</p><small>{{ m.hora }}</small></div>
+          }
+        }
+      }
+    } @empty {
+      <div class="vacio">
+        <span class="vacio__icono"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span></span>
+        <h1>Escríbele al jefe de técnicos</h1>
+        <p>Resuelve tus dudas sobre la reparación de tu equipo. Horario: lunes a sábado de 9:00 a 19:00. Normalmente responde en menos de 15 minutos.</p>
+        @for (q of preguntas; track q) {
+          <button type="button" class="pregunta" (click)="enviar(q)">{{ q }}</button>
+        }
+      </div>
+    }
+  </main>
+
+  <form class="escribir" (submit)="$event.preventDefault(); enviar()">
+    <label class="camara" aria-label="Enviar una foto">
+      <span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span>
+      <input type="file" accept="image/*" class="oculto" (change)="foto($any($event.target))" />
+    </label>
+    <input class="escribir__texto" aria-label="Mensaje" placeholder="Escribe un mensaje..." maxlength="500" autocomplete="off" [value]="texto()" (input)="texto.set($any($event.target).value)" />
+    <button type="submit" class="enviar" [class.enviar--activo]="texto().trim()" [disabled]="!texto().trim()" aria-label="Enviar"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span></button>
+  </form>
+} @else {
+  <main class="mensajes">
+    <p class="aviso aviso--info">No encontramos ese equipo en tu cuenta.</p>
+    <a class="enlace" routerLink="/portal/mis-equipos">Volver a Mis equipos</a>
+  </main>
+}

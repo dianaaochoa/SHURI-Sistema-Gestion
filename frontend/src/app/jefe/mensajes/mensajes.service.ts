@@ -120,6 +120,21 @@ export class MensajesService {
     this.cambiar(folio, (c) => ({ ...c, resuelta: false, mensajes: [...c.mensajes, { ...mensaje, fecha: new Date().toISOString() }] }));
   }
 
+  /** P5 · El cliente escribe desde su portal; si no había conversación de ese folio, se abre una. */
+  escribirCliente(folio: string, cliente: string, texto: string): void {
+    texto = texto.trim().slice(0, 500);
+    if (!texto) return;
+    const nuevo: MensajeChat = { de: 'cliente', texto, fecha: new Date().toISOString() };
+    if (this.conversaciones().some((c) => c.folio === folio)) this.cambiar(folio, (c) => ({ ...c, resuelta: false, mensajes: [...c.mensajes, nuevo] }));
+    else this.conversaciones.update((lista) => [{ folio, cliente, resuelta: false, mensajes: [nuevo] }, ...lista]);
+  }
+
+  /** P5 · El cliente abrió su chat: lo que escribió el jefe queda como leído. */
+  marcarLeidos(folio: string): void {
+    const c = this.conversaciones().find((x) => x.folio === folio);
+    if (c?.mensajes.some((m) => m.de === 'jefe' && !m.leido)) this.cambiar(folio, (x) => ({ ...x, mensajes: x.mensajes.map((m) => (m.de === 'jefe' ? { ...m, leido: true } : m)) }));
+  }
+
   alternarResuelta(folio: string): void {
     this.cambiar(folio, (c) => ({ ...c, resuelta: !c.resuelta }));
   }

@@ -10,6 +10,7 @@ import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { InformacionModalComponent } from '../compartido/informacion-modal.component';
 import { GarantiaPortalComponent } from '../garantia/garantia-portal.component';
 import { SolicitarGarantiaComponent } from '../garantia/solicitar-garantia.component';
+import { AvisoChatComponent } from '../chat/aviso-chat.component';
 import { PortalService } from '../portal.service';
 
 type Variante = 'garantia' | 'recibido' | 'revision' | 'dato' | 'presupuesto' | 'rechazado' | 'sin-reparacion' | 'taller' | 'adicional' | 'listo' | 'entregado';
@@ -70,7 +71,7 @@ const VARIANTES: Record<Variante, { badge: string; tono: string; titulo: string;
 @Component({
   selector: 'app-seguimiento',
   standalone: true,
-  imports: [RouterLink, InformacionModalComponent, GarantiaPortalComponent, SolicitarGarantiaComponent],
+  imports: [RouterLink, InformacionModalComponent, GarantiaPortalComponent, SolicitarGarantiaComponent, AvisoChatComponent],
   templateUrl: './seguimiento.component.html',
   styleUrls: ['../portal.css', './seguimiento.component.css', './tarjetas.css'],
 })
@@ -98,6 +99,8 @@ export class SeguimientoComponent {
   protected readonly comentario = signal('');
 
   protected readonly orden = computed(() => this.portal.ordenDe(this.folio()) ?? null);
+  /** P5 · chat con el jefe de técnicos de esta orden. */
+  protected readonly chat = computed(() => `/portal/chat/${this.folio()}`);
   /** Equipo ya entregado que solo está en el historial del cliente (sin detalle). */
   protected readonly archivado = computed(() => (this.orden() ? null : (this.portal.equipos().find((e) => e.folio.replace('#', '') === this.folio()) ?? null)));
   protected readonly calificado = computed(() => this.portal.calificaciones()[this.orden()?.folio ?? '']);

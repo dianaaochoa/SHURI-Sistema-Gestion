@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 14 nov 2026 (portal del cliente P4: información y autofactura)
+- **Última actualización:** 14 nov 2026 (portal del cliente P5: chat con el jefe de técnicos)
 
 ---
 
@@ -90,7 +90,8 @@ flowchart LR
     P2["P2 Seguimiento de la reparación<br/>P2.1–P2.11 · aprobar o rechazar desde el portal"]:::hecho
     P3["P3 Garantía<br/>P3.1 solicitar · P3.2 costo extra · P3.3 aprobada<br/>P3.4 rechazada · P3.5 cerrada"]:::hecho
     P4["P4 Información<br/>P4.1 cláusulas · P4.2 autofactura · P4.3 privacidad"]:::hecho
-    P["P5–P6"]:::pendiente
+    P5["P5 Chat con el jefe de técnicos<br/>P5.1 vacío · P5.2 chat · P5.3 fuera de horario<br/>P5.4 aviso · P5.5 no disponible"]:::hecho
+    P["P6 Correos"]:::pendiente
   end
 
   BASE --> ACC
@@ -436,14 +437,14 @@ flowchart LR
   SL --> CFA
   CFA --> CFS & BTS & CAJA
   CFS --> ADO & RT9 & FCS
-  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4<br/>Seguimiento P2.1–P2.11 · Garantía P3<br/>Factura P4.2 · hoja de cláusulas y privacidad"]:::comp
+  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4<br/>Seguimiento P2.1–P2.11 · Garantía P3<br/>Factura P4.2 · hoja de cláusulas y privacidad<br/>Chat P5 · aviso de respuesta"]:::comp
   PTS["PortalService<br/>entrar, temporal, equipos del cliente"]:::serv
   PSE["PortalSesion<br/>sesión del cliente (guardas)"]:::serv
   RUT --> PTA
   RUT --> PSE
   PTA --> PTS
   PTS --> PSE & CLSV & OS
-  PTA --> ADO & FCS
+  PTA --> ADO & FCS & MS
   TK & OC --> ADO
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
@@ -565,6 +566,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - La tarjeta de cada equipo abre `/portal/equipo/:folio` (P2): la pantalla cambia con el estado de la orden (recibido, en diagnóstico, necesitamos un dato, presupuesto, rechazado, sin reparación, en taller, cargo adicional, listo, entregado). Con presupuesto o cargo adicional el cliente aprueba o rechaza ahí mismo y el taller lo ve en el historial (“Aprobado en el portal”). Ya entregado: garantía restante, comprobante en PDF y calificación.
 - Garantía (P3): con la orden entregada y dentro de los días de garantía, “Solicitar garantía” abre la hoja de P3.1 (falla, desde cuándo y hasta 3 fotos). La orden pasa a “En garantía” y el jefe la dictamina en J4: sin costo, con costo extra (el cliente acepta o rechaza en el portal) o sin reparar. Al entregarla queda “Garantía cerrada”.
 - Información (P4): “Cláusulas” y “Aviso de privacidad” abren una hoja desde abajo con los textos de Configuración (AD9.3). “Solicitar factura” (o `/portal/factura`, también sin sesión) pide folio y total del ticket; con sesión y folio de un equipo del cliente llena todo con sus datos fiscales. Solo se factura dentro del mismo mes, con el total correcto y si el folio no tiene factura; no acepta el RFC de público en general.
+- Chat (P5): “Contactar” abre `/portal/chat/:folio`, la misma conversación que el jefe ve en Mensajes (J11). Sin mensajes muestra preguntas rápidas; fuera de horario (lunes a sábado 9:00–19:00) o con “Disponible hoy” apagado en J11 avisa cuándo se responde. Si el jefe contesta mientras el cliente está en otra pantalla del portal, aparece el aviso de arriba (P5.4).
 - Para ver las variantes con María: en J3 enviar la re-cotización de #1024 (daño adicional) y aprobarla en el portal; marcarla lista (T3) y entregarla (C6).
 
 **Caja de la cajera:**
@@ -837,7 +839,8 @@ frontend/src/
     │   ├── acceso/ · olvide/ · crear/ · mis-equipos/   # P1.1 · P1.3 · P1.4 · P1.2
     │   ├── seguimiento/       # P2.1–P2.11 (seguimiento.component + tarjetas.css)
     │   ├── garantia/          # P3.1 solicitar-garantia · P3.2–P3.5 garantia-portal
-    │   └── factura/           # P4.2 autofactura (/portal/factura)
+    │   ├── factura/           # P4.2 autofactura (/portal/factura)
+    │   └── chat/              # P5 chat-portal · aviso-chat (P5.4)
     ├── administrador/         # 02 · Administrador
     │   ├── negocio.ts         # utilidad (costo de Inventario y margen de taller de prueba), lo que más deja, origen del dinero
     │   ├── reportes.ts · reportes.css   # meses, exportar CSV y estilos de AD2
@@ -1189,6 +1192,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Usuarios y permisos (AD7) | Las cuentas viven en `AuthService` (sin exponer contraseñas); el login respeta inactivos, bloqueos y contraseñas temporales | El puesto que se muestra (“Cajero”, “Administradora”) lo guarda el administrador; no se deduce del nombre. “En turno”: cajera con su turno de caja abierto o técnico que entró hoy dentro de su horario. |
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
+| Chat del portal (P5) | Usa `MensajesService` de J11: `escribirCliente` abre la conversación si no existía y `marcarLeidos` marca lo del jefe al abrir el chat | El mensaje del cliente dice “Leído” cuando el jefe ya contestó después. Las fotos del cliente se avisan con su nombre (la API las guardará). El nombre del jefe sale de `NEGOCIO.encargado`. |
 | Autofactura (P4.2) | Timbra con `FacturacionService` (“Pidió: Autofactura”) y guarda los datos fiscales en el cliente; respeta el interruptor de AD9 (`EMISOR_FISCAL.autofactura`) | Folio y total juntos funcionan como comprobante: sin sesión nadie factura una compra ajena sin conocer su total. El aviso de privacidad ahora va por secciones (“1. Título” y su texto) para mostrarse numerado. |
 | Garantía en el portal (P3) | `OrdenesService.solicitarGarantiaPortal` pone la orden en garantía sin `recibio` (así J4 ya la marca “desde el portal”); `responderGarantia` guarda la respuesta del cliente en el dictamen y, si rechaza, la deja lista para devolver | El costo extra aceptado se suma a lo que caja cobra al entregar (`saldo`). En J4 la recomendación dice “Con costo · aceptado / rechazado”. De las fotos solo se guarda cuántas son (las recibirá la API). |
 | Seguimiento (P2) | Una sola pantalla que elige su variante con el estado de la orden; `OrdenesService.registrarRespuesta` acepta `desdePortal` para dejar “en el portal” en el historial | El cliente solo ve textos para él: el diagnóstico del técnico y las notas internas no se muestran hasta que hay presupuesto. No hay fotos por orden todavía, así que no se muestran fotos de evidencia (los cuadros de recepción avisan que aparecerán). “Solicitar garantía” y “Responder” llaman al taller hasta P3 y P5; “Solicitar factura” explica la autofactura. |
@@ -1206,7 +1210,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas del portal del cliente (P5–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11), el técnico (T1–T7), el administrador (AD1–AD9) y P1–P4 quedaron completos.
+- [ ] Pantalla del portal del cliente P6 (correos). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11), el técnico (T1–T7), el administrador (AD1–AD9) y P1–P5 quedaron completos.
+- [ ] Chat (P5): el aviso de respuesta solo aparece con el portal abierto (notificaciones push y correo le tocan a la API); el horario está fijo en el código.
 - [ ] Autofactura: el envío por correo de la factura y la validación del RFC contra el SAT le tocan a la API.
 - [ ] Seguimiento (P2): fotos de recepción y evidencias del técnico (falta guardarlas por orden); las calificaciones viven en memoria y todavía no las ve el administrador.
 - [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
@@ -1219,7 +1224,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 13 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 15 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1824,3 +1829,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - María, #1024 entregada → “Solicitar factura”: folio, $1,508.00, RFC, razón social, C.P. 06700, 605 y S01 ya llenos; sin aceptar el aviso marca error; al aceptarlo sale A-0413 (Orden #1024, $1,508.00) con PDF y XML
   - sin sesión: campos vacíos marcan cada error; V-00862 dice “ya tiene la factura A-0412” y deja descargarla; total equivocado, RFC inválido o de público en general marcan error; V-00861 por $290.00 se factura
   - a 360 px como en Figma; en 1440 px la hoja se ve centrada; sin errores en consola
+
+### 14 nov 2026 · Portal del cliente P5: chat con el jefe de técnicos
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p5-chat-con-el-jefe-de-tecnicos.png` (P5.1 a P5.5).
+- `ChatPortalComponent` y `AvisoChatComponent`; `MensajesService.escribirCliente` y `marcarLeidos`; “Contactar” (Mis equipos, seguimiento y garantía) y “Responder por chat” (P2.3) abren el chat.
+- Verificado con María:
+  - #1024 muestra la conversación de J11 (mensajes, tarjeta “Tu equipo” con “Ver seguimiento”, “Leído / Enviado”)
+  - escribir “Perfecto, gracias”: el botón se activa, el jefe la ve pendiente; su respuesta queda leída al estar el chat abierto
+  - con “Disponible hoy” apagado sale el aviso de P5.5; en horario no hay franja
+  - en el seguimiento, una respuesta nueva del jefe muestra el aviso de arriba; al tocarlo abre el chat y queda leída
+  - #1035 (solo en memoria) sin conversación: preguntas rápidas; tocar una abre la conversación que ve el jefe
+  - a 360 px como en Figma; en 1440 px la columna se centra; sin errores en consola

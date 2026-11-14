@@ -1,4 +1,5 @@
 import { Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Orden, saldo } from '../../cajera/ordenes/ordenes.service';
 import { formatearDinero } from '../../compartido/formato';
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
@@ -29,6 +30,7 @@ export function faseGarantia(o: Orden): Fase {
 @Component({
   selector: 'app-garantia-portal',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './garantia-portal.component.html',
   styleUrls: ['../portal.css', '../seguimiento/seguimiento.component.css', '../seguimiento/tarjetas.css', './garantia-portal.component.css'],
 })
@@ -36,7 +38,8 @@ export class GarantiaPortalComponent {
   private readonly portal = inject(PortalService);
 
   readonly orden = input.required<Orden>();
-  readonly telefono = input.required<string>();
+  /** Ruta del chat de esta orden (P5). */
+  readonly chat = input.required<string>();
   readonly clausulas = output<void>();
 
   protected readonly pasos = PASOS;

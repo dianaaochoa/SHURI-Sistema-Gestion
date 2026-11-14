@@ -148,6 +148,7 @@ export const routes: Routes = [
       { path: 'crear-contrasena', canActivate: [clienteConTemporal], loadComponent: () => import('./portal/crear/crear-portal.component').then((m) => m.CrearPortalComponent), title: 'Crea tu contraseña · SHURI' },
       { path: 'mis-equipos', canActivate: [clienteDentro], loadComponent: () => import('./portal/mis-equipos/mis-equipos.component').then((m) => m.MisEquiposComponent), title: 'Mis equipos · SHURI' },
       { path: 'equipo/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/seguimiento/seguimiento.component').then((m) => m.SeguimientoComponent), title: 'Seguimiento · SHURI' },
+      { path: 'chat/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/chat/chat-portal.component').then((m) => m.ChatPortalComponent), title: 'Chat con el taller · SHURI' },
       // P4.2 · también se entra sin sesión (shuri.mx/factura, impreso en el ticket).
       { path: 'factura', loadComponent: () => import('./portal/factura/factura-portal.component').then((m) => m.FacturaPortalComponent), title: 'Solicita tu factura · SHURI' },
       { path: '**', redirectTo: '' },
