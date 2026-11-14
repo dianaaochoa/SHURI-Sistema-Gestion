@@ -23,7 +23,8 @@ export type TipoAccion =
   | 'pago'
   | 'corte'
   | 'usuario'
-  | 'permisos';
+  | 'permisos'
+  | 'configuracion';
 
 /** Cómo se ve cada acción (Figma AD8.1). */
 export const ACCIONES: Record<TipoAccion, { texto: string; tono: string }> = {
@@ -41,6 +42,7 @@ export const ACCIONES: Record<TipoAccion, { texto: string; tono: string }> = {
   corte: { texto: 'Revisión de corte', tono: 'info' },
   usuario: { texto: 'Cambio de usuario', tono: 'info' },
   permisos: { texto: 'Permisos por rol', tono: 'advertencia' },
+  configuracion: { texto: 'Configuración', tono: 'info' },
 };
 
 export interface RegistroBitacora {

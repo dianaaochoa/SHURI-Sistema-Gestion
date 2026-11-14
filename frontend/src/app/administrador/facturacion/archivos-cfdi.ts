@@ -1,9 +1,10 @@
 import { formatearDinero } from '../../compartido/formato';
 import { Cfdi, ESTADOS_CFDI, MOTIVOS_CANCELACION, serieFolio } from '../facturacion.service';
 import { descargar, pdfDeLineas } from '../pdf-simple';
+import { EMISOR_FISCAL } from '../configuracion.service';
 
-/** Emisor de prueba (RFC genérico de pruebas del SAT) hasta que AD9 guarde los datos fiscales del negocio. */
-const EMISOR = { rfc: 'EKU9003173C9', nombre: 'SHURI REPARACION Y VENTA', regimen: '626', cp: '06700' };
+/** Emisor: lo que se guardó en Configuración › Facturación (AD9.5). */
+const emisor = () => ({ rfc: EMISOR_FISCAL.rfc, nombre: EMISOR_FISCAL.razonSocial.toUpperCase(), regimen: EMISOR_FISCAL.regimen, cp: EMISOR_FISCAL.cp });
 
 /** Fecha local sin zona, como la pide el CFDI (2026-11-12T13:42:00). */
 const fechaLocal = (iso: string) => {
@@ -17,6 +18,7 @@ const atributo = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
 
 /** XML con la forma de un CFDI 4.0 (simulado: sin sello ni certificado). */
 export function descargarXml(c: Cfdi): void {
+  const EMISOR = emisor();
   const subtotal = sinIva(c.total);
   const iva = Math.round((c.total - subtotal) * 100) / 100;
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -38,6 +40,7 @@ export function descargarXml(c: Cfdi): void {
 
 /** Representación impresa sencilla del CFDI (una hoja carta). */
 export function descargarPdf(c: Cfdi): void {
+  const EMISOR = emisor();
   const subtotal = sinIva(c.total);
   const lineas = [
     `Factura ${serieFolio(c)} · CFDI 4.0 (representación impresa, simulada)`,

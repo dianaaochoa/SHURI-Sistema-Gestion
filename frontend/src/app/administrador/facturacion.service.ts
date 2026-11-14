@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../acceso/auth.service';
 import { redondear } from '../cajera/punto-de-venta/venta.service';
 import { HistorialVentasService } from '../cajera/ventas/historial-ventas.service';
+import { EMISOR_FISCAL } from './configuracion.service';
 
 export type EstadoCfdi = 'timbrada' | 'cancelada' | 'error';
 export type QuienPidio = 'Caja' | 'Autofactura' | 'Admin';
@@ -58,6 +59,8 @@ const DIA = 86_400_000;
 const hace = (dias: number, hora = 12) => {
   const d = new Date(Date.now() - dias * DIA);
   d.setHours(hora, 0, 0, 0);
+  // Las de "hoy" no pueden quedar en el futuro: si aún no es esa hora, se ponen unos minutos antes.
+  if (d.getTime() > Date.now()) return new Date(Date.now() - (hora === 13 ? 10 : 40) * 60_000).toISOString();
   return d.toISOString();
 };
 const uuid = () =>
@@ -112,7 +115,7 @@ export class FacturacionService {
 
   /** Timbra una factura nueva (gasta un timbre) y regresa su serie-folio. */
   timbrar(datos: Pick<Cfdi, 'cliente' | 'rfc' | 'origen' | 'total' | 'pidio'> & Partial<Pick<Cfdi, 'global' | 'sustituye'>>): string {
-    const nueva: Cfdi = { ...datos, serie: 'A', folio: this.siguienteFolio(), fecha: new Date().toISOString(), estado: 'timbrada', uuid: uuid(), total: redondear(datos.total) };
+    const nueva: Cfdi = { ...datos, serie: EMISOR_FISCAL.serie, folio: this.siguienteFolio(), fecha: new Date().toISOString(), estado: 'timbrada', uuid: uuid(), total: redondear(datos.total) };
     this.facturas.update((lista) => [nueva, ...lista]);
     this.timbres.update((t) => Math.max(0, t - 1));
     return serieFolio(nueva);

@@ -1,0 +1,84 @@
+<div class="columnas">
+  <div class="izquierda">
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Marca del negocio</h2>
+      <div class="marca">
+        <label class="logo-caja">
+          <img [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="48" height="48" alt="Logo actual" />
+          <span>Cambiar logo</span>
+          <input type="file" accept="image/png,image/svg+xml" class="oculto" (change)="elegirLogo($any($event.target))" />
+        </label>
+        <div class="marca__texto">
+          <p class="marca__titulo">Así se ve en el sistema, el portal, los tickets y los documentos</p>
+          <div class="muestras">
+            <span class="muestra muestra--oscura"><img [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="32" height="32" alt="" /><span><strong>{{ vista().marca }}</strong><small>{{ vista().lema }}</small></span></span>
+            <span class="muestra"><img [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="32" height="32" alt="" /><span><strong>{{ vista().marca }}</strong><small>{{ vista().lema }}</small></span></span>
+          </div>
+          <p class="nota">PNG o SVG, fondo transparente, mínimo 256 × 256 px. El logo de SHURI solo aparece pequeño como “con tecnología SHURI”.</p>
+          @if (errorLogo()) { <p class="campo__error" role="alert">{{ errorLogo() }}</p> }
+          @if (c().negocio.logo) { <button type="button" class="enlace-accion" (click)="quitarLogo()">Volver al logo de SHURI</button> }
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Datos del negocio</h2>
+      <div class="dos">
+        <label class="campo">
+          <span class="campo__etiqueta">Nombre comercial *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="!c().negocio.nombre.trim()"><input class="campo__input" maxlength="60" [value]="c().negocio.nombre" (input)="texto('nombre', $any($event.target).value)" /></span>
+          @if (!c().negocio.nombre.trim()) { <span class="campo__error">Escribe el nombre comercial.</span> }
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Razón social</span>
+          <span class="campo__control campo__control--40"><input class="campo__input" maxlength="100" [value]="c().negocio.razonSocial" (input)="texto('razonSocial', $any($event.target).value)" /></span>
+        </label>
+      </div>
+      <label class="campo">
+        <span class="campo__etiqueta">Dirección</span>
+        <span class="campo__control campo__control--40"><input class="campo__input" maxlength="140" [value]="c().negocio.direccion" (input)="texto('direccion', $any($event.target).value)" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Teléfono</span>
+        <span class="campo__control campo__control--40"><input class="campo__input" type="tel" maxlength="20" [value]="c().negocio.telefono" (input)="texto('telefono', $any($event.target).value)" /></span>
+      </label>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/pdv/printer.svg)"></span>Ticket de venta</h2>
+      <div class="dos">
+        <label class="campo">
+          <span class="campo__etiqueta">Encabezado</span>
+          <span class="campo__control campo__control--40"><input class="campo__input" maxlength="40" [value]="c().ticket.encabezado" (input)="s.campo('ticket', 'encabezado', $any($event.target).value)" /></span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Pie de ticket</span>
+          <span class="campo__control campo__control--40"><input class="campo__input" maxlength="80" [value]="c().ticket.pie" (input)="s.campo('ticket', 'pie', $any($event.target).value)" /></span>
+        </label>
+      </div>
+      <label class="casilla"><input type="checkbox" [checked]="c().ticket.logo" (change)="s.campo('ticket', 'logo', $any($event.target).checked)" />Mostrar logo en el ticket</label>
+      <label class="casilla"><input type="checkbox" [checked]="c().ticket.desgloseIva" (change)="s.campo('ticket', 'desgloseIva', $any($event.target).checked)" />Imprimir desglose de IVA</label>
+      <label class="casilla"><input type="checkbox" [checked]="c().ticket.quienCobro" (change)="s.campo('ticket', 'quienCobro', $any($event.target).checked)" />Imprimir nombre de quien cobró</label>
+    </section>
+  </div>
+
+  <aside class="panel lateral">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Vista previa del ticket</h2>
+    <div class="ticket" aria-label="Vista previa del ticket">
+      @if (c().ticket.logo) { <img class="ticket__logo" [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="36" height="36" alt="" /> }
+      <p class="ticket__marca">{{ vista().marca }}</p>
+      <p>{{ vista().lema }}</p>
+      <p class="chico">{{ vista().direccion }}</p>
+      <p class="chico">RFC {{ vista().rfc }}</p>
+      <div class="ticket__lineas">
+        <p class="renglon"><span>Mica cristal templado</span><strong>$100.00</strong></p>
+        <p class="renglon"><span>Cargador USB-C 20W</span><strong>$250.00</strong></p>
+        @if (c().ticket.desgloseIva) { <p class="renglon"><span>IVA incluido</span><strong>{{ vista().iva }}</strong></p> }
+        <p class="renglon"><span>Total</span><strong>{{ vista().total }}</strong></p>
+      </div>
+      <p class="ticket__gracias">{{ c().ticket.encabezado }}</p>
+      <p class="chico">{{ c().ticket.pie }}</p>
+      @if (c().ticket.quienCobro) { <p class="chico">Te atendió: {{ vista().cajera }}</p> }
+    </div>
+  </aside>
+</div>

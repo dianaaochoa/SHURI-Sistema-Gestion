@@ -1,0 +1,80 @@
+<div class="columnas">
+  <section class="panel">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Cuenta de envío</h2>
+    <p class="nota">Desde esta cuenta salen las contraseñas temporales y los avisos de la orden (cotización lista, equipo listo, bodega, garantía).</p>
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Nombre del remitente *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().remitente"><input class="campo__input" maxlength="60" [value]="c().correo.remitente" (input)="texto('remitente', $any($event.target).value)" /></span>
+        @if (errores().remitente) { <span class="campo__error">{{ errores().remitente }}</span> }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Correo remitente *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().correo"><input class="campo__input" type="email" maxlength="80" [value]="c().correo.correoRemitente" (input)="texto('correoRemitente', $any($event.target).value)" /></span>
+        @if (errores().correo) { <span class="campo__error">{{ errores().correo }}</span> }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Responder a</span>
+        <span class="campo__control campo__control--40"><input class="campo__input" maxlength="80" [value]="c().correo.responderA" (input)="texto('responderA', $any($event.target).value)" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Servidor de correo (SMTP) *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().servidor"><input class="campo__input" maxlength="80" [value]="c().correo.servidor" (input)="texto('servidor', $any($event.target).value)" /></span>
+        @if (errores().servidor) { <span class="campo__error">{{ errores().servidor }}</span> }
+      </label>
+    </div>
+    <div class="tres">
+      <label class="campo">
+        <span class="campo__etiqueta">Puerto *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().puerto"><input class="campo__input" type="number" min="1" max="65535" [value]="c().correo.puerto" (input)="s.campo('correo', 'puerto', +$any($event.target).value)" /></span>
+        @if (errores().puerto) { <span class="campo__error">{{ errores().puerto }}</span> }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Seguridad</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="s.campo('correo', 'seguridad', $any($event.target).value)">
+            @for (o of ['TLS', 'SSL', 'Ninguna']; track o) { <option [value]="o" [selected]="o === c().correo.seguridad">{{ o }}</option> }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Usuario *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().usuario"><input class="campo__input" maxlength="80" autocomplete="off" [value]="c().correo.usuario" (input)="texto('usuario', $any($event.target).value)" /></span>
+        @if (errores().usuario) { <span class="campo__error">{{ errores().usuario }}</span> }
+      </label>
+    </div>
+    <label class="campo">
+      <span class="campo__etiqueta">Contraseña de la cuenta</span>
+      <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" type="password" readonly value="guardada" aria-describedby="nota-smtp" /></span>
+      <span class="nota" id="nota-smtp">Se guarda cifrada en el servidor; aquí nunca se muestra.</span>
+    </label>
+    @if (c().correo.seguridad === 'Ninguna') {
+      <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Sin TLS ni SSL las contraseñas temporales viajan sin cifrar. Usa TLS (puerto 587) o SSL (465).</p>
+    }
+    @if (s.pruebaCorreo()) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ s.pruebaCorreo() }}</p>
+    }
+    <span class="espacio"></span>
+    <button type="button" class="boton boton--contorno boton--44 probar" [disabled]="!valido() || probando()" (click)="probar()"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>{{ probando() ? 'Enviando…' : 'Enviar correo de prueba' }}</button>
+  </section>
+
+  <aside class="panel lateral">
+    <h2 class="panel__titulo">Vista previa · Contraseña temporal</h2>
+    <div class="correo">
+      <div class="correo__cabecera">
+        <p>De: {{ vista().de }}</p>
+        <p>Para: jsalinas&#64;gmail.com</p>
+        <p><strong>Asunto: Tu acceso al portal · Folio #1043</strong></p>
+      </div>
+      <div class="correo__cuerpo">
+        <p class="correo__marca"><img [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="24" height="24" alt="" /><span><strong>{{ vista().marca }}</strong><small>{{ vista().lema }}</small></span></p>
+        <p class="correo__titulo">Bienvenido a tu portal de seguimiento</p>
+        <p>Hola Jorge, registramos tu iPhone 14 con el folio #1043. Entra a shuri.mx con tu correo y esta contraseña temporal. Al entrar te pediremos crear una nueva.</p>
+        <div class="correo__clave"><small>Contraseña temporal</small><strong>P4R-8XK</strong><small>También viene impresa en tu hoja de recepción.</small></div>
+        <span class="correo__boton">Entrar a mi portal</span>
+      </div>
+      <p class="correo__pie">Este correo se envía automáticamente. {{ c().correo.responderA }}. {{ vista().pie }} · Aviso de privacidad: shuri.mx/privacidad</p>
+    </div>
+  </aside>
+</div>

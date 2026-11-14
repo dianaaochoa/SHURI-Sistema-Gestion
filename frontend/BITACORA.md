@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 14 nov 2026 (administrador AD8: Bitácora)
+- **Última actualización:** 14 nov 2026 (administrador AD9: Configuración; el administrador quedó completo)
 
 ---
 
@@ -45,7 +45,7 @@ flowchart LR
     AD6["AD6 Facturación<br/>AD6.1 facturas del mes · AD6.2 cancelar · AD6.3 factura global"]:::hecho
     AD7["AD7 Usuarios y permisos<br/>AD7.1 lista · AD7.2 nuevo/editar · AD7.3 permisos por rol · AD7.4 contraseña temporal"]:::hecho
     AD8["AD8 Bitácora<br/>AD8.1 acciones sensibles · AD8.2 exportar"]:::hecho
-    AD["AD9 Configuración"]:::pendiente
+    AD9["AD9 Configuración<br/>negocio y marca · cajas y pagos · documentos<br/>taller · facturación · mensajes · correo"]:::hecho
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -358,6 +358,9 @@ flowchart LR
   CAJA["CajaService<br/>turno, retiros, ingresos y<br/>pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
+  ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET y CLAUSULAS_RECEPCION"]:::serv
+  CFA["ConfiguracionAdmin AD9<br/>7 pestañas: Negocio · Cajas · Documentos<br/>Taller · Facturación · Mensajes · Correo"]:::comp
+  CFS["ConfiguracionService<br/>borrador que se guarda junto"]:::serv
   GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
 
   APP --> RUT
@@ -426,6 +429,10 @@ flowchart LR
   SL --> BTA
   BTA --> BTS
   BTS --> INS & CAJA & COS & FCS & PVS
+  SL --> CFA
+  CFA --> CFS & BTS & CAJA
+  CFS --> ADO & RT9 & FCS
+  TK & OC --> ADO
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
   IC & AT & ST --> FMT
@@ -519,6 +526,14 @@ npm run build      # compilación de producción
 | cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
 
 Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
+
+**Configuración (`/administrador/configuracion`):** siete pestañas que se guardan juntas con “Guardar cambios” (un punto marca las que tienen cambios; “Descartar” los quita). Si falta algo obligatorio no se guarda y se abre la pestaña a corregir.
+- Negocio y marca: logo (PNG o SVG), datos del negocio y ticket (encabezado, pie, logo, desglose de IVA y quién cobró) con vista previa. El ticket impreso (C11) los usa al guardar.
+- Cajas y pagos: fondo, ubicación y terminal de cada caja (el fondo pasa a la apertura de turno), formas de pago y CLABE (se ve tapada; “Cambiar” pide los 18 dígitos).
+- Documentos: cláusulas que se imprimen en la hoja de recepción; llevan variables como `{garantia}` que se llenan con lo del taller. Aviso de privacidad y vista previa.
+- Taller: el mismo tabulador y reglas de J9; lo que cambia queda también en el historial de J9.
+- Facturación: RFC, razón social, régimen, C.P., CSD (solo guarda el nombre del archivo), serie y timbres. Las facturas nuevas usan la serie y el emisor guardados.
+- Mensajes: medio y texto de cada aviso automático, con variables y vista previa. Correo: cuenta de envío y “Enviar correo de prueba” (simulado).
 
 **Usuarios y permisos (`/administrador/usuarios-y-permisos`):**
 - Activos e inactivos con rol, turno o área, último acceso, tipo de acceso y estado (activo, en turno, pendiente, bloqueado).
@@ -806,7 +821,9 @@ frontend/src/
     │   ├── permisos.service.ts
     │   ├── bitacora/          # AD8.1 · exportar-bitacora/ AD8.2
     │   ├── bitacora.service.ts
-    │   └── pdf-simple.ts      # PDF de texto sin librerías (facturas y bitácora)
+    │   ├── pdf-simple.ts      # PDF de texto sin librerías (facturas y bitácora)
+    │   ├── configuracion/     # AD9 · una carpeta por pestaña (negocio-tab, cajas-tab, documentos-tab, taller-tab, facturacion-tab, mensajes-tab, correo-tab)
+    │   └── configuracion.service.ts
     ├── tecnico/               # 05 · Técnico
     │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
     │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
@@ -1138,6 +1155,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Facturación (AD6) | `FacturacionService` guarda los CFDI con serie A y folio consecutivo; el punto de venta y la entrega llaman a `timbrar()` cuando el cliente pidió factura | El timbrado, el UUID, el XML y el PDF son simulados (emisor con el RFC genérico de pruebas del SAT) hasta conectar el PAC. La global toma ventas y cobros del taller de `EstadisticasService` y resta lo facturado aparte. |
 | Usuarios y permisos (AD7) | Las cuentas viven en `AuthService` (sin exponer contraseñas); el login respeta inactivos, bloqueos y contraseñas temporales | El puesto que se muestra (“Cajero”, “Administradora”) lo guarda el administrador; no se deduce del nombre. “En turno”: cajera con su turno de caja abierto o técnico que entró hoy dentro de su horario. |
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
+| Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
@@ -1151,16 +1169,17 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD9) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11) y el técnico (T1–T7) quedaron completos; del administrador van AD1–AD8.
+- [ ] Pantallas del portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11), el técnico (T1–T7) y el administrador (AD1–AD9) quedaron completos.
+- [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Bitácora: el almacenaje perdonado (J8) y los dictámenes de garantía (J4) solo salen en los datos de prueba; falta registrarlos cuando el jefe los hace.
 - [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
-- [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); los datos fiscales del emisor deben salir de Configuración (AD9); la autofactura del portal (P) todavía no existe; las cancelaciones aún no aparecen en la bitácora (AD8).
+- [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); la autofactura del portal (P) todavía no existe; las cancelaciones aún no aparecen en la bitácora (AD8).
 - [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja, y los pagos no entran a la bitácora (AD8).
 - [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 9 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 10 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1717,3 +1736,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - salen la factura A-0409 cancelada, los cortes revisados y los ajustes de Inventario; asignar contraseña temporal a Ana y guardar permisos aparecen arriba al instante
   - “Ver” lleva al módulo; exportar: fechas del 1 del mes a hoy, error si “Desde” es después de “Hasta”, .xls con 39 filas, CSV sin la columna Detalle al quitar la casilla y PDF de 2 hojas con la tabla de posiciones correcta
   - a 1366×768 la tabla cabe; a 360 px el detalle pasa debajo de la acción y la tabla y el modal caben; sin errores en consola
+
+### 14 nov 2026 · Administrador AD9: Configuración
+- Hecho con el PNG `docs/diseno/02-administrador/ad9-configuracion.png` (AD9.1 a AD9.7). Con esto el administrador quedó completo.
+- `ConfiguracionService`, `ConfiguracionAdminComponent` y una pestaña por componente; `compartido/ajustes-documentos.ts` nuevo; el ticket y la hoja de recepción (C11) leen de ahí; las facturas toman serie y emisor de AD9; `CajaService.fondoAsignado` se puede cambiar.
+- Verificado como `vcastillo`:
+  - pestañas como en Figma (vista previa a la derecha en 1056–1416 px); cambiar el encabezado y quitar el IVA se ve al instante en la vista previa y marca la pestaña
+  - CLABE incompleta: no guarda, avisa y abre Cajas y pagos; garantía de 60 días en Taller cambia el dato y la cláusula 3 en Documentos
+  - guardar 5 pestañas: aviso, sin puntos pendientes y en la Bitácora “Configuración … · Garantía por defecto: 30 → 60”; con serie B, la factura que sustituye a A-0411 sale como B-0413
+  - RFC inválido, “Comprar más timbres” (solo avisa), variables en el mensaje, vista previa del documento de recepción y correo de prueba
+  - a 1366×768 todo cabe; a 360 px las siete pestañas sin desplazamiento (se ocultan columnas secundarias); sin errores en consola
+- La factura de prueba A-0412 ya no queda con hora futura en la madrugada.

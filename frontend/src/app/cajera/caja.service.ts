@@ -40,7 +40,8 @@ const CLAVE_TURNO = 'shuri.turno';
 export class CajaService {
   readonly cajas = ['Caja 01'];
   /** Fondo que el administrador asignó a la caja. */
-  readonly fondoAsignado = 1000;
+  /** Lo cambia el administrador en Configuración › Cajas (AD9.2). */
+  fondoAsignado = 1000;
 
   private readonly actual = signal<Turno | null>(leerTurno());
 

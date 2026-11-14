@@ -1,0 +1,78 @@
+<div class="izquierda">
+  <section class="panel">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>Cajas</h2>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Caja</th><th class="ocultar-celular">Ubicación</th><th>Fondo inicial</th><th class="ocultar-celular">Turnos</th><th class="ocultar-celular">Terminal</th><th>Estado</th><th><span class="oculto">Acciones</span></th></tr></thead>
+        <tbody>
+          @for (f of filas(); track f.i) {
+            <tr>
+              <td><strong>{{ f.k.nombre }}</strong></td>
+              @if (editando() === f.i) {
+                <td class="ocultar-celular"><input class="celda-input" aria-label="Ubicación" maxlength="40" [value]="f.k.ubicacion" (input)="cambiarCaja(f.i, 'ubicacion', $any($event.target).value)" /></td>
+                <td><input class="celda-input" aria-label="Fondo inicial" type="number" min="0" step="100" [value]="f.k.fondo" (input)="cambiarCaja(f.i, 'fondo', $any($event.target).value)" /></td>
+                <td class="ocultar-celular">{{ f.k.turnos }}</td>
+                <td class="ocultar-celular"><input class="celda-input" aria-label="Terminal" maxlength="40" [value]="f.k.terminal" (input)="cambiarCaja(f.i, 'terminal', $any($event.target).value)" /></td>
+              } @else {
+                <td class="ocultar-celular">{{ f.k.ubicacion || '—' }}</td>
+                <td>{{ f.fondo }}</td>
+                <td class="ocultar-celular">{{ f.k.turnos }}</td>
+                <td class="ocultar-celular">{{ f.k.terminal || '—' }}</td>
+              }
+              <td><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
+              <td><button type="button" class="enlace-accion" (click)="editando.set(editando() === f.i ? null : f.i)">{{ editando() === f.i ? 'Listo' : 'Editar' }}</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <button type="button" class="enlace-accion agregar" (click)="agregarCaja()"><span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Agregar caja</button>
+  </section>
+
+  <div class="dos">
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/pdv/card.svg)"></span>Formas de pago</h2>
+      <label class="casilla"><input type="checkbox" checked disabled /><span>Efectivo<small>Siempre activo</small></span></label>
+      <label class="casilla"><input type="checkbox" [checked]="c().pagos.tarjeta" (change)="s.campo('pagos', 'tarjeta', $any($event.target).checked)" /><span>Tarjeta de débito / crédito<small>Comisión {{ c().pagos.comisionTarjeta }}% · se registra en el corte</small></span></label>
+      @if (c().pagos.tarjeta) {
+        <label class="campo">
+          <span class="campo__etiqueta">Comisión de la terminal (%)</span>
+          <span class="campo__control campo__control--40 comision"><input class="campo__input" type="number" min="0" max="10" step="0.1" [value]="c().pagos.comisionTarjeta" (input)="s.campo('pagos', 'comisionTarjeta', +$any($event.target).value)" /></span>
+        </label>
+      }
+      <label class="casilla"><input type="checkbox" [checked]="c().pagos.transferencia" (change)="s.campo('pagos', 'transferencia', $any($event.target).checked)" /><span>Transferencia<small>Se valida con captura o referencia</small></span></label>
+      <label class="casilla"><input type="checkbox" [checked]="c().pagos.mixto" (change)="s.campo('pagos', 'mixto', $any($event.target).checked)" /><span>Pago mixto<small>Combinar efectivo, tarjeta y transferencia</small></span></label>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Datos para transferencias</h2>
+      <label class="campo">
+        <span class="campo__etiqueta">Banco</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="s.campo('transferencia', 'banco', $any($event.target).value)">
+            @for (b of bancos; track b) { <option [value]="b" [selected]="b === c().transferencia.banco">{{ b }}</option> }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Cuenta CLABE</span>
+        @if (cambiandoClabe()) {
+          <span class="campo__control campo__control--40" [class.campo__control--error]="!clabeValida()"><input class="campo__input clabe" inputmode="numeric" maxlength="18" placeholder="18 dígitos" [value]="c().transferencia.clabe" (input)="escribirClabe($any($event.target).value)" /></span>
+          @if (!clabeValida()) { <span class="campo__error">La CLABE tiene 18 dígitos.</span> }
+        } @else {
+          <span class="campo__control campo__control--40 solo-lectura">
+            <input class="campo__input clabe" readonly [value]="clabeTapada()" />
+            <button type="button" class="enlace-accion" (click)="cambiandoClabe.set(true)">Cambiar</button>
+          </span>
+        }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Titular</span>
+        <span class="campo__control campo__control--40"><input class="campo__input" maxlength="100" [value]="c().transferencia.titular" (input)="s.campo('transferencia', 'titular', $any($event.target).value)" /></span>
+      </label>
+    </section>
+  </div>
+
+  <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>El fondo inicial es el que la cajera ve al abrir turno. Los retiros y pagos a proveedor se descuentan del efectivo esperado del corte.</p>
+</div>

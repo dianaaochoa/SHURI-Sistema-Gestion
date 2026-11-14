@@ -12,7 +12,7 @@
         <p class="t-titulo">TICKET DE VENTA</p>
         <p class="t-folio">{{ d.venta.folio }}</p>
         <p class="t-dato">{{ fechaHora(d.venta.fecha) }} · Caja 01</p>
-        <p class="t-dato">Atendió: {{ d.venta.cajera }} · Cliente: {{ d.venta.cliente.nombre }}</p>
+        <p class="t-dato">@if (ticket().quienCobro) {Atendió: {{ d.venta.cajera }} · }Cliente: {{ d.venta.cliente.nombre }}</p>
       </section>
       <section class="t-bloque">
         @for (l of d.venta.lineas; track $index) {
@@ -35,7 +35,9 @@
           @if (t.descuento > 0) {
             <p class="t-renglon"><span>Ahorro por descuentos</span><strong>{{ dinero(t.descuento) }}</strong></p>
           }
-          <p class="t-renglon"><span>IVA 16 %</span><strong>{{ dinero(d.venta.iva) }}</strong></p>
+          @if (ticket().desgloseIva) {
+            <p class="t-renglon"><span>IVA 16 %</span><strong>{{ dinero(d.venta.iva) }}</strong></p>
+          }
           <p class="t-renglon t-total"><span>TOTAL MXN</span><strong>{{ dinero(d.venta.total) }}</strong></p>
           @switch (d.venta.metodo) {
             @case ('efectivo') {
@@ -60,10 +62,10 @@
         </section>
       }
       <section class="t-pie">
-        <p class="t-chico t-centro">Cambios y devoluciones: 7 días con este ticket y empaque original. Accesorios con 30 días de garantía por defecto de fábrica.</p>
+        <p class="t-chico t-centro">{{ ticket().pie }}</p>
         <div class="t-qr" aria-label="Código QR">QR</div>
         <p class="t-chico t-centro">Factura en {{ negocio.web }}/factura con tu folio {{ d.venta.folio }} (mismo mes de compra).</p>
-        <p class="t-gracias">¡Gracias por tu compra!</p>
+        <p class="t-gracias">{{ ticket().encabezado }}</p>
       </section>
     }
 

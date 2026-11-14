@@ -4,6 +4,7 @@ import { diasGarantia, Orden, sumarDias } from '../../ordenes/ordenes.service';
 import { calcularTotales, totalLinea } from '../../punto-de-venta/venta.service';
 import { VentaRegistrada, importeDevolucion } from '../../ventas/historial-ventas.service';
 import { Documento, DocumentosService, NEGOCIO } from '../documentos.service';
+import { AJUSTES_TICKET } from '../../../compartido/ajustes-documentos';
 
 const METODOS: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mixto: 'Mixto' };
 const REEMBOLSO: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'A la tarjeta', nota: 'Nota de crédito', cambio: 'Cambio por otro producto' };
@@ -20,6 +21,8 @@ export class TicketComponent {
   readonly doc = input.required<Documento>();
 
   protected readonly negocio = NEGOCIO;
+  /** Encabezado, pie y opciones del ticket (AD9.1). */
+  protected readonly ticket = () => AJUSTES_TICKET;
   protected readonly metodos = METODOS;
   protected readonly reembolso = REEMBOLSO;
   protected readonly totalLinea = totalLinea;
