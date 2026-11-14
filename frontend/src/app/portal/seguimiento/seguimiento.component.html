@@ -174,7 +174,7 @@
         </section>
         <div class="enlaces">
           <button type="button" class="texto-enlace" (click)="comprobante()"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>Descargar comprobante</button>
-          <button type="button" class="texto-enlace" (click)="factura()"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Solicitar factura</button>
+          <a class="texto-enlace" routerLink="/portal/factura" [queryParams]="{ folio: orden()?.folio }"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Solicitar factura</a>
         </div>
       }
       @default {
@@ -263,5 +263,5 @@
   <app-solicitar-garantia [orden]="o" (cerrar)="solicitando.set(false)" (enviada)="solicitando.set(false)" />
 }
 @if (clausulas()) {
-  <app-informacion-modal tipo="clausulas" (cerrar)="clausulas.set(false)" />
+  <app-informacion-modal tipo="clausulas" [folio]="orden()?.folio ?? ''" (cerrar)="clausulas.set(false)" />
 }

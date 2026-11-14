@@ -231,11 +231,6 @@ export class SeguimientoComponent {
     descargar(`comprobante-${o.folio.replace('#', '')}.pdf`, pdfDeLineas(lineas, 11));
   }
 
-  /** La autofactura llega en P4; mientras, se explica cómo pedirla. */
-  protected factura(): void {
-    this.avisar(`Pide tu factura en ${NEGOCIO.web}/factura con el folio ${this.orden()?.folio} dentro del mismo mes, o en caja al recoger.`);
-  }
-
   private avisar(texto: string): void {
     this.ultimoAviso.set({ texto, estado: this.orden()?.estado ?? '' });
   }

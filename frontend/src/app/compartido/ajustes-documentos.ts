@@ -27,11 +27,31 @@ export const CLAUSULAS_RECEPCION: Clausula[] = [
   { titulo: 'Datos e información', texto: 'SHURI no se hace responsable por la información del equipo. Recomendamos respaldarla antes de dejarlo.' },
 ];
 
-/** Aviso de privacidad (AD9.3): lo muestran el portal, la autofactura y la hoja de recepción. */
+/**
+ * Aviso de privacidad (AD9.3): lo muestran el portal (P4.3), la autofactura y la hoja de recepción.
+ * Cada sección va separada por una línea en blanco; si empieza con "1. Título", esa primera línea es el título.
+ */
 export const AVISO_PRIVACIDAD = {
-  texto:
-    'SHURI Reparaciones y Ventas usa tus datos (nombre, teléfono y correo) solo para avisarte del estado de tu equipo, emitir tus facturas y atender garantías. No los compartimos con terceros. Puedes pedir su acceso, corrección o cancelación escribiendo a privacidad@shuri.mx.',
+  texto: [
+    '1. ¿Qué datos usamos?\nNombre, teléfono, correo y datos de tu equipo. Si pides factura, también tus datos fiscales.',
+    '2. ¿Para qué los usamos?\nPara dar seguimiento a tu reparación, avisarte en tu portal, cobrar y emitir tu factura.',
+    '3. ¿Con quién los compartimos?\nSolo los usamos para tu reparación y con el SAT al facturar. Nunca los vendemos.',
+    '4. Tus derechos (ARCO)\nPuedes pedir acceso, corrección, cancelación u oposición escribiendo a privacidad@shuri.mx.',
+    '5. Cambios a este aviso\nSi este aviso cambia, te lo mostraremos aquí antes de tu siguiente ingreso.',
+  ].join('\n\n'),
 };
+
+/** Secciones del aviso para mostrarlo numerado (Figma P4.3). */
+export function seccionesPrivacidad(texto: string): { titulo: string; texto: string }[] {
+  return texto
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map((b) => {
+      const [primera, ...resto] = b.split('\n');
+      return /^\d+\.\s/.test(primera) && resto.length ? { titulo: primera.trim(), texto: resto.join(' ').trim() } : { titulo: '', texto: b.replace(/\n/g, ' ') };
+    });
+}
 
 /** Cláusula con los valores del taller (J9). */
 export function llenarClausula(texto: string, r: ReglasTaller = REGLAS_TALLER): string {

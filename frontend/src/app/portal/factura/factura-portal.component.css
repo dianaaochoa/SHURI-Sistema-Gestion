@@ -1,0 +1,21 @@
+/* Figma P4.2 */
+.barra { border-bottom: 1px solid var(--color-borde); background: var(--color-superficie); }
+.barra__interior { display: flex; align-items: center; gap: 10px; max-width: 440px; margin: 0 auto; padding: 14px 20px; }
+.atras { display: grid; width: 28px; height: 28px; place-items: center; transform: scaleX(-1); }
+.marca { display: flex; flex: 1; align-items: center; gap: 8px; }
+.marca strong, .derecha strong { display: block; font-size: 13px; color: var(--color-marino); }
+.marca small, .derecha small { display: block; font-size: 10px; color: var(--color-texto-tenue); }
+.derecha { text-align: right; }
+.columna { gap: 14px; padding-top: 20px; }
+.titulo-pagina { font-size: 24px; font-weight: 700; color: var(--color-marino); }
+.sub { margin-top: 6px; font-size: 13px; color: var(--color-texto-tenue); }
+.formulario { flex: 1; gap: 12px; }
+.dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.signo { font-size: 13px; color: var(--color-texto-tenue); }
+.ya { display: flex; gap: 16px; font-size: 12px; }
+.acepto { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--color-marino); }
+.acepto input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-primario); }
+.boton .icono { width: 16px; height: 16px; }
+.listo { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 24px; text-align: center; }
+.descargas { display: grid; gap: 8px; }
+.descargas .boton { justify-content: center; }

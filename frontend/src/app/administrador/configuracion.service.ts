@@ -73,7 +73,7 @@ const DEMO: Configuracion = {
 };
 
 /** Datos del emisor que usan las facturas (AD6); se actualizan al guardar AD9.5. */
-export const EMISOR_FISCAL = { rfc: DEMO.fiscal.rfc, razonSocial: DEMO.fiscal.razonSocial, regimen: DEMO.fiscal.regimen, cp: DEMO.fiscal.cp, serie: DEMO.fiscal.serie };
+export const EMISOR_FISCAL = { rfc: DEMO.fiscal.rfc, razonSocial: DEMO.fiscal.razonSocial, regimen: DEMO.fiscal.regimen, cp: DEMO.fiscal.cp, serie: DEMO.fiscal.serie, autofactura: DEMO.fiscal.autofactura };
 
 const copia = <T>(v: T): T => structuredClone(v);
 
@@ -138,7 +138,7 @@ export class ConfiguracionService {
     const c = copia(this.borrador());
     this.guardada.set(c);
     this.borrador.set(copia(c));
-    Object.assign(EMISOR_FISCAL, { rfc: c.fiscal.rfc, razonSocial: c.fiscal.razonSocial, regimen: c.fiscal.regimen, cp: c.fiscal.cp, serie: c.fiscal.serie });
+    Object.assign(EMISOR_FISCAL, { rfc: c.fiscal.rfc, razonSocial: c.fiscal.razonSocial, regimen: c.fiscal.regimen, cp: c.fiscal.cp, serie: c.fiscal.serie, autofactura: c.fiscal.autofactura });
     // Lo que leen los documentos impresos (C11).
     Object.assign(AJUSTES_TICKET, c.ticket);
     AVISO_PRIVACIDAD.texto = c.privacidad;

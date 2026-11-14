@@ -32,7 +32,7 @@
       <div class="clausula clausula--editando">
         <label class="campo">
           <span class="campo__etiqueta">Aviso de privacidad</span>
-          <textarea class="campo__area" rows="5" maxlength="2000" [value]="c().privacidad" (input)="s.cambiar('privacidad', $any($event.target).value)"></textarea>
+          <textarea class="campo__area" rows="10" maxlength="3000" [value]="c().privacidad" (input)="s.cambiar('privacidad', $any($event.target).value)"></textarea>
         </label>
         <button type="button" class="enlace-accion fin" (click)="editando.set(null)">Listo</button>
       </div>
