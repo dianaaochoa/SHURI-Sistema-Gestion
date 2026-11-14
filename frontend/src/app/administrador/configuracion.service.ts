@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NEGOCIO } from '../cajera/documentos/documentos.service';
-import { AJUSTES_TICKET, CLAUSULAS_RECEPCION, Clausula } from '../compartido/ajustes-documentos';
+import { AJUSTES_TICKET, AVISO_PRIVACIDAD, CLAUSULAS_RECEPCION, Clausula } from '../compartido/ajustes-documentos';
 import { ReglasTaller } from '../compartido/reglas-taller';
 import { ConfiguracionTallerService, NivelManoObra } from '../jefe/configuracion/configuracion.service';
 
@@ -57,7 +57,7 @@ const DEMO: Configuracion = {
   pagos: { tarjeta: true, comisionTarjeta: 3.5, transferencia: true, mixto: true },
   transferencia: { banco: 'BBVA', clabe: '012180001234564821', titular: 'SHURI Reparaciones y Ventas S.A. de C.V.' },
   clausulas: CLAUSULAS_RECEPCION.map((c) => ({ ...c })),
-  privacidad: 'SHURI Reparaciones y Ventas usa tus datos (nombre, teléfono y correo) solo para avisarte del estado de tu equipo, emitir tus facturas y atender garantías. No los compartimos con terceros. Puedes pedir su acceso, corrección o cancelación escribiendo a privacidad@shuri.mx.',
+  privacidad: AVISO_PRIVACIDAD.texto,
   fiscal: { rfc: 'SRV250101AB1', razonSocial: 'SHURI', regimen: '601', cp: '06000', serie: 'A', global: 'mensual', autofactura: true, vigenciaCsd: '2029-01-14', cer: '00001000000512345678.cer', key: 'CSD_SRV250101AB1.key' },
   mensajes: [
     { id: 'temporal', nombre: 'Contraseña temporal', cuando: 'Folio de cliente nuevo o si la pide', portal: true, correo: false, activo: true, texto: 'Hola {cliente}, tu acceso al portal de {negocio} está listo. Folio {folio}. Entra en {enlace} con tu contraseña temporal.' },
@@ -141,6 +141,7 @@ export class ConfiguracionService {
     Object.assign(EMISOR_FISCAL, { rfc: c.fiscal.rfc, razonSocial: c.fiscal.razonSocial, regimen: c.fiscal.regimen, cp: c.fiscal.cp, serie: c.fiscal.serie });
     // Lo que leen los documentos impresos (C11).
     Object.assign(AJUSTES_TICKET, c.ticket);
+    AVISO_PRIVACIDAD.texto = c.privacidad;
     CLAUSULAS_RECEPCION.splice(0, CLAUSULAS_RECEPCION.length, ...c.clausulas.map((k) => ({ ...k })));
     const [marca, ...lema] = c.negocio.nombre.split(' · ');
     Object.assign(NEGOCIO, {
@@ -149,6 +150,8 @@ export class ConfiguracionService {
       direccion: `${marca.trim()} · ${c.negocio.direccion.replace(/,? ?C\.P\. \d{5}/, '')}`,
       direccionLarga: `${marca.trim()} · ${c.negocio.direccion}`,
       rfc: c.fiscal.rfc,
+      telefono: c.negocio.telefono,
+      direccionCorta: `${marca.trim()} · ${c.negocio.direccion.split(',').slice(0, 2).join(',')}`,
     });
     return delTaller;
   }

@@ -1,0 +1,45 @@
+<main class="columna">
+  <app-portal-marca />
+  <div class="encabezado">
+    <h1 class="titulo">Rastrea tu equipo</h1>
+    <p class="descripcion">Ingresa con tu correo y tu contraseña para consultar tus equipos.</p>
+  </div>
+
+  <form class="formulario" [formGroup]="formulario" (ngSubmit)="entrar()" novalidate>
+    <div class="campo">
+      <label class="campo__etiqueta" for="correo">Correo electrónico *</label>
+      <div class="campo__control" [class.campo__control--error]="invalido('correo')">
+        <img src="assets/ordenes/mail-gris.svg" width="16" height="16" alt="" />
+        <input id="correo" class="campo__input" type="email" formControlName="correo" autocomplete="email" inputmode="email" placeholder="tu@correo.com" />
+      </div>
+      @if (invalido('correo')) {
+        <span class="campo__error">{{ formulario.controls.correo.hasError('required') ? 'Escribe tu correo.' : 'Revisa que el correo esté bien escrito.' }}</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="contrasena">Contraseña *</label>
+      <div class="campo__control" [class.campo__control--error]="invalido('contrasena') || !!error()">
+        <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+        <input id="contrasena" class="campo__input" formControlName="contrasena" [type]="ver() ? 'text' : 'password'" autocomplete="current-password" />
+        <button type="button" class="campo__boton-icono" [class.campo__boton-icono--activo]="ver()" [attr.aria-label]="ver() ? 'Ocultar contraseña' : 'Mostrar contraseña'" [attr.aria-pressed]="ver()" (click)="ver.set(!ver())">
+          <img src="assets/iconos/eye-a5.svg" width="16" height="16" alt="" />
+        </button>
+      </div>
+      @if (invalido('contrasena') && !error()) {
+        <span class="campo__error">Escribe tu contraseña.</span>
+      }
+    </div>
+
+    @if (error()) {
+      <p class="aviso aviso--error" role="alert"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>{{ error() }}</p>
+    }
+
+    <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">{{ enviando() ? 'Entrando…' : 'Ingresar' }}</button>
+    <a class="enlace enlace-centro" routerLink="/portal/olvide-contrasena">¿Olvidaste tu contraseña?</a>
+  </form>
+
+  <p class="nota">¿Primera vez? Usa la contraseña temporal que te enviamos por correo y que viene en tu hoja de recepción. Al entrar te pediremos cambiarla.</p>
+
+  <app-portal-pie />
+</main>

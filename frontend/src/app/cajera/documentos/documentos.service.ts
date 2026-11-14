@@ -14,6 +14,9 @@ export const NEGOCIO = {
   rfc: 'SRV250101AB1',
   web: 'shuri.mx',
   encargado: 'Jorge López',
+  /** Portal del cliente (P1): "¿Necesitas ayuda? Contacta al taller". */
+  telefono: '55 1234 0000',
+  direccionCorta: 'SHURI · Av. Juárez 128, Centro',
 };
 
 /** C11 · Documentos impresos. */

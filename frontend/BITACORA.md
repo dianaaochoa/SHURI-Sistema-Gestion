@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 14 nov 2026 (administrador AD9: Configuración; el administrador quedó completo)
+- **Última actualización:** 14 nov 2026 (portal del cliente P1: acceso y mis equipos)
 
 ---
 
@@ -86,7 +86,8 @@ flowchart LR
     T7["T7 Versión tablet<br/>riel con nombres · banco con pestañas y botones grandes"]:::hecho
   end
   subgraph POR["06 · Portal del cliente"]
-    P["P1–P6"]:::pendiente
+    P1["P1 Acceso y mis equipos<br/>P1.1 entrar · P1.2 mis equipos<br/>P1.3 olvidé · P1.4 crear contraseña"]:::hecho
+    P["P2–P6"]:::pendiente
   end
 
   BASE --> ACC
@@ -432,6 +433,14 @@ flowchart LR
   SL --> CFA
   CFA --> CFS & BTS & CAJA
   CFS --> ADO & RT9 & FCS
+  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4"]:::comp
+  PTS["PortalService<br/>entrar, temporal, equipos del cliente"]:::serv
+  PSE["PortalSesion<br/>sesión del cliente (guardas)"]:::serv
+  RUT --> PTA
+  RUT --> PSE
+  PTA --> PTS
+  PTS --> PSE & CLSV & OS
+  PTA --> ADO
   TK & OC --> ADO
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
@@ -541,6 +550,16 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - “Nuevo usuario” (AD7.2) sugiere el usuario a partir del nombre, pide rol, caja y turno (cajeras) u horario (taller) y el descuento máximo; “Editar” permite cambiar datos, desactivar o reactivar (no a uno mismo) y asignar temporal.
 - Cada alta, cambio, desactivación, contraseña temporal y cambio de permisos queda en la Bitácora (AD8).
 - “Permisos por rol” (AD7.3): matriz de 12 permisos; el descuento de la cajera (0 a 20 %) es el valor por omisión de las cajeras nuevas. El punto de venta ya respeta el descuento máximo de cada cajera.
+
+**Portal del cliente (`/portal`):** sesión aparte de la del personal (no usa el menú).
+
+| Correo | Contraseña | Resultado |
+|---|---|---|
+| `maria.hdz@gmail.com` | `Shuri2026!` | Mis equipos: Samsung S22 Ultra en reparación y 2 entregados |
+| `laura.medina@gmail.com` | `P4R-8XK` (temporal) | P1.4 crear contraseña → Mis equipos |
+
+- 5 intentos fallidos bloquean el acceso 15 minutos. “¿Olvidaste tu contraseña?” genera una temporal nueva (como C8.4) y siempre responde igual, exista o no el correo.
+- La tarjeta de cada equipo abre `/portal/equipo/:folio`, que por ahora solo muestra el estado (P2 la completa).
 
 **Caja de la cajera:**
 - La primera vez entra con la **caja cerrada** (C1.2).
@@ -805,6 +824,12 @@ frontend/src/
     │       ├── chat/              # J11.1 · J11.4 conversación
     │       ├── redactar/          # J11.2 respuestas rápidas, compartir estado, foto y mensaje
     │       └── resumen-orden/     # panel derecho con la orden
+    ├── portal/                # 06 · Portal del cliente (rutas /portal, sin menú)
+    │   ├── portal-sesion.ts   # sesión del cliente (la usan las guardas)
+    │   ├── portal.service.ts  # entrar, temporal, crear contraseña y equipos del cliente
+    │   ├── portal.css · compartido/   # columna de celular, marca, pie y modal de cláusulas/privacidad
+    │   ├── acceso/ · olvide/ · crear/ · mis-equipos/   # P1.1 · P1.3 · P1.4 · P1.2
+    │   └── seguimiento/       # lugar de P2
     ├── administrador/         # 02 · Administrador
     │   ├── negocio.ts         # utilidad (costo de Inventario y margen de taller de prueba), lo que más deja, origen del dinero
     │   ├── reportes.ts · reportes.css   # meses, exportar CSV y estilos de AD2
@@ -1156,6 +1181,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Usuarios y permisos (AD7) | Las cuentas viven en `AuthService` (sin exponer contraseñas); el login respeta inactivos, bloqueos y contraseñas temporales | El puesto que se muestra (“Cajero”, “Administradora”) lo guarda el administrador; no se deduce del nombre. “En turno”: cajera con su turno de caja abierto o técnico que entró hoy dentro de su horario. |
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
+| Portal del cliente (P1) | `PortalService` usa los clientes y órdenes que ya maneja caja (`ClientesService`, `OrdenesService`); la sesión vive en `PortalSesion` (sessionStorage `shuri.portal`) | En pantallas grandes se ve la misma columna de celular centrada (máx. 440 px). Los equipos muestran 6 pasos; el ámbar marca el paso que espera la respuesta del cliente. El aviso de privacidad y las cláusulas salen de Configuración (AD9) vía `compartido/ajustes-documentos.ts`. “Contactar” llama al taller hasta que exista el chat (P5). |
 | Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
@@ -1169,7 +1195,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas del portal del cliente (P1–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11), el técnico (T1–T7) y el administrador (AD1–AD9) quedaron completos.
+- [ ] Pantallas del portal del cliente (P2–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11), el técnico (T1–T7), el administrador (AD1–AD9) y P1 quedaron completos.
+- [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Bitácora: el almacenaje perdonado (J8) y los dictámenes de garantía (J4) solo salen en los datos de prueba; falta registrarlos cuando el jefe los hace.
 - [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
@@ -1179,7 +1206,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 10 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 12 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1747,3 +1774,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - RFC inválido, “Comprar más timbres” (solo avisa), variables en el mensaje, vista previa del documento de recepción y correo de prueba
   - a 1366×768 todo cabe; a 360 px las siete pestañas sin desplazamiento (se ocultan columnas secundarias); sin errores en consola
 - La factura de prueba A-0412 ya no queda con hora futura en la madrugada.
+
+### 14 nov 2026 · Portal del cliente P1: acceso y mis equipos
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p1-acceso-y-mis-equipos.png` (P1.1 a P1.4).
+- `PortalService`, `PortalSesion` y las pantallas del portal con rutas `/portal`; Laura Medina tiene una temporal de prueba; `NEGOCIO` ya trae teléfono y dirección corta; el aviso de privacidad pasó a `ajustes-documentos.ts`.
+- Verificado:
+  - campos vacíos, contraseña mala (“Te quedan 4 intentos”) y al quinto fallo bloqueo de 15 minutos
+  - María entra a Mis equipos: 3 equipos con su teléfono, S22 Ultra con 4 de 6 pasos y 2 entregados; la tarjeta abre el lugar de P2; Cláusulas abre el modal; Cerrar sesión regresa al acceso y `/portal/mis-equipos` ya no deja entrar
+  - Laura entra con `P4R-8XK` (sin importar mayúsculas), no puede saltarse P1.4, una contraseña débil marca error y “Segura” la deja pasar; después la temporal ya no funciona y la nueva sí
+  - “¿Olvidaste tu contraseña?” valida el correo y confirma el envío sin decir si existe; la contraseña anterior de María deja de funcionar
+  - a 360 px como en Figma; a 1366 y 1440 px la columna se centra; sin errores en consola

@@ -92,7 +92,8 @@ export const CLIENTES: Cliente[] = [
     direccion: { pais: 'México', estado: 'Coahuila', ciudad: 'Torreón', cp: '27000', calle: 'Av. Morelos', exterior: '456', interior: '3' } },
   { id: 'c-002', nombre: 'Mario Ramírez', telefono: '55 4567 1234', correo: 'mario.rmz@hotmail.com' },
   { id: 'c-003', nombre: 'Martha Treviño', telefono: '87 1122 3344', correo: 'mtrevino@gmail.com', estado: { texto: '1 listo', tono: 'exito' } },
-  { id: 'c-004', nombre: 'Laura Medina', telefono: '87 1987 6543', correo: 'laura.medina@gmail.com', estado: { texto: '1 listo', tono: 'exito' } },
+  // Portal (P1.4): recibió una contraseña temporal y aún no crea la suya.
+  { id: 'c-004', nombre: 'Laura Medina', telefono: '87 1987 6543', correo: 'laura.medina@gmail.com', estado: { texto: '1 listo', tono: 'exito' }, portal: { tipo: 'temporal', fecha: '2026-11-10T11:42:00', temporal: 'P4R-8XK' } },
   { id: 'c-005', nombre: 'Raúl Ortiz', telefono: '87 1555 0102', correo: 'raul.ortiz@outlook.com' },
   { id: 'c-006', nombre: 'Andrés Vega', telefono: '55 3344 9900', correo: 'andres.vega@gmail.com', estado: { texto: '1 en taller', tono: 'info' } },
   { id: 'c-007', nombre: 'Paola Cruz', telefono: '87 1777 2233', correo: 'paola.cruz@gmail.com', estado: { texto: '1 en taller', tono: 'info' } },

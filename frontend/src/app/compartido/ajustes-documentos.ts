@@ -27,6 +27,12 @@ export const CLAUSULAS_RECEPCION: Clausula[] = [
   { titulo: 'Datos e información', texto: 'SHURI no se hace responsable por la información del equipo. Recomendamos respaldarla antes de dejarlo.' },
 ];
 
+/** Aviso de privacidad (AD9.3): lo muestran el portal, la autofactura y la hoja de recepción. */
+export const AVISO_PRIVACIDAD = {
+  texto:
+    'SHURI Reparaciones y Ventas usa tus datos (nombre, teléfono y correo) solo para avisarte del estado de tu equipo, emitir tus facturas y atender garantías. No los compartimos con terceros. Puedes pedir su acceso, corrección o cancelación escribiendo a privacidad@shuri.mx.',
+};
+
 /** Cláusula con los valores del taller (J9). */
 export function llenarClausula(texto: string, r: ReglasTaller = REGLAS_TALLER): string {
   return texto

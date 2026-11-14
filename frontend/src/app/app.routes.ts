@@ -8,6 +8,7 @@ import { OlvideContrasenaComponent } from './acceso/olvide-contrasena/olvide-con
 import { NAVEGACION, rutaInicio } from './sistema/navegacion';
 import { PaginaPendienteComponent } from './sistema/pagina-pendiente/pagina-pendiente.component';
 import { SistemaLayoutComponent } from './sistema/sistema-layout/sistema-layout.component';
+import { PortalSesion } from './portal/portal-sesion';
 
 /** A.5 solo tiene sentido si se entró con contraseña temporal. */
 const conContrasenaTemporal: CanActivateFn = () =>
@@ -19,6 +20,19 @@ const aSuInicio: CanActivateFn = () => {
   const router = inject(Router);
   if (!sesion) return router.parseUrl('/iniciar-sesion');
   return router.parseUrl(sesion.requiereCambioContrasena ? '/crear-contrasena' : rutaInicio(sesion.rol));
+};
+
+/** Portal del cliente (P1): sesión aparte de la del personal. */
+const clienteDentro: CanActivateFn = () => {
+  const s = inject(PortalSesion).sesion();
+  const router = inject(Router);
+  if (!s) return router.parseUrl('/portal');
+  return s.temporal ? router.parseUrl('/portal/crear-contrasena') : true;
+};
+const clienteConTemporal: CanActivateFn = () => (inject(PortalSesion).sesion()?.temporal ? true : inject(Router).parseUrl('/portal'));
+const clienteFuera: CanActivateFn = () => {
+  const s = inject(PortalSesion).sesion();
+  return s ? inject(Router).parseUrl(s.temporal ? '/portal/crear-contrasena' : '/portal/mis-equipos') : true;
 };
 
 /** Solo entra el rol dueño de la sección; los demás vuelven a su inicio. */
@@ -126,5 +140,16 @@ export const routes: Routes = [
   rutasDeRol('cajera'),
   rutasDeRol('jefe-tecnicos'),
   rutasDeRol('tecnico'),
+  {
+    path: 'portal',
+    children: [
+      { path: '', pathMatch: 'full', canActivate: [clienteFuera], loadComponent: () => import('./portal/acceso/acceso-portal.component').then((m) => m.AccesoPortalComponent), title: 'Rastrea tu equipo · SHURI' },
+      { path: 'olvide-contrasena', loadComponent: () => import('./portal/olvide/olvide-portal.component').then((m) => m.OlvidePortalComponent), title: '¿Olvidaste tu contraseña? · SHURI' },
+      { path: 'crear-contrasena', canActivate: [clienteConTemporal], loadComponent: () => import('./portal/crear/crear-portal.component').then((m) => m.CrearPortalComponent), title: 'Crea tu contraseña · SHURI' },
+      { path: 'mis-equipos', canActivate: [clienteDentro], loadComponent: () => import('./portal/mis-equipos/mis-equipos.component').then((m) => m.MisEquiposComponent), title: 'Mis equipos · SHURI' },
+      { path: 'equipo/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/seguimiento/seguimiento-pendiente.component').then((m) => m.SeguimientoPendienteComponent), title: 'Seguimiento · SHURI' },
+      { path: '**', redirectTo: '' },
+    ],
+  },
   { path: '**', redirectTo: 'iniciar-sesion' },
 ];

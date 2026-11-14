@@ -1,0 +1,16 @@
+/* Portal del cliente (Figma P1): una columna de celular, centrada en pantallas grandes. */
+:host { display: flex; flex-direction: column; min-height: 100dvh; background: var(--color-fondo); }
+.columna { display: flex; flex: 1; flex-direction: column; gap: 20px; width: 100%; max-width: 440px; margin: 0 auto; padding: 48px 24px 24px; }
+.encabezado { display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.titulo { font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--color-marino); }
+.descripcion { font-size: 14px; color: var(--color-texto-tenue); }
+.formulario { display: flex; flex-direction: column; gap: 16px; }
+.campo__control img { flex-shrink: 0; }
+.nota { font-size: 12px; text-align: center; color: var(--color-texto-tenue); }
+.enlace-centro { align-self: center; }
+.protegida { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--color-texto-tenue); }
+.protegida .icono { width: 14px; height: 14px; color: var(--color-primario); }
+.texto-enlace { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primario); cursor: pointer; }
+.espacio { flex: 1; }
+
+@media (max-width: 400px) { .columna { padding: 32px 20px 20px; } .titulo { font-size: 24px; } }
