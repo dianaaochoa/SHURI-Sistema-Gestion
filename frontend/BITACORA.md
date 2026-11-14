@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 14 nov 2026 (portal del cliente P1: acceso y mis equipos)
+- **Última actualización:** 14 nov 2026 (portal del cliente P2: seguimiento de la reparación)
 
 ---
 
@@ -87,7 +87,8 @@ flowchart LR
   end
   subgraph POR["06 · Portal del cliente"]
     P1["P1 Acceso y mis equipos<br/>P1.1 entrar · P1.2 mis equipos<br/>P1.3 olvidé · P1.4 crear contraseña"]:::hecho
-    P["P2–P6"]:::pendiente
+    P2["P2 Seguimiento de la reparación<br/>P2.1–P2.11 · aprobar o rechazar desde el portal"]:::hecho
+    P["P3–P6"]:::pendiente
   end
 
   BASE --> ACC
@@ -433,7 +434,7 @@ flowchart LR
   SL --> CFA
   CFA --> CFS & BTS & CAJA
   CFS --> ADO & RT9 & FCS
-  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4"]:::comp
+  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4<br/>Seguimiento P2.1–P2.11"]:::comp
   PTS["PortalService<br/>entrar, temporal, equipos del cliente"]:::serv
   PSE["PortalSesion<br/>sesión del cliente (guardas)"]:::serv
   RUT --> PTA
@@ -559,7 +560,8 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 | `laura.medina@gmail.com` | `P4R-8XK` (temporal) | P1.4 crear contraseña → Mis equipos |
 
 - 5 intentos fallidos bloquean el acceso 15 minutos. “¿Olvidaste tu contraseña?” genera una temporal nueva (como C8.4) y siempre responde igual, exista o no el correo.
-- La tarjeta de cada equipo abre `/portal/equipo/:folio`, que por ahora solo muestra el estado (P2 la completa).
+- La tarjeta de cada equipo abre `/portal/equipo/:folio` (P2): la pantalla cambia con el estado de la orden (recibido, en diagnóstico, necesitamos un dato, presupuesto, rechazado, sin reparación, en taller, cargo adicional, listo, entregado). Con presupuesto o cargo adicional el cliente aprueba o rechaza ahí mismo y el taller lo ve en el historial (“Aprobado en el portal”). Ya entregado: garantía restante, comprobante en PDF y calificación.
+- Para ver las variantes con María: en J3 enviar la re-cotización de #1024 (daño adicional) y aprobarla en el portal; marcarla lista (T3) y entregarla (C6).
 
 **Caja de la cajera:**
 - La primera vez entra con la **caja cerrada** (C1.2).
@@ -829,7 +831,7 @@ frontend/src/
     │   ├── portal.service.ts  # entrar, temporal, crear contraseña y equipos del cliente
     │   ├── portal.css · compartido/   # columna de celular, marca, pie y modal de cláusulas/privacidad
     │   ├── acceso/ · olvide/ · crear/ · mis-equipos/   # P1.1 · P1.3 · P1.4 · P1.2
-    │   └── seguimiento/       # lugar de P2
+    │   └── seguimiento/       # P2.1–P2.11 (seguimiento.component + tarjetas.css)
     ├── administrador/         # 02 · Administrador
     │   ├── negocio.ts         # utilidad (costo de Inventario y margen de taller de prueba), lo que más deja, origen del dinero
     │   ├── reportes.ts · reportes.css   # meses, exportar CSV y estilos de AD2
@@ -1181,6 +1183,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Usuarios y permisos (AD7) | Las cuentas viven en `AuthService` (sin exponer contraseñas); el login respeta inactivos, bloqueos y contraseñas temporales | El puesto que se muestra (“Cajero”, “Administradora”) lo guarda el administrador; no se deduce del nombre. “En turno”: cajera con su turno de caja abierto o técnico que entró hoy dentro de su horario. |
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
+| Seguimiento (P2) | Una sola pantalla que elige su variante con el estado de la orden; `OrdenesService.registrarRespuesta` acepta `desdePortal` para dejar “en el portal” en el historial | El cliente solo ve textos para él: el diagnóstico del técnico y las notas internas no se muestran hasta que hay presupuesto. No hay fotos por orden todavía, así que no se muestran fotos de evidencia (los cuadros de recepción avisan que aparecerán). “Solicitar garantía” y “Responder” llaman al taller hasta P3 y P5; “Solicitar factura” explica la autofactura. |
 | Portal del cliente (P1) | `PortalService` usa los clientes y órdenes que ya maneja caja (`ClientesService`, `OrdenesService`); la sesión vive en `PortalSesion` (sessionStorage `shuri.portal`) | En pantallas grandes se ve la misma columna de celular centrada (máx. 440 px). Los equipos muestran 6 pasos; el ámbar marca el paso que espera la respuesta del cliente. El aviso de privacidad y las cláusulas salen de Configuración (AD9) vía `compartido/ajustes-documentos.ts`. “Contactar” llama al taller hasta que exista el chat (P5). |
 | Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
@@ -1195,7 +1198,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas del portal del cliente (P2–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11), el técnico (T1–T7), el administrador (AD1–AD9) y P1 quedaron completos.
+- [ ] Pantallas del portal del cliente (P3–P6). La cajera (C1–C11 y C1.6), el jefe de técnicos (J1–J11), el técnico (T1–T7), el administrador (AD1–AD9), P1 y P2 quedaron completos.
+- [ ] Seguimiento (P2): fotos de recepción y evidencias del técnico (falta guardarlas por orden); las calificaciones viven en memoria y todavía no las ve el administrador.
 - [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Bitácora: el almacenaje perdonado (J8) y los dictámenes de garantía (J4) solo salen en los datos de prueba; falta registrarlos cuando el jefe los hace.
@@ -1784,3 +1788,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - Laura entra con `P4R-8XK` (sin importar mayúsculas), no puede saltarse P1.4, una contraseña débil marca error y “Segura” la deja pasar; después la temporal ya no funciona y la nueva sí
   - “¿Olvidaste tu contraseña?” valida el correo y confirma el envío sin decir si existe; la contraseña anterior de María deja de funcionar
   - a 360 px como en Figma; a 1366 y 1440 px la columna se centra; sin errores en consola
+
+### 14 nov 2026 · Portal del cliente P2: seguimiento de la reparación
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p2-seguimiento-de-la-reparacion.png` (11 pantallas, P2.1 a P2.11).
+- `SeguimientoComponent` reemplaza el lugar provisional; `PortalService` suma `ordenDe`, `responder` y `calificar`; `registrarRespuesta` distingue sucursal y portal.
+- Verificado con María (y, solo en memoria, con órdenes de prueba asignadas a ella para ver cada variante):
+  - #1024 en taller como en Figma P2.7 ($1,508.00 y restante $1,208.00); re-cotización de $530.00 (base $456.90 + IVA $73.10) → “Aprobar $530.00” → en taller con restante $1,738.00 y “Adicional aprobado en el portal” en el historial; lista (plazo de 30 días) y entregada (garantía de 30 días, comprobante PDF)
+  - #1035 presupuesto: rechazar con comentario → “Rechazaste el presupuesto”, revisión cubierta y saldo $0.00; el taller ve “Rechazado en el portal · …”
+  - en diagnóstico, “Necesitamos un dato tuyo” (pausa esperando al cliente), sin reparación y entregado; calificación de 4 estrellas con “Rapidez” y “Trato”
+  - el historial interno del taller no aparece en la pantalla; a 360 px como en Figma, a 1366/1440 px la columna centrada; sin errores en consola

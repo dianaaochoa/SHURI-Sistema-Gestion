@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, delay, of } from 'rxjs';
 import { ClientesService } from '../cajera/clientes/clientes.service';
 import { Orden, OrdenesService, EstadoOrden } from '../cajera/ordenes/ordenes.service';
@@ -126,6 +126,28 @@ export class PortalService {
       this.sesiones.guardar({ ...s, temporal: false });
     }
     return of(undefined).pipe(delay(400));
+  }
+
+  /** Orden activa del cliente con sesión (nunca la de otro cliente). */
+  ordenDe(folio: string): Orden | undefined {
+    return this.equipos().find((e) => e.folio.replace('#', '') === folio.replace('#', ''))?.orden;
+  }
+
+  /** P2.4 / P2.8 · El cliente aprueba o rechaza el presupuesto o el cargo adicional desde el portal. */
+  responder(folio: string, aprobo: boolean, nota = ''): boolean {
+    const o = this.ordenDe(folio);
+    const cliente = this.cliente();
+    if (!o || !cliente || (o.estado !== 'por-aprobar' && o.estado !== 'adicional')) return false;
+    this.ordenes.registrarRespuesta(o.folio, aprobo, nota, cliente.nombre, true);
+    return true;
+  }
+
+  /** P2.11 · Calificación del servicio (una por folio). */
+  readonly calificaciones = signal<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>({});
+
+  calificar(folio: string, estrellas: number, gusto: string[], comentario: string): void {
+    if (!this.ordenDe(folio)) return;
+    this.calificaciones.update((c) => ({ ...c, [folio]: { estrellas, gusto, comentario: comentario.trim().slice(0, 300), fecha: new Date().toISOString() } }));
   }
 
   cerrarSesion(): void {

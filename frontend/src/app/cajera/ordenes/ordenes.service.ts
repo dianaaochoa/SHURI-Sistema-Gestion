@@ -835,7 +835,8 @@ export class OrdenesService {
   }
 
   /** C4.2 / C4.8: respuesta del cliente registrada en mostrador. */
-  registrarRespuesta(folio: string, aprobo: boolean, nota: string, cajera: string): void {
+  registrarRespuesta(folio: string, aprobo: boolean, nota: string, cajera: string, desdePortal = false): void {
+    const donde = desdePortal ? 'en el portal' : `en sucursal por ${cajera}`;
     this.actualizar(folio, (o) => {
       const sufijo = nota.trim() ? ` · “${nota.trim()}”` : '';
       if (o.estado === 'adicional' && o.adicional && o.presupuesto) {
@@ -845,7 +846,7 @@ export class OrdenesService {
           estado: 'en-taller',
           presupuesto,
           adicional: undefined,
-          historial: [...o.historial, { fecha: ahoraIso(), texto: `Adicional ${aprobo ? 'aprobado' : 'rechazado'} en sucursal por ${cajera}${sufijo}` }],
+          historial: [...o.historial, { fecha: ahoraIso(), texto: `Adicional ${aprobo ? 'aprobado' : 'rechazado'} ${donde}${sufijo}` }],
         };
       }
       return {
@@ -855,7 +856,7 @@ export class OrdenesService {
         presupuesto: o.presupuesto && aprobo ? { ...o.presupuesto, aprobado: ahoraIso() } : o.presupuesto,
         listaDesde: aprobo ? o.listaDesde : ahoraIso(),
         trabajo: aprobo ? o.trabajo : 'Sin reparación · el cliente no aprobó',
-        historial: [...o.historial, { fecha: ahoraIso(), texto: `${aprobo ? 'Aprobado' : 'Rechazado'} en sucursal por ${cajera}${sufijo}` }],
+        historial: [...o.historial, { fecha: ahoraIso(), texto: `${aprobo ? 'Aprobado' : 'Rechazado'} ${donde}${sufijo}` }],
       };
     });
   }

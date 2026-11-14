@@ -147,7 +147,7 @@ export const routes: Routes = [
       { path: 'olvide-contrasena', loadComponent: () => import('./portal/olvide/olvide-portal.component').then((m) => m.OlvidePortalComponent), title: '¿Olvidaste tu contraseña? · SHURI' },
       { path: 'crear-contrasena', canActivate: [clienteConTemporal], loadComponent: () => import('./portal/crear/crear-portal.component').then((m) => m.CrearPortalComponent), title: 'Crea tu contraseña · SHURI' },
       { path: 'mis-equipos', canActivate: [clienteDentro], loadComponent: () => import('./portal/mis-equipos/mis-equipos.component').then((m) => m.MisEquiposComponent), title: 'Mis equipos · SHURI' },
-      { path: 'equipo/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/seguimiento/seguimiento-pendiente.component').then((m) => m.SeguimientoPendienteComponent), title: 'Seguimiento · SHURI' },
+      { path: 'equipo/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/seguimiento/seguimiento.component').then((m) => m.SeguimientoComponent), title: 'Seguimiento · SHURI' },
       { path: '**', redirectTo: '' },
     ],
   },
