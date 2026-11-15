@@ -5,6 +5,7 @@ namespace App\Services\Portal;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use App\Services\SettingsService;
+use App\Services\Workshop\StorageService;
 use App\Support\OrderBalance;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -126,7 +127,7 @@ class PortalService
      */
     private function amountDue(object $row): float
     {
-        if ($row->is_paid || ! in_array($row->status_code, OrderBalance::DELIVERABLE, true)) {
+        if ($row->is_paid || ! in_array($row->status_code, app(StorageService::class)->deliverableStatuses(), true)) {
             return 0.0;
         }
 

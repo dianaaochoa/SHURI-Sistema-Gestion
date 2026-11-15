@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\OrderStatus;
 use App\Models\ServiceOrder;
 use App\Services\SettingsService;
+use App\Services\Workshop\StorageService;
 
 /**
  * Cuánto falta por cobrar de una orden de servicio al entregarla (C6).
@@ -31,7 +32,8 @@ final class OrderBalance
             ? (float) app(SettingsService::class)->get('inspection_fee', 300)
             : 0.0;
 
-        $storage = $order->storage_fee_waived ? 0.0 : (float) $order->storage_fee;
+        // RF-09: almacenaje al día mientras espera; el congelado si ya está en abandono
+        $storage = app(StorageService::class)->feeFor($order);
         $deposit = (float) $order->deposit;
 
         return [

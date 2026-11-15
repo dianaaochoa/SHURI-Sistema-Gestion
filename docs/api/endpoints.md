@@ -22,6 +22,7 @@ Referencia para conectar el frontend (Angular) con el backend (Laravel). Cada se
 16. [Garantías (P3, C4, J4, T4)](#16-garantías-p3-c4-j4-t4)
 17. [Chat cliente ↔ jefe (P5, J11)](#17-chat-cliente--jefe-p5-j11)
 18. [Compras a proveedores (AD5, J5, C7)](#18-compras-a-proveedores-ad5-j5-c7)
+19. [Resguardo y abandono (J9)](#19-resguardo-y-abandono-j9)
 
 ---
 
@@ -1129,7 +1130,7 @@ Las no leídas primero (máximo 30):
 }
 ```
 
-`data.kind`: `low_stock`, `cash_difference`, `part_requested`, `warranty_requested`, `customer_message` o `part_arrived`. Mostrar `data.message`.
+`data.kind`: `low_stock`, `cash_difference`, `part_requested`, `warranty_requested`, `customer_message`, `part_arrived` o `devices_abandoned`. Mostrar `data.message`.
 
 ### `POST /notifications/{id}/read` · `POST /notifications/read-all`
 
@@ -1621,3 +1622,92 @@ AD5 Pago al proveedor:
 - En **efectivo** hace falta tener un turno de caja abierto: el pago sale de ese turno y se resta en el corte. Sin turno responde `422` en `method`.
 
 **Respuesta `201`:** la compra actualizada, con `payments`.
+
+---
+
+## 19. Resguardo y abandono (J9)
+
+Requisito: RF-09. Cuando la orden queda lista para recoger (o sin reparación, o con presupuesto rechazado), empieza a contar el resguardo:
+
+| Días desde "listo" | `alert` | Qué pasa |
+|---|---|---|
+| 0 a 7 | `grace_period` | Sin costo |
+| 8 a 82 | `charging` | Se cobra almacenaje ($10 por día extra). Se manda **un** correo al cliente avisando |
+| 83 a 89 | `abandonment_notice` | Último aviso por correo, una sola vez |
+| 90 o más | `abandon` | El proceso diario la pasa a **En Abandono** |
+
+Los días y el monto salen de la configuración (`pickup_grace_days`, `storage_fee_amount`, `storage_fee_mode`, `abandonment_days`, `abandonment_notice_days`).
+
+- El **almacenaje se suma solo** al saldo que cobra caja al entregar (sección 11) y al `amount_due` del portal.
+- Al pasar a abandono, el almacenaje acumulado queda guardado en la orden.
+- Un equipo en abandono **no se puede entregar**, solo mandar a desecho, salvo que `allow_delivery_when_abandoned` esté en `1`.
+- Las acciones técnicas quedan bloqueadas (ya no aparece en el tablero ni en el banco del técnico).
+
+El proceso diario corre solo a las 8:00 (`php artisan schedule:work` en desarrollo, o `php artisan shuri:process-storage` a mano). Cuando hay equipos nuevos en abandono, el jefe y el admin reciben la notificación `devices_abandoned`.
+
+Permiso `orders.storage` (jefe y admin), salvo perdonar el almacenaje, que es `orders.waive_storage`.
+
+#### `GET /storage?alert=`
+
+J9 Equipos en resguardo. `alert`: `grace_period`, `charging`, `abandonment_notice`, `abandon` o `abandoned` (los que ya están en abandono). Sin filtro, vienen todos.
+
+```json
+{
+  "summary": { "waiting": 12, "charging": 4, "about_to_be_abandoned": 1, "abandoned": 2 },
+  "data": [
+    {
+      "folio": "OS-2026-00031",
+      "customer": "Ana López",
+      "phone": "8711234567",
+      "status_code": "ready_for_pickup",
+      "status": "Listo para Recoger",
+      "location": "counter",
+      "ready_at": "2026-11-03 12:00:00",
+      "storage_days": 12,
+      "free_until": "2026-11-10",
+      "chargeable_days": 5,
+      "storage_fee": 50,
+      "storage_fee_waived": false,
+      "abandonment_date": "2027-02-01",
+      "days_until_abandonment": 78,
+      "alert": "charging"
+    }
+  ]
+}
+```
+
+`location`: `workshop`, `counter` o `storage` (bodega).
+
+#### `POST /storage/process`
+
+Corre ahora el proceso diario (útil para la demostración):
+
+```json
+{
+  "message": "Proceso terminado: 1 equipo(s) pasaron a En Abandono.",
+  "data": { "storage_fee_notices": 2, "abandonment_notices": 1, "abandoned": ["OS-2026-00004"] }
+}
+```
+
+Correrlo varias veces no repite los correos.
+
+#### `POST /service-orders/{folio}/send-to-storage`
+
+Mandar el equipo a bodega (`location: storage`). Solo si espera a ser recogido o está en abandono.
+
+#### `POST /service-orders/{folio}/dispose`
+
+Desecho electrónico de un equipo **en abandono**: `{ "notes": "Entregado a reciclaje" }` (opcional). La orden pasa a `disposed`, que es un estado final.
+
+**Respuesta (las tres acciones):**
+
+```json
+{
+  "message": "…",
+  "data": { "folio": "OS-2026-00004", "status_code": "disposed", "status": "Desechado", "location": "storage", "sent_to_storage_at": "…", "storage_fee": 880, "storage_fee_waived": false, "abandoned_at": "…", "disposed_at": "…" }
+}
+```
+
+#### `POST /service-orders/{folio}/waive-storage` (`orders.waive_storage`)
+
+Perdonar el almacenaje: `{ "reason": "Cliente hospitalizado" }` (obligatorio). Queda en la bitácora y en auditoría. Ya no se cobra al entregar.

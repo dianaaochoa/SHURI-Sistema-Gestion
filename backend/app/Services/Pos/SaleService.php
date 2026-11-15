@@ -16,6 +16,7 @@ use App\Services\FolioService;
 use App\Services\Inventory\InventoryService;
 use App\Services\SettingsService;
 use App\Services\Workshop\ServiceOrderService;
+use App\Services\Workshop\StorageService;
 use App\Services\Workshop\WarrantyService;
 use App\Support\OrderBalance;
 use App\Support\OrderStatusFlow;
@@ -38,6 +39,7 @@ class SaleService
         private readonly SettingsService $settings,
         private readonly AuditService $audit,
         private readonly WarrantyService $warranties,
+        private readonly StorageService $storage,
     ) {}
 
     /** @param  array<string, mixed>  $data  validado por CheckoutRequest */
@@ -201,7 +203,7 @@ class SaleService
             if (in_array($order->id, $orderIds, true)) {
                 throw ValidationException::withMessages(["items.{$i}.folio" => "La orden {$order->folio} ya está en el ticket."]);
             }
-            if ($order->is_paid || ! in_array($order->status->code, OrderBalance::DELIVERABLE, true)) {
+            if ($order->is_paid || ! in_array($order->status->code, $this->storage->deliverableStatuses(), true)) {
                 throw ValidationException::withMessages([
                     "items.{$i}.folio" => "La orden {$order->folio} está «{$order->status->name}» y no se puede entregar.",
                 ]);
@@ -353,6 +355,8 @@ class SaleService
         OrderStatusFlow::assert($order->status->code, OrderStatus::DELIVERED, $order->status->name);
 
         $order->forceFill([
+            // RF-09: queda guardado el almacenaje que se cobró (después la vista ya no lo calcula)
+            'storage_fee' => $this->storage->feeFor($order),
             'is_paid' => true,
             'delivered_by' => $cashier->id,
             'picked_up_by_name' => $pickedUpBy,

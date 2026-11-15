@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Workshop\CustomerController;
 use App\Http\Controllers\Api\Workshop\PartRequestController;
 use App\Http\Controllers\Api\Workshop\QuoteController;
 use App\Http\Controllers\Api\Workshop\ServiceOrderController;
+use App\Http\Controllers\Api\Workshop\StorageController;
 use App\Http\Controllers\Api\Workshop\WarrantyController;
 use App\Http\Controllers\Api\Workshop\WorkbenchController;
 use Illuminate\Support\Facades\Route;
@@ -206,6 +207,15 @@ Route::prefix('v1')->group(function () {
                 Route::post('customers', [CustomerController::class, 'store']);
                 Route::post('customers/{customer}/temporary-password', [CustomerController::class, 'temporaryPassword'])->whereNumber('customer');
             });
+
+            // Resguardo y abandono de equipos (RF-09, J9)
+            Route::middleware('permission:orders.storage')->group(function () {
+                Route::get('storage', [StorageController::class, 'index']);
+                Route::post('storage/process', [StorageController::class, 'process']);
+                Route::post('service-orders/{folio}/send-to-storage', [StorageController::class, 'sendToStorage']);
+                Route::post('service-orders/{folio}/dispose', [StorageController::class, 'dispose']);
+            });
+            Route::post('service-orders/{folio}/waive-storage', [StorageController::class, 'waive'])->middleware('permission:orders.waive_storage');
 
             // Compras a proveedores (RF-15): AD5 proveedores y pagos, J5 pedidos, C7 recepción
             Route::get('suppliers', [PurchasingController::class, 'suppliers'])->middleware('permission:suppliers.manage,purchasing.orders,inventory.stock_in');

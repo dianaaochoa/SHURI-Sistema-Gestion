@@ -17,14 +17,16 @@ use Throwable;
 class MailService
 {
     /**
+     * @param  int|null  $serviceOrderId  orden a la que pertenece el aviso (para no repetirlo)
      * @return bool true si el correo se entregó al servidor de correo
      */
-    public function send(Mailable $mail, User|Customer $to, string $type): bool
+    public function send(Mailable $mail, User|Customer $to, string $type, ?int $serviceOrderId = null): bool
     {
         $log = SentEmail::create([
             'recipient' => $to->email,
             'user_id' => $to instanceof User ? $to->id : null,
             'customer_id' => $to instanceof Customer ? $to->id : null,
+            'service_order_id' => $serviceOrderId,
             'type' => $type,
             'subject' => Str::limit((string) $mail->envelope()->subject, 195),
             'status' => 'pending',
