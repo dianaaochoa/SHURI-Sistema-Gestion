@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 15 nov 2026 (limpieza de pendientes: se quitaron los que ya estaban hechos)
+- **Última actualización:** 15 nov 2026 (el punto de venta cobra los precios de Inventario: lo que cambia el administrador en AD4 llega a caja)
 
 ---
 
@@ -341,7 +341,7 @@ flowchart LR
     end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
-  CAT["catalogo.datos.ts"]:::serv
+  CAT["catalogo.datos.ts<br/>precios de las ventas de prueba"]:::serv
   CLI["clientes.datos.ts<br/>clientes, motivos y catálogos del SAT"]:::serv
   DIS["DispositivosService<br/>conexión e impresora (simulado)"]:::serv
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
@@ -425,7 +425,8 @@ flowchart LR
   PDV & BB & CB & SCX --> DIS
   DF --> CLI
   PDV & BB & TT & SC & AD & PV & VE --> VS
-  BB --> CAT
+  BB --> INS
+  VS --> CAT
   SC & AD --> CLI
   PDV --> CAJA
   NAV --> RUT & ML & PP
@@ -581,7 +582,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - El turno se guarda en `localStorage` (`shuri.turno`). Para volver a probar la caja cerrada, borra esa clave o ejecuta `localStorage.clear()` en la consola.
 
 **Punto de venta (`/cajera/punto-de-venta`, F1 desde el inicio):**
-- Catálogo de prueba en `cajera/punto-de-venta/catalogo.datos.ts`. Se busca por nombre (“cargador”), SKU (`ACC-020`) o código de barras (`7501000000205`).
+- Los productos, precios y disponibles salen de Inventario (los de uso interno del taller no aparecen). Se busca por nombre (“cargador”), SKU (`ACC-020`) o código de barras (`7501000000205`). Si el administrador cambia un precio en Catálogo y precios (AD4), caja lo cobra desde ese momento: la Mica a $120.00 sale “$103.45” antes de IVA y el total da $120.00.
 - Para armar la venta de Figma C2.1 (total $899.00): `ACC-001` ×2, `ACC-020` con 10 % de descuento, `ACC-014` y `ACC-052`.
 - `ACC-030` no tiene disponibles: sale atenuado con “Vender como temporal”. Un código que no existe (`7501234567899`) muestra C2.4.
 - Teclas:
@@ -944,7 +945,7 @@ frontend/src/
     │   │   └── devolucion/                 # C3.3
     │   └── punto-de-venta/    # C2
     │       ├── venta.service.ts      # líneas, totales, IVA, folio, cobrar (simulado)
-    │       ├── catalogo.datos.ts     # productos de prueba de Figma
+    │       ├── catalogo.datos.ts     # precios de Figma para las ventas de prueba (historial y en espera)
     │       ├── clientes.datos.ts     # clientes de prueba y motivos de descuento
     │       ├── barra-busqueda/       # buscador + resultados C2.3 + no encontrado C2.4 + reloj
     │       ├── tabla-ticket/         # líneas del ticket con −/+, descuento y quitar
@@ -1201,6 +1202,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Precios del punto de venta | Caja busca en `InventarioService` y cobra el “Precio de venta (IVA incluido)” de Inventario/AD4; el renglón guarda el precio ÷ 1.16 sin redondear. `calcularTotales` suma sin redondear y redondea solo subtotal y total (el IVA es la resta) | **Figma choca:** en C2 la Mica cuesta $100 + IVA ($116) y en C7/AD4 su precio es $100 con IVA. El usuario eligió el de Inventario (lo que pone el administrador es lo que paga el cliente), así que una venta nueva ya no da los totales de la venta de ejemplo de C2. El historial de Ventas y las ventas en espera siguen con los precios de Figma (`catalogo.datos.ts`) y dan lo mismo que antes ($899.00, $290.00, $406.00). |
 | Fotos del equipo al recibirlo | Caja las toma en Nueva orden (C5.1) y en el detalle de Órdenes (C4); `FotosOrdenComponent` las muestra en el tablero del jefe (J2.3), el banco del técnico (T3/T7) y el seguimiento del cliente (P2.1). Se reducen a 1280 px en JPEG (≈ 100–300 kB), máximo 6 por orden, y cada alta o baja queda en el historial con el nombre de la cajera | **No está en Figma C5**: los cuadros de fotos de J2.3, T3 y P2.1 no tenían de dónde salir. Sirve de evidencia del estado en que llegó el equipo (rayones, golpes). Viven en memoria como data URL hasta que la API las guarde. Ya no se pueden cambiar al entregar la orden. |
 | Chat del portal (P5) | Usa `MensajesService` de J11: `escribirCliente` abre la conversación si no existía y `marcarLeidos` marca lo del jefe al abrir el chat | El mensaje del cliente dice “Leído” cuando el jefe ya contestó después. Las fotos del cliente se avisan con su nombre (la API las guardará). El nombre del jefe sale de `NEGOCIO.encargado`. |
 | Autofactura (P4.2) | Timbra con `FacturacionService` (“Pidió: Autofactura”) y guarda los datos fiscales en el cliente; respeta el interruptor de AD9 (`EMISOR_FISCAL.autofactura`) | Folio y total juntos funcionan como comprobante: sin sesión nadie factura una compra ajena sin conocer su total. El aviso de privacidad ahora va por secciones (“1. Título” y su texto) para mostrarse numerado. |
@@ -1262,7 +1264,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
 - [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
 - [ ] El corte cierra el turno de la caja, pero no revisa que la cajera que cierra sea la que abrió.
-- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta ya toma los disponibles de Inventario, pero sus nombres y precios (sin IVA) siguen en `catalogo.datos.ts`; debe leer el inventario cuando exista la API. **Por eso los precios que cambia el administrador en AD4 todavía no llegan al punto de venta** (el aviso de AD4.2 describe cómo funcionará).
+- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes, pedidos y cambios de precio se pierden al recargar. El punto de venta ya cobra con sus nombres, precios y disponibles.
 - [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
 - [ ] Retiros, ingresos, pagos a proveedor y cortes viven en memoria (el turno abierto sí queda en el navegador): al recargar con el turno abierto, el arqueo pierde esos movimientos.
 - [ ] Los pedidos del jefe se crean en Refacciones (J5) y viven en memoria. Avisar al técnico y al jefe solo se anota en el historial de la orden.
@@ -1872,3 +1874,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 ### 15 nov 2026 · Limpieza de pendientes
 - Se revisaron los pendientes contra el código y se quitaron los que ya estaban hechos: versión tablet del técnico (T7), autofactura del portal (P4), respuesta y cobro de la garantía con costo (P3 y `saldo`) y Entrega de equipo con `?folio=` (C6).
 - Se dejó solo lo que falta en dos: los mensajes (el chat P5 ya los manda; falta guardarlos en la API) y “Crear cliente nuevo” (C2.5: lleva a Clientes, C8, sin el nombre buscado).
+
+### 15 nov 2026 · Punto de venta con los precios de Inventario
+- Pendiente de solo frontend: los precios que cambiaba el administrador en AD4 no llegaban a caja porque el punto de venta leía `catalogo.datos.ts`.
+- `BarraBusqueda` ahora busca en `InventarioService` (sin lo de uso interno) y arma el producto con el precio de Inventario ÷ 1.16; `VentaService.agregar` usa ese producto. `catalogo.datos.ts` queda solo para las ventas de prueba.
+- `calcularTotales` redondea al final: antes, 7 fundas de $128.45 + otros daban un centavo menos.
+- Decisión del usuario: el cliente paga el precio de Inventario (IVA incluido), no el de la venta de ejemplo de Figma C2.
+- Verificado:
+  - AD4 (Verónica Castillo): Mica de $100.00 a $120.00 → margen 73 %
+  - caja (Ana Martínez, turno abierto con $1,000): “mica” muestra “Mica Cristal templado universal · 124 disponibles · $103.45”; al agregarla el total es $120.00
+  - 3 micas, cable, 7 fundas y audífonos: subtotal $1,348.11, IVA $215.70, total $1,563.81 (lo mismo que sumar los precios con IVA)
+  - Ventas sigue igual a Figma: V-00862 $899.00, V-00861 $290.00, V-00860 $406.00

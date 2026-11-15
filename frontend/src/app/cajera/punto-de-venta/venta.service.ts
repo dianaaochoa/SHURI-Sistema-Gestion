@@ -98,16 +98,20 @@ export function totalLinea(linea: Linea): number {
 
 /** Totales de un conjunto de líneas con un descuento a toda la venta. Precios antes de IVA. */
 export function calcularTotales(lineas: Linea[], descuento: DescuentoVenta | null) {
-  const subtotalLineas = redondear(lineas.reduce((suma, l) => suma + totalLinea(l), 0));
-  const descuentoLineas = redondear(lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0) - subtotalLineas);
-  const descuentoVenta = !descuento
+  // Se suma sin redondear y se redondea al final: los precios de Inventario traen IVA incluido
+  // (p. ej. $128.45 ÷ 1.16) y redondear a medio camino haría que el total no diera lo de la etiqueta.
+  const bruto = lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0);
+  const exactoLineas = lineas.reduce((suma, l) => suma + l.precio * l.cantidad * (1 - l.descuento / 100), 0);
+  const exactoDescuentoVenta = !descuento
     ? 0
     : descuento.modo === '%'
-      ? redondear((subtotalLineas * descuento.valor) / 100)
-      : redondear(descuento.valor / (1 + IVA));
-  const subtotal = redondear(subtotalLineas - descuentoVenta);
-  const iva = redondear(subtotal * IVA);
-  return { subtotalLineas, subtotal, iva, total: redondear(subtotal + iva), descuento: redondear(descuentoLineas + descuentoVenta) };
+      ? (exactoLineas * descuento.valor) / 100
+      : descuento.valor / (1 + IVA);
+  const exacto = exactoLineas - exactoDescuentoVenta;
+  const subtotalLineas = redondear(exactoLineas);
+  const subtotal = redondear(exacto);
+  const total = redondear(exacto * (1 + IVA));
+  return { subtotalLineas, subtotal, iva: redondear(total - subtotal), total, descuento: redondear(bruto - exacto) };
 }
 
 const folio = (numero: number) => `V-${String(numero).padStart(5, '0')}`;
@@ -178,7 +182,8 @@ export class VentaService {
     const existente = this.lineasActuales().find((l) => l.sku === producto.sku);
     if (existente) return this.cambiarCantidad(producto.sku, 1);
     if (producto.disponibles < 1) return false;
-    this.lineasActuales.update((lineas) => [...lineas, { ...lineaDe(producto.sku), disponibles: producto.disponibles }]);
+    const { sku, nombre, precio, disponibles } = producto;
+    this.lineasActuales.update((lineas) => [...lineas, { sku, nombre, precio, cantidad: 1, descuento: 0, disponibles }]);
     return true;
   }
 

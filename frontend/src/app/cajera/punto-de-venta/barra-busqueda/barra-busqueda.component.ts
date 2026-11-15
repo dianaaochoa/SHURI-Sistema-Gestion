@@ -2,7 +2,7 @@ import { Component, DestroyRef, ElementRef, computed, inject, output, signal, vi
 import { RouterLink } from '@angular/router';
 import { formatearDinero } from '../../../compartido/formato';
 import { InventarioService, disponible } from '../../inventario/inventario.service';
-import { CATALOGO, Producto } from '../catalogo.datos';
+import { Producto } from '../catalogo.datos';
 import { DispositivosService } from '../dispositivos.service';
 import { IVA, VentaService } from '../venta.service';
 
@@ -42,13 +42,20 @@ export class BarraBusquedaComponent {
   protected readonly resultados = computed(() => {
     const texto = sinAcentos(this.busqueda().trim());
     if (texto.length < 2) return [];
-    // Disponibles según Inventario (C7): stock menos lo apartado, y baja con cada venta.
-    return CATALOGO.filter(
-      (p) => sinAcentos(p.nombre).includes(texto) || sinAcentos(p.sku).includes(texto) || p.codigoBarras === texto,
-    ).map((p) => {
-      const enInventario = this.inventario.buscar(p.sku);
-      return enInventario ? { ...p, disponibles: disponible(enInventario) } : p;
-    });
+    // Nombres, precios y disponibles salen de Inventario (C7): lo que cambia el administrador (AD4)
+    // se cobra desde ese momento. Lo de uso interno del taller no se vende en mostrador.
+    return this.inventario
+      .productos()
+      .filter((p) => !p.usoInterno && (sinAcentos(p.nombre).includes(texto) || sinAcentos(p.sku).includes(texto) || p.codigoBarras === texto))
+      .map((p): Producto => ({
+        sku: p.sku,
+        nombre: p.nombre,
+        categoria: p.categoria,
+        // Inventario guarda el precio al público con IVA; el ticket va antes de IVA (sin redondear, para que el total cuadre).
+        precio: p.precio / (1 + IVA),
+        disponibles: disponible(p),
+        codigoBarras: p.codigoBarras,
+      }));
   });
   protected readonly abierta = computed(() => this.busqueda().trim().length >= 2);
   protected readonly esCodigo = computed(() => /^\d{6,}$/.test(this.busqueda().trim()));
