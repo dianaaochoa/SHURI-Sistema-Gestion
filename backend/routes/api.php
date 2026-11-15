@@ -9,9 +9,11 @@ use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\Auth\StaffAuthController;
 use App\Http\Controllers\Api\Auth\TwoFactorController;
 use App\Http\Controllers\Api\Cash\CashShiftController;
+use App\Http\Controllers\Api\Chat\ConversationController;
 use App\Http\Controllers\Api\Inventory\MovementController;
 use App\Http\Controllers\Api\Inventory\ProductController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\Portal\PortalChatController;
 use App\Http\Controllers\Api\Portal\PortalOrderController;
 use App\Http\Controllers\Api\Portal\PortalQuoteController;
 use App\Http\Controllers\Api\Portal\PortalWarrantyController;
@@ -122,6 +124,16 @@ Route::prefix('v1')->group(function () {
                 Route::post('my/warranties/{folio}/finish', [WarrantyController::class, 'finish']);
             });
 
+            // ── Chat con clientes (J11 · RF-12) ──
+            Route::middleware('permission:chat.reply')->group(function () {
+                Route::get('conversations', [ConversationController::class, 'index']);
+                Route::get('conversations/{conversation}/messages', [ConversationController::class, 'messages'])->whereNumber('conversation');
+                Route::post('conversations/{conversation}/messages', [ConversationController::class, 'reply'])->whereNumber('conversation');
+                Route::post('conversations/{conversation}/close', [ConversationController::class, 'close'])->whereNumber('conversation');
+                Route::get('quick-replies', [ConversationController::class, 'quickReplies']);
+                Route::put('chat/availability', [ConversationController::class, 'availability']);
+            });
+
             // ── Taller: refacciones (T5 técnico, J5 jefe · RF-05) ──
             Route::middleware('permission:parts.request')->group(function () {
                 Route::post('my/orders/{folio}/part-requests', [PartRequestController::class, 'store']);
@@ -221,6 +233,12 @@ Route::prefix('v1')->group(function () {
             Route::get('orders/{folio}/warranty', [PortalWarrantyController::class, 'show']);
             Route::post('orders/{folio}/warranty', [PortalWarrantyController::class, 'store']);
             Route::post('warranties/{folio}/answer', [PortalWarrantyController::class, 'answer']);
+
+            // P5 Chat con el jefe de técnicos (RF-12)
+            Route::get('chat', [PortalChatController::class, 'index']);
+            Route::post('chat', [PortalChatController::class, 'store']);
+            Route::get('chat/{conversation}/messages', [PortalChatController::class, 'messages'])->whereNumber('conversation');
+            Route::post('chat/{conversation}/messages', [PortalChatController::class, 'send'])->whereNumber('conversation');
         });
     });
 
