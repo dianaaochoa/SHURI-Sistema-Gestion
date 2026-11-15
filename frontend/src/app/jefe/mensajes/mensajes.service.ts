@@ -1,4 +1,7 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { OrdenesService } from '../../cajera/ordenes/ordenes.service';
+import { NEGOCIO } from '../../cajera/documentos/documentos.service';
+import { CorreosService } from '../../compartido/correos.service';
 
 /** Un renglón del chat: lo que escribe el cliente desde su portal, lo que contesta el jefe o un estado compartido. */
 export interface MensajeChat {
@@ -100,6 +103,8 @@ export class MensajesService {
   readonly rapidas = signal<RespuestaRapida[]>(RAPIDAS);
   /** J11.5: con "Disponible hoy" apagado, el portal avisa que se responde mañana. */
   readonly disponible = signal(true);
+  private readonly ordenes = inject(OrdenesService);
+  private readonly correos = inject(CorreosService);
 
   /** Mensajes del cliente después de la última respuesta del jefe. */
   pendientes(c: Conversacion): number {
@@ -118,6 +123,10 @@ export class MensajesService {
   /** El mensaje le llega al cliente en su chat del portal; la conversación deja de estar resuelta si lo estaba. */
   enviar(folio: string, mensaje: Omit<MensajeChat, 'fecha'>): void {
     this.cambiar(folio, (c) => ({ ...c, resuelta: false, mensajes: [...c.mensajes, { ...mensaje, fecha: new Date().toISOString() }] }));
+    // P6 · “Tienes una respuesta del taller” cuando contesta el jefe.
+    const o = mensaje.de === 'jefe' ? this.ordenes.ordenes().find((x) => x.folio === folio) : undefined;
+    const para = o?.cliente.correo;
+    if (o && para) import('../../compartido/correos').then(({ CORREOS }) => this.correos.enviar(CORREOS.respuesta({ para, nombre: o.cliente.nombre, folio, jefe: NEGOCIO.encargado, texto: mensaje.texto })));
   }
 
   /** P5 · El cliente escribe desde su portal; si no había conversación de ese folio, se abre una. */

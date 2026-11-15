@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { CorreosService } from '../../compartido/correos.service';
 import { ESTADOS_ORDEN, EstadoOrden, Orden, OrdenesService, etiquetaEstado } from '../ordenes/ordenes.service';
 import { CLIENTES, Cliente, PUBLICO_GENERAL } from '../punto-de-venta/clientes.datos';
 import { ESTADOS as ESTADOS_VENTA, HistorialVentasService, VentaRegistrada, reembolsado } from '../ventas/historial-ventas.service';
@@ -81,6 +82,7 @@ export function descripcionVenta(venta: VentaRegistrada): string {
 export class ClientesService {
   private readonly ordenes = inject(OrdenesService);
   private readonly ventas = inject(HistorialVentasService);
+  private readonly correos = inject(CorreosService);
   private readonly guardados = signal<Cliente[]>([...CLIENTES]);
 
   /** Todos los clientes: los registrados y los que solo aparecen en órdenes o ventas. */
@@ -192,6 +194,10 @@ export class ClientesService {
     const parte = () => Array.from({ length: 3 }, () => letras[Math.floor(Math.random() * letras.length)]).join('');
     const temporal = `${parte()}-${parte()}`;
     this.guardar({ ...cliente, portal: { tipo: 'temporal', fecha: new Date().toISOString(), temporal } });
+    // P6 · “Tu acceso al portal”, con el equipo más reciente.
+    const orden = this.ordenesDe(cliente)[0];
+    const para = cliente.correo;
+    if (para) import('../../compartido/correos').then(({ CORREOS }) => this.correos.enviar(CORREOS.acceso({ para, nombre: cliente.nombre, folio: orden?.folio ?? '', equipo: orden?.equipo ?? 'equipo', temporal })));
     return temporal;
   }
 }

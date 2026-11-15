@@ -15,6 +15,11 @@
 .correo__clave { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 6px; background: var(--color-primario-suave); }
 .correo__clave strong { font-size: 17px; letter-spacing: 1px; color: var(--color-primario); }
 .correo__clave small { font-size: 9px; color: var(--color-texto-tenue); }
+.correo__clave--exito { background: var(--color-exito-suave); }
+.correo__clave--exito strong { color: var(--color-exito); }
+.correo__clave--advertencia { background: var(--color-advertencia-suave); }
+.correo__clave--advertencia strong { color: var(--color-advertencia); }
+.descargar { align-self: flex-start; }
 .correo__boton { align-self: flex-start; padding: 8px 14px; border-radius: 6px; background: var(--color-primario); font-weight: 600; color: var(--color-superficie); }
 .correo__pie { padding: 10px 20px; background: var(--color-fondo); font-size: 9px; color: var(--color-texto-tenue); }
 

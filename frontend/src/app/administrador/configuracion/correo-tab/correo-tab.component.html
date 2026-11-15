@@ -60,21 +60,42 @@
   </section>
 
   <aside class="panel lateral">
-    <h2 class="panel__titulo">Vista previa · Contraseña temporal</h2>
-    <div class="correo">
-      <div class="correo__cabecera">
-        <p>De: {{ vista().de }}</p>
-        <p>Para: jsalinas&#64;gmail.com</p>
-        <p><strong>Asunto: Tu acceso al portal · Folio #1043</strong></p>
+    <h2 class="panel__titulo">Vista previa · {{ correo().etiqueta }}</h2>
+    <label class="campo">
+      <span class="campo__etiqueta">Correo (P6)</span>
+      <span class="campo__control campo__control--40">
+        <select class="campo__input campo__select" (change)="elegido.set($any($event.target).value)">
+          <optgroup label="Plantillas">
+            @for (t of tipos; track t[0]) { <option [value]="t[0]" [selected]="elegido() === t[0]">{{ t[1] }}</option> }
+          </optgroup>
+          @if (correos.enviados().length) {
+            <optgroup label="Enviados en esta sesión">
+              @for (e of correos.enviados(); track e.id) { <option [value]="'e' + e.id" [selected]="elegido() === 'e' + e.id">{{ e.asunto }} · {{ e.para }}</option> }
+            </optgroup>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+    </label>
+    @if (correo().c; as m) {
+      <div class="correo">
+        <div class="correo__cabecera">
+          <p>De: {{ vista().de }}</p>
+          <p>Para: {{ m.para }}</p>
+          <p><strong>Asunto: {{ m.asunto }}</strong></p>
+        </div>
+        <div class="correo__cuerpo">
+          <p class="correo__marca"><img [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="24" height="24" alt="" /><span><strong>{{ vista().marca }}</strong><small>{{ vista().lema }}</small></span></p>
+          <p class="correo__titulo">{{ m.titulo }}</p>
+          <p>{{ m.parrafo }}</p>
+          @if (m.destacado; as d) {
+            <div class="correo__clave correo__clave--{{ d.tono }}"><small>{{ d.etiqueta }}</small><strong>{{ d.valor }}</strong><small>{{ d.nota }}</small></div>
+          }
+          <span class="correo__boton">{{ m.boton.texto }}</span>
+        </div>
+        <p class="correo__pie">Este correo se envía automáticamente. {{ c().correo.responderA }}. {{ vista().pie }} · Aviso de privacidad: shuri.mx/privacidad</p>
       </div>
-      <div class="correo__cuerpo">
-        <p class="correo__marca"><img [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="24" height="24" alt="" /><span><strong>{{ vista().marca }}</strong><small>{{ vista().lema }}</small></span></p>
-        <p class="correo__titulo">Bienvenido a tu portal de seguimiento</p>
-        <p>Hola Jorge, registramos tu iPhone 14 con el folio #1043. Entra a shuri.mx con tu correo y esta contraseña temporal. Al entrar te pediremos crear una nueva.</p>
-        <div class="correo__clave"><small>Contraseña temporal</small><strong>P4R-8XK</strong><small>También viene impresa en tu hoja de recepción.</small></div>
-        <span class="correo__boton">Entrar a mi portal</span>
-      </div>
-      <p class="correo__pie">Este correo se envía automáticamente. {{ c().correo.responderA }}. {{ vista().pie }} · Aviso de privacidad: shuri.mx/privacidad</p>
-    </div>
+      <button type="button" class="boton boton--contorno boton--40 descargar" (click)="descargarHtml(m)"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>Descargar HTML</button>
+    }
   </aside>
 </div>

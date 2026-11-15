@@ -1,4 +1,6 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { CorreosService } from '../../compartido/correos.service';
+import type { CORREOS } from '../../compartido/correos';
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { redondear } from '../punto-de-venta/venta.service';
 
@@ -804,6 +806,22 @@ const ahoraIso = () => new Date().toISOString();
 @Injectable({ providedIn: 'root' })
 export class OrdenesService {
   readonly ordenes = signal<Orden[]>(ordenesDemo());
+  private readonly correos = inject(CorreosService);
+
+  /** P6 · Correo al cliente con la orden ya actualizada. */
+  private correo(folio: string, armar: (o: Orden, plantillas: typeof CORREOS) => Parameters<CorreosService['enviar']>[0] | null): void {
+    const o = this.ordenes().find((x) => x.folio === folio);
+    if (!o?.cliente.correo) return;
+    // Las plantillas se cargan al primer envío para no crecer el paquete inicial.
+    import('../../compartido/correos').then(({ CORREOS: plantillas }) => {
+      const c = armar(o, plantillas);
+      if (c) this.correos.enviar(c);
+    });
+  }
+
+  private limiteRecoger(o: Orden): string {
+    return new Date(new Date(o.listaDesde ?? Date.now()).getTime() + REGLAS_TALLER.diasSinCobro * 86_400_000).toISOString();
+  }
 
   /** Folio que tendrá la siguiente orden (C5.1 "Nueva orden #1044"). */
   readonly siguienteFolio = computed(() => {
@@ -1019,6 +1037,9 @@ export class OrdenesService {
         contactos: [...o.contactos, { fecha: ahora, texto: 'Presupuesto publicado en el portal' }],
       };
     });
+    this.correo(folio, (o, CORREOS) =>
+      CORREOS.cotizacion({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, descripcion: o.presupuesto?.descripcion ?? '', total: o.presupuesto?.total ?? 0, anticipo: o.anticipo }),
+    );
   }
 
   /** J3.2 / J3.3 · La orden vuelve al técnico con una pregunta: regresa a "Diagnóstico" en el tablero. */
@@ -1186,6 +1207,7 @@ export class OrdenesService {
         contactos: [...o.contactos, { fecha: ahora, texto: 'Aviso de “Listo” en el portal' }],
       };
     });
+    this.correo(folio, (o, CORREOS) => CORREOS.listo({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, equipo: o.equipo, restante: saldo(o), limite: this.limiteRecoger(o) }));
   }
 
   /** T4.2 · El técnico revisa la garantía y manda su reporte; el jefe da el dictamen (J4.2). */
@@ -1228,6 +1250,13 @@ export class OrdenesService {
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */
   avisar(folio: string, texto: string): void {
     this.actualizar(folio, (o) => ({ ...o, contactos: [...o.contactos, { fecha: ahoraIso(), texto }], historial: [...o.historial, { fecha: ahoraIso(), texto }] }));
+    // Recordatorios para recoger (C4.6, J8): también llegan por correo.
+    if (/recordatorio|último aviso/i.test(texto))
+      this.correo(folio, (o, CORREOS) => {
+        const limite = this.limiteRecoger(o);
+        const dias = Math.max(0, Math.ceil((new Date(limite).getTime() - Date.now()) / 86_400_000));
+        return CORREOS.bodega({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, equipo: o.equipo, listoDesde: o.listaDesde ?? o.recibido, limite, almacenaje: REGLAS_TALLER.almacenajeDia, dias });
+      });
   }
 
   private actualizar(folio: string, cambio: (orden: Orden) => Orden): void {
