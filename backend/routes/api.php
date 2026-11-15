@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Portal\PortalOrderController;
 use App\Http\Controllers\Api\Portal\PortalQuoteController;
 use App\Http\Controllers\Api\Portal\PortalWarrantyController;
 use App\Http\Controllers\Api\Pos\SaleController;
+use App\Http\Controllers\Api\Purchasing\PurchasingController;
 use App\Http\Controllers\Api\Workshop\AssignmentController;
 use App\Http\Controllers\Api\Workshop\CustomerController;
 use App\Http\Controllers\Api\Workshop\PartRequestController;
@@ -204,6 +205,31 @@ Route::prefix('v1')->group(function () {
             Route::middleware('permission:customers.manage')->group(function () {
                 Route::post('customers', [CustomerController::class, 'store']);
                 Route::post('customers/{customer}/temporary-password', [CustomerController::class, 'temporaryPassword'])->whereNumber('customer');
+            });
+
+            // Compras a proveedores (RF-15): AD5 proveedores y pagos, J5 pedidos, C7 recepción
+            Route::get('suppliers', [PurchasingController::class, 'suppliers'])->middleware('permission:suppliers.manage,purchasing.orders,inventory.stock_in');
+            Route::middleware('permission:suppliers.manage')->group(function () {
+                Route::post('suppliers', [PurchasingController::class, 'saveSupplier']);
+                Route::put('suppliers/{supplier}', [PurchasingController::class, 'saveSupplier'])->whereNumber('supplier');
+                Route::post('purchases/{folio}/payments', [PurchasingController::class, 'pay']);
+            });
+            Route::middleware('permission:suppliers.manage,purchasing.orders,inventory.stock_in')->group(function () {
+                Route::get('purchase-orders', [PurchasingController::class, 'orders']);
+                Route::get('purchase-orders/{folio}', [PurchasingController::class, 'order']);
+            });
+            Route::middleware('permission:purchasing.orders')->group(function () {
+                Route::post('purchase-orders', [PurchasingController::class, 'storeOrder']);
+                Route::post('purchase-orders/{folio}/send', [PurchasingController::class, 'sendOrder']);
+                Route::post('purchase-orders/{folio}/cancel', [PurchasingController::class, 'cancelOrder']);
+            });
+            Route::middleware('permission:inventory.stock_in')->group(function () {
+                Route::post('purchase-orders/{folio}/receive', [PurchasingController::class, 'receiveOrder']);
+                Route::post('purchases', [PurchasingController::class, 'storePurchase']);
+            });
+            Route::middleware('permission:suppliers.manage,inventory.stock_in')->group(function () {
+                Route::get('purchases', [PurchasingController::class, 'purchasesIndex']);
+                Route::get('purchases/{folio}', [PurchasingController::class, 'purchase']);
             });
         });
     });
