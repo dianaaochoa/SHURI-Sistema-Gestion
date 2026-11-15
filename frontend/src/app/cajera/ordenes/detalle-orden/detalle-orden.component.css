@@ -17,7 +17,7 @@
 .caja__titulo { font-weight: 600; }
 .caja__titulo--advertencia { color: var(--color-advertencia); }
 
-.historial { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 8px; background: var(--color-fondo); font-size: 11px; color: var(--color-texto-tenue); }
+.historial, .fotos-equipo { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 8px; background: var(--color-fondo); font-size: 11px; color: var(--color-texto-tenue); }
 .historial__titulo { font-weight: 600; color: var(--color-texto-secundario); }
 
 /* C4.4 */

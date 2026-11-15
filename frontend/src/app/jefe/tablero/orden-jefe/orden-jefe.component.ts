@@ -7,10 +7,11 @@ import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import { slaDiagnostico, atrasada, horasDesde, tiempoEn } from '../../etapas';
 
 /** J2.3 · Detalle de la orden para el jefe: seguimiento, pausa, resumen, fotos e historial con notas internas. */
+import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 @Component({
   selector: 'app-orden-jefe',
   standalone: true,
-  imports: [RouterLink, SeguimientoOrdenComponent],
+  imports: [RouterLink, SeguimientoOrdenComponent, FotosOrdenComponent],
   templateUrl: './orden-jefe.component.html',
   styleUrl: './orden-jefe.component.css',
 })

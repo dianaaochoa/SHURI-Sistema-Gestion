@@ -1,4 +1,6 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
+import { AuthService } from '../../../acceso/auth.service';
+import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import {
   diasGarantia,
@@ -6,6 +8,7 @@ import {
   ESTADOS_ORDEN,
   Evento,
   Orden,
+  OrdenesService,
   diasDesde,
   etiquetaEstado,
   garantiaRestante,
@@ -30,12 +33,25 @@ export function cuando(iso: string, conPunto = true): string {
 @Component({
   selector: 'app-detalle-orden',
   standalone: true,
-  imports: [SeguimientoOrdenComponent],
+  imports: [SeguimientoOrdenComponent, FotosOrdenComponent],
   templateUrl: './detalle-orden.component.html',
   styleUrl: './detalle-orden.component.css',
 })
 export class DetalleOrdenComponent {
   readonly orden = input.required<Orden>();
+  private readonly ordenes = inject(OrdenesService);
+  private readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
+
+  /** Fotos del equipo: se pueden agregar o quitar mientras la orden siga en el taller. */
+  protected readonly fotosEditables = computed(() => !['terminada', 'sin-reparar-entregada'].includes(this.orden().estado));
+
+  protected agregarFotos(fotos: { url: string; nombre: string }[]): void {
+    this.ordenes.agregarFotos(this.orden().folio, fotos, this.cajera);
+  }
+
+  protected quitarFoto(id: string): void {
+    this.ordenes.quitarFoto(this.orden().folio, id, this.cajera);
+  }
   readonly accion = output<AccionOrden>();
 
   protected readonly dinero = formatearDinero;

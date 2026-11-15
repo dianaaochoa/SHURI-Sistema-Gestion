@@ -54,10 +54,7 @@
           <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/iconos/smartphone.svg)"></span>Datos de recepción</p>
           <p class="tenue">{{ v.recibido }}</p>
           <p>Falla reportada: {{ v.falla }}</p>
-          <div class="fotos" aria-label="Fotos de recepción">
-            @for (f of [1, 2, 3, 4]; track f) { <span class="fotos__vacia"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span> }
-          </div>
-          <p class="tenue">Las fotos de recepción aparecerán aquí cuando el taller las suba.</p>
+          <app-fotos-orden [fotos]="orden()?.fotos ?? []" [tamano]="64" vacio="No se tomaron fotos al recibir tu equipo." />
           <p class="enlace-tenue">Siguiente paso: diagnóstico técnico</p>
         </section>
       }

@@ -30,7 +30,7 @@
     @case ('fotos') {
       <h3 class="titulo-t"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos</h3>
       <p class="tenue-t">Recepción (caja)</p>
-      <app-fotos [cantidad]="4" [tamano]="88" />
+      <app-fotos-orden [fotos]="orden().fotos ?? []" [tamano]="88" vacio="Caja no tomó fotos al recibirlo." />
       <p class="tenue-t">De la reparación</p>
       <app-fotos [cantidad]="fotos()" [tamano]="88" agregar="Agregar" (agregada)="fotos.set(fotos() + 1)" />
     }

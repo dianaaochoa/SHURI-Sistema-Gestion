@@ -5,6 +5,7 @@ import { Concepto, Orden } from '../../../cajera/ordenes/ordenes.service';
 import { ConfiguracionTallerService } from '../../../jefe/configuracion/configuracion.service';
 import { BuscarPiezaComponent } from '../buscar-pieza/buscar-pieza.component';
 import { FichaEquipoComponent } from '../ficha-equipo/ficha-equipo.component';
+import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 import { FotosComponent } from '../fotos/fotos.component';
 
 export interface DiagnosticoEnviado {
@@ -35,7 +36,7 @@ interface Pieza {
 @Component({
   selector: 'app-diagnostico-panel',
   standalone: true,
-  imports: [FichaEquipoComponent, FotosComponent, BuscarPiezaComponent],
+  imports: [FichaEquipoComponent, FotosComponent, FotosOrdenComponent, BuscarPiezaComponent],
   templateUrl: './diagnostico-panel.component.html',
   styleUrls: ['../banco-comun.css', './diagnostico-panel.component.css'],
 })

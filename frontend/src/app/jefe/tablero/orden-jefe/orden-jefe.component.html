@@ -53,11 +53,7 @@
         <div class="fotos__grupos">
           <div>
             <h3>Recepción</h3>
-            <div class="fotos__lista">
-              @for (n of [1, 2, 3]; track n) {
-                <span class="foto" role="img" [attr.aria-label]="'Foto de recepción ' + n"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
-              }
-            </div>
+            <app-fotos-orden [fotos]="orden().fotos ?? []" [tamano]="56" vacio="Caja no tomó fotos." />
           </div>
           <div>
             <h3>Del técnico</h3>

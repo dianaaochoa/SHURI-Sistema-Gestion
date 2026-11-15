@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { CorreosService } from '../../compartido/correos.service';
 import type { CORREOS } from '../../compartido/correos';
+import type { FotoOrden } from '../../compartido/fotos-orden/fotos-orden.component';
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { redondear } from '../punto-de-venta/venta.service';
 
@@ -110,6 +111,8 @@ export interface Orden {
   garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string; reporte?: ReporteGarantia; decision?: DecisionGarantia };
   /** Lo que se capturó en la recepción (C5.1); lo usan la orden impresa y sus comprobantes (C11). */
   ficha?: FichaRecepcion;
+  /** Fotos del equipo al recibirlo (C5.1 / C4); las ven el técnico, el jefe y el cliente (P2.1). */
+  fotos?: FotoOrden[];
   /** Lo define el jefe al asignar (J2.2); sin valor = normal. */
   prioridad?: Prioridad;
   /** ISO: fecha prometida al cliente (J2.2). */
@@ -198,6 +201,8 @@ export interface NuevaOrden {
   anticipo: number;
   metodoAnticipo: string;
   pin?: string;
+  /** Fotos ya reducidas (C5.1). */
+  fotos?: { url: string; nombre: string }[];
 }
 
 export const TECNICOS: Tecnico[] = [
@@ -850,7 +855,8 @@ export class OrdenesService {
       anticipo: datos.anticipo,
       metodoAnticipo: datos.anticipo > 0 ? datos.metodoAnticipo.toLowerCase() : undefined,
       ficha: { tipo: datos.tipo, marca: datos.marca, modelo: datos.modelo, color: datos.color, condicion: datos.condicion.trim(), recibio: cajera, contrasena, pin: datos.pin?.trim() || undefined },
-      historial,
+      fotos: datos.fotos?.length ? datos.fotos.slice(0, 6).map((f, i) => ({ ...f, id: `${this.siguienteFolio()}-${i}`, fecha: ahora, por: cajera })) : undefined,
+      historial: datos.fotos?.length ? [...historial, { fecha: ahora, texto: `${datos.fotos.length === 1 ? '1 foto' : `${Math.min(6, datos.fotos.length)} fotos`} del equipo al recibirlo` }] : historial,
       contactos: datos.cliente.correo ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
     };
     this.ordenes.update((lista) => [orden, ...lista]);
@@ -921,6 +927,23 @@ export class OrdenesService {
         historial: [...o.historial, { fecha: ahora, texto: acepta ? `Costo extra de $${(d.costo ?? 0).toFixed(2)} aceptado en el portal` : 'Costo extra rechazado en el portal: se devuelve sin reparar' }],
       };
     });
+  }
+
+  /** C4 · Más fotos de recepción después de registrar la orden (máximo 6). */
+  agregarFotos(folio: string, fotos: { url: string; nombre: string }[], por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const nuevas = fotos.slice(0, Math.max(0, 6 - (o.fotos?.length ?? 0))).map((f, i) => ({ ...f, id: `${o.folio}-${Date.now()}-${i}`, fecha: ahora, por }));
+      if (!nuevas.length) return o;
+      return { ...o, fotos: [...(o.fotos ?? []), ...nuevas], historial: [...o.historial, { fecha: ahora, texto: `${nuevas.length === 1 ? 'Foto de recepción agregada' : `${nuevas.length} fotos de recepción agregadas`} por ${por}` }] };
+    });
+  }
+
+  quitarFoto(folio: string, id: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) =>
+      o.fotos?.some((f) => f.id === id) ? { ...o, fotos: o.fotos.filter((f) => f.id !== id), historial: [...o.historial, { fecha: ahora, texto: `Foto de recepción quitada por ${por}` }] } : o,
+    );
   }
 
   /** C4.7 */

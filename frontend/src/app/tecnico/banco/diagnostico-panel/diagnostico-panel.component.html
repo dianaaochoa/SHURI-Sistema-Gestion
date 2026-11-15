@@ -4,9 +4,9 @@
   <section class="tarjeta-banco">
     <div class="fila-titulo">
       <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos de recepción (caja)</h3>
-      <span class="enlace-banco"><span class="icono" style="--icono: url(assets/cajera/chev-r.svg)"></span>Ver todas (6)</span>
+      <span class="enlace-banco">{{ orden().fotos?.length ?? 0 }} {{ orden().fotos?.length === 1 ? 'foto' : 'fotos' }}</span>
     </div>
-    <app-fotos [cantidad]="4" [tamano]="56" />
+    <app-fotos-orden [fotos]="orden().fotos ?? []" [tamano]="56" vacio="Caja no tomó fotos al recibirlo." />
   </section>
 
   <section class="tarjeta-banco diagnostico">

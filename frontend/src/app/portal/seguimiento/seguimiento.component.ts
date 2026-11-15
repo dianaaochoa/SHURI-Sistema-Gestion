@@ -11,6 +11,7 @@ import { InformacionModalComponent } from '../compartido/informacion-modal.compo
 import { GarantiaPortalComponent } from '../garantia/garantia-portal.component';
 import { SolicitarGarantiaComponent } from '../garantia/solicitar-garantia.component';
 import { AvisoChatComponent } from '../chat/aviso-chat.component';
+import { FotosOrdenComponent } from '../../compartido/fotos-orden/fotos-orden.component';
 import { PortalService } from '../portal.service';
 
 type Variante = 'garantia' | 'recibido' | 'revision' | 'dato' | 'presupuesto' | 'rechazado' | 'sin-reparacion' | 'taller' | 'adicional' | 'listo' | 'entregado';
@@ -47,7 +48,8 @@ function varianteDe(o: Orden): Variante {
       return 'presupuesto';
     case 'por-cotizar':
       if (esperaCliente) return 'dato';
-      return o.diagnostico || o.historial.length > 1 ? 'revision' : 'recibido';
+      // El anticipo y las fotos se registran al recibirlo: no cuentan como avance de la revisión.
+      return o.diagnostico || o.historial.some((e) => !/^recibido|^anticipo|foto/i.test(e.texto)) ? 'revision' : 'recibido';
     default:
       return esperaCliente ? 'dato' : 'taller';
   }
@@ -71,7 +73,7 @@ const VARIANTES: Record<Variante, { badge: string; tono: string; titulo: string;
 @Component({
   selector: 'app-seguimiento',
   standalone: true,
-  imports: [RouterLink, InformacionModalComponent, GarantiaPortalComponent, SolicitarGarantiaComponent, AvisoChatComponent],
+  imports: [RouterLink, InformacionModalComponent, GarantiaPortalComponent, SolicitarGarantiaComponent, AvisoChatComponent, FotosOrdenComponent],
   templateUrl: './seguimiento.component.html',
   styleUrls: ['../portal.css', './seguimiento.component.css', './tarjetas.css'],
 })

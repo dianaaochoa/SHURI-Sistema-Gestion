@@ -5,8 +5,6 @@
 .tarjeta--advertencia { border-color: var(--color-advertencia-borde); background: var(--color-advertencia-suave); color: var(--color-advertencia); }
 .tarjeta--advertencia .tarjeta__titulo, .tarjeta--advertencia .tarjeta__titulo .icono { color: var(--color-advertencia); }
 .tarjeta .boton { justify-content: center; }
-.fotos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.fotos__vacia { display: grid; aspect-ratio: 1; place-items: center; border-radius: 8px; background: var(--color-fondo-tenue); }
 .enlace-tenue { font-size: 12px; font-weight: 600; color: var(--color-primario); }
 .dato { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--color-texto-tenue); }
 .dato strong { color: var(--color-marino); }

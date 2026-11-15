@@ -5,6 +5,7 @@ import { Cliente, textoDireccion } from '../../punto-de-venta/clientes.datos';
 import { ClientesService } from '../../clientes/clientes.service';
 import { NuevoClienteComponent } from '../nuevo-cliente/nuevo-cliente.component';
 import { NuevaOrden } from '../ordenes.service';
+import { FotoOrden, FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 
 const TIPOS = ['Teléfono celular', 'Tablet', 'Laptop', 'Smartwatch', 'Consola', 'Audífonos'];
 const MARCAS = ['Samsung', 'Apple', 'Motorola', 'Xiaomi', 'Huawei', 'Oppo', 'Honor', 'Realme', 'Lenovo', 'HP', 'Nintendo', 'Sony'];
@@ -42,7 +43,7 @@ export interface OrdenCapturada {
 @Component({
   selector: 'app-nueva-orden',
   standalone: true,
-  imports: [FormsModule, NuevoClienteComponent],
+  imports: [FormsModule, NuevoClienteComponent, FotosOrdenComponent],
   templateUrl: './nueva-orden.component.html',
   styleUrl: './nueva-orden.component.css',
 })
@@ -80,6 +81,9 @@ export class NuevaOrdenComponent implements AfterViewInit {
   protected accesorios = '';
   protected falla = '';
   protected condicion = '';
+  /** Fotos del equipo al recibirlo (ya reducidas). */
+  protected readonly fotos = signal<{ url: string; nombre: string }[]>([]);
+  protected readonly fotosVista = computed<FotoOrden[]>(() => this.fotos().map((f, i) => ({ ...f, id: String(i), fecha: new Date().toISOString(), por: 'Recepción' })));
   protected modelosDe(marca: string): string[] {
     return MODELOS[marca] ?? [];
   }
@@ -162,6 +166,10 @@ export class NuevaOrdenComponent implements AfterViewInit {
     return limpio ? Number(limpio) : null;
   }
 
+  protected quitarFoto(id: string): void {
+    this.fotos.update((l) => l.filter((_, i) => String(i) !== id));
+  }
+
   protected guardar(): void {
     this.intentado.set(true);
     if (Object.values(this.errores()).some(Boolean)) {
@@ -185,6 +193,7 @@ export class NuevaOrdenComponent implements AfterViewInit {
         anticipo: this.anticipo ?? 0,
         metodoAnticipo: this.metodo,
         pin: this.pin,
+        fotos: this.fotos(),
       },
     });
   }
@@ -193,6 +202,8 @@ export class NuevaOrdenComponent implements AfterViewInit {
   protected alPresionarTecla(evento: KeyboardEvent): void {
     // Con el modal de cliente encima, las teclas son suyas.
     if (this.modalCliente()) return;
+    // Con una foto abierta en grande, Escape solo cierra la foto.
+    if (document.querySelector('app-fotos-orden .visor')) return;
     if (evento.key === 'Escape') this.cerrar.emit();
   }
 }

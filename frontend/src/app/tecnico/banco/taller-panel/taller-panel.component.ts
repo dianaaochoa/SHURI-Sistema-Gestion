@@ -7,6 +7,7 @@ import { BancoService, pasosDe } from '../../banco.service';
 import { diaCorto } from '../../mi-trabajo';
 import { BuscarPiezaComponent } from '../buscar-pieza/buscar-pieza.component';
 import { FichaEquipoComponent } from '../ficha-equipo/ficha-equipo.component';
+import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 import { FotosComponent } from '../fotos/fotos.component';
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -22,7 +23,7 @@ const PIEZA: Record<string, { texto: string; tono: string }> = {
 @Component({
   selector: 'app-taller-panel',
   standalone: true,
-  imports: [FichaEquipoComponent, FotosComponent, BuscarPiezaComponent],
+  imports: [FichaEquipoComponent, FotosComponent, FotosOrdenComponent, BuscarPiezaComponent],
   templateUrl: './taller-panel.component.html',
   styleUrls: ['../banco-comun.css', './taller-panel.component.css'],
 })

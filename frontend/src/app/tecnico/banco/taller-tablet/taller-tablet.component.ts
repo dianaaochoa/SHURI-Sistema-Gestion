@@ -6,6 +6,7 @@ import { RefaccionesService } from '../../../jefe/refacciones/refacciones.servic
 import { BancoService, pasosDe } from '../../banco.service';
 import { BuscarPiezaComponent } from '../buscar-pieza/buscar-pieza.component';
 import { FichaEquipoComponent } from '../ficha-equipo/ficha-equipo.component';
+import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 import { FotosComponent } from '../fotos/fotos.component';
 
 type Pestana = 'trabajo' | 'refacciones' | 'fotos' | 'notas' | 'equipo';
@@ -30,7 +31,7 @@ const PIEZA: Record<string, { texto: string; tono: string }> = {
 @Component({
   selector: 'app-taller-tablet',
   standalone: true,
-  imports: [FichaEquipoComponent, FotosComponent, BuscarPiezaComponent],
+  imports: [FichaEquipoComponent, FotosComponent, FotosOrdenComponent, BuscarPiezaComponent],
   templateUrl: './taller-tablet.component.html',
   styleUrl: './taller-tablet.component.css',
 })

@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 15 nov 2026 (portal del cliente P6: correos; todas las pantallas de Figma quedaron hechas)
+- **Última actualización:** 15 nov 2026 (fotos del equipo al recibirlo: caja las toma y las ven jefe, técnico y cliente)
 
 ---
 
@@ -55,7 +55,7 @@ flowchart LR
     C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::hecho
     C3["C3 Ventas<br/>C3.1 historial · C3.2 sin resultados · C3.3 devolución"]:::hecho
     C4["C4 Órdenes de servicio<br/>C4.1–C4.9"]:::hecho
-    C5["C5 Nueva orden<br/>C5.1 recepción · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
+    C5["C5 Nueva orden<br/>C5.1 recepción (+ fotos del equipo) · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
     C6["C6 Entrega de equipo<br/>C6.1 normal · C6.2 sin reparar · C6.3 garantía · C6.4 otra persona"]:::hecho
     C7["C7 Inventario<br/>C7.1 alta · C7.2 Excel · C7.3 entrada · C7.4 ajuste<br/>C7.5 pedido del jefe · C7.6 pago · C7.7 historial"]:::hecho
     C8["C8 Clientes<br/>C8.1 lista y ficha · C8.2 nuevo cliente<br/>C8.3 historial · C8.4 contraseña temporal"]:::hecho
@@ -364,6 +364,7 @@ flowchart LR
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
   ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET y CLAUSULAS_RECEPCION"]:::serv
+  FTO["compartido/fotos-orden<br/>FotosOrden: miniaturas, agregar,<br/>quitar y visor (fotos de recepción)"]:::comp
   CFA["ConfiguracionAdmin AD9<br/>7 pestañas: Negocio · Cajas · Documentos<br/>Taller · Facturación · Mensajes · Correo"]:::comp
   CFS["ConfiguracionService<br/>borrador que se guarda junto"]:::serv
   GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
@@ -446,6 +447,7 @@ flowchart LR
   PTS --> PSE & CLSV & OS
   CRS["compartido/correos.service.ts<br/>bandeja de correos enviados<br/>+ correos.ts (plantillas, bajo demanda)"]:::serv
   OS & CLSV & MS --> CRS
+  NO & DO & OJ & PTA & BPN & BMD & TTB --> FTO
   CFA --> CRS
   PTA --> ADO & FCS & MS
   TK & OC --> ADO
@@ -619,6 +621,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 **Nueva orden (`/cajera/nueva-orden`, o “Nueva orden” en Órdenes):**
 - Es un modal sobre la lista de órdenes. Busca al cliente con Enter: `55 1234 5678` encuentra a María Hernández (con domicilio); un teléfono que no existe (`55 9876 5432`) abre “Nuevo cliente” con el teléfono ya puesto.
 - Al registrar, la orden queda “Por cotizar” sin técnico (lo asigna el jefe de taller) y se ve la confirmación C5.3. “Ver en Órdenes” abre la lista con esa orden seleccionada (`?folio=1044`).
+- “Fotos del equipo (opcional)”: “Tomar foto” abre la cámara en celular o tablet y el explorador en la computadora (hasta 6, JPG, PNG o HEIC de hasta 15 MB). Tocar una foto la abre en grande (flechas para pasar, Escape cierra). En Órdenes, el detalle deja agregar o quitar fotos mientras la orden siga en el taller; el jefe (tablero), el técnico (banco) y el cliente (portal, “Recibimos tu equipo”) las ven sin poder cambiarlas.
 
 **Entrega de equipo (`/cajera/entrega-de-equipo`, o “Entregar equipo” en Órdenes):**
 - Las tarjetas de arriba son lo que se puede entregar: #1026 y #1021 listas (C6.1/C6.4), #0991 garantía lista (C6.3), #1037 sin reparar (C6.2), vencidas y en bodega.
@@ -792,7 +795,8 @@ frontend/src/
     ├── app.routes.ts          # rutas + guardas; PANTALLAS = las ya construidas
     ├── compartido/
     │   ├── formato.ts         # dinero, fechas, horas, duración, saludo
-    │   └── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
+    │   ├── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
+    │   └── fotos-orden/       # fotos del equipo al recibirlo: miniaturas, agregar, quitar y visor
     ├── jefe/                  # 04 · Jefe de técnicos
     │   ├── jefe.datos.ts      # preguntas de los técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
@@ -1197,10 +1201,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Fotos del equipo al recibirlo | Caja las toma en Nueva orden (C5.1) y en el detalle de Órdenes (C4); `FotosOrdenComponent` las muestra en el tablero del jefe (J2.3), el banco del técnico (T3/T7) y el seguimiento del cliente (P2.1). Se reducen a 1280 px en JPEG (≈ 100–300 kB), máximo 6 por orden, y cada alta o baja queda en el historial con el nombre de la cajera | **No está en Figma C5**: los cuadros de fotos de J2.3, T3 y P2.1 no tenían de dónde salir. Sirve de evidencia del estado en que llegó el equipo (rayones, golpes). Viven en memoria como data URL hasta que la API las guarde. Ya no se pueden cambiar al entregar la orden. |
 | Chat del portal (P5) | Usa `MensajesService` de J11: `escribirCliente` abre la conversación si no existía y `marcarLeidos` marca lo del jefe al abrir el chat | El mensaje del cliente dice “Leído” cuando el jefe ya contestó después. Las fotos del cliente se avisan con su nombre (la API las guardará). El nombre del jefe sale de `NEGOCIO.encargado`. |
 | Autofactura (P4.2) | Timbra con `FacturacionService` (“Pidió: Autofactura”) y guarda los datos fiscales en el cliente; respeta el interruptor de AD9 (`EMISOR_FISCAL.autofactura`) | Folio y total juntos funcionan como comprobante: sin sesión nadie factura una compra ajena sin conocer su total. El aviso de privacidad ahora va por secciones (“1. Título” y su texto) para mostrarse numerado. |
 | Garantía en el portal (P3) | `OrdenesService.solicitarGarantiaPortal` pone la orden en garantía sin `recibio` (así J4 ya la marca “desde el portal”); `responderGarantia` guarda la respuesta del cliente en el dictamen y, si rechaza, la deja lista para devolver | El costo extra aceptado se suma a lo que caja cobra al entregar (`saldo`). En J4 la recomendación dice “Con costo · aceptado / rechazado”. De las fotos solo se guarda cuántas son (las recibirá la API). |
-| Seguimiento (P2) | Una sola pantalla que elige su variante con el estado de la orden; `OrdenesService.registrarRespuesta` acepta `desdePortal` para dejar “en el portal” en el historial | El cliente solo ve textos para él: el diagnóstico del técnico y las notas internas no se muestran hasta que hay presupuesto. No hay fotos por orden todavía, así que no se muestran fotos de evidencia (los cuadros de recepción avisan que aparecerán). “Solicitar garantía” y “Responder” llaman al taller hasta P3 y P5; “Solicitar factura” explica la autofactura. |
+| Seguimiento (P2) | Una sola pantalla que elige su variante con el estado de la orden; `OrdenesService.registrarRespuesta` acepta `desdePortal` para dejar “en el portal” en el historial | El cliente solo ve textos para él: el diagnóstico del técnico y las notas internas no se muestran hasta que hay presupuesto. Las fotos de recepción salen de caja (C5); las evidencias del técnico todavía no se muestran. El anticipo y las fotos no cuentan como avance: la orden sigue en “Recibimos tu equipo” hasta que empieza la revisión. “Solicitar garantía” y “Responder” llaman al taller hasta P3 y P5; “Solicitar factura” explica la autofactura. |
 | Portal del cliente (P1) | `PortalService` usa los clientes y órdenes que ya maneja caja (`ClientesService`, `OrdenesService`); la sesión vive en `PortalSesion` (sessionStorage `shuri.portal`) | En pantallas grandes se ve la misma columna de celular centrada (máx. 440 px). Los equipos muestran 6 pasos; el ámbar marca el paso que espera la respuesta del cliente. El aviso de privacidad y las cláusulas salen de Configuración (AD9) vía `compartido/ajustes-documentos.ts`. “Contactar” llama al taller hasta que exista el chat (P5). |
 | Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
@@ -1219,7 +1224,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Correos (P6): el envío real y los interruptores de “Correo” por mensaje de AD9.6 los aplicará la API; hoy se arma el correo cada vez que el cliente tiene correo.
 - [ ] Chat (P5): el aviso de respuesta solo aparece con el portal abierto (notificaciones push y correo le tocan a la API); el horario está fijo en el código.
 - [ ] Autofactura: el envío por correo de la factura y la validación del RFC contra el SAT le tocan a la API.
-- [ ] Seguimiento (P2): fotos de recepción y evidencias del técnico (falta guardarlas por orden); las calificaciones viven en memoria y todavía no las ve el administrador.
+- [ ] Seguimiento (P2): las evidencias del técnico todavía no se guardan por orden (las de recepción ya sí); las calificaciones viven en memoria y todavía no las ve el administrador.
+- [ ] Fotos de recepción: viven en memoria como data URL (se pierden al recargar); la API debe subirlas a un almacenamiento y dar su URL. El cliente solo las ve mientras la orden está “Recibida”.
 - [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Bitácora: el almacenaje perdonado (J8) y los dictámenes de garantía (J4) solo salen en los datos de prueba; falta registrarlos cuando el jefe los hace.
@@ -1229,7 +1235,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
-- [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos son espacios vacíos; los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
+- [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos que toma el técnico son espacios vacíos (las de recepción ya son reales); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
 - [ ] El paquete inicial pasó 17 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
@@ -1238,7 +1244,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
 - [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5).
-- [ ] Tablero: fotos reales y tiempo trabajado sin pausas (llegan con el técnico, T). La prioridad y las asignaciones viven en memoria.
+- [ ] Tablero: fotos del técnico y tiempo trabajado sin pausas (llegan con el técnico, T). La prioridad y las asignaciones viven en memoria.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
 - [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
@@ -1854,3 +1860,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - las 5 plantillas con los textos de Figma (K7M-4Q2, $1,508.00, $1,208.00, Ricardo · Galaxy A12, respuesta de Jorge)
   - contraseña temporal de María, #1024 lista, presupuesto de #1043 y respuesta del chat → 4 correos en la bandeja con su asunto y destinatario; Ricardo Gil no tiene correo y no se le manda; recordatorio de Laura → “pasará a bodega en 27 días”
   - el HTML descargado enlaza a `shuri.mx/portal/chat/1024`; a 360 px sin desplazamiento; sin peticiones fallidas
+
+### 15 nov 2026 · Fotos del equipo al recibirlo
+- La cajera no tenía dónde subir fotos del equipo que recibe (Figma C5.1 no trae el campo), aunque el jefe, el técnico y el portal sí tenían cuadros de fotos vacíos.
+- `FotosOrdenComponent` nuevo en `compartido/fotos-orden/` (miniaturas, agregar con cámara o archivo, quitar y visor) y `reducirImagen` (1280 px, JPEG 0.8). `OrdenesService`: `Orden.fotos`, `crear` las guarda y `agregarFotos` / `quitarFoto` dejan el historial.
+- Nueva orden (C5.1) y el detalle de Órdenes (C4) las agregan; tablero del jefe (J2.3), banco del técnico (diagnóstico, taller y tablet) y seguimiento del cliente (P2.1) las muestran. En el banco, “Ver todas (6)” pasó a contar las fotos reales.
+- Corrección: en el portal, una orden con anticipo se brincaba “Recibimos tu equipo” porque contaba cualquier evento del historial; ahora el anticipo y las fotos no cuentan.
+- Verificado:
+  - Nueva orden de María (Moto G54, anticipo $300): 2 fotos reducidas a ≈ 16 kB; un .txt se rechaza con “Solo se agregan fotos (JPG, PNG o HEIC de hasta 15 MB), máximo 6.”; el visor dice “1 de 2 · Recepción · 15 nov · 10:02” y Escape cierra solo la foto
+  - #1044 en Órdenes: 2 fotos; agregar una deja 3 y “Foto de recepción agregada por Ana Martínez”; quitar una deja 2 y “Foto de recepción quitada por Ana Martínez”
+  - portal de María, #1044: “Recibimos tu equipo” con las 2 fotos; el visor dice “2 de 2 · Ana Martínez · 15 nov · 10:06”; a 360 px sin desplazamiento; sin errores en consola
+  - jefe (Jorge López) asigna #1044 a Mariana Vega: el detalle muestra “Recepción” con las 2 fotos y “Del técnico · Aún no sube fotos”; en el banco de Mariana, #1044 dice “Fotos de recepción (caja) · 2 fotos”; sin errores en consola

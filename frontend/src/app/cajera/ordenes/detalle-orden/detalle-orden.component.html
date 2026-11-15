@@ -88,6 +88,11 @@
     }
   }
 
+  <div class="fotos-equipo">
+    <p class="historial__titulo">Fotos del equipo</p>
+    <app-fotos-orden [fotos]="o.fotos ?? []" [editable]="fotosEditables()" [tamano]="56" vacio="Sin fotos de recepción." (agregadas)="agregarFotos($event)" (quitada)="quitarFoto($event)" />
+  </div>
+
   <div class="historial">
     <p class="historial__titulo">{{ o.estado === 'bodega' ? 'Intentos de contacto' : 'Historial' }}</p>
     @for (evento of o.estado === 'bodega' ? o.contactos : o.historial; track $index) {
