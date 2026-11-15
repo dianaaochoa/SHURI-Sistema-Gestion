@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 15 nov 2026 (fotos del equipo al recibirlo: caja las toma y las ven jefe, técnico y cliente)
+- **Última actualización:** 15 nov 2026 (limpieza de pendientes: se quitaron los que ya estaban hechos)
 
 ---
 
@@ -1218,7 +1218,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
-- [ ] Versión T7 tablet (técnico).
 - [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
 - [x] Todas las pantallas de Figma: cajera (C1–C11 y C1.6), jefe de técnicos (J1–J11), técnico (T1–T7), administrador (AD1–AD9) y portal del cliente (P1–P6).
 - [ ] Correos (P6): el envío real y los interruptores de “Correo” por mensaje de AD9.6 los aplicará la API; hoy se arma el correo cada vez que el cliente tiene correo.
@@ -1230,19 +1229,18 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Bitácora: el almacenaje perdonado (J8) y los dictámenes de garantía (J4) solo salen en los datos de prueba; falta registrarlos cuando el jefe los hace.
 - [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
-- [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); la autofactura del portal (P) todavía no existe; las cancelaciones aún no aparecen en la bitácora (AD8).
+- [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); las cancelaciones aún no aparecen en la bitácora (AD8).
 - [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja, y los pagos no entran a la bitácora (AD8).
 - [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos que toma el técnico son espacios vacíos (las de recepción ya son reales); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
 - [ ] El paquete inicial pasó 17 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
-- [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
+- [ ] Mensajes (J11 y chat P5): las conversaciones viven en memoria; falta guardarlas en la API.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
-- [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5).
 - [ ] Tablero: fotos del técnico y tiempo trabajado sin pausas (llegan con el técnico, T). La prioridad y las asignaciones viven en memoria.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
@@ -1254,9 +1252,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Algunos clientes de prueba tienen un teléfono en Punto de venta y otro en Órdenes (Laura Medina, Raúl Ortiz, Andrés Vega, Pedro Núñez): se unen por nombre. La API debe tener un solo registro con un id.
 - [ ] Editar un cliente no cambia los datos ya guardados en sus órdenes.
 - [ ] El cobro de la entrega entra a la caja (corte C10) pero no al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
-- [ ] “Entregar equipo” abre C6 con `?folio=`; C6 debe leerlo y marcar la orden como terminada al cobrar el saldo.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
-- [ ] “Crear cliente nuevo” (C2.5) debe abrir el alta de cliente con el nombre buscado cuando exista C9.
+- [ ] “Crear cliente nuevo” (C2.5) lleva a Clientes (C8), pero no abre el alta con el nombre buscado.
 - [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
 - [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
 - [ ] Los montos del cobro (efectivo, mixto) se ven como 500 en vez de $500.00 mientras se escriben.
@@ -1871,3 +1868,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - #1044 en Órdenes: 2 fotos; agregar una deja 3 y “Foto de recepción agregada por Ana Martínez”; quitar una deja 2 y “Foto de recepción quitada por Ana Martínez”
   - portal de María, #1044: “Recibimos tu equipo” con las 2 fotos; el visor dice “2 de 2 · Ana Martínez · 15 nov · 10:06”; a 360 px sin desplazamiento; sin errores en consola
   - jefe (Jorge López) asigna #1044 a Mariana Vega: el detalle muestra “Recepción” con las 2 fotos y “Del técnico · Aún no sube fotos”; en el banco de Mariana, #1044 dice “Fotos de recepción (caja) · 2 fotos”; sin errores en consola
+
+### 15 nov 2026 · Limpieza de pendientes
+- Se revisaron los pendientes contra el código y se quitaron los que ya estaban hechos: versión tablet del técnico (T7), autofactura del portal (P4), respuesta y cobro de la garantía con costo (P3 y `saldo`) y Entrega de equipo con `?folio=` (C6).
+- Se dejó solo lo que falta en dos: los mensajes (el chat P5 ya los manda; falta guardarlos en la API) y “Crear cliente nuevo” (C2.5: lleva a Clientes, C8, sin el nombre buscado).
