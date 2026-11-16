@@ -26,7 +26,9 @@ export function formatearTelefono(texto: string): string {
           <div>
             <h2 class="modal__titulo" id="titulo-cliente">{{ inicial() ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
             <p class="modal__subtitulo">
-              @if (desdeClientes() && inicial()) {
+              @if (desdeVenta()) {
+                {{ busqueda() ? 'No encontramos “' + busqueda() + '”. ' : '' }}Al guardar queda como cliente de esta venta y en Clientes.
+              } @else if (desdeClientes() && inicial()) {
                 Los cambios se ven en Punto de venta y en Nueva orden.
               } @else if (desdeClientes()) {
                 El mismo registro que se usa en Recepción de taller.
@@ -181,6 +183,8 @@ export class NuevoClienteComponent implements OnInit, AfterViewInit {
   readonly busqueda = input('');
   /** Abierto desde C8 Clientes (cambia el texto bajo el título). */
   readonly desdeClientes = input(false);
+  /** Se abrió desde “Crear cliente nuevo” del punto de venta (C2.5). */
+  readonly desdeVenta = input(false);
   readonly cerrar = output<void>();
   readonly guardado = output<Cliente>();
 

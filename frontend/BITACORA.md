@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 15 nov 2026 (bloqueo de pantalla tras 30 min sin uso)
+- **Última actualización:** 15 nov 2026 (“Crear cliente nuevo” en caja abre el alta con lo buscado y lo deja en la venta)
 
 ---
 
@@ -377,6 +377,7 @@ flowchart LR
   RUT --> SL --> ML --> MU & PN
   SL --> NM & PN
   SL --> BLQ --> AUTH
+  SC --> NC & CLSV
   NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
@@ -602,7 +603,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
   - F12 o Enter: cobrar
   - Esc: cancelar la venta (dentro de un modal, solo lo cierra)
   - En los resultados y en la lista de clientes, ↑/↓ y Enter para elegir
-- Clientes de prueba en `cajera/punto-de-venta/clientes.datos.ts` (María Hernández, Martha Treviño, Raúl Ortiz…). Se buscan por nombre, teléfono o correo.
+- Cliente (F4) busca en el registro de Clientes (C8): los de prueba (María Hernández, Martha Treviño, Raúl Ortiz…), los de las órdenes y los que se dan de alta. Se buscan por nombre, teléfono o correo. Si no aparece, “Crear cliente nuevo” abre el alta ahí mismo con lo buscado (nombre, teléfono o correo); Esc regresa a la lista y al guardar queda como cliente de la venta y en Clientes.
 - Con esa venta, un descuento del 10 % a toda la venta da $697.50. Arriba de 10 % el modal marca el error y no deja aplicar.
 - Al cobrar, “Monto recibido” (efectivo y transferencia) y los montos del pago mixto muestran el número tal cual mientras se escribe (`1000`) y como dinero fuera del campo (`$1,000.00`), también con “Exacto” y los montos rápidos. Igual el anticipo de Nueva orden.
 - Al entrar hay 2 ventas en espera de prueba (V-00864 y V-00863). Retomar una con el ticket lleno pausa primero la venta actual.
@@ -1077,7 +1078,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Tope de descuento | 10 % por línea y por venta (`DESCUENTO_MAXIMO`). El campo de la tabla no deja pasar de 10; el modal muestra “El máximo permitido es 10 %.” y deshabilita Aplicar. | Es la regla que muestra C2.6. Falta definir si un supervisor puede autorizar más. |
 | Descuento en $ | Se escribe sobre el total con IVA y se guarda sin IVA, igual que el producto temporal | La cajera ve y cobra totales con IVA; el ticket muestra precios antes de IVA. |
 | Motivo del descuento | Lista: Cliente frecuente, Producto con detalle, Promoción vigente, Ajuste de precio, Otro. Solo se pide para toda la venta. | Figma muestra el campo pero no las opciones. |
-| Lista de clientes (C2.5) | “Público general” siempre va primero; “Crear cliente nuevo” lleva a `/cajera/clientes` | Figma no define qué abre ese botón; el alta de clientes es C9. |
+| Lista de clientes (C2.5) | “Público general” siempre va primero. Busca en `ClientesService` (antes en la lista fija de `clientes.datos.ts`). “Crear cliente nuevo” abre `NuevoClienteComponent` (C8.2) en el mismo modal con lo buscado; al guardar entra a Clientes y queda como cliente de la venta | Figma no define qué abre ese botón. Antes llevaba a Clientes y se perdía lo buscado, y quien se daba de alta allá no salía en caja. |
 | Totales de las ventas en espera | Se calculan con sus productos ($522.00 y $464.00) | Los $479 y $400 de Figma no salen de los artículos que lista. |
 | Retomar con el ticket lleno | La venta actual se pausa sola y el subtítulo del modal lo avisa | Figma no define qué pasa con la venta en curso. |
 | Esc dentro de un modal | Solo cierra el modal | Antes el mismo Esc llegaba al punto de venta y abría “¿Cancelar la venta?”. |
@@ -1266,7 +1267,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Editar un cliente no cambia los datos ya guardados en sus órdenes.
 - [ ] El cobro de la entrega entra a la caja (corte C10) pero no al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
-- [ ] “Crear cliente nuevo” (C2.5) lleva a Clientes (C8), pero no abre el alta con el nombre buscado.
 - [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
 - [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
 - [ ] Las ventas cobradas, cancelaciones y devoluciones viven en memoria (`HistorialVentasService`): se pierden al recargar. Deben ir a la API.
@@ -1915,3 +1915,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - al recargar sigue bloqueada; con la contraseña correcta se quita y la venta a medias (cable USB-C) sigue en el ticket
   - a 360 px la tarjeta cabe sin desplazamiento; “Entrar con otro usuario” lleva a iniciar sesión y borra sesión, último uso y bloqueo
   - `ng build` sin errores (paquete inicial 524 kB, +6 kB); sin errores en consola
+
+### 15 nov 2026 · “Crear cliente nuevo” desde caja
+- Pendiente de solo frontend: “Crear cliente nuevo” (C2.5) llevaba a Clientes sin lo buscado. Ahora `SeleccionarCliente` abre `NuevoCliente` ahí mismo (`desdeVenta`, con su propio texto) y al guardar llama a `ClientesService.guardar` y lo pone en la venta.
+- Además el selector busca en `ClientesService` en lugar de la lista fija: los clientes dados de alta en C8 o en Nueva orden ya aparecen en caja.
+- Verificado como Ana Martínez (turno abierto):
+  - F4 · “Sofía Ramírez” → “No hay clientes que coincidan”; “Crear cliente nuevo” abre el alta con el nombre lleno, el cursor en Teléfono y “No encontramos “Sofía Ramírez”. Al guardar queda como cliente de esta venta y en Clientes.”
+  - Esc regresa a la lista con “Sofía Ramírez” en el buscador
+  - con teléfono 87 1123 4567 y correo de prueba, “Guardar cliente” cierra todo y el botón de cliente dice “Sofía Ramírez”
+  - F4 · “871 123” la encuentra; en Clientes aparece “Sofía Ramírez · 87 1123 4567 · Sin equipos”
+  - `ng build` sin errores; sin errores en consola
