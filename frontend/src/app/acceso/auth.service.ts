@@ -65,6 +65,9 @@ interface Registro extends CuentaUsuario {
 }
 
 const CLAVE_SESION = 'shuri.sesion';
+/** Último uso de la app (ms) y pantalla bloqueada por inactividad; compartidos entre pestañas. */
+export const CLAVE_ACTIVIDAD = 'shuri.actividad';
+export const CLAVE_BLOQUEO = 'shuri.bloqueada';
 const INTENTOS_PERMITIDOS = 3;
 
 const haceDias = (hora: string, dias = 0) => {
@@ -216,6 +219,15 @@ export class AuthService {
     this.sesionActual.set(null);
     localStorage.removeItem(CLAVE_SESION);
     sessionStorage.removeItem(CLAVE_SESION);
+    localStorage.removeItem(CLAVE_ACTIVIDAD);
+    localStorage.removeItem(CLAVE_BLOQUEO);
+  }
+
+  /** Pantalla bloqueada tras 30 min sin uso: la misma persona escribe su contraseña (cuenta como intento de acceso). */
+  desbloquear(contrasena: string): Observable<ResultadoInicioSesion> {
+    const sesion = this.sesionActual();
+    if (!sesion) return of<ResultadoInicioSesion>({ ok: false, mensaje: 'Tu sesión terminó. Vuelve a iniciar sesión.' });
+    return this.iniciarSesion(sesion.usuario, contrasena, this.estaRecordada());
   }
 
   private actualizar(usuario: string, cambios: Partial<Registro>): void {
@@ -235,6 +247,9 @@ export class AuthService {
     const almacen = recordar ? localStorage : sessionStorage;
     (recordar ? sessionStorage : localStorage).removeItem(CLAVE_SESION);
     almacen.setItem(CLAVE_SESION, JSON.stringify(sesion));
+    // Entrar (o desbloquear) cuenta como uso: la pantalla queda libre otros 30 min.
+    localStorage.setItem(CLAVE_ACTIVIDAD, String(Date.now()));
+    localStorage.removeItem(CLAVE_BLOQUEO);
   }
 
   private estaRecordada(): boolean {

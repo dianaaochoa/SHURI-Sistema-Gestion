@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 15 nov 2026 (los montos del cobro y del anticipo se ven como dinero: $1,000.00)
+- **Última actualización:** 15 nov 2026 (bloqueo de pantalla tras 30 min sin uso)
 
 ---
 
@@ -34,6 +34,7 @@ flowchart LR
     MOV["Jefe en celular (J10)<br/>barra superior + barra inferior"]:::hecho
     USR["Menú de usuario"]:::hecho
     NOT["Panel de notificaciones"]:::hecho
+    BLQ1["Bloqueo tras 30 min sin uso"]:::hecho
   end
 
   subgraph ADM["02 · Administrador"]
@@ -196,6 +197,7 @@ flowchart LR
     PN["PanelNotificaciones"]:::comp
     PP["PaginaPendiente<br/>lugar de cada pantalla"]:::comp
     PF["Perfil<br/>C1.6 · A.6 · todos los roles"]:::comp
+    BLQ["BloqueoSesion<br/>30 min sin uso · pide la contraseña"]:::comp
   end
 
   subgraph JEFE["jefe/"]
@@ -374,6 +376,7 @@ flowchart LR
   RUT --> LAY --> IS & OC & CC
   RUT --> SL --> ML --> MU & PN
   SL --> NM & PN
+  SL --> BLQ --> AUTH
   NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
@@ -547,6 +550,8 @@ npm run build      # compilación de producción
 | cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
 
 Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
+
+**Pantalla bloqueada (30 min sin uso):** sin tocar el mouse, el teclado ni la pantalla por 30 minutos, se cubre todo con “Pantalla bloqueada” y se pide la contraseña; al escribirla se sigue donde se quedó (una venta a medias sigue ahí). Los fallos cuentan para el bloqueo de la cuenta (3 intentos). “Entrar con otro usuario” cierra la sesión. Para probarlo sin esperar: en la consola, `localStorage.setItem('shuri.actividad', Date.now() - 31 * 60000)` y luego mover el mouse.
 
 **Configuración (`/administrador/configuracion`):** siete pestañas que se guardan juntas con “Guardar cambios” (un punto marca las que tienen cambios; “Descartar” los quita). Si falta algo obligatorio no se guarda y se abre la pestaña a corregir.
 - Negocio y marca: logo (PNG o SVG), datos del negocio y ticket (encabezado, pie, logo, desglose de IVA y quién cobró) con vista previa. El ticket impreso (C11) los usa al guardar.
@@ -981,7 +986,8 @@ frontend/src/
         ├── menu-usuario/            # desplegable del avatar
         ├── panel-notificaciones/    # panel de la campana
         ├── pagina-pendiente/        # lugar temporal de cada pantalla por construir
-        └── perfil/                  # C1.6 Mi perfil y cambiar contraseña (todos los roles)
+        ├── perfil/                  # C1.6 Mi perfil y cambiar contraseña (todos los roles)
+        └── bloqueo-sesion/          # pantalla bloqueada tras 30 min sin uso
 ```
 
 ## 6. Convenciones
@@ -1206,6 +1212,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Bloqueo tras 30 min sin uso | `BloqueoSesionComponent` en `SistemaLayout` (solo personal; el portal del cliente no). Cuenta como uso mover el mouse, teclear, tocar o desplazar; el último uso (`shuri.actividad`) y el bloqueo (`shuri.bloqueada`) van en `localStorage`, así que valen para todas las pestañas y siguen al recargar. Bloquea en vez de cerrar la sesión: atrás queda todo igual, con `inert` y sin que las teclas lleguen a la página (los atajos del punto de venta y Esc no hacen nada). `AuthService.desbloquear` usa el mismo login, así que los fallos cuentan para bloquear la cuenta | Figma solo da la regla general, sin pantalla: se usaron los estilos del login (A.1). Cerrar la sesión haría perder una venta a medias. Con la API, el servidor también debe vencer el token. Sube 6 kB el paquete inicial (va con el menú). |
 | Campos de dinero | Directiva `campoDinero` (`compartido/campo-dinero.directive.ts`) en el cobro (efectivo, transferencia, mixto) y el anticipo de Nueva orden: con el cursor dentro se ve el número sin formato y se selecciona para reemplazarlo; al salir, o si el monto llega de un botón, se ve con `formatearDinero`. Acepta “$1,2a50” y lo lee como 1250; más de 2 decimales se cortan | Dar formato mientras se escribe mueve el cursor. Los campos `type="number"` (corte, entradas, alta de producto) no pueden mostrar “$” y se quedaron igual. |
 | Precios del punto de venta | Caja busca en `InventarioService` y cobra el “Precio de venta (IVA incluido)” de Inventario/AD4; el renglón guarda el precio ÷ 1.16 sin redondear. `calcularTotales` suma sin redondear y redondea solo subtotal y total (el IVA es la resta) | **Figma choca:** en C2 la Mica cuesta $100 + IVA ($116) y en C7/AD4 su precio es $100 con IVA. El usuario eligió el de Inventario (lo que pone el administrador es lo que paga el cliente), así que una venta nueva ya no da los totales de la venta de ejemplo de C2. El historial de Ventas y las ventas en espera siguen con los precios de Figma (`catalogo.datos.ts`) y dan lo mismo que antes ($899.00, $290.00, $406.00). |
 | Fotos del equipo al recibirlo | Caja las toma en Nueva orden (C5.1) y en el detalle de Órdenes (C4); `FotosOrdenComponent` las muestra en el tablero del jefe (J2.3), el banco del técnico (T3/T7) y el seguimiento del cliente (P2.1). Se reducen a 1280 px en JPEG (≈ 100–300 kB), máximo 6 por orden, y cada alta o baja queda en el historial con el nombre de la cajera | **No está en Figma C5**: los cuadros de fotos de J2.3, T3 y P2.1 no tenían de dónde salir. Sirve de evidencia del estado en que llegó el equipo (rayones, golpes). Viven en memoria como data URL hasta que la API las guarde. Ya no se pueden cambiar al entregar la orden. |
@@ -1225,7 +1232,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
-- [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
 - [x] Todas las pantallas de Figma: cajera (C1–C11 y C1.6), jefe de técnicos (J1–J11), técnico (T1–T7), administrador (AD1–AD9) y portal del cliente (P1–P6).
 - [ ] Correos (P6): el envío real y los interruptores de “Correo” por mensaje de AD9.6 los aplicará la API; hoy se arma el correo cada vez que el cliente tiene correo.
 - [ ] Chat (P5): el aviso de respuesta solo aparece con el portal abierto (notificaciones push y correo le tocan a la API); el horario está fijo en el código.
@@ -1242,7 +1248,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos que toma el técnico son espacios vacíos (las de recepción ya son reales); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 17 kB del aviso de 500 kB (estilos compartidos y la lógica del técnico que usa el menú); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial pasó 24 kB del aviso de 500 kB (estilos compartidos, la lógica del técnico que usa el menú y el bloqueo por inactividad); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11 y chat P5): las conversaciones viven en memoria; falta guardarlas en la API.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1899,3 +1905,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - transferencia: arranca en “$464.66”; “300.555” queda “$300.55”
   - Nueva orden: el anticipo arranca en “$300.00”; “$1,2a50” se lee como 1250 y se ve “$1,250.00”
   - `ng build` sin errores; sin errores en consola
+
+### 15 nov 2026 · Bloqueo de pantalla tras 30 min sin uso
+- Pendiente de solo frontend (regla general de Figma): `BloqueoSesionComponent` en `sistema/bloqueo-sesion/`, dentro de `SistemaLayout`; `AuthService` suma `desbloquear` y las claves `shuri.actividad` y `shuri.bloqueada` (entrar o desbloquear las reinicia; cerrar sesión las borra).
+- Verificado como Ana Martínez en el punto de venta (con el último uso puesto 31 min atrás):
+  - al mover el mouse aparece “Pantalla bloqueada · Pasaron 30 minutos sin uso. Ana, escribe tu contraseña…” con el cursor en la contraseña; lo de atrás queda con `inert`
+  - Esc con la pantalla bloqueada no cancela la venta (sigue con su producto)
+  - contraseña incorrecta → “Contraseña incorrecta. Te quedan 2 intentos antes de que la cuenta se bloquee.”
+  - al recargar sigue bloqueada; con la contraseña correcta se quita y la venta a medias (cable USB-C) sigue en el ticket
+  - a 360 px la tarjeta cabe sin desplazamiento; “Entrar con otro usuario” lleva a iniciar sesión y borra sesión, último uso y bloqueo
+  - `ng build` sin errores (paquete inicial 524 kB, +6 kB); sin errores en consola
