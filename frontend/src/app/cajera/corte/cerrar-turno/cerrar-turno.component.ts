@@ -42,8 +42,8 @@ export class CerrarTurnoComponent implements OnInit {
 
   /** "Turno matutino · Caja 01 · Ana Martínez · 09:00 – 15:02" */
   protected readonly subtitulo = computed(() => {
-    const t = this.caja.turno();
-    return t ? `Turno ${t.turno.toLowerCase()} · ${t.caja} · ${this.cajera} · ${formatearHora(new Date(t.desde))} – ${formatearHora(new Date())}` : '';
+    const t = this.caja.turnoDeCaja();
+    return t ? `Turno ${t.turno.toLowerCase()} · ${t.caja} · ${t.cajera ?? this.cajera} · ${formatearHora(new Date(t.desde))} – ${formatearHora(new Date())}` : '';
   });
 
   private readonly porDenominacion = computed(

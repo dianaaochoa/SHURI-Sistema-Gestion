@@ -81,7 +81,7 @@ export class InicioAdminComponent {
     const nombre = p === 'hoy' ? 'hoy' : p === 'semana' ? 'de la semana' : 'del mes';
     const enTaller = this.ordenes().filter((o) => EN_TALLER.includes(o.estado));
     const atrasadas = enTaller.filter(atrasada).length;
-    const abierta = this.caja.abierta();
+    const abierta = this.caja.turnoDeCaja() !== null;
     return [
       { valor: dinero(u.ingreso), tono: '', titulo: `Ingresos ${nombre}`, detalle: `Mostrador ${dinero(d.mostrador)} · Taller ${dinero(d.reparaciones)}` },
       { valor: dinero(u.utilidad), tono: 'exito', titulo: `Utilidad bruta ${nombre}`, detalle: `${u.margen}% de margen` },

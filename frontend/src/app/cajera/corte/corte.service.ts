@@ -40,6 +40,8 @@ export interface Corte {
   desglose?: Desglose;
   /** Visto bueno del administrador cuando hubo diferencia (AD3.2). */
   revision?: RevisionCorte;
+  /** Quién contó y cerró, cuando no fue la cajera que abrió el turno. */
+  cerradoPor?: string;
 }
 
 export type DecisionCorte = 'descontar' | 'absorber' | 'investigar';
@@ -146,7 +148,7 @@ export class CorteService {
 
   /** Todo lo que movió dinero desde que se abrió el turno, del más reciente al más antiguo. */
   readonly movimientos = computed<MovimientoTurno[]>(() => {
-    const turno = this.caja.turno();
+    const turno = this.caja.turnoDeCaja();
     return turno ? this.movimientosEntre(turno.desde, '9999', turno.fondo) : [];
   });
 
@@ -187,7 +189,7 @@ export class CorteService {
 
   /** Cifras del turno abierto (C10.1). */
   readonly resumen = computed(() => {
-    const turno = this.caja.turno();
+    const turno = this.caja.turnoDeCaja();
     const desde = turno?.desde ?? '9999';
     const ventas = this.ventas.ventas().filter((v) => v.fecha >= desde && v.estado !== 'cancelada');
     // Incluye los anticipos devueltos al entregar sin reparar (cobrado negativo).
@@ -244,7 +246,7 @@ export class CorteService {
   });
 
   /** Efectivo que debería haber en el cajón (para retiros y pagos a proveedor). 0 con la caja cerrada. */
-  readonly efectivoEnCaja = computed(() => (this.caja.abierta() ? this.resumen().esperado : 0));
+  readonly efectivoEnCaja = computed(() => (this.caja.turnoDeCaja() ? this.resumen().esperado : 0));
 
   siguienteFolio(): string {
     const max = Math.max(0, ...this.cortes().map((c) => Number(c.folio.slice(2))));
@@ -253,13 +255,14 @@ export class CorteService {
 
   /** C10.4: guarda el corte, cierra el turno y devuelve el corte para C10.5. */
   cerrar(contado: number, comentario: string, fondoQueQueda: number): Corte {
-    const turno = this.caja.turno()!;
+    const turno = this.caja.turnoDeCaja()!;
     const r = this.resumen();
     const corte: Corte = {
       folio: this.siguienteFolio(),
       caja: turno.caja,
       turno: turno.turno,
-      cajera: this.auth.sesion()?.nombre ?? '',
+      cajera: turno.cajera ?? this.auth.sesion()?.nombre ?? '',
+      cerradoPor: turno.cajera && turno.cajera !== this.auth.sesion()?.nombre ? this.auth.sesion()?.nombre : undefined,
       desde: turno.desde,
       hasta: new Date().toISOString(),
       fondo: r.fondo,

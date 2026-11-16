@@ -41,20 +41,21 @@ export class DetalleCorteComponent {
   private readonly tramo = computed(() => {
     const c = this.corte();
     if (c) return { desde: c.desde, hasta: c.hasta, fondo: c.fondo };
-    const t = this.caja.turno();
+    const t = this.caja.turnoDeCaja();
     return { desde: t?.desde ?? new Date().toISOString(), hasta: '9999', fondo: t?.fondo ?? 0 };
   });
 
   protected readonly titulo = computed(() => {
     const c = this.corte();
-    if (!c) return `Turno abierto · ${this.caja.turno()?.turno ?? ''}`;
+    if (!c) return `Turno abierto · ${this.caja.turnoDeCaja()?.turno ?? ''}`;
     return `Corte del ${dia(c.hasta)} · ${c.turno}`;
   });
 
   protected readonly subtitulo = computed(() => {
     const c = this.corte();
-    if (!c) return `${this.caja.turno()?.caja ?? 'Caja 01'} · desde las ${hora(this.tramo().desde)} · en vivo`;
-    return `${c.cajera} · ${c.caja} · ${hora(c.desde)} – ${hora(c.hasta)} · Cerrado por ${c.cajera.split(' ')[0]}`;
+    const t = this.caja.turnoDeCaja();
+    if (!c) return `${t?.cajera ? `${t.cajera} · ` : ''}${t?.caja ?? 'Caja 01'} · desde las ${hora(this.tramo().desde)} · en vivo`;
+    return `${c.cajera} · ${c.caja} · ${hora(c.desde)} – ${hora(c.hasta)} · Cerrado por ${(c.cerradoPor ?? c.cajera).split(' ')[0]}`;
   });
 
   protected readonly dif = computed(() => {

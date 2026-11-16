@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 15 nov 2026 (“Crear cliente nuevo” en caja abre el alta con lo buscado y lo deja en la venta)
+- **Última actualización:** 15 nov 2026 (el turno de caja queda a nombre de quien lo abre)
 
 ---
 
@@ -362,7 +362,7 @@ flowchart LR
   BTA["BitacoraAdmin AD8.1<br/>ExportarBitacora AD8.2"]:::comp
   BTS["BitacoraService<br/>solo agrega: junta precios, ajustes,<br/>pagos, facturas, cortes, caja, descuentos"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
-  CAJA["CajaService<br/>turno, retiros, ingresos y<br/>pagos a proveedor (simulado)"]:::serv
+  CAJA["CajaService<br/>turno (de quién lo abrió), retiros,<br/>ingresos y pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
   ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET y CLAUSULAS_RECEPCION"]:::serv
@@ -378,6 +378,7 @@ flowchart LR
   SL --> NM & PN
   SL --> BLQ --> AUTH
   SC --> NC & CLSV
+  CAJA --> AUTH
   NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
@@ -660,6 +661,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - El efectivo esperado es fondo + lo cobrado en efectivo − retiros, pagos y devoluciones en efectivo. Lo mismo usan los retiros y el pago a proveedor de Inventario (C7.6): con la caja cerrada no se puede pagar en efectivo.
 - “Cerrar turno e imprimir corte” abre el conteo por denominación (C10.4); si no cuentas por denominación se usa lo que escribiste en el arqueo. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
+- El turno queda a nombre de quien lo abre. Si Ana sale sin corte y entra `lpena`, su Inicio dice “Caja 01 sigue abierta a nombre de Ana Martínez” y el punto de venta no le deja vender ni abrir turno (“Ir a Corte de caja”). En el corte ve el aviso, no puede registrar retiros ni ingresos, y al cerrar el corte queda a nombre de Ana con “Contó y cerró · Luis Peña”; después ya puede abrir su turno.
 
 **Inicio del jefe de técnicos (`/jefe/inicio`, usuario `jlopez`):**
 - Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; las preguntas de los técnicos salen de `PREGUNTAS_TECNICOS` (una de prueba y las que manda el banco, T3.8); los mensajes de clientes salen de `MensajesService` (J11) y las solicitudes de refacción de `RefaccionesService` (J5).
@@ -1213,6 +1215,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
 | Bloqueo tras 30 min sin uso | `BloqueoSesionComponent` en `SistemaLayout` (solo personal; el portal del cliente no). Cuenta como uso mover el mouse, teclear, tocar o desplazar; el último uso (`shuri.actividad`) y el bloqueo (`shuri.bloqueada`) van en `localStorage`, así que valen para todas las pestañas y siguen al recargar. Bloquea en vez de cerrar la sesión: atrás queda todo igual, con `inert` y sin que las teclas lleguen a la página (los atajos del punto de venta y Esc no hacen nada). `AuthService.desbloquear` usa el mismo login, así que los fallos cuentan para bloquear la cuenta | Figma solo da la regla general, sin pantalla: se usaron los estilos del login (A.1). Cerrar la sesión haría perder una venta a medias. Con la API, el servidor también debe vencer el token. Sube 6 kB el paquete inicial (va con el menú). |
 | Campos de dinero | Directiva `campoDinero` (`compartido/campo-dinero.directive.ts`) en el cobro (efectivo, transferencia, mixto) y el anticipo de Nueva orden: con el cursor dentro se ve el número sin formato y se selecciona para reemplazarlo; al salir, o si el monto llega de un botón, se ve con `formatearDinero`. Acepta “$1,2a50” y lo lee como 1250; más de 2 decimales se cortan | Dar formato mientras se escribe mueve el cursor. Los campos `type="number"` (corte, entradas, alta de producto) no pueden mostrar “$” y se quedaron igual. |
 | Precios del punto de venta | Caja busca en `InventarioService` y cobra el “Precio de venta (IVA incluido)” de Inventario/AD4; el renglón guarda el precio ÷ 1.16 sin redondear. `calcularTotales` suma sin redondear y redondea solo subtotal y total (el IVA es la resta) | **Figma choca:** en C2 la Mica cuesta $100 + IVA ($116) y en C7/AD4 su precio es $100 con IVA. El usuario eligió el de Inventario (lo que pone el administrador es lo que paga el cliente), así que una venta nueva ya no da los totales de la venta de ejemplo de C2. El historial de Ventas y las ventas en espera siguen con los precios de Figma (`catalogo.datos.ts`) y dan lo mismo que antes ($899.00, $290.00, $406.00). |
@@ -1245,7 +1248,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
 - [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); las cancelaciones aún no aparecen en la bitácora (AD8).
 - [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja, y los pagos no entran a la bitácora (AD8).
-- [ ] Cortes de caja: el turno abierto no guarda qué cajera lo abrió (la fila en vivo dice “En turno”); la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
+- [ ] Cortes de caja: la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos que toma el técnico son espacios vacíos (las de recepción ya son reales); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
@@ -1271,8 +1274,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
 - [ ] Las ventas cobradas, cancelaciones y devoluciones viven en memoria (`HistorialVentasService`): se pierden al recargar. Deben ir a la API.
 - [ ] La nota de crédito y el “cambio por otro” solo se registran; falta su flujo (saldo del cliente y nueva venta).
-- [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
-- [ ] El corte cierra el turno de la caja, pero no revisa que la cajera que cierra sea la que abrió.
 - [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes, pedidos y cambios de precio se pierden al recargar. El punto de venta ya cobra con sus nombres, precios y disponibles.
 - [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
 - [ ] Retiros, ingresos, pagos a proveedor y cortes viven en memoria (el turno abierto sí queda en el navegador): al recargar con el turno abierto, el arqueo pierde esos movimientos.
@@ -1924,4 +1925,16 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - Esc regresa a la lista con “Sofía Ramírez” en el buscador
   - con teléfono 87 1123 4567 y correo de prueba, “Guardar cliente” cierra todo y el botón de cliente dice “Sofía Ramírez”
   - F4 · “871 123” la encuentra; en Clientes aparece “Sofía Ramírez · 87 1123 4567 · Sin equipos”
+  - `ng build` sin errores; sin errores en consola
+
+### 15 nov 2026 · Turno de caja a nombre de la cajera
+- Pendientes de solo frontend: el turno no guardaba quién lo abrió, otra cajera lo veía como suyo y cualquiera hacía el corte.
+- `CajaService`: `Turno.usuario` y `cajera`, `turnoDeCaja`, `ajeno` y `turno`/`abierta` solo con el de la sesión; `CorteService` trabaja con el turno de la caja y guarda `cerradoPor`. Abrir turno (C1.3) e Inicio avisan cuando la caja está abierta por otra cajera; el corte muestra el aviso y oculta retiros e ingresos. El administrador (cortes, AD3.2, Cajas en AD9, Usuarios e Inicio) usa el turno de la caja con el nombre de quien lo abrió. El ticket del corte firma “Contó y cerró”.
+- Verificado:
+  - Ana abre turno → se guarda con `usuario: amartinez` y `cajera: Ana Martínez`; sale sin corte
+  - `lpena`: Inicio “Caja abierta por Ana Martínez” y “Caja 01 sigue abierta a nombre de Ana Martínez”; el punto de venta muestra “Caja 01 sigue abierta · Turno vespertino de Ana Martínez · desde las 20:28” con “Ir a Corte de caja”
+  - en el corte: aviso “Este turno lo abrió Ana Martínez…”, sin retiro ni ingreso; al contar $1,000.00 sale C-0412 a nombre de Ana con `cerradoPor: Luis Peña`; luego abre su turno (`lpena`) y ya tiene retiros e ingresos
+  - Ana vuelve a entrar y ve la caja abierta por Luis Peña
+  - administración: la fila en vivo de cortes dice “Hoy · Vespertino · Luis Peña · Abierto”; en Usuarios Luis “En turno” y Ana “Activo”; Efectivo en caja “turno abierto”
+  - “Contó y cerró” del ticket: solo compilado (el corte de prueba se perdió al recargar)
   - `ng build` sin errores; sin errores en consola

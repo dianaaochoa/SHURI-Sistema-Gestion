@@ -50,8 +50,9 @@ export class UsuariosAdminComponent {
   private enTurno(u: CuentaUsuario): boolean {
     if (!u.activo) return false;
     if (u.rol === 'cajera') {
-      const t = this.caja.turno();
-      return !!t && t.caja === u.caja && t.turno === u.turno;
+      const t = this.caja.turnoDeCaja();
+      if (!t) return false;
+      return t.usuario ? t.usuario === u.usuario : t.caja === u.caja && t.turno === u.turno;
     }
     if (!u.horario || !u.ultimoAcceso || new Date(u.ultimoAcceso).toDateString() !== new Date().toDateString()) return false;
     const [desde, hasta] = u.horario.split('–').map((h) => Number(h.split(':')[0]));

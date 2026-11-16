@@ -41,7 +41,7 @@ export class CortesAdminComponent {
   protected readonly viendo = computed(() => {
     const f = this.folio();
     if (!f) return null;
-    if (f === 'vivo') return this.caja.abierta() ? 'vivo' : null;
+    if (f === 'vivo') return this.caja.turnoDeCaja() ? 'vivo' : null;
     return this.servicio.cortes().find((c) => c.folio === f) ?? null;
   });
 
@@ -60,10 +60,10 @@ export class CortesAdminComponent {
 
   /** El turno abierto va arriba como "Hoy · Abierto" (solo en el mes actual). */
   protected readonly abierto = computed(() => {
-    const t = this.caja.turno();
+    const t = this.caja.turnoDeCaja();
     if (!t || this.mesId() !== this.meses[0].id) return null;
-    // El turno no guarda quién lo abrió (con la API vendrá en la sesión de caja).
-    return { turno: t.turno, caja: t.caja, cajera: 'En turno', esperado: this.servicio.resumen().esperado };
+    // Los turnos abiertos antes de guardar a la cajera dicen "En turno".
+    return { turno: t.turno, caja: t.caja, cajera: t.cajera ?? 'En turno', esperado: this.servicio.resumen().esperado };
   });
 
   private readonly filtrados = computed(() => {

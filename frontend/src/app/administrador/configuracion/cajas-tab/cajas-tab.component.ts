@@ -24,9 +24,9 @@ export class CajasTabComponent {
 
   protected readonly filas = computed(() =>
     this.c().cajas.map((k, i) => {
-      const t = this.caja.turno();
+      const t = this.caja.turnoDeCaja();
       const abierta = !!t && t.caja === k.nombre;
-      return { k, i, fondo: formatearDinero(k.fondo), estado: abierta ? { texto: `Abierta · ${t!.turno.toLowerCase()}`, tono: 'exito' } : { texto: 'Cerrada', tono: 'neutro' } };
+      return { k, i, fondo: formatearDinero(k.fondo), estado: abierta ? { texto: `Abierta · ${t!.turno.toLowerCase()}${t!.cajera ? ` · ${t!.cajera}` : ''}`, tono: 'exito' } : { texto: 'Cerrada', tono: 'neutro' } };
     }),
   );
 

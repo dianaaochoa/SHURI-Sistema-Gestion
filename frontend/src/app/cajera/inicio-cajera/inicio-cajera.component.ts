@@ -37,6 +37,8 @@ export class InicioCajeraComponent {
   private readonly inventario = inject(InventarioService);
 
   protected readonly turno = this.caja.turno;
+  /** Turno que otra cajera dejó abierto (C1.7). */
+  protected readonly ajeno = this.caja.ajeno;
   protected readonly abrirTurno = signal(false);
   protected readonly accesos = ACCESOS;
 

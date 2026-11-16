@@ -258,6 +258,9 @@
       </section>
       <section class="t-pie">
         <p class="t-firma">Cajera · {{ d.corte.cajera }}</p>
+        @if (d.corte.cerradoPor) {
+          <p class="t-firma">Contó y cerró · {{ d.corte.cerradoPor }}</p>
+        }
         <p class="t-firma">Recibe · {{ negocio.encargado }} (encargado)</p>
       </section>
     }

@@ -10,7 +10,7 @@
       </p>
     } @else {
       <p class="turno turno--cerrado">
-        <img src="assets/cajera/lock.svg" width="16" height="16" alt="" />Caja cerrada · sin turno abierto
+        <img src="assets/cajera/lock.svg" width="16" height="16" alt="" />{{ ajeno() ? 'Caja abierta por ' + ajeno()!.cajera : 'Caja cerrada · sin turno abierto' }}
       </p>
     }
   </header>
@@ -19,15 +19,29 @@
     <section class="caja-cerrada">
       <span class="caja-cerrada__icono"><img src="assets/cajera/lock-grande.svg" width="22" height="22" alt="" /></span>
       <div class="caja-cerrada__texto">
-        <h2>Tu caja está cerrada</h2>
-        <p>
-          Cuenta el fondo inicial para abrir el turno. Mientras tanto puedes consultar órdenes, clientes e
-          inventario, pero no cobrar ni entregar equipos.
-        </p>
+        @if (ajeno(); as t) {
+          <h2>{{ t.caja }} sigue abierta a nombre de {{ t.cajera }}</h2>
+          <p>
+            Salió sin hacer su corte. Haz su corte contando el efectivo (quedará que lo cerraste tú) y luego abre
+            tu turno. Mientras tanto puedes consultar órdenes, clientes e inventario.
+          </p>
+        } @else {
+          <h2>Tu caja está cerrada</h2>
+          <p>
+            Cuenta el fondo inicial para abrir el turno. Mientras tanto puedes consultar órdenes, clientes e
+            inventario, pero no cobrar ni entregar equipos.
+          </p>
+        }
       </div>
-      <button type="button" class="boton caja-cerrada__boton" (click)="abrirTurno.set(true)">
-        <img src="assets/cajera/unlock.svg" width="16" height="16" alt="" />Abrir turno de caja
-      </button>
+      @if (ajeno()) {
+        <a class="boton caja-cerrada__boton" routerLink="/cajera/corte-de-caja">
+          <img src="assets/cajera/unlock.svg" width="16" height="16" alt="" />Ir a Corte de caja
+        </a>
+      } @else {
+        <button type="button" class="boton caja-cerrada__boton" (click)="abrirTurno.set(true)">
+          <img src="assets/cajera/unlock.svg" width="16" height="16" alt="" />Abrir turno de caja
+        </button>
+      }
     </section>
   }
 

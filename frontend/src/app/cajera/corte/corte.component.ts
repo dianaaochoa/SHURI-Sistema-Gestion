@@ -29,11 +29,11 @@ export class CorteComponent {
 
   /** "Turno matutino · Caja 01 · Ana Martínez · Abierto hoy a las 09:00" */
   protected readonly subtitulo = computed(() => {
-    const t = this.caja.turno();
+    const t = this.caja.turnoDeCaja();
     if (!t) return 'La caja está cerrada';
     const desde = new Date(t.desde);
     const dia = desde.toDateString() === new Date().toDateString() ? 'hoy' : `el ${desde.getDate()}/${desde.getMonth() + 1}`;
-    return `Turno ${t.turno.toLowerCase()} · ${t.caja} · ${this.auth.sesion()?.nombre ?? ''} · Abierto ${dia} a las ${formatearHora(desde)}`;
+    return `Turno ${t.turno.toLowerCase()} · ${t.caja} · ${t.cajera ?? this.auth.sesion()?.nombre ?? ''} · Abierto ${dia} a las ${formatearHora(desde)}`;
   });
 
   // Filtros del historial (en el encabezado, como en Figma C10.2)

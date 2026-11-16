@@ -1,4 +1,5 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../acceso/auth.service';
 
 export type NombreTurno = 'Matutino' | 'Vespertino';
 
@@ -9,6 +10,9 @@ export interface Turno {
   desde: string;
   /** Fondo inicial contado al abrir. */
   fondo: number;
+  /** Quién lo abrió (C1.3). Los turnos guardados antes de este cambio no lo traen y valen para cualquiera. */
+  usuario?: string;
+  cajera?: string;
 }
 
 export interface PagoProveedor {
@@ -34,7 +38,8 @@ const CLAVE_TURNO = 'shuri.turno';
 /**
  * Estado de la caja de la cajera (C1). Simulado mientras no exista la API.
  * El turno se guarda en el navegador: si la cajera sale sin cerrarlo, la caja
- * sigue abierta a su nombre (C1.7).
+ * sigue abierta a su nombre (C1.7). Otra cajera no puede vender con él ni abrir el suyo
+ * hasta que se haga ese corte.
  */
 @Injectable({ providedIn: 'root' })
 export class CajaService {
@@ -43,14 +48,27 @@ export class CajaService {
   /** Lo cambia el administrador en Configuración › Cajas (AD9.2). */
   fondoAsignado = 1000;
 
+  private readonly auth = inject(AuthService);
   private readonly actual = signal<Turno | null>(leerTurno());
 
-  readonly turno = this.actual.asReadonly();
-  readonly abierta = computed(() => this.actual() !== null);
+  /** El turno abierto en la caja, sea de quien sea: lo ven el administrador y el corte. */
+  readonly turnoDeCaja = this.actual.asReadonly();
+  /** El turno de quien tiene la sesión: con el de otra cajera no se vende ni se cobra. */
+  readonly turno = computed(() => {
+    const t = this.actual();
+    return t && this.esDeLaSesion(t) ? t : null;
+  });
+  readonly abierta = computed(() => this.turno() !== null);
+  /** Turno que otra cajera dejó abierto (salió sin hacer su corte, C1.7). */
+  readonly ajeno = computed(() => {
+    const t = this.actual();
+    return t && !this.esDeLaSesion(t) ? t : null;
+  });
   /** Línea de estado del menú lateral (Figma C1.1 / C1.2). */
   readonly resumen = computed(() => {
     const turno = this.actual();
-    return turno ? `${turno.caja} · Turno abierto` : `${this.cajas[0]} · Caja cerrada`;
+    if (!turno) return `${this.cajas[0]} · Caja cerrada`;
+    return this.ajeno() ? `${turno.caja} · Abierta por ${(turno.cajera ?? '').split(' ')[0]}` : `${turno.caja} · Turno abierto`;
   });
 
   private readonly pagos = signal<PagoProveedor[]>([]);
@@ -74,8 +92,11 @@ export class CajaService {
     return nuevo;
   }
 
-  abrirTurno(datos: Omit<Turno, 'desde'>): void {
-    const turno: Turno = { ...datos, desde: new Date().toISOString() };
+  abrirTurno(datos: Omit<Turno, 'desde' | 'usuario' | 'cajera'>): void {
+    // Una caja, un turno: si sigue abierto el de otra cajera, primero va su corte.
+    if (this.actual()) return;
+    const sesion = this.auth.sesion();
+    const turno: Turno = { ...datos, desde: new Date().toISOString(), usuario: sesion?.usuario, cajera: sesion?.nombre };
     this.actual.set(turno);
     guardar(turno);
   }
@@ -84,6 +105,10 @@ export class CajaService {
   cerrarTurno(): void {
     this.actual.set(null);
     guardar(null);
+  }
+
+  private esDeLaSesion(t: Turno): boolean {
+    return !t.usuario || t.usuario === this.auth.sesion()?.usuario;
   }
 }
 

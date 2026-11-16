@@ -1,7 +1,8 @@
 import { AfterViewInit, Component, ElementRef, HostListener, computed, inject, output, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../acceso/auth.service';
-import { formatearDinero, formatearFechaCorta } from '../../compartido/formato';
+import { formatearDinero, formatearFechaCorta, formatearHora } from '../../compartido/formato';
 import { CajaService, NombreTurno } from '../caja.service';
 
 interface Denominacion {
@@ -24,6 +25,12 @@ export class AbrirTurnoComponent implements AfterViewInit {
   readonly cerrar = output<void>();
 
   private readonly caja = inject(CajaService);
+  private readonly router = inject(Router);
+  /** Turno que otra cajera dejó abierto: hasta su corte no se puede abrir otro. */
+  protected readonly ajeno = this.caja.ajeno;
+  protected hora(iso: string): string {
+    return formatearHora(new Date(iso));
+  }
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
   protected readonly cajas = this.caja.cajas;
@@ -69,6 +76,11 @@ export class AbrirTurnoComponent implements AfterViewInit {
     if (!this.total()) return;
     this.caja.abrirTurno({ caja: this.cajaElegida, turno: this.turnoElegido, fondo: this.total() });
     this.cerrar.emit();
+  }
+
+  protected irACorte(): void {
+    this.cerrar.emit();
+    this.router.navigateByUrl('/cajera/corte-de-caja');
   }
 
   @HostListener('document:keydown.escape')
