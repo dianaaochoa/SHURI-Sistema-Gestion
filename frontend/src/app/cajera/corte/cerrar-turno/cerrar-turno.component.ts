@@ -2,6 +2,7 @@ import { Component, HostListener, OnInit, computed, inject, input, output, signa
 import { AuthService } from '../../../acceso/auth.service';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import { CajaService } from '../../caja.service';
+import { VentaService } from '../../punto-de-venta/venta.service';
 
 export interface CierreTurno {
   contado: number;
@@ -21,6 +22,13 @@ const MONEDAS = [10, 5, 2, 1];
 })
 export class CerrarTurnoComponent implements OnInit {
   private readonly caja = inject(CajaService);
+  /** Ventas en espera y venta sin cobrar que se descartan al cerrar (C2.9). */
+  private readonly pendientes = inject(VentaService).pendientesDelTurno;
+  protected readonly avisoPendientes = computed(() => {
+    const { enEspera, enCurso } = this.pendientes();
+    const partes = [enEspera ? (enEspera === 1 ? '1 venta en espera' : `${enEspera} ventas en espera`) : '', enCurso ? 'la venta sin cobrar del punto de venta' : ''].filter(Boolean);
+    return partes.length ? `Al cerrar se descartan ${partes.join(' y ')}: no se cobraron ni apartan inventario.` : null;
+  });
   private readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
   readonly esperado = input.required<number>();
   /** Lo que escribió en el arqueo (se usa si no cuenta por denominación). */

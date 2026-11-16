@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../acceso/auth.service';
 import { CajaService, NombreTurno } from '../caja.service';
 import { OrdenesService } from '../ordenes/ordenes.service';
-import { MetodoSimple, redondear } from '../punto-de-venta/venta.service';
+import { MetodoSimple, VentaService, redondear } from '../punto-de-venta/venta.service';
 import { HistorialVentasService, VentaRegistrada } from '../ventas/historial-ventas.service';
 
 export type MetodoCorte = MetodoSimple | 'mixto';
@@ -143,6 +143,7 @@ export class CorteService {
   private readonly ventas = inject(HistorialVentasService);
   private readonly ordenes = inject(OrdenesService);
   private readonly auth = inject(AuthService);
+  private readonly venta = inject(VentaService);
 
   readonly cortes = signal<Corte[]>(cortesDemo());
 
@@ -279,6 +280,7 @@ export class CorteService {
       desglose: r.desglose,
     };
     this.cortes.update((lista) => [corte, ...lista]);
+    this.venta.descartarAlCerrarTurno();
     this.caja.cerrarTurno();
     return corte;
   }

@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 15 nov 2026 (el turno de caja queda a nombre de quien lo abre)
+- **Última actualización:** 15 nov 2026 (las ventas en espera se descartan al hacer el corte)
 
 ---
 
@@ -379,6 +379,7 @@ flowchart LR
   SL --> BLQ --> AUTH
   SC --> NC & CLSV
   CAJA --> AUTH
+  COS --> VS
   NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
@@ -607,7 +608,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - Cliente (F4) busca en el registro de Clientes (C8): los de prueba (María Hernández, Martha Treviño, Raúl Ortiz…), los de las órdenes y los que se dan de alta. Se buscan por nombre, teléfono o correo. Si no aparece, “Crear cliente nuevo” abre el alta ahí mismo con lo buscado (nombre, teléfono o correo); Esc regresa a la lista y al guardar queda como cliente de la venta y en Clientes.
 - Con esa venta, un descuento del 10 % a toda la venta da $697.50. Arriba de 10 % el modal marca el error y no deja aplicar.
 - Al cobrar, “Monto recibido” (efectivo y transferencia) y los montos del pago mixto muestran el número tal cual mientras se escribe (`1000`) y como dinero fuera del campo (`$1,000.00`), también con “Exacto” y los montos rápidos. Igual el anticipo de Nueva orden.
-- Al entrar hay 2 ventas en espera de prueba (V-00864 y V-00863). Retomar una con el ticket lleno pausa primero la venta actual.
+- Al entrar hay 2 ventas en espera de prueba (V-00864 y V-00863). Retomar una con el ticket lleno pausa primero la venta actual. Al hacer el corte (C10.4) se descartan junto con la venta sin cobrar; el cierre lo avisa antes (“Al cerrar se descartan 2 ventas en espera y la venta sin cobrar…”).
 - Más teclas: `?` abre todos los atajos (C2.17), Supr quita la fila enfocada del ticket, Ctrl+P reimprime el último ticket, F3 va a Nueva orden y F5 a Ventas.
 - Casos de error simulados (fase 3):
   - **Tarjeta rechazada (C2.14):** cobrar con tarjeta poniendo `0000` en “Últimos 4 dígitos”.
@@ -1215,6 +1216,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
 | Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
 | Bloqueo tras 30 min sin uso | `BloqueoSesionComponent` en `SistemaLayout` (solo personal; el portal del cliente no). Cuenta como uso mover el mouse, teclear, tocar o desplazar; el último uso (`shuri.actividad`) y el bloqueo (`shuri.bloqueada`) van en `localStorage`, así que valen para todas las pestañas y siguen al recargar. Bloquea en vez de cerrar la sesión: atrás queda todo igual, con `inert` y sin que las teclas lleguen a la página (los atajos del punto de venta y Esc no hacen nada). `AuthService.desbloquear` usa el mismo login, así que los fallos cuentan para bloquear la cuenta | Figma solo da la regla general, sin pantalla: se usaron los estilos del login (A.1). Cerrar la sesión haría perder una venta a medias. Con la API, el servidor también debe vencer el token. Sube 6 kB el paquete inicial (va con el menú). |
 | Campos de dinero | Directiva `campoDinero` (`compartido/campo-dinero.directive.ts`) en el cobro (efectivo, transferencia, mixto) y el anticipo de Nueva orden: con el cursor dentro se ve el número sin formato y se selecciona para reemplazarlo; al salir, o si el monto llega de un botón, se ve con `formatearDinero`. Acepta “$1,2a50” y lo lee como 1250; más de 2 decimales se cortan | Dar formato mientras se escribe mueve el cursor. Los campos `type="number"` (corte, entradas, alta de producto) no pueden mostrar “$” y se quedaron igual. |
@@ -1269,7 +1271,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Algunos clientes de prueba tienen un teléfono en Punto de venta y otro en Órdenes (Laura Medina, Raúl Ortiz, Andrés Vega, Pedro Núñez): se unen por nombre. La API debe tener un solo registro con un id.
 - [ ] Editar un cliente no cambia los datos ya guardados en sus órdenes.
 - [ ] El cobro de la entrega entra a la caja (corte C10) pero no al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
-- [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
+- [ ] Las ventas en espera viven en memoria: se pierden al recargar. Deben guardarse en la API (ligadas al turno).
 - [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
 - [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
 - [ ] Las ventas cobradas, cancelaciones y devoluciones viven en memoria (`HistorialVentasService`): se pierden al recargar. Deben ir a la API.
@@ -1938,3 +1940,11 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - administración: la fila en vivo de cortes dice “Hoy · Vespertino · Luis Peña · Abierto”; en Usuarios Luis “En turno” y Ana “Activo”; Efectivo en caja “turno abierto”
   - “Contó y cerró” del ticket: solo compilado (el corte de prueba se perdió al recargar)
   - `ng build` sin errores; sin errores en consola
+
+### 15 nov 2026 · Ventas en espera al hacer el corte
+- Pendiente de solo frontend: el aviso de C2.9 dice que las ventas en espera se descartan al cerrar el turno, pero seguían ahí.
+- `VentaService.pendientesDelTurno` y `descartarAlCerrarTurno`; `CorteService.cerrar` las descarta junto con la venta sin cobrar; `CerrarTurno` (C10.4) muestra el aviso antes de cerrar.
+- Verificado como Luis Peña (turno abierto, V-00864 y V-00863 en espera y una mica en la venta):
+  - el cierre dice “Al cerrar se descartan 2 ventas en espera y la venta sin cobrar del punto de venta: no se cobraron ni apartan inventario.”
+  - al contar $1,000.00 sale C-0412; después el punto de venta tiene 0 ventas en espera y la venta vacía
+  - `ng build` sin errores

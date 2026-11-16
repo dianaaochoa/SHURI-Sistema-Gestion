@@ -10,6 +10,10 @@
       </button>
     </header>
 
+    @if (avisoPendientes(); as aviso) {
+      <p class="aviso aviso--advertencia" role="note"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ aviso }}</p>
+    }
+
     <div class="conteos">
       @for (grupo of grupos; track $index; let monedas = $last) {
         <table class="conteo">

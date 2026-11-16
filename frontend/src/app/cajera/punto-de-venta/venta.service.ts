@@ -238,6 +238,15 @@ export class VentaService {
     this.descuentoVenta.set(null);
   }
 
+  /** Lo que se pierde al hacer el corte: las ventas en espera (aviso de C2.9) y la venta sin cobrar. */
+  readonly pendientesDelTurno = computed(() => ({ enEspera: this.pausadas().length, enCurso: !this.vacia() }));
+
+  /** Corte de caja (C10.4): las ventas en espera y la venta sin cobrar no pasan al siguiente turno. */
+  descartarAlCerrarTurno(): void {
+    this.pausadas.set([]);
+    this.cancelar();
+  }
+
   /** C2.8: guarda la venta en "En espera" y deja la caja lista para otro cliente con un folio nuevo. */
   pausar(nota: string): void {
     if (this.vacia()) return;
