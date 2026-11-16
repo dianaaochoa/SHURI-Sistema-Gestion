@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CampoDineroDirective } from '../../../compartido/campo-dinero.directive';
 import { formatearFechaCorta } from '../../../compartido/formato';
 import { Cliente, textoDireccion } from '../../punto-de-venta/clientes.datos';
 import { ClientesService } from '../../clientes/clientes.service';
@@ -43,7 +44,7 @@ export interface OrdenCapturada {
 @Component({
   selector: 'app-nueva-orden',
   standalone: true,
-  imports: [FormsModule, NuevoClienteComponent, FotosOrdenComponent],
+  imports: [FormsModule, CampoDineroDirective, NuevoClienteComponent, FotosOrdenComponent],
   templateUrl: './nueva-orden.component.html',
   styleUrl: './nueva-orden.component.css',
 })
@@ -159,11 +160,6 @@ export class NuevaOrdenComponent implements AfterViewInit {
 
   protected error(campo: Campo): boolean {
     return this.intentado() && this.errores()[campo];
-  }
-
-  protected leerNumero(texto: string): number | null {
-    const limpio = texto.replace(/[^0-9.]/g, '');
-    return limpio ? Number(limpio) : null;
   }
 
   protected quitarFoto(id: string): void {

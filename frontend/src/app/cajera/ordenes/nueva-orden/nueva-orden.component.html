@@ -170,8 +170,7 @@
               inputmode="decimal"
               autocomplete="off"
               placeholder="$0.00"
-              [value]="anticipo ?? ''"
-              (input)="anticipo = leerNumero($any($event.target).value)"
+              [(campoDinero)]="anticipo"
             />
           </div>
         </div>

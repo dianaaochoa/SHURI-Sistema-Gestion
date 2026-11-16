@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CampoDineroDirective } from '../../../compartido/campo-dinero.directive';
 import { formatearDinero } from '../../../compartido/formato';
 import { Cliente, DatosFiscales } from '../clientes.datos';
 import { DatosFacturaComponent } from '../datos-factura/datos-factura.component';
@@ -41,7 +42,7 @@ const TARJETA_RECHAZADA = '0000';
 @Component({
   selector: 'app-cobro',
   standalone: true,
-  imports: [FormsModule, DatosFacturaComponent, PagoMixtoComponent, TarjetaRechazadaComponent],
+  imports: [FormsModule, CampoDineroDirective, DatosFacturaComponent, PagoMixtoComponent, TarjetaRechazadaComponent],
   templateUrl: './cobro.component.html',
   styleUrl: './cobro.component.css',
 })
@@ -151,11 +152,6 @@ export class CobroComponent implements AfterViewInit {
   protected quitarFactura(): void {
     this.factura.set(null);
     this.facturaAbierta.set(false);
-  }
-
-  leerNumero(texto: string): number | null {
-    const limpio = texto.replace(/[^0-9.]/g, '');
-    return limpio ? Number(limpio) : null;
   }
 
   async copiarClabe(): Promise<void> {
