@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 16 nov 2026 (la bitácora AD8 registra el almacenaje perdonado y los dictámenes de garantía)
+- **Última actualización:** 16 nov 2026 (las entradas a crédito respetan el límite del proveedor)
 
 ---
 
@@ -380,6 +380,7 @@ flowchart LR
   SC --> NC & CLSV
   CAJA --> AUTH
   COS --> VS
+  EN --> PVS
   NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
@@ -645,6 +646,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - “Añadir Producto” abre C7.1; el lápiz edita y el reloj muestra los movimientos del producto (con “Ajustar stock”).
 - Importar: cualquier `.xlsx` muestra la vista previa de Figma (la lectura real de Excel llega con la API); un `.csv` con las columnas de la plantilla se lee de verdad. Exportar baja un CSV que abre Excel.
 - Entradas: PED-0123 llega hoy y se paga con efectivo de caja (C7.5 → C7.6). Al registrarla, el kit de sellos queda apartado para #1028 y esa orden pasa de “Esperando refacción” a “En taller”.
+- Con “Crédito del proveedor” se ve el crédito disponible (Distribuidora MovilTec: $9,241.00 de $20,000.00). Una factura que lo rebasa no se registra; un proveedor de contado (Refacciones Móviles del Centro, Importadora Celular GDL) cambia solo a transferencia y no acepta crédito.
 
 **Clientes (`/cajera/clientes`):**
 - La lista junta los clientes de Punto de venta, los de las órdenes y los de las ventas (se reconocen por teléfono o nombre). “Equipos activos”, “Última visita” y “Total gastado” se calculan con Órdenes y Ventas.
@@ -1217,6 +1219,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Límite de crédito en entradas (C7.3) | `Entrada` consulta `ProveedoresService`: disponible = límite − saldo de sus facturas a crédito. Con un proveedor de contado (o límite 0) no hay crédito; al elegirlo, la forma de pago pasa sola a transferencia | AD5 pide el límite a cada proveedor con crédito, pero nada lo consultaba. Un proveedor que no está en el directorio no se frena (llega con la API). |
 | Bitácora del taller (AD8) | `BitacoraService` lee de las órdenes el almacenaje perdonado (J8.2, con fecha e importe nuevos en `Orden.almacenaje`) y el dictamen de garantía (J4, con la respuesta del cliente si fue con costo). Los retiros e ingresos guardan quién los hizo (`MovimientoCaja.por`) | Antes solo salían en los datos de prueba y los movimientos de caja decían “Caja 01”. Los perdones viejos de los datos de prueba no tienen fecha y no se repiten. |
 | Editar un cliente | `ClientesService.guardar` busca cómo estaba el cliente y llama a `OrdenesService.actualizarCliente` con sus órdenes (mismo id, teléfono o nombre): toman nombre, teléfono y correo nuevos. Las ventas ya cobradas conservan los datos de su ticket | Órdenes de servicio, sus documentos y los correos de aviso (cotización, listo) usan los datos guardados en la orden; un ticket de venta es un comprobante que no cambia. |
 | Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
@@ -1251,7 +1254,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
 - [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT).
-- [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja.
 - [ ] Cortes de caja: la revisión debe llegar a la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
@@ -1965,4 +1967,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - Garantías: #0986 (Karla Ibarra) → Publicar dictamen con costo $450.00
   - Verónica Castillo, Bitácora: “Jorge López · Perdonó almacenaje · #0939 · $540.00 · 27 días en bodega” y “Dictamen de garantía · #0986 · con costo $450.00 · espera respuesta del cliente”
   - el nombre en retiros e ingresos: solo compilado
+  - `ng build` sin errores; sin errores en consola
+
+### 16 nov 2026 · Límite de crédito en las entradas de mercancía
+- Pendiente de solo frontend: el límite de crédito de AD5 se guardaba pero caja podía registrar a crédito cualquier factura.
+- `Entrada` (C7.3): `credito` (disponible con `ProveedoresService.deudaDe`), `elegirProveedor` y dos errores nuevos en la forma de pago; texto “Crédito disponible” bajo la forma de pago.
+- Verificado como Ana Martínez en Inventario › Entradas:
+  - Distribuidora MovilTec: “Crédito disponible: $9,241.00 de $20,000.00”
+  - 8 pantallas OLED iPhone 13 a $1,208 ($11,210.24) → “Rebasa el crédito: quedan $9,241.00 de $20,000.00…” y no se registra
+  - al cambiar a Refacciones Móviles del Centro la forma de pago pasa a transferencia; forzar crédito → “Refacciones Móviles del Centro vende de contado…”
+  - 5 pantallas ($7,006.40) a crédito con MovilTec → ENT-0056; después quedan $2,234.60 disponibles
   - `ng build` sin errores; sin errores en consola

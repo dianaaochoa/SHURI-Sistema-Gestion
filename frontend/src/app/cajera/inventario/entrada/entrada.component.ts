@@ -1,5 +1,6 @@
 import { Component, ElementRef, OnInit, computed, inject, output, signal, viewChild } from '@angular/core';
 import { AuthService } from '../../../acceso/auth.service';
+import { ProveedoresService } from '../../../administrador/proveedores.service';
 import { formatearDinero } from '../../../compartido/formato';
 import { CajaService } from '../../caja.service';
 import { CorteService } from '../../corte/corte.service';
@@ -28,6 +29,7 @@ export class EntradaComponent implements OnInit {
   protected readonly inventario = inject(InventarioService);
   private readonly ordenes = inject(OrdenesService);
   private readonly caja = inject(CajaService);
+  private readonly directorio = inject(ProveedoresService);
   private readonly corte = inject(CorteService);
   private readonly dispositivos = inject(DispositivosService);
   protected readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
@@ -146,6 +148,20 @@ export class EntradaComponent implements OnInit {
   protected readonly iva = computed(() => redondear(this.subtotal() * IVA));
   protected readonly total = computed(() => redondear(this.subtotal() + this.iva()));
 
+  /** Crédito con el proveedor (AD5): de contado no se compra a crédito y no se pasa del límite. */
+  protected readonly credito = computed(() => {
+    const p = this.directorio.buscar(this.proveedor());
+    if (!p) return null;
+    const deuda = this.directorio.deudaDe(p.nombre);
+    return { contado: p.condicion === 'contado' || p.limite <= 0, limite: p.limite, deuda, disponible: redondear(Math.max(0, p.limite - deuda)) };
+  });
+
+  /** Al cambiar de proveedor: con uno de contado, la forma de pago deja de ser crédito. */
+  protected elegirProveedor(nombre: string): void {
+    this.proveedor.set(nombre);
+    if (this.pago() === 'credito' && this.credito()?.contado) this.pago.set('transferencia');
+  }
+
   /** Aviso del panel: a quién se avisa y cómo sale el pago (Figma C7.5). */
   protected readonly avisoPanel = computed(() => {
     const p = this.pedidoElegido();
@@ -173,6 +189,12 @@ export class EntradaComponent implements OnInit {
     else if (this.renglones().some((r) => !(r.costo > 0))) e['lineas'] = 'Falta el costo unitario de algún producto';
     if (this.pago() === 'efectivo' && !this.caja.abierta()) e['pago'] = 'Abre el turno de caja para pagar en efectivo';
     else if (this.pago() === 'efectivo' && this.total() > this.corte.efectivoEnCaja()) e['pago'] = `En caja solo hay ${formatearDinero(this.corte.efectivoEnCaja())}`;
+    const c = this.credito();
+    if (this.pago() === 'credito' && c) {
+      if (c.contado) e['pago'] = `${this.proveedor()} vende de contado: paga en efectivo o por transferencia`;
+      else if (this.total() > c.disponible)
+        e['pago'] = `Rebasa el crédito: quedan ${formatearDinero(c.disponible)} de ${formatearDinero(c.limite)}. Paga en efectivo o por transferencia, o pide al administrador que suba el límite`;
+    }
     return e;
   });
 

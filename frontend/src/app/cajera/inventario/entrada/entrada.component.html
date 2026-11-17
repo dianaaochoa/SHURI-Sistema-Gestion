@@ -14,7 +14,7 @@
     <label class="campo__etiqueta" for="entrada-proveedor">Proveedor *</label>
     <div class="campo__control campo__control--40" [class.campo__control--fijo]="pedido()">
       <img src="assets/inventario/truck.svg" width="16" height="16" alt="" />
-      <select id="entrada-proveedor" class="campo__input campo__select" [disabled]="!!pedido()" [value]="proveedor()" (change)="proveedor.set($any($event.target).value)">
+      <select id="entrada-proveedor" class="campo__input campo__select" [disabled]="!!pedido()" [value]="proveedor()" (change)="elegirProveedor($any($event.target).value)">
         @for (p of proveedores; track p) { <option [value]="p" [selected]="p === proveedor()">{{ p }}</option> }
       </select>
       <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
@@ -112,7 +112,13 @@
         </select>
         <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
       </div>
-      @if (error('pago'); as e) { <p class="campo__error">{{ e }}</p> }
+      @if (error('pago'); as e) {
+        <p class="campo__error">{{ e }}</p>
+      } @else if (pago() === 'credito') {
+        @if (credito(); as c) {
+          @if (!c.contado) { <p class="credito">Crédito disponible: {{ dinero(c.disponible) }} de {{ dinero(c.limite) }}</p> }
+        }
+      }
     </div>
     <label class="casilla"><input type="checkbox" [checked]="fotoFactura()" (change)="fotoFactura.set($any($event.target).checked)" />Adjuntar foto de la factura</label>
     <div class="campo__control campo__control--40">
