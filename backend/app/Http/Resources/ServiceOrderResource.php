@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Services\Workshop\ServiceOrderService;
+use App\Services\Workshop\StorageService;
 use App\Support\OrderBalance;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -71,7 +72,7 @@ class ServiceOrderResource extends JsonResource
             'total' => (float) $this->total,
             'is_paid' => (bool) $this->is_paid,
             // Saldo por cobrar al entregar (C6); solo aplica cuando el equipo espera recolección
-            'balance' => $this->whenLoaded('status', fn () => in_array($this->status->code, OrderBalance::DELIVERABLE, true) && ! $this->is_paid
+            'balance' => $this->whenLoaded('status', fn () => in_array($this->status->code, app(StorageService::class)->deliverableStatuses(), true) && ! $this->is_paid
                 ? OrderBalance::for($this->resource)
                 : null),
             'promised_date' => $this->promised_date?->toDateString(),

@@ -7,6 +7,8 @@ use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Eloquent\InventoryRepository;
 use App\Repositories\Eloquent\OrderRepository;
 use App\Services\FolioService;
+use App\Services\Invoicing\Contracts\StamperInterface;
+use App\Services\Invoicing\SimulatedStamper;
 use App\Services\SettingsService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -29,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
         // Patrón Repository: el código depende del contrato; Eloquent es la implementación
         $this->app->bind(OrderRepositoryInterface::class, OrderRepository::class);
         $this->app->bind(InventoryRepositoryInterface::class, InventoryRepository::class);
+
+        // Patrón Strategy: el timbrado es simulado; un PAC real sería otra implementación
+        $this->app->bind(StamperInterface::class, SimulatedStamper::class);
     }
 
     /**

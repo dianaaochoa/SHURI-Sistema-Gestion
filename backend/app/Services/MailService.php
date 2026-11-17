@@ -18,12 +18,15 @@ class MailService
 {
     /**
      * @param  int|null  $serviceOrderId  orden a la que pertenece el aviso (para no repetirlo)
+     * @param  string|null  $address  otro correo de la misma cuenta (p. ej. el de facturación)
      * @return bool true si el correo se entregó al servidor de correo
      */
-    public function send(Mailable $mail, User|Customer $to, string $type, ?int $serviceOrderId = null): bool
+    public function send(Mailable $mail, User|Customer $to, string $type, ?int $serviceOrderId = null, ?string $address = null): bool
     {
+        $address ??= $to->email;
+
         $log = SentEmail::create([
-            'recipient' => $to->email,
+            'recipient' => $address,
             'user_id' => $to instanceof User ? $to->id : null,
             'customer_id' => $to instanceof Customer ? $to->id : null,
             'service_order_id' => $serviceOrderId,
@@ -34,7 +37,7 @@ class MailService
         ]);
 
         try {
-            Mail::to($to->email)->send($mail);
+            Mail::to($address)->send($mail);
             $log->update(['status' => 'sent', 'sent_at' => now()]);
 
             return true;

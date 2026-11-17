@@ -12,8 +12,10 @@ use App\Http\Controllers\Api\Cash\CashShiftController;
 use App\Http\Controllers\Api\Chat\ConversationController;
 use App\Http\Controllers\Api\Inventory\MovementController;
 use App\Http\Controllers\Api\Inventory\ProductController;
+use App\Http\Controllers\Api\Invoicing\InvoiceController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Portal\PortalChatController;
+use App\Http\Controllers\Api\Portal\PortalInvoiceController;
 use App\Http\Controllers\Api\Portal\PortalOrderController;
 use App\Http\Controllers\Api\Portal\PortalQuoteController;
 use App\Http\Controllers\Api\Portal\PortalWarrantyController;
@@ -208,6 +210,24 @@ Route::prefix('v1')->group(function () {
                 Route::post('customers/{customer}/temporary-password', [CustomerController::class, 'temporaryPassword'])->whereNumber('customer');
             });
 
+            // Facturación simulada (RF-16): C3 en mostrador, AD6 administración
+            Route::middleware('permission:invoicing.issue')->group(function () {
+                Route::get('invoices', [InvoiceController::class, 'index']);
+                Route::get('invoices/catalogs', [InvoiceController::class, 'catalogs']);
+                Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice');
+                Route::get('invoices/{invoice}/xml', [InvoiceController::class, 'xml'])->whereNumber('invoice');
+                Route::post('invoices', [InvoiceController::class, 'store']);
+            });
+            Route::middleware('permission:invoicing.cancel')->group(function () {
+                Route::post('invoices/global', [InvoiceController::class, 'storeGlobal']);
+                Route::post('invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->whereNumber('invoice');
+                Route::post('invoices/{invoice}/replace', [InvoiceController::class, 'replace'])->whereNumber('invoice');
+            });
+            Route::middleware('permission:customers.manage,invoicing.issue')->group(function () {
+                Route::get('customers/{customer}/tax-profiles', [InvoiceController::class, 'profiles'])->whereNumber('customer');
+                Route::post('customers/{customer}/tax-profiles', [InvoiceController::class, 'storeProfile'])->whereNumber('customer');
+            });
+
             // Resguardo y abandono de equipos (RF-09, J9)
             Route::middleware('permission:orders.storage')->group(function () {
                 Route::get('storage', [StorageController::class, 'index']);
@@ -275,6 +295,13 @@ Route::prefix('v1')->group(function () {
             Route::post('chat', [PortalChatController::class, 'store']);
             Route::get('chat/{conversation}/messages', [PortalChatController::class, 'messages'])->whereNumber('conversation');
             Route::post('chat/{conversation}/messages', [PortalChatController::class, 'send'])->whereNumber('conversation');
+
+            // P4.2 Autofacturación (RF-16, simulada)
+            Route::get('tax-profiles', [PortalInvoiceController::class, 'profiles']);
+            Route::post('tax-profiles', [PortalInvoiceController::class, 'storeProfile']);
+            Route::get('invoices', [PortalInvoiceController::class, 'index']);
+            Route::post('invoices', [PortalInvoiceController::class, 'store']);
+            Route::get('invoices/{id}/xml', [PortalInvoiceController::class, 'xml'])->whereNumber('id');
         });
     });
 
