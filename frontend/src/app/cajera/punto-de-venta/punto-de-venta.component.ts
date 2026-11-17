@@ -102,6 +102,7 @@ export class PuntoDeVentaComponent {
   abrir(modal: Modal): void {
     // Cliente, descuento, pausar y cobrar solo tienen sentido con artículos en el ticket.
     if (['descuento', 'pausar', 'cobro', 'cancelar'].includes(modal) && this.venta.vacia()) return;
+    if (modal === 'descuento' && !this.venta.descuentoMaximo()) return;
     // Sin conexión no se buscan clientes (C2.16).
     if (modal === 'cliente' && !this.dispositivos.enLinea()) return;
     if (modal === 'cobro') this.barra().limpiar();

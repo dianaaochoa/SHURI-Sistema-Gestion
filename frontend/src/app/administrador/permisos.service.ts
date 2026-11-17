@@ -1,5 +1,5 @@
-import { Injectable, signal } from '@angular/core';
-import { Rol } from '../acceso/auth.service';
+import { Injectable, inject, signal } from '@angular/core';
+import { AuthService, Rol } from '../acceso/auth.service';
 
 export type ClavePermiso = 'vender' | 'descuentos' | 'cancelar' | 'retiros' | 'costos' | 'precios' | 'mercancia' | 'pedidos' | 'cotizar' | 'banco' | 'reportes' | 'usuarios';
 
@@ -50,14 +50,21 @@ export const NIVELES_DESCUENTO = [0, 5, 10, 15, 20];
 export const textoDescuento = (n: number) => (n === 0 ? 'Sin descuentos' : `Hasta ${n}%${n === 20 ? ' (máximo)' : ''}`);
 
 /**
- * AD7.3 · Qué puede hacer cada rol. Simulado: se guarda en memoria y las pantallas todavía no lo consultan
- * (al conectar la API, el servidor revisará cada permiso).
+ * AD7.3 · Qué puede hacer cada rol. Simulado: se guarda en memoria. El menú, las rutas y las acciones
+ * lo consultan con `puede`; al conectar la API, el servidor también revisará cada permiso.
  */
 @Injectable({ providedIn: 'root' })
 export class PermisosService {
   readonly matriz = signal<MatrizPermisos>(MATRIZ_DEMO);
   /** Descuento máximo por omisión para las cajeras nuevas. */
   readonly descuentoCajera = signal(10);
+  private readonly auth = inject(AuthService);
+
+  /** ¿El rol de quien tiene la sesión tiene este permiso? Se recalcula si el administrador lo cambia. */
+  puede(clave: ClavePermiso): boolean {
+    const rol = this.auth.sesion()?.rol;
+    return !!rol && this.matriz()[clave][rol];
+  }
 
   guardar(matriz: MatrizPermisos, descuento: number): void {
     // El administrador nunca pierde el acceso a usuarios y configuración.

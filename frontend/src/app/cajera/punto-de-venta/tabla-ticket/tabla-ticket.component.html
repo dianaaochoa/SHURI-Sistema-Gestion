@@ -53,6 +53,7 @@
             maxlength="3"
             [attr.aria-label]="'Descuento en % de ' + linea.nombre"
             [value]="linea.descuento"
+            [disabled]="!venta.descuentoMaximo()"
             (change)="venta.fijarDescuento(linea.sku, +$any($event.target).value)"
             (focus)="$any($event.target).select()"
           />

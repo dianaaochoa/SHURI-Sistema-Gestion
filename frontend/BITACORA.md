@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 16 nov 2026 (las entradas a crédito respetan el límite del proveedor)
+- **Última actualización:** 16 nov 2026 (los permisos por rol de AD7.3 ya se aplican en menú, rutas y acciones)
 
 ---
 
@@ -358,7 +358,7 @@ flowchart LR
 
   AUTH["AuthService<br/>sesión, cuentas del personal,<br/>bloqueos y pedidos (simulado)"]:::serv
   USA["UsuariosAdmin AD7.1<br/>UsuarioForm AD7.2 · PermisosRol AD7.3<br/>AsignarTemporal AD7.4"]:::comp
-  PMS["PermisosService<br/>permisos por rol (simulado)"]:::serv
+  PMS["PermisosService<br/>permisos por rol y puede(permiso)<br/>(simulado)"]:::serv
   BTA["BitacoraAdmin AD8.1<br/>ExportarBitacora AD8.2"]:::comp
   BIT["BitacoraService<br/>solo agrega: junta precios, ajustes, pagos,<br/>facturas, cortes, caja, descuentos,<br/>almacenaje perdonado y dictámenes"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
@@ -381,6 +381,7 @@ flowchart LR
   CAJA --> AUTH
   COS --> VS
   EN --> PVS
+  RUT & ML & NM & VS & EN --> PMS
   NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
@@ -571,6 +572,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - “Nuevo usuario” (AD7.2) sugiere el usuario a partir del nombre, pide rol, caja y turno (cajeras) u horario (taller) y el descuento máximo; “Editar” permite cambiar datos, desactivar o reactivar (no a uno mismo) y asignar temporal.
 - Cada alta, cambio, desactivación, contraseña temporal y cambio de permisos queda en la Bitácora (AD8).
 - “Permisos por rol” (AD7.3): matriz de 12 permisos; el descuento de la cajera (0 a 20 %) es el valor por omisión de las cajeras nuevas. El punto de venta ya respeta el descuento máximo de cada cajera.
+- Los permisos aplican al guardar: sin “Vender” la cajera no ve Punto de venta; sin “Aplicar descuentos” el botón y la columna de descuento quedan apagados; sin “Cancelar ventas y devoluciones” esos botones de Ventas se desactivan; sin “Retiros y pagos a proveedor” no hay retiro ni ingreso en el corte ni pago en efectivo en las entradas; sin “Recibir mercancía” Inventario solo muestra el catálogo. Al jefe, “Cotizar y dictaminar” quita Por cotizar y Garantías, y “Pedidos” quita Refacciones; al técnico, “Trabajar órdenes en banco” quita Banco y Garantías; al administrador, “Ver reportes” quita los tres reportes. Una ruta sin permiso regresa al inicio del rol.
 
 **Portal del cliente (`/portal`):** sesión aparte de la del personal (no usa el menú).
 
@@ -1219,6 +1221,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Permisos por rol (AD7.3) | `PermisosService.puede(clave)` con el rol de la sesión. `DestinoMenu.permiso` quita el destino del menú (y de la barra J10) y pone la guarda `conPermiso` en su ruta. Dentro de las pantallas: descuentos (máximo 0), cancelar/devolver, retiros (corte y entradas en efectivo) y mercancía (pestañas y ajustes de Inventario) | Así el administrador ve el efecto en cuanto guarda. “Ver costos”, “Editar precios” y “Administrar usuarios” no quitan nada: la cajera y el técnico no tienen pantallas de costos ni de precios (salvo el precio de C7.1) y la configuración del taller (J9) es del jefe. Con la API, el servidor también revisará cada permiso. |
 | Límite de crédito en entradas (C7.3) | `Entrada` consulta `ProveedoresService`: disponible = límite − saldo de sus facturas a crédito. Con un proveedor de contado (o límite 0) no hay crédito; al elegirlo, la forma de pago pasa sola a transferencia | AD5 pide el límite a cada proveedor con crédito, pero nada lo consultaba. Un proveedor que no está en el directorio no se frena (llega con la API). |
 | Bitácora del taller (AD8) | `BitacoraService` lee de las órdenes el almacenaje perdonado (J8.2, con fecha e importe nuevos en `Orden.almacenaje`) y el dictamen de garantía (J4, con la respuesta del cliente si fue con costo). Los retiros e ingresos guardan quién los hizo (`MovimientoCaja.por`) | Antes solo salían en los datos de prueba y los movimientos de caja decían “Caja 01”. Los perdones viejos de los datos de prueba no tienen fecha y no se repiten. |
 | Editar un cliente | `ClientesService.guardar` busca cómo estaba el cliente y llama a `OrdenesService.actualizarCliente` con sus órdenes (mismo id, teléfono o nombre): toman nombre, teléfono y correo nuevos. Las ventas ya cobradas conservan los datos de su ticket | Órdenes de servicio, sus documentos y los correos de aviso (cotización, listo) usan los datos guardados en la orden; un ticket de venta es un comprobante que no cambia. |
@@ -1252,7 +1255,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Fotos de recepción: viven en memoria como data URL (se pierden al recargar); la API debe subirlas a un almacenamiento y dar su URL. El cliente solo las ve mientras la orden está “Recibida”.
 - [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
-- [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
+- [ ] Permisos por rol: “Ver costos y utilidad” y “Editar precios del catálogo” todavía no cambian ninguna pantalla (p. ej. el precio al editar un producto en C7.1); el servidor debe revisar cada permiso y cerrar sesiones en otros equipos (API).
 - [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT).
 - [ ] Cortes de caja: la revisión debe llegar a la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
@@ -1978,3 +1981,13 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - al cambiar a Refacciones Móviles del Centro la forma de pago pasa a transferencia; forzar crédito → “Refacciones Móviles del Centro vende de contado…”
   - 5 pantallas ($7,006.40) a crédito con MovilTec → ENT-0056; después quedan $2,234.60 disponibles
   - `ng build` sin errores; sin errores en consola
+
+### 16 nov 2026 · Permisos por rol aplicados
+- Pendiente de solo frontend: la matriz de AD7.3 se guardaba pero las pantallas no la consultaban (solo el descuento).
+- `PermisosService.puede`; `DestinoMenu.permiso` en `navegacion.ts` (vender, cotizar, pedidos, banco, reportes); guarda `conPermiso` en `app.routes.ts`; `MenuLateral` y `NavegacionMovil` filtran destinos. En pantallas: `VentaService.descuentoMaximo` (0 sin permiso, botón y columna apagados), `DetalleVenta` (cancelar/devolver), `Corte` (retiro/ingreso), `Entrada` (pago en efectivo), `Inventario` y `Movimientos` (entradas, ajustes y “Ajustar stock”).
+- Verificado:
+  - Verónica Castillo quita a la cajera vender, descuentos, cancelar, retiros y mercancía, y al jefe cotizar → “Permisos guardados (6 cambios)”
+  - Ana Martínez: el menú ya no tiene Punto de venta y `/cajera/punto-de-venta` regresa a Inicio; Inventario solo tiene “Catálogo” (aunque se pida `?vista=entradas`); en Ventas “Cancelar venta” y “Devolución” desactivados con “Tu rol no tiene permiso para cancelar ventas ni hacer devoluciones”
+  - Jorge López: menú sin Por cotizar ni Garantías, barra de celular con 4 destinos; `/jefe/garantias` regresa a Inicio
+  - descuentos, retiros del corte y pago en efectivo de entradas: solo compilados
+  - `ng build` sin errores (paquete inicial 528 kB)

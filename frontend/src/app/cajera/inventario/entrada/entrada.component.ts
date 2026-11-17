@@ -1,5 +1,6 @@
 import { Component, ElementRef, OnInit, computed, inject, output, signal, viewChild } from '@angular/core';
 import { AuthService } from '../../../acceso/auth.service';
+import { PermisosService } from '../../../administrador/permisos.service';
 import { ProveedoresService } from '../../../administrador/proveedores.service';
 import { formatearDinero } from '../../../compartido/formato';
 import { CajaService } from '../../caja.service';
@@ -30,6 +31,7 @@ export class EntradaComponent implements OnInit {
   private readonly ordenes = inject(OrdenesService);
   private readonly caja = inject(CajaService);
   private readonly directorio = inject(ProveedoresService);
+  private readonly permisos = inject(PermisosService);
   private readonly corte = inject(CorteService);
   private readonly dispositivos = inject(DispositivosService);
   protected readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
@@ -187,7 +189,8 @@ export class EntradaComponent implements OnInit {
     if (!this.renglones().length) e['lineas'] = 'Agrega al menos un producto';
     else if (this.renglones().some((r) => !Number.isInteger(r.cantidad) || r.cantidad <= 0)) e['lineas'] = 'Cada cantidad debe ser de 1 pieza o más';
     else if (this.renglones().some((r) => !(r.costo > 0))) e['lineas'] = 'Falta el costo unitario de algún producto';
-    if (this.pago() === 'efectivo' && !this.caja.abierta()) e['pago'] = 'Abre el turno de caja para pagar en efectivo';
+    if (this.pago() === 'efectivo' && !this.permisos.puede('retiros')) e['pago'] = 'Tu rol no tiene permiso para pagar a proveedores desde caja';
+    else if (this.pago() === 'efectivo' && !this.caja.abierta()) e['pago'] = 'Abre el turno de caja para pagar en efectivo';
     else if (this.pago() === 'efectivo' && this.total() > this.corte.efectivoEnCaja()) e['pago'] = `En caja solo hay ${formatearDinero(this.corte.efectivoEnCaja())}`;
     const c = this.credito();
     if (this.pago() === 'credito' && c) {

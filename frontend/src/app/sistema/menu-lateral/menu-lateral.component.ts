@@ -1,6 +1,7 @@
 import { Component, ElementRef, HostListener, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
+import { PermisosService } from '../../administrador/permisos.service';
 import { CajaService } from '../../cajera/caja.service';
 import { SalirConTurnoComponent } from '../../cajera/salir-con-turno/salir-con-turno.component';
 import { MenuUsuarioComponent } from '../menu-usuario/menu-usuario.component';
@@ -46,7 +47,15 @@ export class MenuLateralComponent {
   }
 
   protected readonly sesion = this.auth.sesion;
-  protected readonly navegacion = computed(() => NAVEGACION[this.sesion()?.rol ?? 'cajera']);
+  private readonly permisos = inject(PermisosService);
+  /** El menú del rol sin los destinos que su rol no tiene permitidos (AD7.3). */
+  protected readonly navegacion = computed(() => {
+    const nav = NAVEGACION[this.sesion()?.rol ?? 'cajera'];
+    const grupos = nav.grupos
+      .map((g) => ({ ...g, destinos: g.destinos.filter((d) => !d.permiso || this.permisos.puede(d.permiso)) }))
+      .filter((g) => g.destinos.length);
+    return { ...nav, grupos };
+  });
   protected readonly esCajera = computed(() => this.sesion()?.rol === 'cajera');
   /** La cajera ve su caja; el jefe, las órdenes abiertas (J1); el técnico, sus equipos asignados (T1); los demás, el texto fijo. */
   protected readonly resumen = computed(() => {

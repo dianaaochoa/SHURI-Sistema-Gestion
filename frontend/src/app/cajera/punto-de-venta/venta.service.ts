@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../acceso/auth.service';
+import { PermisosService } from '../../administrador/permisos.service';
 import { CATALOGO, Producto } from './catalogo.datos';
 import { CLIENTES, Cliente, DatosFiscales, PUBLICO_GENERAL } from './clientes.datos';
 
@@ -153,7 +154,11 @@ function pausadasDemo(): VentaPausada[] {
 export class VentaService {
   private readonly auth = inject(AuthService);
   /** Lo que la cajera con sesión puede descontar (AD7); el administrador no tiene límite. */
-  readonly descuentoMaximo = computed(() => this.auth.perfil()?.descuentoMaximo ?? (this.auth.sesion()?.rol === 'administrador' ? 100 : DESCUENTO_MAXIMO));
+  private readonly permisos = inject(PermisosService);
+  /** Sin el permiso “Aplicar descuentos” (AD7.3) el máximo es 0. */
+  readonly descuentoMaximo = computed(() =>
+    !this.permisos.puede('descuentos') ? 0 : (this.auth.perfil()?.descuentoMaximo ?? (this.auth.sesion()?.rol === 'administrador' ? 100 : DESCUENTO_MAXIMO)),
+  );
   private readonly lineasActuales = signal<Linea[]>([]);
   private readonly numeroFolio = signal(865);
   private siguienteFolio = 866;

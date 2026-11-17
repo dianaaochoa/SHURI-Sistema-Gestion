@@ -42,7 +42,7 @@
             <button type="button" class="boton boton--contorno boton--40" (click)="abrirTemporal()">
               <img src="assets/pdv/plus.svg" width="16" height="16" alt="" />Producto temporal
             </button>
-            <button type="button" class="boton boton--contorno boton--40" [class.ticket__con-descuento]="venta.descuentoVenta()" (click)="abrir('descuento')">
+            <button type="button" class="boton boton--contorno boton--40" [class.ticket__con-descuento]="venta.descuentoVenta()" [disabled]="!venta.descuentoMaximo()" [attr.title]="venta.descuentoMaximo() ? null : 'Tu rol no tiene permiso para aplicar descuentos'" (click)="abrir('descuento')">
               <img src="assets/pdv/percent.svg" width="16" height="16" alt="" />Descuento
               @if (venta.descuentoVenta(); as d) {
                 ({{ d.modo === '%' ? d.valor + ' %' : dinero(d.valor) }})

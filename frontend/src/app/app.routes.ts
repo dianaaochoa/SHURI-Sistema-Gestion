@@ -6,6 +6,7 @@ import { CrearContrasenaComponent } from './acceso/crear-contrasena/crear-contra
 import { IniciarSesionComponent } from './acceso/iniciar-sesion/iniciar-sesion.component';
 import { OlvideContrasenaComponent } from './acceso/olvide-contrasena/olvide-contrasena.component';
 import { NAVEGACION, rutaInicio } from './sistema/navegacion';
+import { ClavePermiso, PermisosService } from './administrador/permisos.service';
 import { PaginaPendienteComponent } from './sistema/pagina-pendiente/pagina-pendiente.component';
 import { SistemaLayoutComponent } from './sistema/sistema-layout/sistema-layout.component';
 import { PortalSesion } from './portal/portal-sesion';
@@ -36,6 +37,12 @@ const clienteFuera: CanActivateFn = () => {
 };
 
 /** Solo entra el rol dueño de la sección; los demás vuelven a su inicio. */
+/** AD7.3 · Sin el permiso, la pantalla regresa al inicio del rol. */
+const conPermiso =
+  (clave: ClavePermiso, inicio: string): CanActivateFn =>
+  () =>
+    inject(PermisosService).puede(clave) || inject(Router).parseUrl(inicio);
+
 const soloRol =
   (rol: Rol): CanActivateFn =>
   () => {
@@ -98,7 +105,7 @@ const DE_TODOS: Record<string, () => Promise<Type<unknown>>> = { perfil: PERFIL,
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
 function rutasDeRol(rol: Rol): Route {
   const { prefijo, grupos } = NAVEGACION[rol];
-  const pantallas = [
+  const pantallas: { etiqueta: string; ruta: string; figma: string; permiso?: ClavePermiso }[] = [
     ...grupos.flatMap((grupo) => grupo.destinos),
     { etiqueta: 'Mi perfil', ruta: 'perfil', figma: 'C1.6' },
     { etiqueta: 'Cambiar contraseña', ruta: 'cambiar-contrasena', figma: 'C1.6 / A.6' },
@@ -112,6 +119,7 @@ function rutasDeRol(rol: Rol): Route {
       ...pantallas.map((p) => ({
         path: p.ruta,
         loadComponent: PANTALLAS[`${prefijo}/${p.ruta}`] ?? DE_TODOS[p.ruta] ?? (() => Promise.resolve(PaginaPendienteComponent)),
+        canActivate: p.permiso ? [conPermiso(p.permiso, `/${prefijo}/inicio`)] : [],
         title: `${p.etiqueta} · SHURI`,
         data: { titulo: p.etiqueta, figma: p.figma },
       })),

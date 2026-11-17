@@ -5,7 +5,7 @@
       <p class="encabezado-pagina__subtitulo">{{ pestana() === 'turno' ? subtitulo() : 'Historial de cortes del negocio · Puedes reimprimir cualquier corte' }}</p>
     </div>
     @if (pestana() === 'turno') {
-      @if (caja.abierta()) {
+      @if (caja.abierta() && puedeRetirar()) {
         <div class="acciones">
           <button type="button" class="boton boton--contorno boton--40" (click)="movimiento.set('retiro')">
             <span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>Registrar retiro

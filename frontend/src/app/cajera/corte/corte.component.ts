@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
+import { PermisosService } from '../../administrador/permisos.service';
 import { formatearHora } from '../../compartido/formato';
 import { AbrirTurnoComponent } from '../abrir-turno/abrir-turno.component';
 import { CajaService } from '../caja.service';
@@ -20,6 +21,9 @@ import { TurnoCerradoComponent } from './turno-cerrado/turno-cerrado.component';
 })
 export class CorteComponent {
   protected readonly caja = inject(CajaService);
+  /** AD7.3 · “Retiros y pagos a proveedor desde caja”. */
+  protected readonly puedeRetirar = computed(() => this.permisos.puede('retiros'));
+  private readonly permisos = inject(PermisosService);
   private readonly servicio = inject(CorteService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
