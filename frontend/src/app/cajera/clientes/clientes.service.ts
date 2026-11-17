@@ -182,6 +182,15 @@ export class ClientesService {
   /** Alta o edición. También deja al cliente en la lista que usan Punto de venta y Nueva orden. */
   guardar(cliente: Cliente): void {
     const nuevo = { ...cliente, desde: cliente.desde ?? new Date().toISOString() };
+    // Cómo estaba antes de editarlo: así se encuentran sus órdenes aunque cambie el nombre o el teléfono.
+    const anterior = this.clientes().find((c) => c.id === nuevo.id);
+    if (anterior) {
+      this.ordenes.actualizarCliente((o) => this.esMismo(anterior, { id: '', nombre: o.cliente.nombre, telefono: o.cliente.telefono }), {
+        nombre: nuevo.nombre,
+        telefono: nuevo.telefono ?? '',
+        correo: nuevo.correo || undefined,
+      });
+    }
     this.guardados.update((lista) => (lista.some((c) => c.id === nuevo.id) ? lista.map((c) => (c.id === nuevo.id ? nuevo : c)) : [...lista, nuevo]));
     const i = CLIENTES.findIndex((c) => c.id === nuevo.id);
     if (i >= 0) CLIENTES[i] = nuevo;

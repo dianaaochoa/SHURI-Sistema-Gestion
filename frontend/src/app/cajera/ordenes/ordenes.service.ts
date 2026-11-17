@@ -930,6 +930,21 @@ export class OrdenesService {
   }
 
   /** C4 · Más fotos de recepción después de registrar la orden (máximo 6). */
+  /** C8.2 · Al editar un cliente, sus órdenes toman el nombre, teléfono y correo nuevos (los avisos por correo usan los de la orden). */
+  actualizarCliente(esSuya: (o: Orden) => boolean, datos: Orden['cliente']): number {
+    let cambiadas = 0;
+    this.ordenes.update((lista) =>
+      lista.map((o) => {
+        if (!esSuya(o)) return o;
+        const cliente = { ...o.cliente, ...datos };
+        if (cliente.nombre === o.cliente.nombre && cliente.telefono === o.cliente.telefono && cliente.correo === o.cliente.correo) return o;
+        cambiadas++;
+        return { ...o, cliente };
+      }),
+    );
+    return cambiadas;
+  }
+
   agregarFotos(folio: string, fotos: { url: string; nombre: string }[], por: string): void {
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => {
