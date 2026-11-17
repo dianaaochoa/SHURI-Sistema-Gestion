@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 16 nov 2026 (editar un cliente actualiza sus órdenes)
+- **Última actualización:** 16 nov 2026 (la bitácora AD8 registra el almacenaje perdonado y los dictámenes de garantía)
 
 ---
 
@@ -360,7 +360,7 @@ flowchart LR
   USA["UsuariosAdmin AD7.1<br/>UsuarioForm AD7.2 · PermisosRol AD7.3<br/>AsignarTemporal AD7.4"]:::comp
   PMS["PermisosService<br/>permisos por rol (simulado)"]:::serv
   BTA["BitacoraAdmin AD8.1<br/>ExportarBitacora AD8.2"]:::comp
-  BTS["BitacoraService<br/>solo agrega: junta precios, ajustes,<br/>pagos, facturas, cortes, caja, descuentos"]:::serv
+  BIT["BitacoraService<br/>solo agrega: junta precios, ajustes, pagos,<br/>facturas, cortes, caja, descuentos,<br/>almacenaje perdonado y dictámenes"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
   CAJA["CajaService<br/>turno (de quién lo abrió), retiros,<br/>ingresos y pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
@@ -439,12 +439,12 @@ flowchart LR
   NAV --> RUT & ML & PP
   IS & OC & CC & ML & MU & PP --> AUTH
   SL --> USA
-  USA --> AUTH & PMS & BTS
+  USA --> AUTH & PMS & BIT
   SL --> BTA
-  BTA --> BTS
-  BTS --> INS & CAJA & COS & FCS & PVS
+  BTA --> BIT
+  BIT --> INS & CAJA & COS & FCS & PVS & OS
   SL --> CFA
-  CFA --> CFS & BTS & CAJA
+  CFA --> CFS & BIT & CAJA
   CFS --> ADO & RT9 & FCS
   PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4<br/>Seguimiento P2.1–P2.11 · Garantía P3<br/>Factura P4.2 · hoja de cláusulas y privacidad<br/>Chat P5 · aviso de respuesta"]:::comp
   PTS["PortalService<br/>entrar, temporal, equipos del cliente"]:::serv
@@ -1217,6 +1217,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
 | Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
 | Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Bitácora del taller (AD8) | `BitacoraService` lee de las órdenes el almacenaje perdonado (J8.2, con fecha e importe nuevos en `Orden.almacenaje`) y el dictamen de garantía (J4, con la respuesta del cliente si fue con costo). Los retiros e ingresos guardan quién los hizo (`MovimientoCaja.por`) | Antes solo salían en los datos de prueba y los movimientos de caja decían “Caja 01”. Los perdones viejos de los datos de prueba no tienen fecha y no se repiten. |
 | Editar un cliente | `ClientesService.guardar` busca cómo estaba el cliente y llama a `OrdenesService.actualizarCliente` con sus órdenes (mismo id, teléfono o nombre): toman nombre, teléfono y correo nuevos. Las ventas ya cobradas conservan los datos de su ticket | Órdenes de servicio, sus documentos y los correos de aviso (cotización, listo) usan los datos guardados en la orden; un ticket de venta es un comprobante que no cambia. |
 | Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
 | Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
@@ -1248,11 +1249,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Fotos de recepción: viven en memoria como data URL (se pierden al recargar); la API debe subirlas a un almacenamiento y dar su URL. El cliente solo las ve mientras la orden está “Recibida”.
 - [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
-- [ ] Bitácora: el almacenaje perdonado (J8) y los dictámenes de garantía (J4) solo salen en los datos de prueba; falta registrarlos cuando el jefe los hace.
 - [ ] Permisos por rol (AD7.3) se guardan pero las pantallas todavía no los consultan (solo el descuento de la cajera); cerrar sesiones en otros equipos le toca a la API.
-- [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT); las cancelaciones aún no aparecen en la bitácora (AD8).
-- [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja, y los pagos no entran a la bitácora (AD8).
-- [ ] Cortes de caja: la revisión debe quedar en la bitácora (AD8) y en la nómina cuando se descuente.
+- [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT).
+- [ ] Proveedores: el límite de crédito se guarda pero todavía no frena compras a crédito en caja.
+- [ ] Cortes de caja: la revisión debe llegar a la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos que toma el técnico son espacios vacíos (las de recepción ya son reales); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
@@ -1954,3 +1954,15 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - Pendiente de solo frontend: al editar a un cliente (C8.2 o desde Nueva orden) sus órdenes se quedaban con el nombre, teléfono y correo viejos.
 - `OrdenesService.actualizarCliente` y `ClientesService.guardar` (compara con cómo estaba antes de guardar). Las ventas cobradas no se tocan.
 - Verificado como Ana Martínez: en Clientes, María Hernández → Editar → teléfono `55 1234 9999` → “Se guardaron los cambios de María Hernández.”; sigue una sola María en la lista y el detalle de #1024 en Órdenes dice “María Hernández · 55 1234 9999”. `ng build` sin errores.
+
+### 16 nov 2026 · Bitácora AD8: almacenaje perdonado y dictámenes de garantía
+- Pendiente de solo frontend: perdonar almacenaje (J8.2) y dictaminar garantías (J4) no llegaban a la bitácora del administrador.
+- Al revisar se vio que las cancelaciones de factura, los pagos a proveedor y la revisión de cortes ya entraban (desde AD8): se corrigieron esos tres pendientes.
+- `Orden.almacenaje` guarda `fecha` e `importe`; la política de bodega manda el monto también al perdonar. `BitacoraService` lee de `OrdenesService` los perdones y dictámenes; `MovimientoCaja.por` guarda quién hizo el retiro o ingreso.
+- Grafo 3: `BTS` se usaba para BancoService y para BitacoraService; la bitácora ahora es `BIT`.
+- Verificado:
+  - Jorge López, Equipos terminados: #0939 (Rosa Núñez, 27 días × $20.00 = $540.00) → Perdonar almacenaje → “#0939: almacenaje perdonado; queda registrado a tu nombre”
+  - Garantías: #0986 (Karla Ibarra) → Publicar dictamen con costo $450.00
+  - Verónica Castillo, Bitácora: “Jorge López · Perdonó almacenaje · #0939 · $540.00 · 27 días en bodega” y “Dictamen de garantía · #0986 · con costo $450.00 · espera respuesta del cliente”
+  - el nombre en retiros e ingresos: solo compilado
+  - `ng build` sin errores; sin errores en consola

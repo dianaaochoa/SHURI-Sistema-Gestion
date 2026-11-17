@@ -124,7 +124,7 @@ export interface Orden {
   /** Daño encontrado durante la reparación; el jefe lo re-cotiza (J3.4). */
   danoAdicional?: { fecha: string; texto: string; urgente: boolean; conceptos: Concepto[] };
   /** Política de bodega (J8.2): almacenaje que caja cobra al entregar, o perdonado por el jefe. */
-  almacenaje?: { dias: number; monto: number; por: string; perdonado?: boolean };
+  almacenaje?: { dias: number; monto: number; por: string; perdonado?: boolean; fecha?: string; /** Lo que se perdonó (para la bitácora AD8). */ importe?: number };
   /** Cobro de revisión de un equipo sin reparación (J3.3). Sin valor: la revisión es el anticipo. */
   revision?: { cobrar: boolean; monto: number };
   /** Orden en pausa (J2.3): desde cuándo y por qué. */
@@ -1276,12 +1276,20 @@ export class OrdenesService {
   /** J8.2 · Política de bodega: cobrar almacenaje al entregar o perdonarlo (queda con el nombre del jefe). */
   aplicarAlmacenaje(folio: string, datos: { dias: number; monto: number; perdonar: boolean; por: string }): void {
     const texto = datos.perdonar
-      ? `Almacenaje de ${datos.dias} días perdonado por ${datos.por}`
+      ? `Almacenaje de ${datos.dias} días ($${datos.monto.toFixed(2)}) perdonado por ${datos.por}`
       : `Almacenaje de ${datos.dias} días ($${datos.monto.toFixed(2)}) por cobrar al entregar (${datos.por})`;
+    const fecha = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
-      almacenaje: { dias: datos.dias, monto: datos.perdonar ? 0 : datos.monto, por: datos.por, perdonado: datos.perdonar || undefined },
-      historial: [...o.historial, { fecha: ahoraIso(), texto }],
+      almacenaje: {
+        dias: datos.dias,
+        monto: datos.perdonar ? 0 : datos.monto,
+        por: datos.por,
+        perdonado: datos.perdonar || undefined,
+        fecha,
+        importe: datos.perdonar ? datos.monto : undefined,
+      },
+      historial: [...o.historial, { fecha, texto }],
     }));
   }
 

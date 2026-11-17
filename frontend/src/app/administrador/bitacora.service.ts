@@ -4,6 +4,7 @@ import { CajaService } from '../cajera/caja.service';
 import { CorteService } from '../cajera/corte/corte.service';
 import { TIPOS_AJUSTE } from '../cajera/inventario/inventario.datos';
 import { InventarioService } from '../cajera/inventario/inventario.service';
+import { DecisionGarantia, OrdenesService } from '../cajera/ordenes/ordenes.service';
 import { HistorialVentasService } from '../cajera/ventas/historial-ventas.service';
 import { formatearDinero } from '../compartido/formato';
 import { FacturacionService, MOTIVOS_CANCELACION, serieFolio } from './facturacion.service';
@@ -120,6 +121,7 @@ export class BitacoraService {
   private readonly cortes = inject(CorteService);
   private readonly caja = inject(CajaService);
   private readonly ventas = inject(HistorialVentasService);
+  private readonly ordenes = inject(OrdenesService);
 
   private readonly propios = signal<RegistroBitacora[]>([...demoHoy(), ...demoHistorial()]);
   private consecutivo = 0;
@@ -148,10 +150,27 @@ export class BitacoraService {
     for (const c of this.cortes.cortes().filter((x) => x.revision))
       de(`corte-${c.folio}`, { fecha: c.revision!.fecha, nombre: c.revision!.por, tipo: 'corte', detalle: `${c.folio} · ${c.cajera} · diferencia ${formatearDinero(c.contado - c.esperado)} · ${DECISION[c.revision!.decision]}${c.revision!.nota ? ` · ${c.revision!.nota}` : ''}`, modulo: 'Cortes de caja', ruta: '/administrador/cortes-de-caja' });
     for (const m of this.caja.movimientos())
-      de(`caja-${m.folio}`, { fecha: m.fecha, nombre: 'Caja 01', tipo: m.tipo, detalle: `${m.folio} · ${formatearDinero(m.monto)} · ${m.motivo}${m.comentario ? ` · ${m.comentario}` : ''}`, modulo: 'Corte', ruta: '/administrador/cortes-de-caja' });
+      de(`caja-${m.folio}`, { fecha: m.fecha, nombre: m.por ?? 'Caja 01', tipo: m.tipo, detalle: `${m.folio} · ${formatearDinero(m.monto)} · ${m.motivo}${m.comentario ? ` · ${m.comentario}` : ''}`, modulo: 'Corte', ruta: '/administrador/cortes-de-caja' });
     for (const v of this.ventas.ventas().filter((x) => x.descuento))
       de(`desc-${v.folio}`, { fecha: v.fecha, nombre: v.cajera, tipo: 'descuento', etiqueta: v.descuento!.modo === '%' ? `Descuento ${v.descuento!.valor}%` : `Descuento ${formatearDinero(v.descuento!.valor, true)}`, detalle: `${v.folio} · ${formatearDinero(v.total)} · motivo: ${v.descuento!.motivo.toLowerCase()}`, modulo: 'Punto de venta', ruta: '/administrador/ventas-y-utilidad' });
 
+    // Taller: lo que decide el jefe sobre una orden (J8.2 y J4).
+    for (const o of this.ordenes.ordenes()) {
+      const a = o.almacenaje;
+      if (a?.perdonado && a.fecha)
+        de(`alm-${o.folio}-${a.fecha}`, { fecha: a.fecha, nombre: a.por, tipo: 'almacenaje', detalle: `${o.folio} · ${formatearDinero(a.importe ?? 0)} · ${a.dias} ${a.dias === 1 ? 'día' : 'días'} en bodega`, modulo: 'Taller', ruta: '/administrador/taller' });
+      const d = o.garantia?.decision;
+      if (d) de(`gar-${o.folio}-${d.fecha}`, { fecha: d.fecha, nombre: d.por, tipo: 'garantia', detalle: `${o.folio} · ${dictamen(d)}`, modulo: 'Garantías', ruta: '/administrador/taller' });
+    }
+
     return lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
   });
+}
+
+/** "aplica sin costo", "con costo $350.00 · aceptado", "no aplica · se devuelve sin reparar" */
+function dictamen(d: DecisionGarantia): string {
+  if (d.tipo === 'aplica') return 'aplica sin costo';
+  if (d.tipo === 'sin-reparar') return 'no aplica · se devuelve sin reparar';
+  const respuesta = d.respuesta ? (d.respuesta.acepta ? ' · el cliente aceptó' : ' · el cliente rechazó') : ' · espera respuesta del cliente';
+  return `con costo ${formatearDinero(d.costo ?? 0)}${respuesta}`;
 }
