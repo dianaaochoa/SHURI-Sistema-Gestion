@@ -1,7 +1,7 @@
 import { Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../acceso/auth.service';
-import { ESTADOS_ORDEN, Orden, OrdenesService, PRIORIDADES, Prioridad } from '../../../cajera/ordenes/ordenes.service';
+import { ESTADOS_ORDEN, Orden, OrdenesService, PRIORIDADES, Prioridad, evidenciasDe } from '../../../cajera/ordenes/ordenes.service';
 import { SeguimientoOrdenComponent } from '../../../cajera/ordenes/seguimiento-orden/seguimiento-orden.component';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import { slaDiagnostico, atrasada, horasDesde, tiempoEn } from '../../etapas';
@@ -78,7 +78,7 @@ export class OrdenJefeComponent {
       .map((e) => ({ ...e, cuando: cuando(e.fecha) }));
   });
 
-  protected readonly fotosTecnico = computed(() => (this.paso() > 2 || this.orden().diagnostico ? 2 : 0));
+  protected readonly fotosTecnico = computed(() => evidenciasDe(this.orden()));
 
   // ---------- Cambiar prioridad ----------
   protected readonly cambiandoPrioridad = signal(false);

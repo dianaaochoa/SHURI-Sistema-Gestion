@@ -5,8 +5,10 @@ import { Concepto, Orden } from '../../../cajera/ordenes/ordenes.service';
 import { ConfiguracionTallerService } from '../../../jefe/configuracion/configuracion.service';
 import { BuscarPiezaComponent } from '../buscar-pieza/buscar-pieza.component';
 import { FichaEquipoComponent } from '../ficha-equipo/ficha-equipo.component';
+import { OrdenesService } from '../../../cajera/ordenes/ordenes.service';
+import { evidenciasDe } from '../../../cajera/ordenes/ordenes.service';
+import { AuthService } from '../../../acceso/auth.service';
 import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
-import { FotosComponent } from '../fotos/fotos.component';
 
 export interface DiagnosticoEnviado {
   texto: string;
@@ -36,7 +38,7 @@ interface Pieza {
 @Component({
   selector: 'app-diagnostico-panel',
   standalone: true,
-  imports: [FichaEquipoComponent, FotosComponent, FotosOrdenComponent, BuscarPiezaComponent],
+  imports: [FichaEquipoComponent, FotosOrdenComponent, BuscarPiezaComponent],
   templateUrl: './diagnostico-panel.component.html',
   styleUrls: ['../banco-comun.css', './diagnostico-panel.component.css'],
 })
@@ -44,7 +46,18 @@ export class DiagnosticoPanelComponent {
   private readonly inventario = inject(InventarioService);
   private readonly configuracion = inject(ConfiguracionTallerService);
 
+  private readonly ordenes = inject(OrdenesService);
+  private readonly nombre = inject(AuthService).sesion()?.nombre ?? '';
   readonly orden = input.required<Orden>();
+
+  /** Fotos del técnico de esta etapa: se guardan en la orden en cuanto se toman. */
+  protected readonly evidencias = computed(() => evidenciasDe(this.orden(), 'diagnostico'));
+  protected subirFotos(fotos: { url: string; nombre: string }[]): void {
+    this.ordenes.agregarEvidencias(this.orden().folio, 'diagnostico', fotos, this.nombre);
+  }
+  protected quitarFoto(id: string): void {
+    this.ordenes.quitarEvidencia(this.orden().folio, id, this.nombre);
+  }
   readonly enviar = output<DiagnosticoEnviado>();
   readonly sinReparacion = output<void>();
   readonly necesitoInfo = output<void>();
@@ -59,7 +72,6 @@ export class DiagnosticoPanelComponent {
   protected readonly tiempo = signal('1 h 30 min');
   protected readonly nivel = signal('medio');
   protected readonly nota = signal('');
-  protected readonly fotos = signal(0);
   protected readonly piezas = signal<Pieza[]>([]);
   protected readonly intentado = signal(false);
 

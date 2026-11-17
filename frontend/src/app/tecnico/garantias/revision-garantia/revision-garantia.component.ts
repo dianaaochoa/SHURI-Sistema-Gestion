@@ -2,9 +2,9 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../acceso/auth.service';
 import { formatearDinero } from '../../../compartido/formato';
-import { Orden, OrdenesService, diasGarantia } from '../../../cajera/ordenes/ordenes.service';
+import { Orden, OrdenesService, diasGarantia, evidenciasDe } from '../../../cajera/ordenes/ordenes.service';
 import { diasUsados, etapaGarantia } from '../../../jefe/garantias/garantia';
-import { FotosComponent } from '../../banco/fotos/fotos.component';
+import { FotosOrdenComponent, fotosSinGuardar } from '../../../compartido/fotos-orden/fotos-orden.component';
 import { diaCorto } from '../../mi-trabajo';
 
 const RELACION = ['Sí, es la pieza que se cambió', 'Sí, es el mismo trabajo', 'No, daño posterior a la entrega', 'No, es otra falla'];
@@ -15,7 +15,7 @@ const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-MX', { hour: 
 @Component({
   selector: 'app-revision-garantia',
   standalone: true,
-  imports: [RouterLink, FotosComponent],
+  imports: [RouterLink, FotosOrdenComponent],
   templateUrl: './revision-garantia.component.html',
   styleUrls: ['../../banco/banco-comun.css', './revision-garantia.component.css'],
 })
@@ -24,6 +24,8 @@ export class RevisionGarantiaComponent {
   private readonly nombre = inject(AuthService).sesion()?.nombre ?? '';
 
   readonly orden = input.required<Orden>();
+  private readonly fotosServicio = inject(OrdenesService);
+  private readonly nombreFotos = inject(AuthService).sesion()?.nombre ?? '';
   readonly volver = output<string>();
 
   protected readonly relaciones = RELACION;
@@ -35,12 +37,18 @@ export class RevisionGarantiaComponent {
   protected readonly trabajo = signal('');
   protected readonly aplica = signal(true);
   protected readonly costo = signal<number | null>(null);
-  protected readonly fotos = signal(0);
+  /** Fotos de garantia: se guardan en la orden al confirmar. */
+  protected readonly fotos = signal<{ url: string; nombre: string }[]>([]);
+  protected readonly fotosVista = computed(() => fotosSinGuardar(this.fotos(), this.nombreFotos));
+  protected quitarFoto(id: string): void {
+    this.fotos.update((l) => l.filter((_, i) => String(i) !== id));
+  }
   protected readonly intentado = signal(false);
 
   protected readonly etapa = computed(() => etapaGarantia(this.orden()));
   /** Ya mandó su reporte: se muestra tal cual, sin editar. */
   protected readonly enviado = computed(() => this.orden().garantia?.reporte ?? null);
+  protected readonly enviadas = computed(() => evidenciasDe(this.orden(), 'garantia'));
 
   protected readonly estado = computed(() => {
     switch (this.etapa()) {
@@ -114,6 +122,7 @@ export class RevisionGarantiaComponent {
       },
       this.nombre,
     );
+    this.fotosServicio.agregarEvidencias(this.orden().folio, 'garantia', this.fotos(), this.nombreFotos);
     this.volver.emit(`Reporte de ${this.orden().folio} enviado al jefe: queda “Esperando dictamen”.`);
   }
 }

@@ -50,9 +50,9 @@
 
     <div class="campo">
       <span class="campo__etiqueta">Fotos de evidencia *</span>
-      <app-fotos [cantidad]="fotos()" [tamano]="64" agregar="Foto" (agregada)="fotos.set(fotos() + 1)" />
+      <app-fotos-orden [fotos]="fotosVista()" [editable]="true" [tamano]="64" (agregadas)="fotos.set(fotos().concat($event))" (quitada)="quitarFoto($event)" />
     </div>
-    @if (intentado() && (!texto().trim() || !fotos())) {
+    @if (intentado() && (!texto().trim() || !fotos().length)) {
       <p class="campo__error">Describe lo que encontraste y agrega al menos una foto.</p>
     }
 

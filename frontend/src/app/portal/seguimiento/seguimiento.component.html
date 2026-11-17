@@ -78,6 +78,9 @@
           <section class="tarjeta">
             <p class="tarjeta__titulo">Falla encontrada</p>
             <p class="tenue">{{ p.descripcion }}</p>
+            @if (fotosDe('diagnostico').length) {
+              <app-fotos-orden [fotos]="fotosDe('diagnostico')" [tamano]="64" />
+            }
             <p class="dato"><span>Refacciones</span><strong>{{ p.refacciones }}</strong></p>
             <p class="dato"><span>Mano de obra</span><strong>{{ p.manoObra }}</strong></p>
             <p class="dato"><span>Total · IVA incluido</span><strong>{{ p.total }}</strong></p>
@@ -93,6 +96,9 @@
           <section class="tarjeta">
             <p class="tarjeta__titulo">Daño adicional encontrado</p>
             <p class="tenue">{{ a.descripcion }}</p>
+            @if (fotosDe('adicional').length) {
+              <app-fotos-orden [fotos]="fotosDe('adicional')" [tamano]="64" />
+            }
             <p class="dato"><span>Adicional · IVA incluido</span><strong>{{ a.monto }}</strong></p>
             <p class="dato"><span>{{ a.base }}</span></p>
             <p class="dato"><span>Ya autorizado{{ v.presupuesto?.aprobado ? ' (' + v.presupuesto?.aprobado + ')' : '' }}</span><strong>{{ a.autorizado }}</strong></p>
@@ -122,6 +128,10 @@
         <section class="tarjeta">
           <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/portal/map-pin.svg)"></span>Recoge en SHURI</p>
           <p>Lleva tu folio {{ orden()?.folio }} y una identificación para recoger tu equipo.</p>
+          @if (fotosDe('salida', 'sin-reparar', 'devolucion').length) {
+            <p class="tenue">Así quedó tu equipo:</p>
+            <app-fotos-orden [fotos]="fotosDe('salida', 'sin-reparar', 'devolucion')" [tamano]="64" />
+          }
         </section>
         <section class="tarjeta">
           <p class="tarjeta__titulo">Importe pendiente de entrega</p>

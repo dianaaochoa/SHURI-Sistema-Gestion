@@ -7,8 +7,8 @@ import { BancoService, pasosDe } from '../../banco.service';
 import { diaCorto } from '../../mi-trabajo';
 import { BuscarPiezaComponent } from '../buscar-pieza/buscar-pieza.component';
 import { FichaEquipoComponent } from '../ficha-equipo/ficha-equipo.component';
+import { evidenciasDe } from '../../../cajera/ordenes/ordenes.service';
 import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
-import { FotosComponent } from '../fotos/fotos.component';
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
 
@@ -23,7 +23,7 @@ const PIEZA: Record<string, { texto: string; tono: string }> = {
 @Component({
   selector: 'app-taller-panel',
   standalone: true,
-  imports: [FichaEquipoComponent, FotosComponent, FotosOrdenComponent, BuscarPiezaComponent],
+  imports: [FichaEquipoComponent, FotosOrdenComponent, BuscarPiezaComponent],
   templateUrl: './taller-panel.component.html',
   styleUrls: ['../banco-comun.css', './taller-panel.component.css'],
 })
@@ -34,12 +34,20 @@ export class TallerPanelComponent {
   private readonly nombre = inject(AuthService).sesion()?.nombre ?? '';
 
   readonly orden = input.required<Orden>();
+
+  /** Fotos del técnico de esta etapa: se guardan en la orden en cuanto se toman. */
+  protected readonly evidencias = computed(() => evidenciasDe(this.orden(), 'reparacion'));
+  protected subirFotos(fotos: { url: string; nombre: string }[]): void {
+    this.ordenes.agregarEvidencias(this.orden().folio, 'reparacion', fotos, this.nombre);
+  }
+  protected quitarFoto(id: string): void {
+    this.ordenes.quitarEvidencia(this.orden().folio, id, this.nombre);
+  }
   readonly pausar = output<void>();
   readonly necesitoInfo = output<void>();
   readonly danoAdicional = output<void>();
   readonly listo = output<void>();
 
-  protected readonly fotos = signal(2);
   protected readonly nota = signal('');
   protected readonly pedida = signal('');
 

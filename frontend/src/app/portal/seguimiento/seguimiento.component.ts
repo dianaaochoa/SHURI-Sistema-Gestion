@@ -4,7 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { descargar, pdfDeLineas } from '../../administrador/pdf-simple';
 import { NEGOCIO } from '../../cajera/documentos/documentos.service';
-import { Orden, saldo } from '../../cajera/ordenes/ordenes.service';
+import { Orden, saldo, EtapaFoto, FotoEvidencia, evidenciasDe } from '../../cajera/ordenes/ordenes.service';
 import { formatearDinero } from '../../compartido/formato';
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { InformacionModalComponent } from '../compartido/informacion-modal.component';
@@ -78,6 +78,11 @@ const VARIANTES: Record<Variante, { badge: string; tono: string; titulo: string;
   styleUrls: ['../portal.css', './seguimiento.component.css', './tarjetas.css'],
 })
 export class SeguimientoComponent {
+  /** Fotos del técnico que ve el cliente: diagnóstico en el presupuesto, daño adicional y cómo quedó al final. */
+  protected fotosDe(...etapas: EtapaFoto[]): FotoEvidencia[] {
+    const o = this.orden();
+    return o ? evidenciasDe(o, ...etapas) : [];
+  }
   private readonly portal = inject(PortalService);
   private readonly folio = toSignal(inject(ActivatedRoute).paramMap.pipe(map((p) => p.get('folio') ?? '')), { initialValue: '' });
 

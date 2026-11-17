@@ -1,7 +1,9 @@
 import { Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { Orden } from '../../../cajera/ordenes/ordenes.service';
 import { RefaccionesService } from '../../../jefe/refacciones/refacciones.service';
-import { FotosComponent } from '../fotos/fotos.component';
+import { OrdenesService } from '../../../cajera/ordenes/ordenes.service';
+import { AuthService } from '../../../acceso/auth.service';
+import { FotosOrdenComponent, fotosSinGuardar } from '../../../compartido/fotos-orden/fotos-orden.component';
 
 const PRUEBAS = ['Carga rápida', 'Pantalla y táctil', 'Cámaras y flash', 'Audio, micrófono y bocina', 'Señal, Wi-Fi y Bluetooth', 'Botones y sensores'];
 
@@ -9,7 +11,7 @@ const PRUEBAS = ['Carga rápida', 'Pantalla y táctil', 'Cámaras y flash', 'Aud
 @Component({
   selector: 'app-marcar-listo',
   standalone: true,
-  imports: [FotosComponent],
+  imports: [FotosOrdenComponent],
   templateUrl: './marcar-listo.component.html',
   styleUrls: ['../modal-banco.css', './marcar-listo.component.css'],
 })
@@ -17,6 +19,8 @@ export class MarcarListoComponent {
   private readonly refacciones = inject(RefaccionesService);
 
   readonly orden = input.required<Orden>();
+  private readonly fotosServicio = inject(OrdenesService);
+  private readonly nombreFotos = inject(AuthService).sesion()?.nombre ?? '';
   /** "1 h 12 min" */
   readonly tiempo = input('');
   readonly cerrar = output<void>();
@@ -24,7 +28,12 @@ export class MarcarListoComponent {
 
   protected readonly pruebas = PRUEBAS;
   protected readonly hechas = signal<boolean[]>(PRUEBAS.map(() => false));
-  protected readonly fotos = signal(0);
+  /** Fotos de salida: se guardan en la orden al confirmar. */
+  protected readonly fotos = signal<{ url: string; nombre: string }[]>([]);
+  protected readonly fotosVista = computed(() => fotosSinGuardar(this.fotos(), this.nombreFotos));
+  protected quitarFoto(id: string): void {
+    this.fotos.update((l) => l.filter((_, i) => String(i) !== id));
+  }
   protected readonly notaCliente = signal('');
   protected readonly notaInterna = signal('');
   protected readonly intentado = signal(false);
@@ -39,7 +48,8 @@ export class MarcarListoComponent {
 
   protected mandar(): void {
     this.intentado.set(true);
-    if (this.faltan().length || !this.fotos()) return;
+    if (this.faltan().length || !this.fotos().length) return;
+    this.fotosServicio.agregarEvidencias(this.orden().folio, 'salida', this.fotos(), this.nombreFotos);
     this.confirmar.emit({ realizado: this.notaCliente().trim() || this.orden().presupuesto?.descripcion || this.orden().trabajo, notaInterna: this.notaInterna() });
   }
 

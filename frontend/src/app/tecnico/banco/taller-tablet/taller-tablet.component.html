@@ -32,7 +32,7 @@
       <p class="tenue-t">Recepción (caja)</p>
       <app-fotos-orden [fotos]="orden().fotos ?? []" [tamano]="88" vacio="Caja no tomó fotos al recibirlo." />
       <p class="tenue-t">De la reparación</p>
-      <app-fotos [cantidad]="fotos()" [tamano]="88" agregar="Agregar" (agregada)="fotos.set(fotos() + 1)" />
+      <app-fotos-orden [fotos]="evidencias()" [editable]="true" [tamano]="88" (agregadas)="subirFotos($event)" (quitada)="quitarFoto($event)" />
     }
     @case ('notas') {
       <h3 class="titulo-t"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Notas de reparación (internas)</h3>

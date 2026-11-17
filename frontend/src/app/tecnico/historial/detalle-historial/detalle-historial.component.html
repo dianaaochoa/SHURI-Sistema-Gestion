@@ -21,8 +21,8 @@
       <section class="tarjeta-banco">
         <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos</h3>
         <div class="fotos">
-          <div><p class="campo__etiqueta">Recepción</p><app-fotos [cantidad]="3" [tamano]="64" /></div>
-          <div><p class="campo__etiqueta">Salida</p><app-fotos [cantidad]="3" [tamano]="64" /></div>
+          <div><p class="campo__etiqueta">Recepción</p><app-fotos-orden [fotos]="orden().fotos ?? []" [tamano]="64" vacio="Sin fotos." /></div>
+          <div><p class="campo__etiqueta">Salida</p><app-fotos-orden [fotos]="salida()" [tamano]="64" vacio="Sin fotos." /></div>
         </div>
       </section>
 

@@ -6,8 +6,8 @@ import { RefaccionesService } from '../../../jefe/refacciones/refacciones.servic
 import { BancoService, pasosDe } from '../../banco.service';
 import { BuscarPiezaComponent } from '../buscar-pieza/buscar-pieza.component';
 import { FichaEquipoComponent } from '../ficha-equipo/ficha-equipo.component';
+import { evidenciasDe } from '../../../cajera/ordenes/ordenes.service';
 import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
-import { FotosComponent } from '../fotos/fotos.component';
 
 type Pestana = 'trabajo' | 'refacciones' | 'fotos' | 'notas' | 'equipo';
 
@@ -31,7 +31,7 @@ const PIEZA: Record<string, { texto: string; tono: string }> = {
 @Component({
   selector: 'app-taller-tablet',
   standalone: true,
-  imports: [FichaEquipoComponent, FotosComponent, FotosOrdenComponent, BuscarPiezaComponent],
+  imports: [FichaEquipoComponent, FotosOrdenComponent, BuscarPiezaComponent],
   templateUrl: './taller-tablet.component.html',
   styleUrl: './taller-tablet.component.css',
 })
@@ -42,6 +42,15 @@ export class TallerTabletComponent {
   private readonly nombre = inject(AuthService).sesion()?.nombre ?? '';
 
   readonly orden = input.required<Orden>();
+
+  /** Fotos del técnico de esta etapa: se guardan en la orden en cuanto se toman. */
+  protected readonly evidencias = computed(() => evidenciasDe(this.orden(), 'reparacion'));
+  protected subirFotos(fotos: { url: string; nombre: string }[]): void {
+    this.ordenes.agregarEvidencias(this.orden().folio, 'reparacion', fotos, this.nombre);
+  }
+  protected quitarFoto(id: string): void {
+    this.ordenes.quitarEvidencia(this.orden().folio, id, this.nombre);
+  }
   readonly pausar = output<void>();
   readonly necesitoInfo = output<void>();
   readonly danoAdicional = output<void>();
@@ -49,7 +58,6 @@ export class TallerTabletComponent {
 
   protected readonly pestanas = PESTANAS;
   protected readonly pestana = signal<Pestana>('trabajo');
-  protected readonly fotos = signal(2);
   protected readonly nota = signal('');
   protected readonly pedida = signal('');
 
@@ -84,7 +92,6 @@ export class TallerTabletComponent {
 
   /** "Tomar foto": se suma a las fotos de la reparación y se muestra la pestaña Fotos. */
   protected tomarFoto(): void {
-    this.fotos.update((n) => n + 1);
     this.pestana.set('fotos');
   }
 

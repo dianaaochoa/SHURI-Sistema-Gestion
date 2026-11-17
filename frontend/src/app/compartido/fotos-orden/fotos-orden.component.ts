@@ -16,6 +16,12 @@ const TIPOS = /^image\/(jpeg|png|webp|heic|heif)$/i;
 const MAX_BYTES = 15 * 1024 * 1024;
 
 /** Reduce la foto a 1280 px de lado mayor (JPEG 80 %) para no guardar archivos de varios MB. */
+/** Fotos que todavía no se guardan (en un modal): se muestran con su posición como id. */
+export function fotosSinGuardar(fotos: { url: string; nombre: string }[], por: string): FotoOrden[] {
+  const fecha = new Date().toISOString();
+  return fotos.map((f, i) => ({ ...f, id: String(i), fecha, por }));
+}
+
 export function reducirImagen(archivo: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(archivo);

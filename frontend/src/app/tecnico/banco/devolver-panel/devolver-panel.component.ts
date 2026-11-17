@@ -2,7 +2,9 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { InventarioService } from '../../../cajera/inventario/inventario.service';
 import { Orden } from '../../../cajera/ordenes/ordenes.service';
 import { FichaEquipoComponent } from '../ficha-equipo/ficha-equipo.component';
-import { FotosComponent } from '../fotos/fotos.component';
+import { OrdenesService } from '../../../cajera/ordenes/ordenes.service';
+import { AuthService } from '../../../acceso/auth.service';
+import { FotosOrdenComponent, fotosSinGuardar } from '../../../compartido/fotos-orden/fotos-orden.component';
 
 const REVISION = ['Equipo armado y con todos sus tornillos', 'Enciende igual que al recibirlo', 'Sin piezas ni etiquetas del taller'];
 
@@ -10,7 +12,7 @@ const REVISION = ['Equipo armado y con todos sus tornillos', 'Enciende igual que
 @Component({
   selector: 'app-devolver-panel',
   standalone: true,
-  imports: [FichaEquipoComponent, FotosComponent],
+  imports: [FichaEquipoComponent, FotosOrdenComponent],
   templateUrl: './devolver-panel.component.html',
   styleUrls: ['../banco-comun.css', './devolver-panel.component.css'],
 })
@@ -18,11 +20,18 @@ export class DevolverPanelComponent {
   private readonly inventario = inject(InventarioService);
 
   readonly orden = input.required<Orden>();
+  private readonly fotosServicio = inject(OrdenesService);
+  private readonly nombreFotos = inject(AuthService).sesion()?.nombre ?? '';
   readonly devolver = output<string>();
 
   protected readonly revision = REVISION;
   protected readonly hechos = signal<boolean[]>(REVISION.map(() => false));
-  protected readonly fotos = signal(0);
+  /** Fotos de devolucion: se guardan en la orden al confirmar. */
+  protected readonly fotos = signal<{ url: string; nombre: string }[]>([]);
+  protected readonly fotosVista = computed(() => fotosSinGuardar(this.fotos(), this.nombreFotos));
+  protected quitarFoto(id: string): void {
+    this.fotos.update((l) => l.filter((_, i) => String(i) !== id));
+  }
   protected readonly nota = signal('');
 
   protected readonly lineas = computed(() => {
@@ -46,7 +55,12 @@ export class DevolverPanelComponent {
       .flatMap((p) => p.apartados.filter((a) => a.folio === this.orden().folio).map((a) => ({ nombre: p.nombre, sku: p.sku, cantidad: a.cantidad }))),
   );
 
-  protected readonly listo = computed(() => this.hechos().every(Boolean) && this.fotos() > 0);
+  protected readonly listo = computed(() => this.hechos().every(Boolean) && this.fotos().length > 0);
+
+  protected entregar(): void {
+    this.fotosServicio.agregarEvidencias(this.orden().folio, 'devolucion', this.fotos(), this.nombreFotos);
+    this.devolver.emit(this.nota());
+  }
 
   protected marcar(i: number, valor: boolean): void {
     this.hechos.update((l) => l.map((v, j) => (j === i ? valor : v)));

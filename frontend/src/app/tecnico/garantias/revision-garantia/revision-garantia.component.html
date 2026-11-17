@@ -27,7 +27,11 @@
       <section class="tarjeta-banco crece">
         <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Evidencia de tu revisión</h3>
         <p class="tenue">Fotos y video del fallo, sellos y estado físico</p>
-        <app-fotos [cantidad]="fotos()" [agregar]="enviado() ? '' : 'Agregar'" (agregada)="fotos.set(fotos() + 1)" />
+        @if (enviado()) {
+          <app-fotos-orden [fotos]="enviadas()" [tamano]="64" vacio="No subiste fotos con el reporte." />
+        } @else {
+          <app-fotos-orden [fotos]="fotosVista()" [editable]="true" [tamano]="64" (agregadas)="fotos.set(fotos().concat($event))" (quitada)="quitarFoto($event)" />
+        }
       </section>
     </div>
 

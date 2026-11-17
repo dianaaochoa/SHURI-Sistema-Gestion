@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 16 nov 2026 (los permisos por rol de AD7.3 ya se aplican en menú, rutas y acciones)
+- **Última actualización:** 17 nov 2026 (fotos reales del técnico: diagnóstico, reparación, salida y más; las ven el jefe y el cliente)
 
 ---
 
@@ -366,7 +366,7 @@ flowchart LR
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
   ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET y CLAUSULAS_RECEPCION"]:::serv
-  FTO["compartido/fotos-orden<br/>FotosOrden: miniaturas, agregar,<br/>quitar y visor (fotos de recepción)"]:::comp
+  FTO["compartido/fotos-orden<br/>FotosOrden: miniaturas, agregar,<br/>quitar y visor (recepción y técnico)"]:::comp
   CDN["compartido/campo-dinero.directive.ts<br/>[(campoDinero)]: 1000 al escribir,<br/>$1,000.00 fuera del campo"]:::comp
   CFA["ConfiguracionAdmin AD9<br/>7 pestañas: Negocio · Cajas · Documentos<br/>Taller · Facturación · Mensajes · Correo"]:::comp
   CFS["ConfiguracionService<br/>borrador que se guarda junto"]:::serv
@@ -458,6 +458,7 @@ flowchart LR
   CRS["compartido/correos.service.ts<br/>bandeja de correos enviados<br/>+ correos.ts (plantillas, bajo demanda)"]:::serv
   OS & CLSV & MS --> CRS
   NO & DO & OJ & PTA & BPN & BMD & TTB --> FTO
+  BNC --> FTO
   CB & PM & NO --> CDN
   CFA --> CRS
   PTA --> ADO & FCS & MS
@@ -900,7 +901,7 @@ frontend/src/
     │       ├── banco-comun.css · modal-banco.css   # estilos de los paneles y de los modales
     │       ├── diagnostico-panel/ espera-panel/ taller-panel/ devolver-panel/   # T3.1 · T3.2 · T3.3 y T3.10 · T3.9
     │       ├── marcar-listo/ dano-adicional/ pausar/ sin-reparacion/ necesito-info/ orden-en-curso/   # T3.4–T3.8 · T3.11
-    │       └── ficha-equipo/ fotos/ buscar-pieza/   # tarjeta del equipo con PIN, fotos vacías y buscador del inventario
+    │       └── ficha-equipo/ buscar-pieza/   # tarjeta del equipo con PIN y buscador del inventario (las fotos usan compartido/fotos-orden)
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .paneles.ts: paneles con datos reales)
@@ -1154,7 +1155,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Campos nuevos de la orden | `prioridad`, `prometida`, `diagnostico`, `pausa` y `notas` (internas) en `Orden`; `especialidad` en `Tecnico` | Los usará también el técnico (T1–T7). Las notas internas no las ve el cliente. |
 | Órdenes nuevas de prueba (J2) | #1040 Moto G84 y #1039 Redmi Note 12 en diagnóstico con Luis | Con ellas J1 marca 14 órdenes abiertas, como Figma. |
 | “Técnica: Mariana Vega” | El detalle dice “A cargo de: …” | No se adivina el género por el nombre. |
-| Tiempo trabajado y fotos | El resumen muestra prioridad en lugar de “Tiempo trabajado” y las fotos son espacios vacíos | No hay registro de tiempos ni fotos hasta que el técnico (T) y la API existan. |
+| Tiempo trabajado | El resumen muestra prioridad en lugar de “Tiempo trabajado”; las fotos de recepción y del técnico ya son reales | No hay registro de tiempos hasta que la API exista. |
 | Por cotizar (J3) | Hecho con los PNG de `docs/diseno/04-jefe-de-tecnicos/j3-cotizar.png` (Figma sin llamadas) | Figma usa #1029 para la re-cotización; aquí es #1024 porque #1029 ya está enviada (la usa la cajera en C4.8). |
 | Conceptos del presupuesto | `Concepto` (refacción, mano de obra u otro) con costo interno y precio al público con IVA. El presupuesto guarda conceptos, descuento y vigencia; `refacciones` y `manoObra` se siguen guardando sin IVA para C4 y los documentos | El técnico sugiere los conceptos en su diagnóstico (`diagnostico.conceptos`, `danoAdicional.conceptos`). |
 | Cobro de revisión | El precio del nivel “Revisión / diagnóstico” del tabulador (J9, $300 de inicio). La orden guarda `revision` y `saldo()` la cobra al entregar si el anticipo no alcanza | Las órdenes sin reparación anteriores siguen cobrando el anticipo como revisión. |
@@ -1191,7 +1192,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Acciones nuevas | `OrdenesService`: `enviarDiagnostico`, `reportarSinReparacion`, `reportarDanoAdicional`, `pausar`, `reanudar`, `marcarLista`, `devolverACaja`. `RefaccionesService.solicitar`, `InventarioService.liberar`. Las preguntas al jefe (`PREGUNTAS_TECNICOS`) pasaron a señal | Usan los campos que ya leían el jefe (J1, J3.3, J3.4, J5) y caja (C6). |
 | Presupuesto rechazado (T3.9) | La orden sigue entregable en caja como antes; el técnico la ve hasta que la arma y la devuelve (`devueltoACaja`) | Así caja no espera al técnico si el cliente llega antes. |
 | PIN del equipo | Caja ya lo guarda al recibir (`ficha.pin`, C5) y el técnico lo ve en su banco; no se imprime | Las órdenes de prueba no tienen PIN y muestran “—”. |
-| Fotos | Espacios vacíos con cámara; “Agregar” suma uno. Los modales piden al menos una foto donde Figma las marca obligatorias | Sin cámara ni almacenamiento hasta la API. |
+| Fotos del técnico | `Orden.evidencias` con etapa (diagnóstico, reparación, daño adicional, salida, sin reparación, devolución, revisión de garantía). En los paneles del banco se guardan al tomarlas; en los modales (daño adicional, listo, sin reparación, devolver, garantía) se guardan al confirmar y siguen siendo obligatorias donde Figma lo marca. El jefe las ve todas (J2.3); el cliente ve las de diagnóstico en el presupuesto, las del daño adicional y cómo quedó el equipo al estar listo | Usan el mismo `FotosOrdenComponent` que las de recepción (reducidas a 1280 px). Se quitó el componente de fotos vacías. En memoria como data URL hasta la API. |
 | Garantías del técnico (T4) | Hecho con el PNG `docs/diseno/05-tecnico/t4-garantias.png`. Pestañas Todas, Por revisar, Esperando dictamen y En reparación; la columna “Días restantes” usa la misma cuenta que J4 (días usados de la garantía) | En celular quedan folio, cliente y estado; la fila abre la revisión. |
 | Reporte de garantía | `OrdenesService.enviarReporteGarantia` guarda `garantia.reporte` con los campos que ya leía el jefe (J4.2); el motivo se arma con la relación y el mal uso (“pieza defectuosa”, “humedad posterior”) y, si no aplica, un costo sugerido opcional | El técnico solo recomienda; el dictamen sigue siendo del jefe. |
 | Técnico de la reparación original | Muestra el técnico actual de la orden | Al recibir la garantía, caja reasigna la orden; con la API habrá que guardar quién hizo la reparación original. |
@@ -1200,7 +1201,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Devolver pieza | `devolverPieza` crea la devolución que el jefe recibe en J5.3 con el estado que dijo el técnico (nueva, abierta o dañada) | El técnico usa los textos de Figma T5.3 (“Abierta, sin instalar”); el jefe confirma con los suyos. |
 | Mi historial (T6) | Hecho con el PNG `docs/diseno/05-tecnico/t6-mi-historial.png`. Cuenta los equipos que terminó (con fecha de “Listo”), estén por entregar, entregados, en bodega o de vuelta en garantía; no cuenta los “sin reparación” | La garantía cuenta desde la entrega o desde la reparación según Configuración (J9); si no se ha entregado, dice “Por entregar”. |
 | Tiempo de equipos anteriores al banco | `BancoService` les pone de 40 a 89 min según el folio (dato de prueba) para que “Tiempo” y “Tiempo promedio” tengan valores | Lo terminado en el banco usa su cronómetro real. Como el tiempo va por folio, una garantía en reparación arranca su cronómetro con el tiempo de la reparación original. |
-| Versión tablet (T7) | Hecho con el PNG `docs/diseno/05-tecnico/t7-version-tablet.png`. Rango 769–1180 px (`enTablet()`); el banco cambia a `TallerTabletComponent` solo en taller y garantía | “Tomar foto” suma una foto vacía y abre la pestaña Fotos; “Pedir refacción” abre la pestaña Refacciones con el buscador. El botón verde cuenta los pasos sin marcar. |
+| Versión tablet (T7) | Hecho con el PNG `docs/diseno/05-tecnico/t7-version-tablet.png`. Rango 769–1180 px (`enTablet()`); el banco cambia a `TallerTabletComponent` solo en taller y garantía | “Tomar foto” abre la pestaña Fotos para tomarla o subirla; “Pedir refacción” abre la pestaña Refacciones con el buscador. El botón verde cuenta los pasos sin marcar. |
 | Riel con nombres | `rielConEtiquetas` en la navegación del técnico y `corta` por destino; los estilos van en `styles.css` con `!important` | El CSS del menú lateral ya está en el límite de 4 kB; los otros roles conservan su riel de solo íconos. |
 | Inicio del administrador (AD1) | Hecho con el PNG `docs/diseno/02-administrador/ad1-inicio.png`. Ingresos, gráfica y tablas salen de `EstadisticasService` (el mismo historial de prueba de C9 más las ventas y órdenes de la app; `suma()` pasó a público) | Las cifras no son las de Figma (octubre); el día de hoy usa lo real de la app. |
 | Utilidad bruta | Mostrador: precio sin IVA menos el costo de Inventario (40 % si el producto no está); taller: margen fijo de prueba del 50 % (`MARGEN_TALLER_DEMO`) | Con la API de reportes vendrá el costo real de cada reparación. |
@@ -1251,8 +1252,8 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Correos (P6): el envío real y los interruptores de “Correo” por mensaje de AD9.6 los aplicará la API; hoy se arma el correo cada vez que el cliente tiene correo.
 - [ ] Chat (P5): el aviso de respuesta solo aparece con el portal abierto (notificaciones push y correo le tocan a la API); el horario está fijo en el código.
 - [ ] Autofactura: el envío por correo de la factura y la validación del RFC contra el SAT le tocan a la API.
-- [ ] Seguimiento (P2): las evidencias del técnico todavía no se guardan por orden (las de recepción ya sí); las calificaciones viven en memoria y todavía no las ve el administrador.
-- [ ] Fotos de recepción: viven en memoria como data URL (se pierden al recargar); la API debe subirlas a un almacenamiento y dar su URL. El cliente solo las ve mientras la orden está “Recibida”.
+- [ ] Seguimiento (P2): las calificaciones viven en memoria y todavía no las ve el administrador.
+- [ ] Fotos de recepción y del técnico: viven en memoria como data URL (se pierden al recargar); la API debe subirlas a un almacenamiento y dar su URL. El cliente solo las ve mientras la orden está “Recibida”.
 - [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
 - [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Permisos por rol: “Ver costos y utilidad” y “Editar precios del catálogo” todavía no cambian ninguna pantalla (p. ej. el precio al editar un producto en C7.1); el servidor debe revisar cada permiso y cerrar sesiones en otros equipos (API).
@@ -1260,7 +1261,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Cortes de caja: la revisión debe llegar a la nómina cuando se descuente.
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
-- [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); las fotos que toma el técnico son espacios vacíos (las de recepción ya son reales); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
+- [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
 - [ ] El paquete inicial pasó 24 kB del aviso de 500 kB (estilos compartidos, la lógica del técnico que usa el menú y el bloqueo por inactividad); revisar si conviene cargar `mi-trabajo` aparte.
 - [ ] Mensajes (J11 y chat P5): las conversaciones viven en memoria; falta guardarlas en la API.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
@@ -1268,7 +1269,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5).
-- [ ] Tablero: fotos del técnico y tiempo trabajado sin pausas (llegan con el técnico, T). La prioridad y las asignaciones viven en memoria.
+- [ ] Tablero: tiempo trabajado sin pausas (llega con el registro de tiempos del técnico). La prioridad y las asignaciones viven en memoria.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
 - [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
@@ -1991,3 +1992,15 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - Jorge López: menú sin Por cotizar ni Garantías, barra de celular con 4 destinos; `/jefe/garantias` regresa a Inicio
   - descuentos, retiros del corte y pago en efectivo de entradas: solo compilados
   - `ng build` sin errores (paquete inicial 528 kB)
+
+### 17 nov 2026 · Fotos reales del técnico
+- Pendiente de solo frontend: las fotos del técnico eran cuadros vacíos (en el banco, los modales, su historial, el tablero del jefe y el seguimiento del cliente).
+- `OrdenesService`: `EtapaFoto`, `ETAPAS_FOTO`, `Orden.evidencias`, `evidenciasDe`, `agregarEvidencias` y `quitarEvidencia` (quedan en el historial). `fotosSinGuardar` en `fotos-orden` para los modales.
+- Banco: diagnóstico, taller y tablet guardan al momento; daño adicional, marcar listo, sin reparación, devolver y revisión de garantía al confirmar. Devolver muestra las de recepción reales; T6.2 muestra recepción y salida. Jefe (J2.3) “Del técnico” y portal (presupuesto, adicional y listo). Se borró `tecnico/banco/fotos/`.
+- Verificado:
+  - Luis Ortega (`lortega`, con contraseña nueva de prueba): #1040 en diagnóstico → subir una foto → “1 foto de diagnóstico (Luis Ortega)” en el historial
+  - #1024 en tablet: “Tomar foto” abre la pestaña Fotos (“0 de 6”); Marcar como listo sin nada → “Falta marcar 6 pruebas…” y “Agrega al menos una foto de salida.”; con las pruebas y una foto → la orden queda lista con su foto de salida
+  - María en el portal, #1024: “Tu equipo está listo” con “Así quedó tu equipo:” y la foto
+  - Jorge López, #1040: “Del técnico” con la foto
+  - sin probar en la app: daño adicional, sin reparación, devolver, revisión de garantía, T6.2 y las fotos del presupuesto y del adicional en el portal (solo compilado)
+  - `ng build` sin errores; sin errores en consola

@@ -8,7 +8,7 @@
 
   <section class="tarjeta-banco">
     <h3 class="titulo-banco"><span class="icono" style="--icono: url(assets/tecnico/camara.svg)"></span>Fotos de recepción (caja)</h3>
-    <app-fotos [cantidad]="4" [tamano]="56" />
+    <app-fotos-orden [fotos]="orden().fotos ?? []" [tamano]="56" vacio="Caja no tomó fotos al recibirlo." />
   </section>
 
   <section class="tarjeta-banco crece">
@@ -34,7 +34,7 @@
   <p class="tenue">Al devolver el equipo, la pieza regresa al inventario disponible.</p>
   <div class="separador"></div>
   <p class="campo__etiqueta">Fotos de salida *</p>
-  <app-fotos [cantidad]="fotos()" agregar="Foto" (agregada)="fotos.set(fotos() + 1)" />
+  <app-fotos-orden [fotos]="fotosVista()" [editable]="true" [tamano]="64" (agregadas)="fotos.set(fotos().concat($event))" (quitada)="quitarFoto($event)" />
   <label class="campo">
     <span class="campo__etiqueta">Nota interna</span>
     <textarea class="campo__area" rows="2" placeholder="Cómo quedó el equipo" [value]="nota()" (input)="nota.set($any($event.target).value)"></textarea>
@@ -45,6 +45,6 @@
     @if (!listo()) {
       <p class="tenue centro">Marca las 3 revisiones y agrega al menos una foto de salida.</p>
     }
-    <button type="button" class="boton boton--primario boton-grande" [disabled]="!listo()" (click)="devolver.emit(nota())"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Devolver a caja sin reparar</button>
+    <button type="button" class="boton boton--primario boton-grande" [disabled]="!listo()" (click)="entregar()"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Devolver a caja sin reparar</button>
   </div>
 </aside>

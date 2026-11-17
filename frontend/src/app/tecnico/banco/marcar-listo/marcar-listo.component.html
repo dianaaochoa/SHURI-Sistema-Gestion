@@ -17,7 +17,7 @@
           }
         </div>
         <p class="campo__etiqueta">Fotos de salida *</p>
-        <app-fotos [cantidad]="fotos()" [tamano]="64" agregar="Foto" (agregada)="fotos.set(fotos() + 1)" />
+        <app-fotos-orden [fotos]="fotosVista()" [editable]="true" [tamano]="64" (agregadas)="fotos.set(fotos().concat($event))" (quitada)="quitarFoto($event)" />
       </div>
 
       <div class="columna">
@@ -39,12 +39,12 @@
       </div>
     </div>
 
-    @if (intentado() && (faltan().length || !fotos())) {
+    @if (intentado() && (faltan().length || !fotos().length)) {
       <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>
         @if (faltan().length) {
           Falta marcar {{ faltan().length === 1 ? '“' + faltan()[0] + '”' : faltan().length + ' pruebas' }}. Todas las pruebas son obligatorias para continuar.
         }
-        @if (!fotos()) {
+        @if (!fotos().length) {
           Agrega al menos una foto de salida.
         }
       </p>

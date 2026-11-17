@@ -57,13 +57,7 @@
           </div>
           <div>
             <h3>Del técnico</h3>
-            <div class="fotos__lista">
-              @for (n of [1, 2].slice(0, fotosTecnico()); track n) {
-                <span class="foto" role="img" [attr.aria-label]="'Foto del técnico ' + n"><span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span></span>
-              } @empty {
-                <p class="vacio">Aún no sube fotos</p>
-              }
-            </div>
+            <app-fotos-orden [fotos]="fotosTecnico()" [tamano]="56" vacio="Aún no sube fotos" />
           </div>
         </div>
       </section>

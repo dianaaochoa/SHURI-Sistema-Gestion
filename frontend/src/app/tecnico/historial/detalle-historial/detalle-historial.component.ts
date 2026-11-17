@@ -1,10 +1,10 @@
 import { Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Orden, diasGarantia } from '../../../cajera/ordenes/ordenes.service';
+import { Orden, diasGarantia, evidenciasDe } from '../../../cajera/ordenes/ordenes.service';
 import { etapaGarantia } from '../../../jefe/garantias/garantia';
 import { RefaccionesService } from '../../../jefe/refacciones/refacciones.service';
 import { BancoService } from '../../banco.service';
-import { FotosComponent } from '../../banco/fotos/fotos.component';
+import { FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 import { diaCorto } from '../../mi-trabajo';
 import { duracionCorta, estadoGarantia, inicioGarantia } from '../historial';
 
@@ -21,7 +21,7 @@ const ESTADO: Record<string, { texto: string; tono: string }> = {
 @Component({
   selector: 'app-detalle-historial',
   standalone: true,
-  imports: [RouterLink, FotosComponent],
+  imports: [RouterLink, FotosOrdenComponent],
   templateUrl: './detalle-historial.component.html',
   styleUrls: ['../../banco/banco-comun.css', './detalle-historial.component.css'],
 })
@@ -31,6 +31,7 @@ export class DetalleHistorialComponent {
 
   readonly orden = input.required<Orden>();
   readonly volver = output<void>();
+  protected readonly salida = computed(() => evidenciasDe(this.orden(), 'salida', 'devolucion', 'sin-reparar'));
 
   protected readonly titulo = computed(() => {
     const f = this.orden().ficha;

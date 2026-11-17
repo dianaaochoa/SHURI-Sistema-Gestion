@@ -1,6 +1,8 @@
-import { Component, HostListener, input, output, signal } from '@angular/core';
+import { inject, computed, Component, HostListener, input, output, signal } from '@angular/core';
 import { Orden } from '../../../cajera/ordenes/ordenes.service';
-import { FotosComponent } from '../fotos/fotos.component';
+import { OrdenesService } from '../../../cajera/ordenes/ordenes.service';
+import { AuthService } from '../../../acceso/auth.service';
+import { FotosOrdenComponent, fotosSinGuardar } from '../../../compartido/fotos-orden/fotos-orden.component';
 
 const MOTIVOS = [
   { texto: 'Daño en placa irreparable', detalle: 'Corto en la placa principal o procesador dañado' },
@@ -13,7 +15,7 @@ const MOTIVOS = [
 @Component({
   selector: 'app-sin-reparacion',
   standalone: true,
-  imports: [FotosComponent],
+  imports: [FotosOrdenComponent],
   template: `
     <div class="modal-fondo" (click)="cerrar.emit()">
       <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-sin" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); mandar()">
@@ -39,9 +41,9 @@ const MOTIVOS = [
         </label>
         <div class="campo">
           <span class="campo__etiqueta">Evidencia *</span>
-          <app-fotos [cantidad]="fotos()" agregar="Foto" (agregada)="fotos.set(fotos() + 1)" />
+          <app-fotos-orden [fotos]="fotosVista()" [editable]="true" [tamano]="64" (agregadas)="fotos.set(fotos().concat($event))" (quitada)="quitarFoto($event)" />
         </div>
-        @if (intentado() && (!texto().trim() || !fotos())) {
+        @if (intentado() && (!texto().trim() || !fotos().length)) {
           <p class="campo__error">Escribe la explicación y agrega al menos una foto de evidencia.</p>
         }
         <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>El equipo se arma como llegó. Al confirmar el jefe, la orden pasa a “Listo para recoger · sin reparación” y caja cobra solo el diagnóstico, si aplica.</p>
@@ -56,18 +58,27 @@ const MOTIVOS = [
 })
 export class SinReparacionComponent {
   readonly orden = input.required<Orden>();
+  private readonly fotosServicio = inject(OrdenesService);
+  private readonly nombreFotos = inject(AuthService).sesion()?.nombre ?? '';
   readonly cerrar = output<void>();
   readonly enviar = output<{ motivo: string; texto: string }>();
 
   protected readonly motivos = MOTIVOS;
   protected readonly motivo = signal(MOTIVOS[0].texto);
   protected readonly texto = signal('');
-  protected readonly fotos = signal(0);
+  /** Fotos de sin-reparar: se guardan en la orden al confirmar. */
+  protected readonly fotos = signal<{ url: string; nombre: string }[]>([]);
+  protected readonly fotosVista = computed(() => fotosSinGuardar(this.fotos(), this.nombreFotos));
+  protected quitarFoto(id: string): void {
+    this.fotos.update((l) => l.filter((_, i) => String(i) !== id));
+  }
   protected readonly intentado = signal(false);
 
   protected mandar(): void {
     this.intentado.set(true);
-    if (this.texto().trim() && this.fotos()) this.enviar.emit({ motivo: this.motivo(), texto: this.texto().trim() });
+    if (!this.texto().trim() || !this.fotos().length) return;
+    this.fotosServicio.agregarEvidencias(this.orden().folio, 'sin-reparar', this.fotos(), this.nombreFotos);
+    this.enviar.emit({ motivo: this.motivo(), texto: this.texto().trim() });
   }
 
   @HostListener('document:keydown.escape')

@@ -76,7 +76,7 @@
   <p class="tenue">{{ pedida() || 'Las solicitudes llegan al jefe de técnicos; verás aquí cuando te entreguen la pieza.' }}</p>
   <div class="separador"></div>
   <p class="campo__etiqueta">Fotos de la reparación</p>
-  <app-fotos [cantidad]="fotos()" agregar="Agregar" (agregada)="fotos.set(fotos() + 1)" />
+  <app-fotos-orden [fotos]="evidencias()" [editable]="true" [tamano]="64" (agregadas)="subirFotos($event)" (quitada)="quitarFoto($event)" />
 
   <div class="lado__pie">
     @if (garantia()) {

@@ -82,6 +82,24 @@ export interface Adicional {
   monto: number;
 }
 
+/** Etapa de una foto del técnico. */
+export type EtapaFoto = 'diagnostico' | 'reparacion' | 'adicional' | 'salida' | 'sin-reparar' | 'devolucion' | 'garantia';
+export const ETAPAS_FOTO: Record<EtapaFoto, string> = {
+  diagnostico: 'Diagnóstico',
+  reparacion: 'Reparación',
+  adicional: 'Daño adicional',
+  salida: 'Salida',
+  'sin-reparar': 'Sin reparación',
+  devolucion: 'Devolución',
+  garantia: 'Revisión de garantía',
+};
+export type FotoEvidencia = FotoOrden & { etapa: EtapaFoto };
+
+/** Fotos del técnico de esas etapas (todas si no se dice cuáles). */
+export function evidenciasDe(o: Pick<Orden, 'evidencias'>, ...etapas: EtapaFoto[]): FotoEvidencia[] {
+  return (o.evidencias ?? []).filter((f) => !etapas.length || etapas.includes(f.etapa));
+}
+
 export interface Orden {
   folio: string;
   /** ISO */
@@ -113,6 +131,8 @@ export interface Orden {
   ficha?: FichaRecepcion;
   /** Fotos del equipo al recibirlo (C5.1 / C4); las ven el técnico, el jefe y el cliente (P2.1). */
   fotos?: FotoOrden[];
+  /** Fotos que sube el técnico, por etapa (T3, T4, T7). */
+  evidencias?: FotoEvidencia[];
   /** Lo define el jefe al asignar (J2.2); sin valor = normal. */
   prioridad?: Prioridad;
   /** ISO: fecha prometida al cliente (J2.2). */
@@ -951,6 +971,27 @@ export class OrdenesService {
       const nuevas = fotos.slice(0, Math.max(0, 6 - (o.fotos?.length ?? 0))).map((f, i) => ({ ...f, id: `${o.folio}-${Date.now()}-${i}`, fecha: ahora, por }));
       if (!nuevas.length) return o;
       return { ...o, fotos: [...(o.fotos ?? []), ...nuevas], historial: [...o.historial, { fecha: ahora, texto: `${nuevas.length === 1 ? 'Foto de recepción agregada' : `${nuevas.length} fotos de recepción agregadas`} por ${por}` }] };
+    });
+  }
+
+  /** Fotos del técnico (diagnóstico, reparación, salida…). Quedan en el historial con su nombre. */
+  agregarEvidencias(folio: string, etapa: EtapaFoto, fotos: { url: string; nombre: string }[], por: string): void {
+    if (!fotos.length) return;
+    const ahora = ahoraIso();
+    const marca = Date.now();
+    this.actualizar(folio, (o) => {
+      const nuevas: FotoEvidencia[] = fotos.map((f, i) => ({ ...f, id: `${folio}-${etapa}-${marca}-${i}`, fecha: ahora, por, etapa }));
+      const texto = `${nuevas.length === 1 ? '1 foto' : `${nuevas.length} fotos`} de ${ETAPAS_FOTO[etapa].toLowerCase()} (${por})`;
+      return { ...o, evidencias: [...(o.evidencias ?? []), ...nuevas], historial: [...o.historial, { fecha: ahora, texto }] };
+    });
+  }
+
+  quitarEvidencia(folio: string, id: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const foto = o.evidencias?.find((f) => f.id === id);
+      if (!foto) return o;
+      return { ...o, evidencias: o.evidencias!.filter((f) => f.id !== id), historial: [...o.historial, { fecha: ahora, texto: `Foto de ${ETAPAS_FOTO[foto.etapa].toLowerCase()} quitada (${por})` }] };
     });
   }
 
