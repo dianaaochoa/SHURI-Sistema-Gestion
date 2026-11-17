@@ -23,6 +23,7 @@ Referencia para conectar el frontend (Angular) con el backend (Laravel). Cada se
 17. [Chat cliente ↔ jefe (P5, J11)](#17-chat-cliente--jefe-p5-j11)
 18. [Compras a proveedores (AD5, J5, C7)](#18-compras-a-proveedores-ad5-j5-c7)
 19. [Resguardo y abandono (J9)](#19-resguardo-y-abandono-j9)
+20. [Facturación simulada (C3, AD6, P4.2)](#20-facturación-simulada-c3-ad6-p42)
 
 ---
 
@@ -80,7 +81,7 @@ Los errores de validación (`422`) traen además el detalle por campo, listo par
 
 ### Listas paginadas
 
-Las listas responden con `data`, `links` y `meta` (formato de Laravel). Aceptan `?per_page=` (5 a 100) y `?page=`.
+Las listas responden con `data`, `links` y `meta` (formato de Laravel) y aceptan `?page=`. Las de órdenes, mis equipos, productos, kardex, turnos de caja, ventas y usuarios aceptan además `?per_page=` (5 a 100; 20 por defecto, 30 en el kardex). Las de garantías, solicitudes de refacción, pedidos, compras y facturas traen 30 por página fijos.
 
 ```json
 { "data": [ "…" ], "meta": { "current_page": 1, "last_page": 3, "total": 52 } }
@@ -107,7 +108,7 @@ Los permisos de cada usuario llegan en `user.permissions` (por ejemplo `pos.sell
 | Usuario | Rol | Contraseña |
 |---|---|---|
 | `admin` | Administrador | `password` (clave de autorización: `password`) |
-| `jefe` | Jefe de técnicos | `password` |
+| `jefe` | Jefe de técnicos | `password` (clave de autorización: `password`) |
 | `carlos`, `laura` | Técnicos | `password` |
 | `sofia` | Cajera (Caja 01) | `password` |
 
@@ -452,7 +453,7 @@ C4 lista y detalle (permisos de mostrador, jefe o administrador).
 ```
 
 - `device_pin` solo aparece para quien repara (permiso `orders.repair`); los demás solo ven `has_device_pin`.
-- `balance` solo aparece cuando el equipo espera recolección y no se ha pagado: `amount_due` es **lo que la cajera debe cobrar** en C6.
+- `balance` solo aparece cuando el equipo espera recolección y no se ha pagado: `amount_due` es **lo que la cajera debe cobrar** en C6, y ya incluye el almacenaje (`storage_fee`) si pasaron los días de gracia ([sección 19](#19-resguardo-y-abandono-j9)).
 
 ---
 
@@ -503,10 +504,14 @@ Permiso: `orders.repair` (técnicos y jefe). El técnico **solo ve y modifica la
 
 T2 Mis equipos. Filtros: `?active=1` · `?status=diagnosing` · `?search=`. Cada orden trae el `device_pin`.
 
-`GET /my/orders/{folio}` y todas las acciones del banco responden la orden y su **cronómetro**:
+`GET /my/orders/{folio}` y todas las acciones del banco responden la orden, su **cronómetro** y las **refacciones** que ya le entregaron (sección 15):
 
 ```json
-{ "data": { "folio": "OS-2026-00001", "…": "…" }, "timer": { "running": true, "started_at": "2026-11-11T11:00:00-06:00", "worked_minutes": 45 } }
+{
+  "data": { "folio": "OS-2026-00001", "…": "…" },
+  "timer": { "running": true, "started_at": "2026-11-11T11:00:00-06:00", "worked_minutes": 45 },
+  "parts": [ { "id": 4, "product": "Pantalla Galaxy A54", "sku": "PAN-A54", "quantity": 1, "returned_quantity": 0, "unit_price": 720 } ]
+}
 ```
 
 ### `POST /my/orders/{folio}/start`
@@ -820,7 +825,7 @@ C2 Cobrar el ticket y C6 Entregar equipos. Un solo endpoint para todo: si algo f
 ```
 
 - **Productos:** el precio sale del catálogo (no se envía). `discount_pct` es opcional.
-- **Órdenes de taller:** se cobra su `balance.amount_due`. La orden queda pagada y pasa a **Entregado**; se calcula su garantía. Solo órdenes que esperan recolección y no están pagadas.
+- **Órdenes de taller:** se cobra su `balance.amount_due`, que ya incluye el almacenaje si pasaron los días de gracia. La orden queda pagada y pasa a **Entregado**; se calcula su garantía. Solo órdenes que esperan recolección y no están pagadas; una orden **en abandono** solo si `allow_delivery_when_abandoned` está en `1` ([sección 19](#19-resguardo-y-abandono-j9)).
 - **Garantías con costo extra:** `{ "type": "warranty", "folio": "GAR-2026-00001" }` cobra el `extra_cost` de una garantía terminada y la marca como **entregada** ([sección 16](#16-garantías-p3-c4-j4-t4)).
 - **Pagos:** `cash`, `card` o `transfer`, y se pueden combinar. **Deben sumar exactamente el total.** En efectivo, `amount_received` calcula el cambio.
 - **Descuento (RF-14):** si supera el máximo del usuario (`user.max_discount_pct`), hay que mandar `authorization` con el usuario y la **clave de autorización** de un superior. Sin ella responde `422` en `errors.authorization`.
@@ -861,6 +866,8 @@ Los precios incluyen IVA: `subtotal − discount + tax = total`.
 
 C3 Ventas y C11 reimprimir ticket. La cajera ve **sus** ventas; con `reports.view` se ven todas. Filtros: `?search=` (folio) · `?from=` · `?to=` · `?cash_shift_id=`
 
+Para facturar una venta, ver la [sección 20](#20-facturación-simulada-c3-ad6-p42).
+
 ---
 
 ## 12. Portal del cliente (P1, P2, P4)
@@ -899,7 +906,7 @@ P1 Mis equipos (`?active=1` oculta los entregados):
 }
 ```
 
-`amount_due` es lo que pagará al recoger (0 mientras no esté listo). Si `has_pending_quote` es `true`, mostrar el aviso de presupuesto por aprobar.
+`amount_due` es lo que pagará al recoger (0 mientras no esté listo), con el almacenaje incluido. `free_pickup_until` es el último día sin costo y `abandonment_date` la fecha en que pasaría a abandono. Si `has_pending_quote` es `true`, mostrar el aviso de presupuesto por aprobar.
 
 ### `GET /portal/orders/{folio}`
 
@@ -1110,7 +1117,17 @@ Matriz de permisos (AD7.3): qué puede hacer cada rol y con qué límite.
 
 ## 14. Notificaciones (campanita)
 
-Todo el personal. Hoy se generan por **stock bajo** (para quien hace pedidos), por **cortes de caja con diferencia** (para el administrador) y por **refacciones pedidas** por un técnico (para el jefe).
+Todo el personal. Cada aviso le llega a quien puede atenderlo:
+
+| `data.kind` | Cuándo | Para quién |
+|---|---|---|
+| `low_stock` | Un producto cruza su stock mínimo | Quien hace pedidos (jefe y admin) |
+| `cash_difference` | Un corte de caja cierra con faltante o sobrante | Administrador |
+| `part_requested` | Un técnico pide una refacción | Jefe (y admin) |
+| `warranty_requested` | Se solicita una garantía | Jefe (y admin) |
+| `customer_message` | Un cliente escribe en el chat y espera respuesta | Jefe (y admin) |
+| `part_arrived` | Llega del proveedor la pieza que pidió el técnico | El técnico |
+| `devices_abandoned` | El proceso diario pasa equipos a "En Abandono" | Jefe y admin |
 
 ### `GET /notifications`
 
@@ -1130,7 +1147,7 @@ Las no leídas primero (máximo 30):
 }
 ```
 
-`data.kind`: `low_stock`, `cash_difference`, `part_requested`, `warranty_requested`, `customer_message`, `part_arrived` o `devices_abandoned`. Mostrar `data.message`.
+Mostrar `data.message`; los demás campos de `data` cambian según el `kind` (folio, producto, etc.) y sirven para llevar a la pantalla correspondiente.
 
 ### `POST /notifications/{id}/read` · `POST /notifications/read-all`
 
@@ -1186,7 +1203,7 @@ Si no está en el catálogo, se describe (el jefe elige la pieza al entregarla):
 }
 ```
 
-`status`: `pending`, `delivered`, `rejected`, `cancelled` u `ordered` (pedida al proveedor).
+`status`: `pending`, `delivered`, `rejected`, `cancelled` u `ordered` (pedida al proveedor). Cuando la pieza llega del proveedor, la solicitud vuelve a `pending` para que el jefe la entregue ([sección 18](#18-compras-a-proveedores-ad5-j5-c7)).
 
 #### `GET /my/part-requests?status=` · `POST /my/part-requests/{folio}/cancel`
 
@@ -1711,3 +1728,171 @@ Desecho electrónico de un equipo **en abandono**: `{ "notes": "Entregado a reci
 #### `POST /service-orders/{folio}/waive-storage` (`orders.waive_storage`)
 
 Perdonar el almacenaje: `{ "reason": "Cliente hospitalizado" }` (obligatorio). Queda en la bitácora y en auditoría. Ya no se cobra al entregar.
+
+---
+
+## 20. Facturación simulada (C3, AD6, P4.2)
+
+Requisito: RF-16. **La facturación es simulada**: el XML tiene la estructura de un CFDI 4.0 y lleva un folio fiscal (UUID), pero **no se timbra ante el SAT ni tiene validez fiscal**. Todas las facturas traen `is_simulated: true`; el frontend debe mostrar una leyenda como "Factura de demostración, sin validez fiscal".
+
+- Una factura puede llevar **una o varias ventas pagadas** del mismo cliente. Cada venta se factura una sola vez.
+- Los precios ya incluyen IVA (16 %): la factura lo desglosa.
+- La forma de pago del SAT sale de cómo se cobró la venta: efectivo `01`, transferencia `03`, tarjeta `04`, nota de crédito `17`. El método siempre es `PUE` (pago en una sola exhibición).
+- Al emitirla, si el cliente tiene correo, se le manda con el XML adjunto.
+- Cada factura usa un timbre del paquete contratado (`stamps_purchased`). Sin timbres responde `422` en `stamps`.
+
+| Quién | Permiso | Puede |
+|---|---|---|
+| Caja y admin | `invoicing.issue` | Ver facturas, emitir facturas individuales, datos fiscales del cliente |
+| Admin | `invoicing.cancel` | Cancelar, sustituir y emitir la factura global |
+| Cliente (portal) | — | Autofacturar sus compras, si `self_invoicing_enabled` está en `1` |
+
+**Una factura:**
+
+```json
+{
+  "id": 1,
+  "folio": "A-1",
+  "uuid": "6F9A1C2E-3B4D-4E5F-8A7B-9C0D1E2F3A4B",
+  "type": "individual",
+  "period": null,
+  "status": "issued",
+  "status_name": "Vigente",
+  "is_simulated": true,
+  "receiver": {
+    "rfc": "XOJO010101ABC",
+    "business_name": "ANA LÓPEZ PÉREZ",
+    "tax_regime": "612",
+    "tax_regime_name": "Personas Físicas con Actividades Empresariales y Profesionales",
+    "postal_code": "27000",
+    "cfdi_use": "G03",
+    "cfdi_use_name": "Gastos en general"
+  },
+  "customer": { "id": 8, "name": "Ana López" },
+  "payment_form": "04",
+  "payment_form_name": "Tarjeta de crédito",
+  "payment_method": "PUE",
+  "subtotal": 100,
+  "tax": 16,
+  "total": 116,
+  "origin": "counter",
+  "sales": [ { "folio": "V-2026-00012", "total": 116 } ],
+  "issued_at": "2026-11-15T12:00:00-06:00",
+  "cancelled_at": null,
+  "cancellation_reason": null,
+  "cancellation_reason_name": null,
+  "replaced_by": null
+}
+```
+
+`status`: `issued` (vigente) o `cancelled`. `type`: `individual` o `global`. `origin`: `counter`, `portal` o `admin`.
+
+**Datos fiscales del receptor** (los mismos campos en mostrador, sustitución y portal):
+
+| Campo | Regla |
+|---|---|
+| `rfc` | 12 caracteres (persona moral) o 13 (física). Se guarda en mayúsculas. El genérico `XAXX010101000` no se acepta: esas ventas van en la global |
+| `business_name` | Razón social o nombre tal como aparece en la constancia fiscal. Se guarda en mayúsculas |
+| `tax_regime` | Clave del régimen; debe corresponder al tipo de persona del RFC |
+| `postal_code` | 5 dígitos del domicilio fiscal |
+| `cfdi_use` | `G01`, `G03`, `I04` o `S01` |
+| `invoice_email` | Opcional. Si viene, la factura se manda ahí en lugar del correo del cliente |
+
+### Mostrador y administración
+
+#### `GET /invoices/catalogs`
+
+Para llenar los selects: `{ "data": { "tax_regimes": [ { "code": "612", "name": "…", "individual": true, "company": false } ], "cfdi_uses": [ { "code": "G03", "name": "Gastos en general" } ], "cancellation_reasons": [ { "code": "02", "name": "…" } ] } }`. Con `individual` y `company` se filtran los regímenes según el RFC (13 o 12 caracteres).
+
+#### `GET /invoices?status=&type=&search=`
+
+AD6 Lista paginada (30). `search` busca por RFC, razón social o UUID.
+
+```json
+{ "stamps_remaining": 487, "is_simulated": true, "data": [ …facturas… ], "meta": { "current_page": 1, "last_page": 1, "total": 13 } }
+```
+
+#### `GET /invoices/{id}` · `GET /invoices/{id}/xml`
+
+El detalle, y la descarga del XML (`application/xml`, archivo `A-1_XOJO010101ABC.xml`).
+
+#### `POST /invoices`
+
+C3 Factura individual. Con los datos escritos a mano:
+
+```json
+{
+  "sales": ["V-2026-00012"],
+  "rfc": "XOJO010101ABC",
+  "business_name": "Ana López Pérez",
+  "tax_regime": "612",
+  "postal_code": "27000",
+  "cfdi_use": "G03",
+  "invoice_email": null,
+  "save_profile": true
+}
+```
+
+O con datos fiscales ya guardados del cliente: `{ "sales": ["V-2026-00012"], "tax_profile_id": 3 }`.
+
+`save_profile: true` guarda los datos en el cliente de la venta para la próxima vez. Errores `422`: `sales.0` (no existe, no está pagada o ya se facturó), `sales` (ventas de clientes distintos), `rfc`, `tax_regime`.
+
+#### `GET /customers/{id}/tax-profiles` · `POST /customers/{id}/tax-profiles`
+
+Datos fiscales guardados del cliente. El `POST` lleva los campos de la tabla; el nuevo queda como predeterminado (`is_default`). Si el RFC ya existía, se actualiza.
+
+#### `POST /invoices/global` (`invoicing.cancel`)
+
+AD6 Factura global del mes: junta las ventas pagadas del periodo que nadie facturó, a nombre de `PUBLICO EN GENERAL` (`XAXX010101000`, régimen `616`, uso `S01`), con un concepto por ticket.
+
+```json
+{ "period": "2026-11" }
+```
+
+Si no quedan ventas sin facturar en el periodo, responde `422` en `period`.
+
+#### `POST /invoices/{id}/cancel` (`invoicing.cancel`)
+
+```json
+{ "reason": "02" }
+```
+
+Motivos `02` (errores sin relación), `03` (no se llevó a cabo la operación) o `04` (operación incluida en una global). Las ventas quedan libres para volver a facturarse. El motivo `01` se usa con la sustitución.
+
+#### `POST /invoices/{id}/replace` (`invoicing.cancel`)
+
+Sustituir una factura con datos corregidos. Solo se mandan los campos que cambian:
+
+```json
+{ "postal_code": "27010" }
+```
+
+Se emite una factura nueva para las mismas ventas y la anterior queda cancelada con motivo `01`, relacionada con la nueva. **Respuesta `201`:** `{ "data": { …factura nueva… }, "replaced": { …anterior, con "replaced_by": "A-2"… } }`. Una factura global no se sustituye: se cancela y se vuelve a emitir.
+
+### Portal del cliente (P4.2)
+
+#### `GET /portal/tax-profiles` · `POST /portal/tax-profiles`
+
+Mis datos fiscales (con `catalogs` para el formulario) y guardar unos nuevos.
+
+#### `GET /portal/invoices`
+
+```json
+{
+  "self_invoicing_enabled": true,
+  "invoiceable_sales": [ { "folio": "V-2026-00012", "total": 116, "paid_at": "…" } ],
+  "data": [ …mis facturas… ]
+}
+```
+
+#### `POST /portal/invoices`
+
+```json
+{ "sales": ["V-2026-00012"], "tax_profile_id": 3 }
+```
+
+Solo sus propias compras y sus propios datos fiscales. Si la autofacturación está apagada responde `403` con `code: SELF_INVOICING_DISABLED`.
+
+#### `GET /portal/invoices/{id}/xml`
+
+Descargar el XML de una de mis facturas.
