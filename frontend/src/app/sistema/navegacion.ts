@@ -1,4 +1,5 @@
 import { Rol } from '../acceso/auth.service';
+import type { ClavePermiso } from '../administrador/permisos.service';
 
 /** Un destino del menú lateral. `icono` es el nombre del archivo en assets/menu/. */
 export interface DestinoMenu {
@@ -8,6 +9,10 @@ export interface DestinoMenu {
   /** Pantalla de Figma que le corresponde (p. ej. "C2"). */
   figma: string;
   insignia?: number;
+  /** Texto bajo el ícono en el riel de tablet (Figma T7: "Refacc."). Sin valor se usa la etiqueta. */
+  corta?: string;
+  /** Permiso de AD7.3 que hace falta: sin él, el destino no sale en el menú y la ruta regresa al inicio. */
+  permiso?: ClavePermiso;
 }
 
 export interface GrupoMenu {
@@ -21,6 +26,8 @@ export interface NavegacionRol {
   /** Línea de estado bajo la marca. Provisional: vendrá de la API (turno, órdenes abiertas, etc.). */
   resumen: string;
   grupos: GrupoMenu[];
+  /** Figma T7: en el riel de tablet cada ícono lleva su nombre corto debajo. */
+  rielConEtiquetas?: boolean;
 }
 
 const INICIO = (figma: string): GrupoMenu => ({
@@ -37,9 +44,9 @@ export const NAVEGACION: Record<Rol, NavegacionRol> = {
       {
         titulo: 'REPORTES',
         destinos: [
-          { etiqueta: 'Ventas y utilidad', icono: 'chart', ruta: 'ventas-y-utilidad', figma: 'AD2' },
-          { etiqueta: 'Taller', icono: 'wrench', ruta: 'taller', figma: 'AD2' },
-          { etiqueta: 'Cortes de caja', icono: 'receipt', ruta: 'cortes-de-caja', figma: 'AD3' },
+          { etiqueta: 'Ventas y utilidad', icono: 'chart', ruta: 'ventas-y-utilidad', figma: 'AD2', permiso: 'reportes' },
+          { etiqueta: 'Taller', icono: 'wrench', ruta: 'taller', figma: 'AD2', permiso: 'reportes' },
+          { etiqueta: 'Cortes de caja', icono: 'receipt', ruta: 'cortes-de-caja', figma: 'AD3', permiso: 'reportes' },
         ],
       },
       {
@@ -71,7 +78,7 @@ export const NAVEGACION: Record<Rol, NavegacionRol> = {
       {
         titulo: 'VENTAS',
         destinos: [
-          { etiqueta: 'Punto de venta', icono: 'cart', ruta: 'punto-de-venta', figma: 'C2' },
+          { etiqueta: 'Punto de venta', icono: 'cart', ruta: 'punto-de-venta', figma: 'C2', permiso: 'vender' },
           { etiqueta: 'Ventas', icono: 'list', ruta: 'ventas', figma: 'C3' },
         ],
       },
@@ -103,15 +110,15 @@ export const NAVEGACION: Record<Rol, NavegacionRol> = {
         titulo: 'TALLER',
         destinos: [
           { etiqueta: 'Tablero de órdenes', icono: 'list', ruta: 'tablero-de-ordenes', figma: 'J2' },
-          { etiqueta: 'Por cotizar', icono: 'receipt', ruta: 'por-cotizar', figma: 'J3' },
-          { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias', figma: 'J4' },
+          { etiqueta: 'Por cotizar', icono: 'receipt', ruta: 'por-cotizar', figma: 'J3', permiso: 'cotizar' },
+          { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias', figma: 'J4', permiso: 'cotizar' },
           { etiqueta: 'Mensajes', icono: 'msg', ruta: 'mensajes', figma: 'J11' },
         ],
       },
       {
         titulo: 'MATERIAL',
         destinos: [
-          { etiqueta: 'Refacciones', icono: 'package', ruta: 'refacciones', figma: 'J5' },
+          { etiqueta: 'Refacciones', icono: 'package', ruta: 'refacciones', figma: 'J5', permiso: 'pedidos' },
           { etiqueta: 'Inventario', icono: 'warehouse', ruta: 'inventario', figma: 'J6' },
         ],
       },
@@ -128,23 +135,24 @@ export const NAVEGACION: Record<Rol, NavegacionRol> = {
   tecnico: {
     prefijo: 'tecnico',
     resumen: '8 equipos asignados',
+    rielConEtiquetas: true,
     grupos: [
       INICIO('T1'),
       {
         titulo: 'MI TRABAJO',
         destinos: [
-          { etiqueta: 'Equipos asignados', icono: 'clip-list', ruta: 'equipos-asignados', figma: 'T2' },
-          { etiqueta: 'Banco de trabajo', icono: 'wrench', ruta: 'banco-de-trabajo', figma: 'T3' },
-          { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias', figma: 'T4' },
+          { etiqueta: 'Equipos asignados', icono: 'clip-list', ruta: 'equipos-asignados', figma: 'T2', corta: 'Equipos' },
+          { etiqueta: 'Banco de trabajo', icono: 'wrench', ruta: 'banco-de-trabajo', figma: 'T3', corta: 'Banco', permiso: 'banco' },
+          { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias', figma: 'T4', permiso: 'banco' },
         ],
       },
       {
         titulo: 'MATERIAL',
-        destinos: [{ etiqueta: 'Refacciones', icono: 'package', ruta: 'refacciones', figma: 'T5' }],
+        destinos: [{ etiqueta: 'Refacciones', icono: 'package', ruta: 'refacciones', figma: 'T5', corta: 'Refacc.' }],
       },
       {
         titulo: 'REGISTRO',
-        destinos: [{ etiqueta: 'Mi historial', icono: 'history', ruta: 'mi-historial', figma: 'T6' }],
+        destinos: [{ etiqueta: 'Mi historial', icono: 'history', ruta: 'mi-historial', figma: 'T6', corta: 'Historial' }],
       },
     ],
   },

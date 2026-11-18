@@ -1,4 +1,5 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
+import { PermisosService } from '../../../administrador/permisos.service';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import { totalLinea } from '../../punto-de-venta/venta.service';
 import { DIAS_DEVOLUCION, ESTADOS, METODOS, VentaRegistrada, articulosDe, reembolsado } from '../historial-ventas.service';
@@ -75,13 +76,13 @@ export function fechaVenta(iso: string): string {
       <button
         type="button"
         class="boton boton--44 detalle__cancelar"
-        [disabled]="v.estado !== 'pagada'"
-        [attr.title]="v.estado === 'pagada' ? null : 'Solo se cancelan ventas pagadas y sin devoluciones'"
+        [disabled]="v.estado !== 'pagada' || !puedeCancelar()"
+        [attr.title]="!puedeCancelar() ? sinPermiso : v.estado === 'pagada' ? null : 'Solo se cancelan ventas pagadas y sin devoluciones'"
         (click)="cancelar.emit()"
       >
         <img src="assets/ventas/x-peligro.svg" width="16" height="16" alt="" />Cancelar venta
       </button>
-      <button type="button" class="boton boton--primario boton--44" [disabled]="motivoSinDevolucion() !== null" [attr.title]="motivoSinDevolucion()" (click)="devolver.emit()">
+      <button type="button" class="boton boton--primario boton--44" [disabled]="motivoSinDevolucion() !== null || !puedeCancelar()" [attr.title]="!puedeCancelar() ? sinPermiso : motivoSinDevolucion()" (click)="devolver.emit()">
         <img src="assets/ventas/undo-blanco.svg" width="16" height="16" alt="" />Devolución
       </button>
     </div>
@@ -113,6 +114,10 @@ export class DetalleVentaComponent {
   readonly enviar = output<void>();
   readonly cancelar = output<void>();
   readonly devolver = output<void>();
+  /** AD7.3 · “Cancelar ventas y devoluciones”. */
+  protected readonly puedeCancelar = computed(() => this.permisos.puede('cancelar'));
+  protected readonly sinPermiso = 'Tu rol no tiene permiso para cancelar ventas ni hacer devoluciones';
+  private readonly permisos = inject(PermisosService);
 
   protected readonly dinero = formatearDinero;
   protected readonly fecha = fechaVenta;

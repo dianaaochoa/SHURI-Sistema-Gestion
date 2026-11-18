@@ -1,0 +1,27 @@
+/* Figma AD9.7 */
+:host .columnas { grid-template-columns: minmax(0, 1fr) 420px; }
+.panel { align-self: stretch; }
+.espacio { flex: 1; }
+.probar { align-self: flex-start; }
+.correo { overflow: hidden; border: 1px solid var(--color-borde); border-radius: 6px; font-size: 11px; color: var(--color-texto-secundario); }
+.correo__cabecera { padding: 10px 16px; border-bottom: 1px solid var(--color-borde); background: var(--color-fondo); font-size: 10px; color: var(--color-texto-tenue); }
+.correo__cabecera strong { color: var(--color-marino); }
+.correo__cuerpo { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; }
+.correo__marca { display: flex; align-items: center; gap: 8px; }
+.correo__marca img { object-fit: contain; }
+.correo__marca strong { display: block; font-size: 11px; color: var(--color-marino); }
+.correo__marca small { display: block; font-size: 9px; color: var(--color-texto-tenue); }
+.correo__titulo { font-size: 15px; font-weight: 700; color: var(--color-marino); }
+.correo__clave { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 6px; background: var(--color-primario-suave); }
+.correo__clave strong { font-size: 17px; letter-spacing: 1px; color: var(--color-primario); }
+.correo__clave small { font-size: 9px; color: var(--color-texto-tenue); }
+.correo__clave--exito { background: var(--color-exito-suave); }
+.correo__clave--exito strong { color: var(--color-exito); }
+.correo__clave--advertencia { background: var(--color-advertencia-suave); }
+.correo__clave--advertencia strong { color: var(--color-advertencia); }
+.descargar { align-self: flex-start; }
+.correo__boton { align-self: flex-start; padding: 8px 14px; border-radius: 6px; background: var(--color-primario); font-weight: 600; color: var(--color-superficie); }
+.correo__pie { padding: 10px 20px; background: var(--color-fondo); font-size: 9px; color: var(--color-texto-tenue); }
+
+@media (max-width: 1280px) { :host .columnas { grid-template-columns: minmax(0, 1fr) 340px; } }
+@media (max-width: 1024px) { :host .columnas { grid-template-columns: minmax(0, 1fr); } }

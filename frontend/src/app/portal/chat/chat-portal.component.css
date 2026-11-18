@@ -1,0 +1,38 @@
+/* Figma P5 · chat a pantalla completa, columna de celular */
+:host { display: flex; flex-direction: column; height: 100dvh; max-width: 440px; margin: 0 auto; background: var(--color-fondo); }
+.cabecera { flex-shrink: 0; background: var(--color-superficie); }
+.cabecera__fila { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+.atras { display: grid; width: 28px; height: 28px; place-items: center; transform: scaleX(-1); }
+.avatar { display: grid; width: 40px; height: 40px; flex-shrink: 0; place-items: center; border-radius: 999px; background: var(--color-marino); font-size: 13px; font-weight: 700; color: var(--color-superficie); }
+.persona strong { display: block; font-size: 16px; color: var(--color-marino); }
+.persona small { display: block; font-size: 12px; color: var(--color-primario); }
+.persona small.apagado { color: var(--color-texto-tenue); }
+.folio { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-block: 1px solid var(--color-borde); font-size: 12px; color: var(--color-marino); }
+.folio__texto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icono { width: 16px; height: 16px; flex-shrink: 0; }
+.franja { display: flex; gap: 8px; padding: 10px 16px; background: var(--color-advertencia-suave); font-size: 12px; color: var(--color-advertencia); }
+.mensajes { display: flex; flex: 1; flex-direction: column; gap: 10px; overflow-y: auto; padding: 16px; }
+.dia { align-self: flex-start; padding: 2px 8px; border-radius: 6px; background: var(--color-fondo-tenue); font-size: 11px; color: var(--color-texto-tenue); }
+.burbuja { align-self: flex-start; max-width: 80%; padding: 10px 12px; border: 1px solid var(--color-borde); border-radius: 12px; background: var(--color-superficie); font-size: 13px; color: var(--color-marino); overflow-wrap: anywhere; }
+.burbuja small { display: block; margin-top: 4px; font-size: 10px; color: var(--color-texto-tenue); }
+.burbuja--mia { align-self: flex-end; border-color: var(--color-primario); background: var(--color-primario); color: var(--color-superficie); }
+.burbuja--mia small { text-align: right; color: rgba(255, 255, 255, 0.85); }
+.foto { display: flex; align-items: center; gap: 6px; }
+.tarjeta-estado { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: 80%; padding: 12px; border: 1px solid var(--color-borde); border-radius: 12px; background: var(--color-superficie); font-size: 12px; }
+.tarjeta-estado__titulo { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--color-marino); }
+.tarjeta-estado__titulo .icono { color: var(--color-advertencia); }
+.enlace-ver { font-weight: 600; color: var(--color-primario); text-decoration: none; }
+.vacio { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px; text-align: center; }
+.vacio__icono { display: grid; width: 64px; height: 64px; place-items: center; border-radius: 999px; background: var(--color-primario-suave); color: var(--color-primario); }
+.vacio__icono .icono { width: 26px; height: 26px; }
+.vacio h1 { font-size: 20px; font-weight: 700; color: var(--color-marino); }
+.vacio p { font-size: 13px; color: var(--color-texto-tenue); }
+.pregunta { padding: 8px 14px; border: 1px solid var(--color-primario); border-radius: 999px; background: var(--color-superficie); font: inherit; font-size: 13px; color: var(--color-primario); cursor: pointer; }
+.escribir { display: flex; flex-shrink: 0; align-items: center; gap: 8px; padding: 10px 16px 16px; border-top: 1px solid var(--color-borde); background: var(--color-superficie); }
+.camara { display: grid; width: 36px; height: 36px; place-items: center; color: var(--color-texto-secundario); cursor: pointer; }
+.camara .icono { width: 20px; height: 20px; }
+.camara:focus-within { outline: 2px solid var(--color-primario); border-radius: 8px; }
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.escribir__texto { flex: 1; min-width: 0; height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--color-fondo-tenue); font: inherit; font-size: 14px; color: var(--color-marino); }
+.enviar { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 999px; background: var(--color-borde); color: var(--color-superficie); cursor: default; }
+.enviar--activo { background: var(--color-primario); cursor: pointer; }

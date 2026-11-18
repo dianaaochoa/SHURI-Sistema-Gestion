@@ -10,32 +10,16 @@
       </button>
     </header>
 
-    <div class="conteos">
-      @for (grupo of grupos; track $index; let monedas = $last) {
-        <table class="conteo">
-          <thead><tr><th>Denominación</th><th class="c-cantidad">Cantidad</th><th class="c-importe">Importe</th></tr></thead>
-          <tbody>
-            @for (d of grupo; track d.valor) {
-              <tr>
-                <td>{{ d.etiqueta }}</td>
-                <td class="c-cantidad">
-                  <input type="number" min="0" inputmode="numeric" placeholder="0" [attr.aria-label]="'Cantidad de ' + d.etiqueta" [value]="cantidades()[d.valor] || ''" (input)="cambiar(d.valor, $any($event.target).value)" />
-                </td>
-                <td class="c-importe">{{ dinero(importe(d.valor)) }}</td>
-              </tr>
-            }
-            @if (monedas) {
-              <tr>
-                <td>Centavos</td>
-                <td class="c-cantidad">
-                  <input type="number" min="0" max="0.99" step="0.1" inputmode="decimal" placeholder="—" aria-label="Importe en centavos" [value]="centavos() || ''" (input)="cambiarCentavos($any($event.target).value)" />
-                </td>
-                <td class="c-importe">{{ dinero(centavos()) }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
+    @if (avisoPendientes(); as aviso) {
+      <p class="aviso aviso--advertencia" role="note"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ aviso }}</p>
+    }
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="cierre-contado">Efectivo que hay en el cajón *</label>
+      <div class="campo__control campo__control--44 monto" [class.campo__control--error]="intentado() && errores()['contado']">
+        <input id="cierre-contado" class="campo__input" inputmode="decimal" autocomplete="off" placeholder="$0.00" [(campoDinero)]="contadoEscrito" />
+      </div>
+      <p class="nota">Cuenta el efectivo y escribe el total (sin contar billete por billete).</p>
     </div>
 
     <div class="totales" aria-live="polite">
@@ -57,8 +41,7 @@
       <div class="campo">
         <label class="campo__etiqueta" for="cierre-fondo">Efectivo que se queda como fondo</label>
         <div class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['fondo']">
-          <span class="moneda">$</span>
-          <input id="cierre-fondo" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" [value]="fondo()" (input)="fondo.set(+$any($event.target).value)" />
+          <input id="cierre-fondo" class="campo__input" inputmode="decimal" autocomplete="off" placeholder="$0.00" [campoDinero]="fondo()" (campoDineroChange)="fondoEscrito.set($event)" />
         </div>
         @if (intentado() && errores()['fondo']; as e) {
           <p class="campo__error">{{ e }}</p>
@@ -68,6 +51,9 @@
       </div>
     </div>
 
+    @if (intentado() && faltantes().length) {
+      <p class="faltan" role="alert">No se puede cerrar todavía: {{ faltantes().join(' ') }}</p>
+    }
     <div class="modal__acciones">
       <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Seguir contando</button>
       <button type="button" class="boton boton--primario boton--44" (click)="cerrarTurno()">

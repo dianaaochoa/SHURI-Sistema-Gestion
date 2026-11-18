@@ -1,0 +1,104 @@
+<div class="reporte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Catálogo y precios</h1>
+      <p class="encabezado-pagina__subtitulo">{{ indicadores()[0].detalle }} · El mismo catálogo que ven caja y taller · Solo tú y el jefe ven costos</p>
+    </div>
+    <div class="acciones">
+      <button type="button" class="boton boton--contorno boton--40" (click)="ajustando.set(true)"><span class="icono" style="--icono: url(assets/pdv/percent.svg)"></span>Ajustar precios</button>
+      <button type="button" class="boton boton--primario boton--40" (click)="agregando.set(true)"><span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Añadir producto</button>
+    </div>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen del catálogo">
+    @for (i of indicadores(); track i.titulo) {
+      <div class="indicador">
+        <p class="indicador__valor valor--{{ i.tono }}">{{ i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ i.detalle }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <div class="filtros">
+    <label class="campo__control campo__control--40 buscar">
+      <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+      <input class="campo__input" type="search" placeholder="Buscar nombre, SKU o código de barras…" aria-label="Buscar nombre, SKU o código de barras" autocomplete="off" [value]="busqueda()" (input)="filtrar('busqueda', $any($event.target).value)" />
+    </label>
+    <span class="campo__control campo__control--40 filtro">
+      <select class="campo__input campo__select" aria-label="Categoría" (change)="filtrar('categoria', $any($event.target).value)">
+        <option value="" [selected]="!categoria()">Todas las categorías</option>
+        @for (c of categorias(); track c) {
+          <option [value]="c" [selected]="c === categoria()">{{ c }}</option>
+        }
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+    <span class="campo__control campo__control--40 filtro">
+      <select class="campo__input campo__select" aria-label="Margen" (change)="filtrar('margen', $any($event.target).value)">
+        <option value="" [selected]="!filtroMargen()">Margen: todos</option>
+        <option value="bajo" [selected]="filtroMargen() === 'bajo'">Margen bajo (menos de 35%)</option>
+        <option value="medio" [selected]="filtroMargen() === 'medio'">Margen medio (35 a 49%)</option>
+        <option value="alto" [selected]="filtroMargen() === 'alto'">Margen alto (50% o más)</option>
+      </select>
+      <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+    </span>
+  </div>
+
+  @if (aviso()) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+  }
+
+  <div class="tabla">
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th><th>Producto</th><th class="t-cat">Categoría</th><th class="t-num">Stock</th><th class="t-num">Disponible</th><th class="t-costo">Costo prom.</th><th>Precio venta</th><th>Margen</th><th class="t-prov">Proveedor</th><th class="t-accion"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (f of filas(); track f.p.sku) {
+          <tr [class.resaltada]="f.tono === 'peligro'" tabindex="0" (click)="editando.set(f.p)" (keydown.enter)="editando.set(f.p)">
+            <td class="t-sku">{{ f.p.sku }}</td>
+            <td class="t-nombre">{{ f.p.nombre }}</td>
+            <td class="t-cat">{{ f.p.categoria }}</td>
+            <td class="t-num">{{ f.p.stock }}</td>
+            <td class="t-num">{{ f.disponible }}</td>
+            <td class="t-costo">{{ dinero(f.p.costo) }}</td>
+            <td>{{ dinero(f.p.precio) }}</td>
+            <td class="margen margen--{{ f.tono }}">{{ f.margen }}%</td>
+            <td class="t-prov">{{ f.p.proveedor }}</td>
+            <td class="t-accion"><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); editando.set(f.p)">Editar</button></td>
+          </tr>
+        } @empty {
+          <tr><td class="vacio" colspan="10">Ningún producto coincide con los filtros.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pie">
+    <p class="tenue">Mostrando {{ desde() }}–{{ desde() ? desde() + filas().length - 1 : 0 }} de {{ total() }} productos</p>
+    @if (paginas() > 1) {
+      <div class="paginas">
+        <button type="button" class="pagina" [disabled]="pagina() === 0" (click)="pagina.set(pagina() - 1)" aria-label="Anterior">‹</button>
+        @for (i of numeros(); track i) {
+          <button type="button" class="pagina" [class.pagina--activa]="i === pagina()" (click)="pagina.set(i)">{{ i + 1 }}</button>
+        }
+        <button type="button" class="pagina" [disabled]="pagina() === paginas() - 1" (click)="pagina.set(pagina() + 1)" aria-label="Siguiente">›</button>
+      </div>
+    }
+  </div>
+</div>
+
+@if (editando(); as p) {
+  <app-editar-precio [producto]="p" (cerrar)="editando.set(null)" (guardado)="guardado($event)" />
+}
+@if (ajustando()) {
+  <app-ajustar-precios [categorias]="categorias()" (cerrar)="ajustando.set(false)" (aplicado)="guardado($event)" />
+}
+@if (agregando()) {
+  <app-alta-producto (cerrar)="agregando.set(false)" (guardado)="aviso.set($event.texto); $event.cerrar && agregando.set(false)" />
+}

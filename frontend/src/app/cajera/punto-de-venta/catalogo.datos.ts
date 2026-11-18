@@ -1,6 +1,7 @@
 /**
- * Catálogo de prueba del punto de venta, con los productos y precios de Figma (C2.1 y C2.3).
- * Precios antes de IVA, como los muestra el ticket. Se reemplaza por la API de inventario.
+ * Precios de Figma (C2.1, C2.9 y C3) para las ventas de prueba ya hechas: el historial de Ventas
+ * y las ventas en espera. Precios antes de IVA, como los muestra el ticket.
+ * Lo que se vende hoy sale de Inventario (`InventarioService`), no de aquí.
  */
 
 export interface Producto {

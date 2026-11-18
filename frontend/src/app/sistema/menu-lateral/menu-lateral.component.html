@@ -1,5 +1,6 @@
 <nav
   class="menu"
+  [class.menu--riel-etiquetas]="navegacion().rielConEtiquetas"
   aria-label="Menú principal"
   [class.menu--desplegado]="contraido() && desplegado()"
   [class.menu--movil-abierto]="abiertoMovil()"
@@ -32,6 +33,9 @@
           >
             <span class="icono" [style.--icono]="'url(assets/menu/' + destino.icono + '.svg)'"></span>
             <span class="destino__etiqueta">{{ destino.etiqueta }}</span>
+            @if (navegacion().rielConEtiquetas) {
+              <span class="destino__corta" aria-hidden="true">{{ destino.corta ?? destino.etiqueta }}</span>
+            }
             @if (insignia(destino); as n) {
               <span class="destino__insignia" [attr.aria-label]="n + ' sin responder'">{{ n }}</span>
             }

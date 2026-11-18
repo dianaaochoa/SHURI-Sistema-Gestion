@@ -1,0 +1,101 @@
+<div class="inicio">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">{{ saludo }}</h1>
+      <p class="encabezado-pagina__subtitulo">{{ subtitulo }}</p>
+    </div>
+    <div class="acciones">
+      <span class="campo__control campo__control--40 periodo">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <select class="campo__input campo__select" aria-label="Periodo" (change)="periodo.set($any($event.target).value)">
+          @for (p of periodos; track p.id) {
+            <option [value]="p.id" [selected]="p.id === periodo()">{{ p.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+      <a class="boton boton--contorno boton--40" routerLink="/administrador/ventas-y-utilidad"><span class="icono" style="--icono: url(assets/menu/chart.svg)"></span>Ver reportes</a>
+    </div>
+  </header>
+
+  <section class="indicadores" aria-label="Indicadores del negocio">
+    @for (i of indicadores(); track i.titulo) {
+      <div class="indicador">
+        <p class="indicador__valor valor--{{ i.tono }}">{{ i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ i.detalle }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <div class="columnas">
+    <div class="izquierda">
+      <section class="panel">
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/chart.svg)"></span>Ingresos de los últimos 14 días (miles de pesos)</h2>
+        <div class="grafica" role="img" aria-label="Ingresos por día de los últimos 14 días">
+          @for (d of dias(); track d.clave) {
+            <div class="grafica__dia" [title]="d.etiqueta + ': ' + d.miles">
+              <span class="grafica__barra" [class.grafica__barra--hoy]="d.hoy" [style.height.%]="d.alto"></span>
+              <span class="grafica__etiqueta">{{ d.etiqueta }}</span>
+            </div>
+          }
+        </div>
+        <p class="resumen-mes">
+          <span>{{ nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1) }} a la fecha <strong>{{ resumenMes().total }}</strong></span>
+          <span>vs {{ resumenMes().contra }} <strong [class.sube]="resumenMes().sube" [class.baja]="!resumenMes().sube">{{ resumenMes().cambio }}</strong></span>
+          <span>Ticket promedio <strong>{{ resumenMes().ticket }}</strong></span>
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>De dónde viene el dinero ({{ nombreMes }})</h2>
+        <div class="barra-origen" role="img" aria-label="Reparto de ingresos del mes">
+          @for (o of origen(); track o.texto) {
+            <span [style.width.%]="o.porcentaje" [style.background]="o.color"></span>
+          }
+        </div>
+        <p class="leyenda">
+          @for (o of origen(); track o.texto) {
+            <span><i [style.background]="o.color"></i>{{ o.texto }} {{ o.porcentaje }}% · {{ dinero(o.monto) }}</span>
+          }
+        </p>
+      </section>
+
+      <section class="panel crece">
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span>Lo que más deja este mes</h2>
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr><th>Producto / servicio</th><th>Vendidos</th><th>Ingreso</th><th>Utilidad</th><th>Margen</th></tr>
+            </thead>
+            <tbody>
+              @for (r of rentables(); track r.nombre) {
+                <tr><td class="t-nombre">{{ r.nombre }}</td><td>{{ r.vendidos }}</td><td>{{ dinero(r.ingreso) }}</td><td>{{ dinero(r.utilidad) }}</td><td>{{ r.margen }}%</td></tr>
+              } @empty {
+                <tr><td colspan="5" class="vacio">Sin ventas este mes.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <aside class="panel atencion" aria-labelledby="titulo-atencion">
+      <h2 class="panel__titulo" id="titulo-atencion"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Atención</h2>
+      @for (a of avisos(); track a.titulo) {
+        <a class="aviso-admin" [routerLink]="['/administrador', a.ruta]">
+          <span class="aviso-admin__icono aviso-admin__icono--{{ a.tono }}"><span class="icono" [style.--icono]="'url(assets/' + a.icono + '.svg)'"></span></span>
+          <span class="aviso-admin__texto"><strong>{{ a.titulo }}</strong><span>{{ a.detalle }}</span></span>
+          <span class="estado estado--{{ a.tono }}">{{ a.accion }}</span>
+        </a>
+      } @empty {
+        <p class="vacio">Nada pendiente por revisar.</p>
+      }
+      <p class="aviso garantias" [class.aviso--advertencia]="garantias().alta" [class.aviso--exito]="!garantias().alta">
+        <span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Tasa de garantías del taller: {{ garantias().tasa }}% (meta: menos de {{ garantias().meta }}%). Ver Reportes › Taller.
+      </p>
+    </aside>
+  </div>
+</div>

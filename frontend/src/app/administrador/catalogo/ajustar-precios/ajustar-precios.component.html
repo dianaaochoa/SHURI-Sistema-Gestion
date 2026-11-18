@@ -1,0 +1,92 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-ajuste" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); aplicar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-ajuste">Ajustar precios en grupo</h2>
+        <p class="modal__subtitulo">Cambia varios precios a la vez. Los presupuestos ya enviados conservan su precio.</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Aplicar a *</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="categoria.set($any($event.target).value)">
+            <option value="" [selected]="!categoria()">Todo el catálogo</option>
+            @for (c of categorias(); track c) {
+              <option [value]="c" [selected]="c === categoria()">Categoría: {{ c }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Proveedor</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="proveedor.set($any($event.target).value)">
+            <option value="" [selected]="!proveedor()">Todos</option>
+            @for (p of proveedores(); track p) {
+              <option [value]="p" [selected]="p === proveedor()">{{ p }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+    </div>
+
+    <fieldset class="opciones">
+      <legend class="campo__etiqueta">¿Cómo cambia el precio?</legend>
+      @for (m of modos; track m.id) {
+        <label class="opcion-radio" [class.opcion-radio--elegida]="m.id === modo()">
+          <input type="radio" name="modo" [checked]="m.id === modo()" (change)="modo.set(m.id)" />
+          <span class="opcion-radio__texto"><strong>{{ m.texto }}</strong><span>{{ m.detalle }}</span></span>
+        </label>
+      }
+    </fieldset>
+
+    <div class="dos">
+      @if (modo() !== 'redondear') {
+        <label class="campo">
+          <span class="campo__etiqueta">{{ modo() === 'porcentaje' ? 'Porcentaje' : 'Margen sobre el costo' }}</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="invalido()">
+            <input class="campo__input" type="number" step="0.5" [value]="valor()" (input)="valor.set($any($event.target).valueAsNumber)" />
+            <span class="signo">%</span>
+          </span>
+        </label>
+      }
+      <label class="campo">
+        <span class="campo__etiqueta">Redondeo</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="redondeo.set($any($event.target).value)">
+            @if (modo() !== 'redondear') {
+              <option value="ninguno" [selected]="redondeo() === 'ninguno'">Sin redondeo</option>
+            }
+            <option value="cero" [selected]="redondeo() === 'cero'">Terminar en $0</option>
+            <option value="nueve" [selected]="redondeo() === 'nueve'">Terminar en $9</option>
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+    </div>
+
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Producto</th><th>Actual</th><th>Nuevo</th><th>Margen</th></tr></thead>
+        <tbody>
+          @for (c of cambios().slice(0, 4); track c.p.sku) {
+            <tr><td class="t-nombre">{{ c.p.nombre }}</td><td>{{ dinero(c.p.precio) }}</td><td class="nuevo">{{ dinero(c.nuevo) }}</td><td [class.bajo]="c.margen < 35">{{ c.margen }}%</td></tr>
+          } @empty {
+            <tr><td colspan="4" class="vacio">Con estos datos ningún precio cambia.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="nota">Se actualizarán {{ cambios().length }} {{ cambios().length === 1 ? 'producto' : 'productos' }} · queda registrado con tu nombre para la bitácora</p>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44" [disabled]="invalido() || !cambios().length"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Aplicar a {{ cambios().length }} {{ cambios().length === 1 ? 'producto' : 'productos' }}</button>
+    </div>
+  </form>
+</div>

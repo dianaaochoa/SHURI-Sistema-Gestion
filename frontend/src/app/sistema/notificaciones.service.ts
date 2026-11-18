@@ -19,9 +19,12 @@ export interface Notificacion {
  * Los de la cajera son los de Figma C1.4 y los del técnico los de T1.2.
  */
 const DEMO: Record<Rol, Omit<Notificacion, 'id'>[]> = {
+  // Figma AD1.2
   administrador: [
-    { titulo: 'Corte de caja por revisar', detalle: 'Caja 01 · diferencia de -$40 · hace 10 min', leida: false, icono: 'menu/receipt', tono: 'advertencia' },
-    { titulo: 'Factura cancelada', detalle: 'F-0412 · a petición del cliente · hace 1 h', leida: true, icono: 'menu/file', tono: 'neutro' },
+    { titulo: 'Ana Martínez pidió restablecer su contraseña', detalle: 'Usuarios y permisos · hace 5 min', leida: false, icono: 'menu/key', tono: 'peligro' },
+    { titulo: 'Corte con faltante sin revisar', detalle: 'Caja 01 matutino · −$30.00 · hace 1 h', leida: false, icono: 'menu/receipt', tono: 'peligro' },
+    { titulo: 'Pago a proveedor vence en 12 días', detalle: 'Distribuidora MovilTec · $4,860.00', leida: false, icono: 'menu/truck', tono: 'advertencia' },
+    { titulo: 'Quedan 436 timbres', detalle: 'Te avisaremos al llegar a 50', leida: true, icono: 'menu/file', tono: 'info' },
   ],
   cajera: [
     { titulo: 'PED-0123 llega hoy', detalle: 'Recíbelo en Inventario › Entrada contra pedido', leida: false, icono: 'menu/truck', tono: 'advertencia' },

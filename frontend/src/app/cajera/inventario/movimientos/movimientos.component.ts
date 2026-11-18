@@ -47,7 +47,9 @@ import { InventarioService, apartadas, disponible } from '../inventario.service'
             <button type="button" class="boton boton--contorno boton--44" (click)="editar.emit()">
               <img src="assets/inventario/pencil.svg" width="16" height="16" alt="" />Editar producto
             </button>
-            <button type="button" class="boton boton--primario boton--44" (click)="ajustar.emit()">Ajustar stock</button>
+            @if (puedeAjustar()) {
+              <button type="button" class="boton boton--primario boton--44" (click)="ajustar.emit()">Ajustar stock</button>
+            }
           </div>
         </section>
       }
@@ -77,6 +79,8 @@ export class MovimientosComponent {
   readonly sku = input.required<string>();
   readonly cerrar = output<void>();
   readonly ajustar = output<void>();
+  /** AD7.3 · Sin “Recibir mercancía y ajustar inventario” no sale el botón. */
+  readonly puedeAjustar = input(true);
   readonly editar = output<void>();
 
   protected readonly dinero = formatearDinero;

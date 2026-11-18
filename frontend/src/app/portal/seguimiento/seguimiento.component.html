@@ -1,0 +1,275 @@
+<app-aviso-chat />
+<header class="barra">
+  <div class="barra__interior">
+    <a class="atras" routerLink="/portal/mis-equipos" aria-label="Volver a Mis equipos"><img src="assets/cajera/chev-r.svg" width="16" height="16" alt="" /></a>
+    <span class="marca"><img src="assets/acceso/logo-shuri.png" width="32" height="32" alt="" /><span><strong>SHURI</strong><small>Reparación y venta</small></span></span>
+    <span class="folio"><strong>Folio {{ orden()?.folio ?? archivado()?.folio }}</strong><small>Portal del cliente</small></span>
+  </div>
+</header>
+
+<main class="columna">
+  @if (v(); as v) {
+    @if (v.variante === 'garantia') {
+      <app-garantia-portal [orden]="orden()!" [chat]="chat()" (clausulas)="clausulas.set(true)" />
+    } @else {
+    <div class="cabeza">
+      <span class="estado estado--{{ v.badge.tono }}">{{ v.badge.texto }}</span>
+      <h1 class="titulo-pagina">{{ v.titulo }}</h1>
+      <p class="sub">{{ v.sub }}</p>
+    </div>
+
+    @if (aviso()) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+    }
+
+    @if (v.variante === 'dato') {
+      <section class="tarjeta tarjeta--advertencia">
+        <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Necesitamos que nos contestes</p>
+        <p>{{ v.pausa }} Tu reparación está en pausa hasta que nos contactes. Por seguridad, no escribas contraseñas ni tu PIN aquí.</p>
+        <a class="boton boton--primario boton--44" [routerLink]="chat()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Responder por chat al jefe de técnicos</a>
+      </section>
+    }
+
+    <section class="tarjeta pasos" aria-label="Avance de la reparación">
+      <ol class="pasos__lista">
+        @for (p of pasos; track p; let i = $index) {
+          <li class="paso paso--{{ pasoEstado(i + 1) }}" [attr.aria-current]="pasoEstado(i + 1) === 'actual' ? 'step' : null">
+            <span class="paso__marca">
+              @switch (pasoEstado(i + 1)) {
+                @case ('hecho') { <img src="assets/pdv/check-blanco.svg" width="14" height="14" alt="Listo" /> }
+                @case ('error') { <img src="assets/pdv/x.svg" width="12" height="12" alt="No" /> }
+                @default { {{ i + 1 }} }
+              }
+            </span>
+            <span class="paso__texto">{{ p }}</span>
+          </li>
+        }
+      </ol>
+      <p class="pasos__linea" [class.pasos__linea--error]="v.error">{{ v.linea }}</p>
+    </section>
+
+    @switch (v.variante) {
+      @case ('recibido') {
+        <section class="tarjeta">
+          <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/iconos/smartphone.svg)"></span>Datos de recepción</p>
+          <p class="tenue">{{ v.recibido }}</p>
+          <p>Falla reportada: {{ v.falla }}</p>
+          <app-fotos-orden [fotos]="orden()?.fotos ?? []" [tamano]="64" vacio="No se tomaron fotos al recibir tu equipo." />
+          <p class="enlace-tenue">Siguiente paso: diagnóstico técnico</p>
+        </section>
+      }
+      @case ('revision') {
+        <section class="tarjeta">
+          <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/inventario/search.svg)"></span>Diagnóstico en curso</p>
+          <p class="tenue">{{ v.tecnico }}</p>
+          <p>{{ v.diagnostico }}</p>
+          <p class="enlace-tenue">Recibirás tu presupuesto aquí y por correo</p>
+        </section>
+      }
+      @case ('dato') {
+        <section class="tarjeta">
+          <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/inventario/search.svg)"></span>Diagnóstico en curso</p>
+          <p class="tenue">{{ v.tecnico }}</p>
+          <p>{{ v.diagnostico }}</p>
+        </section>
+      }
+      @case ('presupuesto') {
+        @if (v.presupuesto; as p) {
+          <section class="tarjeta">
+            <p class="tarjeta__titulo">Falla encontrada</p>
+            <p class="tenue">{{ p.descripcion }}</p>
+            @if (fotosDe('diagnostico').length) {
+              <app-fotos-orden [fotos]="fotosDe('diagnostico')" [tamano]="64" />
+            }
+            <p class="dato"><span>Refacciones</span><strong>{{ p.refacciones }}</strong></p>
+            <p class="dato"><span>Mano de obra</span><strong>{{ p.manoObra }}</strong></p>
+            <p class="dato"><span>Total · IVA incluido</span><strong>{{ p.total }}</strong></p>
+            <p class="dato"><span>{{ p.base }}</span></p>
+            <p class="dato"><span>Anticipo recibido</span><strong>− {{ v.anticipo }}</strong></p>
+            <p class="restante"><span>Restante<small>MXN</small></span><strong>{{ v.restante }}</strong></p>
+            <p class="tenue">{{ p.vigencia }}</p>
+          </section>
+        }
+      }
+      @case ('adicional') {
+        @if (v.adicional; as a) {
+          <section class="tarjeta">
+            <p class="tarjeta__titulo">Daño adicional encontrado</p>
+            <p class="tenue">{{ a.descripcion }}</p>
+            @if (fotosDe('adicional').length) {
+              <app-fotos-orden [fotos]="fotosDe('adicional')" [tamano]="64" />
+            }
+            <p class="dato"><span>Adicional · IVA incluido</span><strong>{{ a.monto }}</strong></p>
+            <p class="dato"><span>{{ a.base }}</span></p>
+            <p class="dato"><span>Ya autorizado{{ v.presupuesto?.aprobado ? ' (' + v.presupuesto?.aprobado + ')' : '' }}</span><strong>{{ a.autorizado }}</strong></p>
+            <p class="restante"><span>Nuevo total<small>MXN</small></span><strong>{{ a.nuevo }}</strong></p>
+          </section>
+        }
+      }
+      @case ('taller') {
+        <section class="tarjeta">
+          <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/menu/wrench.svg)"></span>Trabajo en curso</p>
+          <p class="tenue">Diagnóstico: {{ v.presupuesto?.descripcion ?? v.diagnostico }}</p>
+          <p>{{ v.realizado }}</p>
+          @if (v.actualizacion) { <p class="enlace-tenue">{{ v.actualizacion }}</p> }
+        </section>
+        @if (v.presupuesto; as p) {
+          <section class="tarjeta">
+            <p class="tarjeta__titulo">Presupuesto autorizado</p>
+            <p class="dato"><span>Total · IVA incluido</span><strong>{{ p.total }}</strong></p>
+            <p class="dato"><span>{{ p.base }}</span></p>
+            <p class="dato"><span>Anticipo recibido</span><strong>− {{ v.anticipo }}</strong></p>
+            <p class="restante"><span>Restante<small>MXN</small></span><strong>{{ v.restante }}</strong></p>
+          </section>
+        }
+        <p class="tenue">Te avisaremos cuando esté listo para recoger. No necesitas autorizar nuevamente.</p>
+      }
+      @case ('listo') {
+        <section class="tarjeta">
+          <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/portal/map-pin.svg)"></span>Recoge en SHURI</p>
+          <p>Lleva tu folio {{ orden()?.folio }} y una identificación para recoger tu equipo.</p>
+          @if (fotosDe('salida', 'sin-reparar', 'devolucion').length) {
+            <p class="tenue">Así quedó tu equipo:</p>
+            <app-fotos-orden [fotos]="fotosDe('salida', 'sin-reparar', 'devolucion')" [tamano]="64" />
+          }
+        </section>
+        <section class="tarjeta">
+          <p class="tarjeta__titulo">Importe pendiente de entrega</p>
+          @if (v.presupuesto; as p) {
+            <p class="dato"><span>Total · IVA incluido</span><strong>{{ p.total }}</strong></p>
+            <p class="dato"><span>{{ p.base }}</span></p>
+          }
+          <p class="dato"><span>Anticipo recibido</span><strong>− {{ v.anticipo }}</strong></p>
+          <p class="restante"><span>Restante<small>MXN</small></span><strong>{{ v.restante }}</strong></p>
+        </section>
+        <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>{{ v.plazo }}</p>
+      }
+      @case ('entregado') {
+        @if (!calificado()) {
+          <section class="tarjeta">
+            <p class="tarjeta__titulo">¿Cómo te atendimos?</p>
+            <p class="tenue">Tu opinión ayuda a SHURI a mejorar. Toma 10 segundos.</p>
+            <div class="estrellas" role="radiogroup" aria-label="Calificación">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <button type="button" class="estrella" [class.estrella--llena]="n <= estrellas()" role="radio" [attr.aria-checked]="n === estrellas()" [attr.aria-label]="n + (n === 1 ? ' estrella' : ' estrellas')" (click)="estrellas.set(n)">★</button>
+              }
+            </div>
+            <p class="campo__etiqueta">¿Qué te gustó?</p>
+            <div class="chips">
+              @for (g of gustos; track g) { <button type="button" class="chip" [class.chip--activo]="gusto().includes(g)" [attr.aria-pressed]="gusto().includes(g)" (click)="alternarGusto(g)">{{ g }}</button> }
+            </div>
+            <label class="campo">
+              <span class="campo__etiqueta">Comentario (opcional)</span>
+              <textarea class="campo__area" rows="3" maxlength="300" [value]="comentario()" (input)="comentario.set($any($event.target).value)"></textarea>
+            </label>
+            <button type="button" class="boton boton--primario boton--44" [disabled]="!estrellas()" (click)="calificar()">Enviar calificación</button>
+          </section>
+        }
+        @if (v.garantia.activa) {
+          <section class="tarjeta">
+            <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Garantía activa · {{ v.garantia.dias }} días</p>
+            <p class="garantia"><strong>{{ v.garantia.quedan }}</strong><span>{{ v.garantia.quedan === 1 ? 'día de garantía restante' : 'días de garantía restantes' }}<small>Vence el {{ v.garantia.vence }} · Folio {{ orden()?.folio }}</small></span></p>
+            <span class="barra-garantia"><span [style.width.%]="v.garantia.porcentaje"></span></span>
+            <p class="tenue">Cuenta desde la entrega y se solicita con el mismo folio. No cubre golpes, humedad ni manipulación de terceros.</p>
+            <button type="button" class="boton boton--contorno boton--44" (click)="solicitando.set(true)"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>Solicitar garantía</button>
+          </section>
+        }
+        <section class="tarjeta">
+          <p class="tarjeta__titulo">Resumen de entrega</p>
+          <p class="dato"><span>Entregado</span><strong>{{ v.entrega }}</strong></p>
+          <p class="dato"><span>Total pagado</span><strong>{{ v.pagado }}</strong></p>
+          <p class="tenue">Trabajo: {{ v.realizado }}</p>
+        </section>
+        <div class="enlaces">
+          <button type="button" class="texto-enlace" (click)="comprobante()"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>Descargar comprobante</button>
+          <a class="texto-enlace" routerLink="/portal/factura" [queryParams]="{ folio: orden()?.folio }"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Solicitar factura</a>
+        </div>
+      }
+      @default {
+        <section class="tarjeta">
+          <p class="tarjeta__titulo"><span class="icono" style="--icono: url(assets/portal/map-pin.svg)"></span>Recoge tu equipo</p>
+          @if (v.variante === 'sin-reparacion') { <p class="tenue">{{ v.motivo ? 'Motivo: ' + v.motivo + ' ' : '' }}Se devuelve armado, como llegó.</p> }
+          @else { <p class="tenue">Se devuelve sin reparar, en las mismas condiciones en que lo recibimos.</p> }
+          <p>Recógelo en SHURI con tu folio {{ orden()?.folio }} e identificación.</p>
+        </section>
+      }
+    }
+
+    @if (v.variante === 'recibido' || v.variante === 'revision' || v.variante === 'dato') {
+      <section class="tarjeta">
+        <p class="tarjeta__titulo">Resumen de pagos</p>
+        <p class="dato"><span>Costo de reparación</span><strong class="tenue-fuerte">Por definir</strong></p>
+        <p class="tenue">El costo se calcula al terminar el diagnóstico.</p>
+        <p class="dato"><span>Anticipo recibido</span><strong>{{ v.anticipo }}</strong></p>
+      </section>
+      <p class="tenue">{{ v.variante === 'recibido' ? 'Te avisaremos cuando tu equipo pase a diagnóstico.' : v.variante === 'revision' ? 'No necesitas hacer nada por ahora. Te avisaremos cuando el presupuesto esté listo.' : '' }}</p>
+    }
+    @if (v.variante === 'rechazado' || v.variante === 'sin-reparacion') {
+      <section class="tarjeta">
+        <p class="tarjeta__titulo">Resumen de pagos</p>
+        <p class="dato"><span>Revisión y diagnóstico</span><strong>{{ v.revision }}</strong></p>
+        <p class="dato"><span>Anticipo recibido</span><strong>− {{ v.anticipo }}</strong></p>
+        <p class="restante restante--chico"><span>Saldo pendiente</span><strong>{{ v.restante }}</strong></p>
+      </section>
+      <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>{{ v.bodega ? 'Tu equipo ya está en bodega. Pasa por él con tu folio; puede generar almacenaje.' : v.plazo }}</p>
+    }
+
+    <span class="espacio"></span>
+    @if (v.variante === 'presupuesto' || v.variante === 'adicional') {
+      <div class="pie pie--decision">
+        <button type="button" class="texto-enlace" (click)="clausulas.set(true)"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas y condiciones</button>
+        <div class="pie__botones">
+          <button type="button" class="boton boton--peligro-contorno boton--44" (click)="confirmar.set('rechazar')">Rechazar</button>
+          <button type="button" class="boton boton--primario boton--44" (click)="confirmar.set('aprobar')">{{ v.adicional ? 'Aprobar ' + v.adicional.monto : 'Aprobar' }}</button>
+        </div>
+      </div>
+    } @else {
+      <div class="pie">
+        <a class="boton boton--contorno boton--44" [routerLink]="chat()"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
+        <button type="button" class="boton boton--contorno boton--44" (click)="clausulas.set(true)"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas</button>
+      </div>
+    }
+    }
+  } @else {
+    @if (archivado(); as a) {
+      <div class="cabeza">
+        <span class="estado estado--{{ a.estado.tono }}">{{ a.estado.texto }}</span>
+        <h1 class="titulo-pagina">{{ a.equipo }}</h1>
+        <p class="sub">{{ a.detalle }}</p>
+      </div>
+      <p class="aviso aviso--info">Este equipo se entregó antes de que existiera el portal. Si necesitas su comprobante o garantía, contacta al taller con tu folio.</p>
+    } @else {
+      <p class="aviso aviso--info">No encontramos ese equipo en tu cuenta.</p>
+      <a class="enlace" routerLink="/portal/mis-equipos">Volver a Mis equipos</a>
+    }
+  }
+</main>
+
+@if (confirmar(); as accion) {
+  <div class="modal-fondo" (click)="confirmar.set(null)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-confirmar" (click)="$event.stopPropagation()">
+      <h2 class="modal__titulo" id="titulo-confirmar">{{ accion === 'aprobar' ? '¿Autorizas ' + (v()?.adicional ? 'el cargo adicional?' : 'la reparación?') : '¿Rechazas ' + (v()?.adicional ? 'el cargo adicional?' : 'el presupuesto?') }}</h2>
+      <p class="tenue">
+        @if (accion === 'aprobar') {
+          {{ v()?.adicional ? 'Se suma ' + v()?.adicional?.monto + ' a tu total.' : 'El técnico empieza la reparación. Pagas ' + v()?.restante + ' al recoger.' }}
+        } @else {
+          {{ v()?.adicional ? 'Se termina solo lo que ya habías autorizado.' : 'Tu equipo se devuelve sin reparar. La revisión queda cubierta con tu anticipo.' }}
+        }
+      </p>
+      <label class="campo">
+        <span class="campo__etiqueta">Comentario para el taller (opcional)</span>
+        <textarea class="campo__area" rows="2" maxlength="200" [value]="nota()" (input)="nota.set($any($event.target).value)"></textarea>
+      </label>
+      <div class="modal__acciones">
+        <button type="button" class="boton boton--contorno boton--44" (click)="confirmar.set(null)">Volver</button>
+        <button type="button" class="boton boton--44" [class.boton--primario]="accion === 'aprobar'" [class.boton--peligro]="accion === 'rechazar'" (click)="responder()">{{ accion === 'aprobar' ? 'Sí, autorizo' : 'Sí, rechazo' }}</button>
+      </div>
+    </div>
+  </div>
+}
+@if (solicitando() && orden(); as o) {
+  <app-solicitar-garantia [orden]="o" (cerrar)="solicitando.set(false)" (enviada)="solicitando.set(false)" />
+}
+@if (clausulas()) {
+  <app-informacion-modal tipo="clausulas" [folio]="orden()?.folio ?? ''" (cerrar)="clausulas.set(false)" />
+}

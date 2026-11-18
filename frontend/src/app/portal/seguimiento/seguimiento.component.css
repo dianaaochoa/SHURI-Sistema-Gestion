@@ -1,0 +1,32 @@
+/* Figma P2 */
+.barra { border-bottom: 1px solid var(--color-borde); background: var(--color-superficie); }
+.barra__interior { display: flex; align-items: center; gap: 10px; max-width: 440px; margin: 0 auto; padding: 14px 20px; }
+.atras { display: grid; width: 28px; height: 28px; place-items: center; transform: scaleX(-1); }
+.marca { display: flex; flex: 1; align-items: center; gap: 8px; }
+.marca strong, .folio strong { display: block; font-size: 13px; color: var(--color-marino); }
+.marca small, .folio small { display: block; font-size: 10px; color: var(--color-texto-tenue); }
+.folio { text-align: right; }
+.columna { gap: 12px; padding-top: 20px; }
+.cabeza { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.titulo-pagina { font-size: 24px; font-weight: 700; line-height: 1.2; color: var(--color-marino); }
+.sub, .tenue { font-size: 12px; color: var(--color-texto-tenue); }
+.pasos__lista { display: flex; margin: 0; padding: 0; list-style: none; }
+.paso { position: relative; display: flex; flex: 1; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: var(--color-texto-tenue); }
+.paso:not(:first-child)::before { content: ''; position: absolute; top: 12px; right: 50%; width: 100%; height: 2px; background: var(--color-borde); z-index: 0; }
+.paso--hecho::before, .paso--actual::before, .paso--error::before { background: var(--color-exito) !important; }
+.paso__marca { z-index: 1; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid var(--color-borde-control); border-radius: 999px; background: var(--color-superficie); font-size: 11px; font-weight: 600; }
+.paso--hecho .paso__marca { border-color: var(--color-exito); background: var(--color-exito); }
+.paso--actual .paso__marca { border-color: var(--color-primario); background: var(--color-primario); color: var(--color-superficie); }
+.paso--error .paso__marca { border-color: var(--color-peligro); background: var(--color-peligro-suave); }
+.paso--actual .paso__texto { font-weight: 600; color: var(--color-primario); }
+.paso--error .paso__texto { font-weight: 600; color: var(--color-peligro); }
+.pasos__linea { font-size: 12px; font-weight: 600; text-align: center; color: var(--color-primario); }
+.pasos__linea--error { color: var(--color-peligro); }
+.enlaces { display: flex; justify-content: center; gap: 20px; }
+.texto-enlace { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.texto-enlace .icono { width: 14px; height: 14px; }
+.pie { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 0; background: var(--color-fondo); }
+.pie .boton { justify-content: center; }
+.pie .icono { width: 16px; height: 16px; }
+.pie--decision { grid-template-columns: 1fr; justify-items: center; border-top: 1px solid var(--color-borde); }
+.pie__botones { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; width: 100%; }

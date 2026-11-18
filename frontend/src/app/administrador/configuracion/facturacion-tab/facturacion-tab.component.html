@@ -1,0 +1,105 @@
+<div class="columnas">
+  <div class="izquierda">
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Datos fiscales del emisor</h2>
+      <div class="dos">
+        <label class="campo">
+          <span class="campo__etiqueta">RFC *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().rfc"><input class="campo__input" maxlength="13" [value]="c().fiscal.rfc" (input)="texto('rfc', $any($event.target).value)" /></span>
+          @if (errores().rfc) { <span class="campo__error">{{ errores().rfc }}</span> }
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Razón social *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().razon"><input class="campo__input" maxlength="120" [value]="c().fiscal.razonSocial" (input)="texto('razonSocial', $any($event.target).value)" /></span>
+          @if (errores().razon) { <span class="campo__error">{{ errores().razon }}</span> }
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Régimen fiscal *</span>
+          <span class="campo__control campo__control--40">
+            <select class="campo__input campo__select" (change)="s.campo('fiscal', 'regimen', $any($event.target).value)">
+              @for (r of regimenes; track r.clave) { <option [value]="r.clave" [selected]="r.clave === c().fiscal.regimen">{{ r.texto }}</option> }
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">C.P. de expedición *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().cp"><input class="campo__input" inputmode="numeric" maxlength="5" [value]="c().fiscal.cp" (input)="texto('cp', $any($event.target).value)" /></span>
+          @if (errores().cp) { <span class="campo__error">{{ errores().cp }}</span> }
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/iconos/lock.svg)"></span>Certificado de sello digital (CSD)</h2>
+      <div class="dos">
+        <label class="archivo">
+          <span class="archivo__icono"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span></span>
+          <span class="archivo__texto"><strong>Certificado (.cer)</strong><small>{{ c().fiscal.cer || 'Sin cargar' }}</small></span>
+          <span class="estado" [class.estado--exito]="!!c().fiscal.cer" [class.estado--neutro]="!c().fiscal.cer">{{ c().fiscal.cer ? 'Cargado' : 'Subir' }}</span>
+          <input type="file" accept=".cer" class="oculto" (change)="archivo('cer', $any($event.target))" />
+        </label>
+        <label class="archivo">
+          <span class="archivo__icono"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span></span>
+          <span class="archivo__texto"><strong>Llave privada (.key)</strong><small>{{ c().fiscal.key || 'Sin cargar' }}</small></span>
+          <span class="estado" [class.estado--exito]="!!c().fiscal.key" [class.estado--neutro]="!c().fiscal.key">{{ c().fiscal.key ? 'Cargado' : 'Subir' }}</span>
+          <input type="file" accept=".key" class="oculto" (change)="archivo('key', $any($event.target))" />
+        </label>
+      </div>
+      @if (errorArchivo()) { <p class="campo__error" role="alert">{{ errorArchivo() }}</p> }
+      <div class="dos">
+        <label class="campo">
+          <span class="campo__etiqueta">Contraseña de la llave</span>
+          <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" type="password" readonly value="guardada" aria-describedby="nota-llave" /></span>
+          <span class="nota" id="nota-llave">Se guarda cifrada en el servidor y se pide al subir una llave nueva.</span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Vigencia</span>
+          <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" readonly [value]="vigencia()" /></span>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Folios y factura global</h2>
+      <div class="tres">
+        <label class="campo">
+          <span class="campo__etiqueta">Serie</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="!!errores().serie"><input class="campo__input" maxlength="4" [value]="c().fiscal.serie" (input)="texto('serie', $any($event.target).value)" /></span>
+          @if (errores().serie) { <span class="campo__error">{{ errores().serie }}</span> }
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Siguiente folio</span>
+          <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" readonly [value]="siguiente()" /></span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Factura global</span>
+          <span class="campo__control campo__control--40">
+            <select class="campo__input campo__select" (change)="s.campo('fiscal', 'global', $any($event.target).value)">
+              <option value="mensual" [selected]="c().fiscal.global === 'mensual'">Mensual · último día</option>
+              <option value="bimestral" [selected]="c().fiscal.global === 'bimestral'">Bimestral · último día</option>
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </span>
+        </label>
+      </div>
+      <label class="casilla"><input type="checkbox" [checked]="c().fiscal.autofactura" (change)="s.campo('fiscal', 'autofactura', $any($event.target).checked)" />Permitir que los clientes autofacturen en shuri.mx/factura</label>
+    </section>
+  </div>
+
+  <aside class="panel lateral">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Timbrado</h2>
+    @for (d of timbrado().datos; track d[0]) {
+      <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+    }
+    <div class="barra" role="progressbar" aria-label="Timbres disponibles" [attr.aria-valuenow]="timbrado().porcentaje" aria-valuemin="0" aria-valuemax="100">
+      <span [style.width.%]="timbrado().porcentaje" [class.barra--poca]="timbrado().pocos"></span>
+    </div>
+    <span class="espacio"></span>
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/bell.svg)"></span>Cuando queden menos de 50 timbres te avisaremos en tus notificaciones.</p>
+    @if (avisoCompra()) {
+      <p class="aviso aviso--advertencia" role="status"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>La compra de timbres se hace con el proveedor de timbrado; se conectará junto con la API.</p>
+    }
+    <button type="button" class="boton boton--contorno boton--44 comprar" (click)="avisoCompra.set(true)"><span class="icono" style="--icono: url(assets/pdv/shopping-cart.svg)"></span>Comprar más timbres</button>
+  </aside>
+</div>

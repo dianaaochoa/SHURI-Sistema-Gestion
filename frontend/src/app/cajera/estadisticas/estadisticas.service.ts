@@ -112,7 +112,8 @@ export class EstadisticasService {
     ESTADOS_TALLER.map((e) => ({ ...e, cantidad: this.ordenes.ordenes().filter((o) => e.estados.includes(o.estado)).length })),
   );
 
-  private suma(desde: Date, hasta: Date): DiaEstadistico {
+  /** Totales entre dos fechas (incluidas); también los usa el inicio del administrador (AD1). */
+  suma(desde: Date, hasta: Date): DiaEstadistico {
     const total = vacio('');
     for (let f = new Date(desde); f <= hasta; f.setDate(f.getDate() + 1)) {
       const d = this.dias().get(claveDia(f));

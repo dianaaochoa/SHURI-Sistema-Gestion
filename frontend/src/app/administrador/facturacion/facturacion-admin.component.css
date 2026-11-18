@@ -1,0 +1,21 @@
+/* Figma AD6.1 · usa ../reportes.css */
+.pestanas { display: flex; gap: 24px; border-bottom: 1px solid var(--color-borde); overflow-x: auto; scrollbar-width: none; }
+.pestanas button { padding: 0 0 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: 500 13px var(--fuente); color: var(--color-texto-tenue); white-space: nowrap; cursor: pointer; }
+.pestanas .activa { border-bottom-color: var(--color-primario); font-weight: 600; color: var(--color-primario); }
+.tabla { background: var(--color-superficie); }
+.archivos { display: inline-flex; gap: 16px; }
+.enlace-accion { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primario); cursor: pointer; }
+.enlace-accion .icono { width: 14px; height: 14px; }
+.vacio { color: var(--color-texto-tenue); }
+.aviso--info { background: var(--color-primario-suave); }
+
+@media (max-width: 1280px) { .t-pidio, .t-origen { display: none; } }
+@media (max-width: 768px) {
+  .t-fecha, .rfc { display: none; }
+  .acciones { flex-wrap: wrap; }
+  .acciones .boton { flex: 1 1 100%; justify-content: center; }
+  td.t-nombre { white-space: nowrap; }
+  .archivos { gap: 8px; }
+  .solo-ancho { display: none; }
+  th.t-archivos { font-size: 0; }
+}

@@ -1,0 +1,9 @@
+.modal { max-width: 560px; }
+.campo__control { gap: 8px; }
+.resultado { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--color-borde); border-radius: 8px; background: var(--color-superficie); font: inherit; text-align: left; cursor: pointer; }
+.resultado:hover { border-color: var(--color-primario); }
+.resultado--elegido { border-color: var(--color-primario); box-shadow: 0 0 0 1px var(--color-primario); }
+.resultado__icono { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: var(--color-primario-suave); color: var(--color-primario); }
+.resultado__icono .icono { width: 18px; height: 18px; }
+.resultado__texto { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.resultado__texto strong { font-size: 14px; font-weight: 600; color: var(--color-marino); }

@@ -1,0 +1,81 @@
+<div class="detalle">
+  <header class="cabecera">
+    <div class="cabecera__texto">
+      <button type="button" class="volver" (click)="volver.emit('')"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Volver a cortes</button>
+      <h1>{{ titulo() }}</h1>
+      <p>{{ subtitulo() }}</p>
+    </div>
+    <span class="estado estado--{{ pastilla().tono }}">{{ pastilla().texto }}</span>
+  </header>
+
+  <div class="cuerpo">
+    <div class="columna">
+      <section class="tarjeta crece">
+        <h2 class="titulo"><span class="icono" style="--icono: url(assets/menu/list.svg)"></span>Movimientos del turno</h2>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Hora</th><th>Concepto</th><th class="t-metodo">Método</th><th>Monto</th></tr></thead>
+            <tbody>
+              @for (m of movimientos(); track $index) {
+                <tr><td class="t-hora">{{ m.hora }}</td><td>{{ m.concepto }}</td><td class="t-metodo">{{ m.metodo }}</td><td>{{ dinero(m.monto) }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (sinDetalle()) {
+          <p class="tenue">Este corte es de prueba: su arqueo es real, pero sus {{ corte()!.numVentas }} ventas no están en la app. El detalle de cada movimiento llega con la API.</p>
+        }
+      </section>
+      <div class="extras">
+        <div class="extra"><span class="extra__icono"><span class="icono" style="--icono: url(assets/pdv/percent.svg)"></span></span><span><strong>Descuentos aplicados</strong>{{ descuentos() }}</span></div>
+        <div class="extra"><span class="extra__icono"><span class="icono" style="--icono: url(assets/tecnico/x-circulo.svg)"></span></span><span><strong>Cancelaciones</strong>{{ cancelaciones() }}</span></div>
+      </div>
+    </div>
+
+    <aside class="tarjeta lado">
+      <h2 class="titulo"><span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>Arqueo</h2>
+      @for (f of arqueo().filas; track f[0]) {
+        <p class="dato"><span>{{ f[0] }}</span><strong>{{ dinero(f[1]) }}</strong></p>
+      }
+      <div class="separador"></div>
+      <p class="dato"><span>Efectivo esperado</span><strong>{{ dinero(arqueo().esperado) }}</strong></p>
+      @if (arqueo().contado !== null) {
+        <p class="dato"><span>Efectivo contado</span><strong>{{ dinero(arqueo().contado!) }}</strong></p>
+        <p class="dato"><span>Diferencia</span><strong [class.menos]="dif() < 0" [class.mas]="dif() > 0">{{ dif() > 0 ? '+' : '' }}{{ dinero(dif()) }}</strong></p>
+      }
+
+      @if (corte(); as c) {
+        @if (c.comentario) {
+          <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Comentario de {{ c.cajera.split(' ')[0] }}: “{{ c.comentario }}”</p>
+        }
+        @if (decidido(); as r) {
+          <p class="aviso aviso--exito revisado"><span class="icono" style="--icono: url(assets/iconos/circle-check-sm.svg)"></span>{{ textoDecision(r.decision) }} · revisado por {{ r.por }} el {{ fechaRevision(r.fecha) }}{{ r.nota ? ' · ' + r.nota : '' }}</p>
+        } @else if (dif() === 0) {
+          <p class="aviso aviso--exito revisado"><span class="icono" style="--icono: url(assets/iconos/circle-check-sm.svg)"></span>Cuadrado: no hay diferencia que revisar.</p>
+        } @else {
+          @if (enInvestigacion(); as r) {
+            <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>En investigación desde el {{ fechaRevision(r.fecha) }} ({{ r.por }}): {{ r.nota }}</p>
+          }
+          <fieldset class="opciones">
+            <legend class="campo__etiqueta">¿Qué hacemos con la diferencia?</legend>
+            @for (d of decisiones; track d.id) {
+              <label class="opcion-radio" [class.opcion-radio--elegida]="d.id === decision()">
+                <input type="radio" name="decision" [checked]="d.id === decision()" (change)="decision.set(d.id)" />
+                <span class="opcion-radio__texto"><strong>{{ d.texto }}</strong><span>{{ d.detalle }}</span></span>
+              </label>
+            }
+          </fieldset>
+          @if (decision() === 'investigar') {
+            <label class="campo">
+              <span class="campo__etiqueta">Nota *</span>
+              <textarea class="campo__area" rows="2" placeholder="Qué se va a revisar" [class.campo__area--error]="intentado() && !nota().trim()" [value]="nota()" (input)="nota.set($any($event.target).value)"></textarea>
+            </label>
+          }
+          <button type="button" class="boton boton--primario grande" (click)="marcar()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Marcar corte como revisado</button>
+        }
+      } @else {
+        <p class="aviso aviso--info revisado"><span class="icono" style="--icono: url(assets/cajera/clock.svg)"></span>El turno sigue abierto: el visto bueno se da cuando la cajera hace su corte.</p>
+      }
+    </aside>
+  </div>
+</div>

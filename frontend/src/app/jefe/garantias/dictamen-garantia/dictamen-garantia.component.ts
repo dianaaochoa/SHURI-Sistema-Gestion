@@ -1,5 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
-import { DIAS_GARANTIA, Orden } from '../../../cajera/ordenes/ordenes.service';
+import { diasGarantia, Orden } from '../../../cajera/ordenes/ordenes.service';
 import { formatearDinero, formatearHora } from '../../../compartido/formato';
 import { diaMes } from '../../por-cotizar/existencia';
 import { diasUsados, etapaGarantia, venceGarantia } from '../garantia';
@@ -18,7 +18,7 @@ export class DictamenGarantiaComponent {
   readonly volver = output<void>();
   readonly publicado = output<string>();
 
-  protected readonly diasGarantia = DIAS_GARANTIA;
+  protected readonly diasGarantia = diasGarantia();
   protected readonly usados = computed(() => diasUsados(this.orden()));
   protected readonly enRevision = computed(() => etapaGarantia(this.orden()) === 'en-revision');
 

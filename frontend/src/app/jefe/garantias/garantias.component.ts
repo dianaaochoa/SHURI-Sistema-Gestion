@@ -75,7 +75,8 @@ export class GarantiasComponent implements OnInit {
         else if (this.vista() === 'por-dictaminar') rec = recomendacion(o)!;
         else if (!dictamen) rec = { texto: o.garantia!.dictamen, tono: 'neutro' };
         else if (dictamen.tipo === 'aplica') rec = { texto: o.estado === 'en-garantia' ? 'Aplica · en reparación' : 'Aplica', tono: 'exito' };
-        else if (dictamen.tipo === 'con-costo') rec = { texto: 'Con costo · espera al cliente', tono: 'advertencia' };
+        else if (dictamen.tipo === 'con-costo')
+          rec = !dictamen.respuesta ? { texto: 'Con costo · espera al cliente', tono: 'advertencia' } : dictamen.respuesta.acepta ? { texto: 'Con costo · aceptado', tono: 'exito' } : { texto: 'Con costo · rechazado', tono: 'peligro' };
         else rec = { texto: 'No aplica · sin reparar', tono: 'peligro' };
         return {
           orden: o,

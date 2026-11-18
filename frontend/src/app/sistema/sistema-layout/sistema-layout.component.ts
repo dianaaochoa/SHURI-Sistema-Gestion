@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
+import { BloqueoSesionComponent } from '../bloqueo-sesion/bloqueo-sesion.component';
 import { VistaImpresionComponent } from '../../cajera/documentos/vista-impresion/vista-impresion.component';
 import { MenuLateralComponent } from '../menu-lateral/menu-lateral.component';
 import { NavegacionMovilComponent } from '../navegacion-movil/navegacion-movil.component';
@@ -15,9 +16,10 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
 @Component({
   selector: 'app-sistema-layout',
   standalone: true,
-  imports: [RouterOutlet, MenuLateralComponent, VistaImpresionComponent, NavegacionMovilComponent, PanelNotificacionesComponent],
+  imports: [RouterOutlet, BloqueoSesionComponent, MenuLateralComponent, VistaImpresionComponent, NavegacionMovilComponent, PanelNotificacionesComponent],
   template: `
-    <div class="sistema" [class.sistema--jefe]="esJefe()">
+    <!-- Con la pantalla bloqueada (30 min sin uso) nada de atrás se puede tocar ni enfocar. -->
+    <div class="sistema" [class.sistema--jefe]="esJefe()" [attr.inert]="bloqueo.bloqueada() ? '' : null">
       <app-menu-lateral [abiertoMovil]="menuMovil()" (cerrar)="menuMovil.set(false)" />
       @if (menuMovil()) {
         <div class="sistema__fondo" (click)="menuMovil.set(false)"></div>
@@ -58,6 +60,7 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
         <app-navegacion-movil />
       }
     </div>
+    <app-bloqueo-sesion #bloqueo />
   `,
   styles: `
     .sistema { display: flex; height: 100vh; overflow: hidden; }

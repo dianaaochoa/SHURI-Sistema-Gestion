@@ -1,0 +1,80 @@
+<div class="columnas">
+  <section class="panel">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas y condiciones de servicio</h2>
+    <p class="nota">Se imprimen en el documento de recepción, el cliente las acepta al dejar su equipo y las puede leer en su portal (P4.1).</p>
+
+    @for (k of clausulas(); track k.i) {
+      @if (editando() === k.i) {
+        <div class="clausula clausula--editando">
+          <label class="campo">
+            <span class="campo__etiqueta">Título</span>
+            <span class="campo__control campo__control--40"><input class="campo__input" maxlength="40" [value]="k.titulo" (input)="cambiar(k.i, 'titulo', $any($event.target).value)" /></span>
+          </label>
+          <label class="campo">
+            <span class="campo__etiqueta">Texto</span>
+            <textarea class="campo__area" rows="3" maxlength="400" [value]="k.texto" (input)="cambiar(k.i, 'texto', $any($event.target).value)"></textarea>
+          </label>
+          <p class="nota">Puedes usar {{ '{revision}' }}, {{ '{vigencia}' }}, {{ '{garantia}' }}, {{ '{diasSinCobro}' }}, {{ '{almacenaje}' }} y {{ '{resguardo}' }}: se llenan con lo del taller.</p>
+          <div class="fila-acciones">
+            <button type="button" class="enlace-accion peligro" (click)="quitar(k.i)">Quitar cláusula</button>
+            <button type="button" class="enlace-accion" (click)="editando.set(null)">Listo</button>
+          </div>
+        </div>
+      } @else {
+        <button type="button" class="clausula" (click)="editando.set(k.i)" [attr.aria-label]="'Editar cláusula ' + (k.i + 1)">
+          <strong>{{ k.i + 1 }}. {{ k.titulo }}</strong>
+          <span>{{ k.lleno || 'Sin texto' }}</span>
+        </button>
+      }
+    }
+
+    @if (editando() === -1) {
+      <div class="clausula clausula--editando">
+        <label class="campo">
+          <span class="campo__etiqueta">Aviso de privacidad</span>
+          <textarea class="campo__area" rows="10" maxlength="3000" [value]="c().privacidad" (input)="s.cambiar('privacidad', $any($event.target).value)"></textarea>
+        </label>
+        <button type="button" class="enlace-accion fin" (click)="editando.set(null)">Listo</button>
+      </div>
+    } @else {
+      <div class="privacidad">
+        <span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>
+        <div>
+          <strong>Aviso de privacidad</strong>
+          <p>Obligatorio (LFPDPPP). Se muestra en el portal, en la autofactura y en el documento de recepción.</p>
+        </div>
+        <button type="button" class="enlace-accion" (click)="editando.set(-1)"><span class="icono" style="--icono: url(assets/inventario/pencil.svg)"></span>Editar aviso</button>
+      </div>
+    }
+    <button type="button" class="enlace-accion agregar" (click)="agregar()"><span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Agregar cláusula</button>
+  </section>
+
+  <aside class="panel lateral">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/settings.svg)"></span>Se llenan solas desde la configuración</h2>
+    @for (d of datos(); track d[0]) {
+      <p class="dato"><span>{{ d[0] }}</span><strong>{{ d[1] }}</strong></p>
+    }
+    <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Si el jefe cambia un valor del taller, la cláusula se actualiza para los equipos nuevos. Los que ya están en el taller conservan lo que aceptó el cliente.</p>
+    <button type="button" class="boton boton--contorno boton--44 previa" (click)="vistaPrevia.set(true)"><span class="icono" style="--icono: url(assets/iconos/eye.svg)"></span>Vista previa del documento de recepción</button>
+  </aside>
+</div>
+
+@if (vistaPrevia()) {
+  <div class="modal-fondo" (click)="vistaPrevia.set(false)">
+    <div class="modal documento" role="dialog" aria-modal="true" aria-labelledby="titulo-recepcion" (click)="$event.stopPropagation()">
+      <div class="modal__encabezado">
+        <div>
+          <h2 class="modal__titulo" id="titulo-recepcion">Documento de recepción</h2>
+          <p class="modal__subtitulo">Así se imprimen las cláusulas con los cambios sin guardar</p>
+        </div>
+        <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="vistaPrevia.set(false)"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+      </div>
+      <p class="documento__titulo">CLÁUSULAS Y CONDICIONES</p>
+      <ol class="documento__lista">
+        @for (k of clausulas(); track k.i) { <li><strong>{{ k.titulo }}.</strong> {{ k.lleno }}</li> }
+      </ol>
+      <p class="documento__titulo">AVISO DE PRIVACIDAD</p>
+      <p class="documento__texto">{{ c().privacidad }}</p>
+    </div>
+  </div>
+}

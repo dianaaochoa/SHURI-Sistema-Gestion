@@ -1,3 +1,7 @@
+@if (alta()) {
+  <!-- C8.2 sin salir de la venta: lo buscado llena el campo que corresponde y al guardar queda como cliente de esta venta. -->
+  <app-nuevo-cliente [busqueda]="busqueda().trim()" [desdeVenta]="true" (cerrar)="volverALista()" (guardado)="clienteNuevo($event)" />
+} @else {
 <div class="modal-fondo" (click)="cerrar.emit()">
   <section class="modal clientes" role="dialog" aria-modal="true" aria-labelledby="titulo-clientes" (click)="$event.stopPropagation()">
     <header class="modal__encabezado">
@@ -59,9 +63,9 @@
     <p class="ayuda">↑ ↓ para moverte · Enter para seleccionar</p>
 
     <div class="acciones">
-      <a class="boton boton--contorno boton--44" routerLink="/cajera/clientes">
+      <button type="button" class="boton boton--contorno boton--44" (click)="alta.set(true)">
         <img src="assets/pdv/plus.svg" width="16" height="16" alt="" />Crear cliente nuevo
-      </a>
+      </button>
       <div class="acciones__derecha">
         <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
         <button type="button" class="boton boton--primario boton--44" (click)="seleccionar()">
@@ -71,3 +75,4 @@
     </div>
   </section>
 </div>
+}

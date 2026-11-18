@@ -1,0 +1,16 @@
+/* Figma AD9 · encabezado y pestañas */
+:host { display: block; }
+.pagina { display: flex; flex-direction: column; gap: 16px; }
+.acciones { display: flex; gap: 8px; }
+.boton .icono { width: 16px; height: 16px; }
+.pestanas { display: flex; gap: 24px; border-bottom: 1px solid var(--color-borde); overflow-x: auto; scrollbar-width: none; }
+.pestanas button { display: inline-flex; align-items: center; gap: 6px; padding: 0 0 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: 500 13px var(--fuente); color: var(--color-texto-tenue); white-space: nowrap; cursor: pointer; }
+.pestanas .activa { border-bottom-color: var(--color-primario); font-weight: 600; color: var(--color-primario); }
+.punto { width: 6px; height: 6px; border-radius: 999px; background: var(--color-advertencia); }
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .acciones { flex: 1 1 100%; }
+  .acciones .boton { flex: 1; justify-content: center; }
+  .pestanas { gap: 16px; }
+}

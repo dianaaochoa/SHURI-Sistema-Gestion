@@ -1,9 +1,11 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../acceso/auth.service';
+import { PermisosService } from '../../administrador/permisos.service';
 import { CATALOGO, Producto } from './catalogo.datos';
 import { CLIENTES, Cliente, DatosFiscales, PUBLICO_GENERAL } from './clientes.datos';
 
 export const IVA = 0.16;
-/** Descuento máximo para la cajera (Figma C2.6: "lo define el administrador"). Vendrá de la configuración (AD9). */
+/** Descuento máximo por omisión; el de cada cajera lo define el administrador en AD7 (Figma C2.6). */
 export const DESCUENTO_MAXIMO = 10;
 
 export interface Linea {
@@ -97,16 +99,20 @@ export function totalLinea(linea: Linea): number {
 
 /** Totales de un conjunto de líneas con un descuento a toda la venta. Precios antes de IVA. */
 export function calcularTotales(lineas: Linea[], descuento: DescuentoVenta | null) {
-  const subtotalLineas = redondear(lineas.reduce((suma, l) => suma + totalLinea(l), 0));
-  const descuentoLineas = redondear(lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0) - subtotalLineas);
-  const descuentoVenta = !descuento
+  // Se suma sin redondear y se redondea al final: los precios de Inventario traen IVA incluido
+  // (p. ej. $128.45 ÷ 1.16) y redondear a medio camino haría que el total no diera lo de la etiqueta.
+  const bruto = lineas.reduce((suma, l) => suma + l.precio * l.cantidad, 0);
+  const exactoLineas = lineas.reduce((suma, l) => suma + l.precio * l.cantidad * (1 - l.descuento / 100), 0);
+  const exactoDescuentoVenta = !descuento
     ? 0
     : descuento.modo === '%'
-      ? redondear((subtotalLineas * descuento.valor) / 100)
-      : redondear(descuento.valor / (1 + IVA));
-  const subtotal = redondear(subtotalLineas - descuentoVenta);
-  const iva = redondear(subtotal * IVA);
-  return { subtotalLineas, subtotal, iva, total: redondear(subtotal + iva), descuento: redondear(descuentoLineas + descuentoVenta) };
+      ? (exactoLineas * descuento.valor) / 100
+      : descuento.valor / (1 + IVA);
+  const exacto = exactoLineas - exactoDescuentoVenta;
+  const subtotalLineas = redondear(exactoLineas);
+  const subtotal = redondear(exacto);
+  const total = redondear(exacto * (1 + IVA));
+  return { subtotalLineas, subtotal, iva: redondear(total - subtotal), total, descuento: redondear(bruto - exacto) };
 }
 
 const folio = (numero: number) => `V-${String(numero).padStart(5, '0')}`;
@@ -146,6 +152,13 @@ function pausadasDemo(): VentaPausada[] {
  */
 @Injectable({ providedIn: 'root' })
 export class VentaService {
+  private readonly auth = inject(AuthService);
+  /** Lo que la cajera con sesión puede descontar (AD7); el administrador no tiene límite. */
+  private readonly permisos = inject(PermisosService);
+  /** Sin el permiso “Aplicar descuentos” (AD7.3) el máximo es 0. */
+  readonly descuentoMaximo = computed(() =>
+    !this.permisos.puede('descuentos') ? 0 : (this.auth.perfil()?.descuentoMaximo ?? (this.auth.sesion()?.rol === 'administrador' ? 100 : DESCUENTO_MAXIMO)),
+  );
   private readonly lineasActuales = signal<Linea[]>([]);
   private readonly numeroFolio = signal(865);
   private siguienteFolio = 866;
@@ -174,7 +187,8 @@ export class VentaService {
     const existente = this.lineasActuales().find((l) => l.sku === producto.sku);
     if (existente) return this.cambiarCantidad(producto.sku, 1);
     if (producto.disponibles < 1) return false;
-    this.lineasActuales.update((lineas) => [...lineas, lineaDe(producto.sku)]);
+    const { sku, nombre, precio, disponibles } = producto;
+    this.lineasActuales.update((lineas) => [...lineas, { sku, nombre, precio, cantidad: 1, descuento: 0, disponibles }]);
     return true;
   }
 
@@ -215,7 +229,7 @@ export class VentaService {
 
   /** Descuento de una línea en %, de 0 al máximo permitido. */
   fijarDescuento(sku: string, porcentaje: number): void {
-    const descuento = Math.min(DESCUENTO_MAXIMO, Math.max(0, Math.round(porcentaje * 100) / 100 || 0));
+    const descuento = Math.min(this.descuentoMaximo(), Math.max(0, Math.round(porcentaje * 100) / 100 || 0));
     this.lineasActuales.update((lineas) => lineas.map((l) => (l.sku === sku ? { ...l, descuento } : l)));
   }
 
@@ -227,6 +241,15 @@ export class VentaService {
     this.lineasActuales.set([]);
     this.cliente.set(PUBLICO_GENERAL);
     this.descuentoVenta.set(null);
+  }
+
+  /** Lo que se pierde al hacer el corte: las ventas en espera (aviso de C2.9) y la venta sin cobrar. */
+  readonly pendientesDelTurno = computed(() => ({ enEspera: this.pausadas().length, enCurso: !this.vacia() }));
+
+  /** Corte de caja (C10.4): las ventas en espera y la venta sin cobrar no pasan al siguiente turno. */
+  descartarAlCerrarTurno(): void {
+    this.pausadas.set([]);
+    this.cancelar();
   }
 
   /** C2.8: guarda la venta en "En espera" y deja la caja lista para otro cliente con un folio nuevo. */
