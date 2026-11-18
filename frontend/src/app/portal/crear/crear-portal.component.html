@@ -1,0 +1,63 @@
+<main class="columna">
+  <app-portal-marca />
+  <div class="encabezado">
+    <h1 class="titulo">Crea tu nueva contraseña</h1>
+    <p class="descripcion">Entraste con tu contraseña temporal. Crea una propia para seguir tu reparación; la temporal dejará de funcionar.</p>
+  </div>
+
+  <form class="formulario" [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+    <div class="campo">
+      <label class="campo__etiqueta" for="nueva">Nueva contraseña *</label>
+      <div class="campo__control" [class.campo__control--error]="nuevaInvalida">
+        <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+        <input id="nueva" class="campo__input" formControlName="nueva" [type]="verNueva() ? 'text' : 'password'" autocomplete="new-password" aria-describedby="indicador" />
+        <button type="button" class="campo__boton-icono" [class.campo__boton-icono--activo]="verNueva()" [attr.aria-label]="verNueva() ? 'Ocultar contraseña' : 'Mostrar contraseña'" [attr.aria-pressed]="verNueva()" (click)="verNueva.set(!verNueva())">
+          <img src="assets/iconos/eye-a5.svg" width="16" height="16" alt="" />
+        </button>
+      </div>
+      @if (nuevaInvalida) {
+        <span class="campo__error">{{ formulario.controls.nueva.hasError('required') ? 'Escribe tu nueva contraseña.' : 'Tu contraseña aún no cumple todos los requisitos.' }}</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="repetida">Repite la nueva contraseña *</label>
+      <div class="campo__control" [class.campo__control--error]="repetidaInvalida">
+        <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+        <input id="repetida" class="campo__input" formControlName="repetida" [type]="verRepetida() ? 'text' : 'password'" autocomplete="new-password" />
+        <button type="button" class="campo__boton-icono" [class.campo__boton-icono--activo]="verRepetida()" [attr.aria-label]="verRepetida() ? 'Ocultar contraseña' : 'Mostrar contraseña'" [attr.aria-pressed]="verRepetida()" (click)="verRepetida.set(!verRepetida())">
+          <img src="assets/iconos/eye-a5.svg" width="16" height="16" alt="" />
+        </button>
+      </div>
+      @if (repetidaInvalida) {
+        <span class="campo__error">{{ formulario.controls.repetida.hasError('required') ? 'Repite tu nueva contraseña.' : 'Las contraseñas no coinciden.' }}</span>
+      }
+    </div>
+
+    <div class="fuerza" id="indicador" [style.--nivel-color]="nivel().color">
+      <div class="fuerza__barras">
+        @for (b of barras; track b) {
+          <span class="fuerza__barra" [class.fuerza__barra--activa]="b <= puntaje()"></span>
+        }
+      </div>
+      <p class="fuerza__nivel">Seguridad: <strong>{{ nivel().etiqueta }}</strong></p>
+      <ul class="fuerza__requisitos">
+        @for (r of requisitos(); track r.texto) {
+          <li [class.cumple]="r.cumple">
+            @if (r.cumple) {
+              <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="Cumple:" />
+            } @else {
+              <span class="fuerza__pendiente" aria-hidden="true"></span>
+            }
+            {{ r.texto }}
+          </li>
+        }
+      </ul>
+    </div>
+
+    <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">{{ enviando() ? 'Guardando…' : 'Guardar y entrar' }}</button>
+    <button type="button" class="enlace enlace-centro" (click)="salir()"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Salir sin guardar</button>
+  </form>
+
+  <app-portal-pie />
+</main>

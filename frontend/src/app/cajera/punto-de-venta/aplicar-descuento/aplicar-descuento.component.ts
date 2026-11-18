@@ -3,12 +3,12 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { formatearDinero } from '../../../compartido/formato';
 import { MOTIVOS_DESCUENTO } from '../clientes.datos';
-import { DESCUENTO_MAXIMO, IVA, VentaService, calcularTotales, redondear } from '../venta.service';
+import { IVA, VentaService, calcularTotales, redondear } from '../venta.service';
 
 /**
  * C2.6 · Aplicar descuento (modal).
  * "Toda la venta" guarda el descuento en la venta; "Un artículo" lo pone en el % de esa línea.
- * Se escribe en % o en $ (sobre el total con IVA) y el equivalente se calcula solo. Tope: DESCUENTO_MAXIMO.
+ * Se escribe en % o en $ (sobre el total con IVA) y el equivalente se calcula solo. Tope: el descuento máximo de la cajera (AD7).
  */
 @Component({
   selector: 'app-aplicar-descuento',
@@ -23,7 +23,7 @@ export class AplicarDescuentoComponent implements AfterViewInit {
   protected readonly venta = inject(VentaService);
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly dinero = formatearDinero;
-  protected readonly maximo = DESCUENTO_MAXIMO;
+  protected readonly maximo = this.venta.descuentoMaximo();
   protected readonly motivos = MOTIVOS_DESCUENTO;
 
   protected readonly alcance = signal<'venta' | 'articulo'>('venta');

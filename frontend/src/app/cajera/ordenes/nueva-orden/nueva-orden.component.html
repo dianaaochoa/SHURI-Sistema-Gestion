@@ -148,6 +148,10 @@
           <textarea id="condicion-orden" class="nueva__area" [class.nueva__area--error]="error('condicion')" rows="2" placeholder="Describe golpes, rayones, piezas faltantes…" [(ngModel)]="condicion"></textarea>
         </div>
       </div>
+      <div class="campo">
+        <span class="campo__etiqueta">Fotos del equipo (opcional)</span>
+        <app-fotos-orden [fotos]="fotosVista()" [editable]="true" [tamano]="64" (agregadas)="fotos.set(fotos().concat($event))" (quitada)="quitarFoto($event)" />
+      </div>
       @if (error('tipo') || error('marca') || error('modelo') || error('falla') || error('condicion')) {
         <p class="campo__error">Completa los campos marcados: el técnico y el cliente los verán en la orden.</p>
       }
@@ -166,8 +170,7 @@
               inputmode="decimal"
               autocomplete="off"
               placeholder="$0.00"
-              [value]="anticipo ?? ''"
-              (input)="anticipo = leerNumero($any($event.target).value)"
+              [(campoDinero)]="anticipo"
             />
           </div>
         </div>

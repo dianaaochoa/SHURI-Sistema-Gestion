@@ -1,11 +1,15 @@
 import { Component, ElementRef, HostListener, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
+import { PermisosService } from '../../administrador/permisos.service';
 import { CajaService } from '../../cajera/caja.service';
 import { SalirConTurnoComponent } from '../../cajera/salir-con-turno/salir-con-turno.component';
 import { MenuUsuarioComponent } from '../menu-usuario/menu-usuario.component';
 import { DestinoMenu, NAVEGACION, iniciales } from '../navegacion';
+import { OrdenesService } from '../../cajera/ordenes/ordenes.service';
 import { MensajesService } from '../../jefe/mensajes/mensajes.service';
+import { EN_TALLER } from '../../jefe/tecnicos/carga';
+import { asignadas, tecnicoDe } from '../../tecnico/mi-trabajo';
 import { NotificacionesService } from '../notificaciones.service';
 import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-notificaciones.component';
 
@@ -35,6 +39,7 @@ export class MenuLateralComponent {
 
   private readonly caja = inject(CajaService);
   private readonly mensajes = inject(MensajesService);
+  private readonly ordenes = inject(OrdenesService);
 
   /** Mensajes del jefe: conversaciones sin responder (J11); los demás destinos, su número fijo. */
   protected insignia(d: DestinoMenu): number {
@@ -42,10 +47,30 @@ export class MenuLateralComponent {
   }
 
   protected readonly sesion = this.auth.sesion;
-  protected readonly navegacion = computed(() => NAVEGACION[this.sesion()?.rol ?? 'cajera']);
+  private readonly permisos = inject(PermisosService);
+  /** El menú del rol sin los destinos que su rol no tiene permitidos (AD7.3). */
+  protected readonly navegacion = computed(() => {
+    const nav = NAVEGACION[this.sesion()?.rol ?? 'cajera'];
+    const grupos = nav.grupos
+      .map((g) => ({ ...g, destinos: g.destinos.filter((d) => !d.permiso || this.permisos.puede(d.permiso)) }))
+      .filter((g) => g.destinos.length);
+    return { ...nav, grupos };
+  });
   protected readonly esCajera = computed(() => this.sesion()?.rol === 'cajera');
-  /** La cajera ve el estado real de su caja (C1.1 / C1.2); los demás roles, el de navegacion.ts. */
-  protected readonly resumen = computed(() => (this.esCajera() ? this.caja.resumen() : this.navegacion().resumen));
+  /** La cajera ve su caja; el jefe, las órdenes abiertas (J1); el técnico, sus equipos asignados (T1); los demás, el texto fijo. */
+  protected readonly resumen = computed(() => {
+    if (this.esCajera()) return this.caja.resumen();
+    if (this.sesion()?.rol === 'jefe-tecnicos') {
+      const abiertas = this.ordenes.ordenes().filter((o) => EN_TALLER.includes(o.estado)).length;
+      return `${abiertas} ${abiertas === 1 ? 'orden abierta' : 'órdenes abiertas'}`;
+    }
+    if (this.sesion()?.rol === 'administrador') return `Caja 01 ${this.caja.turnoDeCaja() ? 'abierta' : 'cerrada'}`;
+    if (this.sesion()?.rol === 'tecnico') {
+      const n = asignadas(tecnicoDe(this.sesion()?.nombre), this.ordenes.ordenes()).length;
+      return `${n} ${n === 1 ? 'equipo asignado' : 'equipos asignados'}`;
+    }
+    return this.navegacion().resumen;
+  });
   protected readonly cajaCerrada = computed(() => this.esCajera() && !this.caja.abierta());
   /** C1.7: confirmar la salida cuando la cajera deja su turno abierto. */
   protected readonly confirmarSalida = signal(false);

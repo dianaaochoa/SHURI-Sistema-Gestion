@@ -1,10 +1,12 @@
 import { AfterViewInit, Component, ElementRef, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CampoDineroDirective } from '../../../compartido/campo-dinero.directive';
 import { formatearFechaCorta } from '../../../compartido/formato';
 import { Cliente, textoDireccion } from '../../punto-de-venta/clientes.datos';
 import { ClientesService } from '../../clientes/clientes.service';
 import { NuevoClienteComponent } from '../nuevo-cliente/nuevo-cliente.component';
 import { NuevaOrden } from '../ordenes.service';
+import { FotoOrden, FotosOrdenComponent } from '../../../compartido/fotos-orden/fotos-orden.component';
 
 const TIPOS = ['Teléfono celular', 'Tablet', 'Laptop', 'Smartwatch', 'Consola', 'Audífonos'];
 const MARCAS = ['Samsung', 'Apple', 'Motorola', 'Xiaomi', 'Huawei', 'Oppo', 'Honor', 'Realme', 'Lenovo', 'HP', 'Nintendo', 'Sony'];
@@ -42,7 +44,7 @@ export interface OrdenCapturada {
 @Component({
   selector: 'app-nueva-orden',
   standalone: true,
-  imports: [FormsModule, NuevoClienteComponent],
+  imports: [FormsModule, CampoDineroDirective, NuevoClienteComponent, FotosOrdenComponent],
   templateUrl: './nueva-orden.component.html',
   styleUrl: './nueva-orden.component.css',
 })
@@ -80,6 +82,9 @@ export class NuevaOrdenComponent implements AfterViewInit {
   protected accesorios = '';
   protected falla = '';
   protected condicion = '';
+  /** Fotos del equipo al recibirlo (ya reducidas). */
+  protected readonly fotos = signal<{ url: string; nombre: string }[]>([]);
+  protected readonly fotosVista = computed<FotoOrden[]>(() => this.fotos().map((f, i) => ({ ...f, id: String(i), fecha: new Date().toISOString(), por: 'Recepción' })));
   protected modelosDe(marca: string): string[] {
     return MODELOS[marca] ?? [];
   }
@@ -157,9 +162,8 @@ export class NuevaOrdenComponent implements AfterViewInit {
     return this.intentado() && this.errores()[campo];
   }
 
-  protected leerNumero(texto: string): number | null {
-    const limpio = texto.replace(/[^0-9.]/g, '');
-    return limpio ? Number(limpio) : null;
+  protected quitarFoto(id: string): void {
+    this.fotos.update((l) => l.filter((_, i) => String(i) !== id));
   }
 
   protected guardar(): void {
@@ -184,6 +188,8 @@ export class NuevaOrdenComponent implements AfterViewInit {
         condicion: this.condicion.trim(),
         anticipo: this.anticipo ?? 0,
         metodoAnticipo: this.metodo,
+        pin: this.pin,
+        fotos: this.fotos(),
       },
     });
   }
@@ -192,6 +198,8 @@ export class NuevaOrdenComponent implements AfterViewInit {
   protected alPresionarTecla(evento: KeyboardEvent): void {
     // Con el modal de cliente encima, las teclas son suyas.
     if (this.modalCliente()) return;
+    // Con una foto abierta en grande, Escape solo cierra la foto.
+    if (document.querySelector('app-fotos-orden .visor')) return;
     if (evento.key === 'Escape') this.cerrar.emit();
   }
 }

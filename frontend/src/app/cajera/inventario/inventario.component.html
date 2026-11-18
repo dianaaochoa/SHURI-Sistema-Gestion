@@ -50,7 +50,7 @@
   </header>
 
   <nav class="pestanas" aria-label="Secciones de inventario">
-    @for (p of pestanas; track p.vista) {
+    @for (p of pestanas(); track p.vista) {
       <button type="button" class="pestanas__opcion" [class.pestanas__opcion--activa]="pestanaActiva() === p.vista" [attr.aria-current]="pestanaActiva() === p.vista ? 'page' : null" (click)="ir(p.vista)">
         {{ p.texto }}
       </button>
@@ -93,5 +93,5 @@
   <app-ajuste-inventario [skuInicial]="a.sku" (cerrar)="ajuste.set(null)" (aplicado)="ajusteAplicado($event)" />
 }
 @if (movimientos(); as sku) {
-  <app-movimientos [sku]="sku" (cerrar)="movimientos.set(null)" (ajustar)="ajustar(sku)" (editar)="movimientos.set(null); alta.set({ producto: inventario.buscar(sku)! })" />
+  <app-movimientos [sku]="sku" [puedeAjustar]="puedeMercancia()" (cerrar)="movimientos.set(null)" (ajustar)="ajustar(sku)" (editar)="movimientos.set(null); alta.set({ producto: inventario.buscar(sku)! })" />
 }

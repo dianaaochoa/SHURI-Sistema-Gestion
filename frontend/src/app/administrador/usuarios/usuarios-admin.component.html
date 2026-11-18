@@ -1,0 +1,83 @@
+@if (vista() === 'permisos') {
+  <app-permisos-rol (volver)="vista.set('usuarios')" (guardado)="permisosGuardados($event)" />
+} @else {
+  <div class="reporte">
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Usuarios y permisos</h1>
+        <p class="encabezado-pagina__subtitulo">Quién entra al sistema, con qué rol y desde cuándo</p>
+      </div>
+      <div class="acciones">
+        <button type="button" class="boton boton--contorno boton--40" (click)="vista.set('permisos')"><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Permisos por rol</button>
+        <button type="button" class="boton boton--primario boton--40" (click)="formulario.set('')"><span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Nuevo usuario</button>
+      </div>
+    </header>
+
+    <section class="indicadores" aria-label="Resumen de usuarios">
+      @for (i of indicadores(); track i.titulo) {
+        <div class="indicador">
+          <p class="indicador__valor valor--{{ i.tono }}">{{ i.valor }}</p>
+          <div>
+            <p class="indicador__titulo">{{ i.titulo }}</p>
+            <p class="indicador__detalle">{{ i.detalle }}</p>
+          </div>
+        </div>
+      }
+    </section>
+
+    @if (solicitud(); as s) {
+      <div class="solicitud" role="status">
+        <span class="icono" style="--icono: url(assets/menu/key.svg)"></span>
+        <div class="solicitud__texto">
+          <p class="solicitud__titulo">{{ s.u.nombre }} pidió restablecer su contraseña</p>
+          <p>{{ s.detalle }}</p>
+        </div>
+        <button type="button" class="boton boton--40 solicitud__boton" (click)="temporalPara.set(s.u.usuario)"><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Asignar contraseña temporal</button>
+      </div>
+    }
+
+    @if (aviso()) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+    }
+
+    <nav class="pestanas" aria-label="Usuarios">
+      <button type="button" [class.activa]="pestana() === 'activos'" (click)="pestana.set('activos')">Activos ({{ conteo().activos }})</button>
+      <button type="button" [class.activa]="pestana() === 'inactivos'" (click)="pestana.set('inactivos')">Inactivos ({{ conteo().inactivos }})</button>
+    </nav>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr><th>Usuario</th><th class="t-rol">Rol</th><th class="t-area">Turno / área</th><th class="t-acceso">Último acceso</th><th class="t-tipo">Acceso</th><th>Estado</th><th><span class="oculto">Acciones</span></th></tr>
+        </thead>
+        <tbody>
+          @for (f of filas(); track f.u.usuario) {
+            <tr>
+              <td>
+                <span class="persona">
+                  <span class="avatar-chico" aria-hidden="true">{{ f.iniciales }}</span>
+                  <span><strong>{{ f.u.nombre }}</strong><span class="tenue">{{ f.u.usuario }}</span></span>
+                </span>
+              </td>
+              <td class="t-rol"><span class="estado estado--{{ f.tonoRol }}">{{ f.u.puesto }}</span></td>
+              <td class="t-area">{{ f.area }}</td>
+              <td class="t-acceso">{{ f.acceso }}</td>
+              <td class="t-tipo" [class.temporal]="f.u.temporal">{{ f.u.temporal ? 'Contraseña temporal' : 'Usuario y contraseña' }}</td>
+              <td><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
+              <td><button type="button" class="enlace-accion" (click)="formulario.set(f.u.usuario)" [attr.aria-label]="'Editar a ' + f.u.nombre">Editar</button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="vacio">No hay usuarios {{ pestana() === 'activos' ? 'activos' : 'inactivos' }}.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+@if (formulario() !== null) {
+  <app-usuario-form [cuenta]="editando()" (cerrar)="formulario.set(null)" (guardado)="guardado($event)" (temporal)="pedirTemporal($event)" />
+}
+@if (paraTemporal(); as u) {
+  <app-asignar-temporal [cuenta]="u" (cerrar)="temporalPara.set(null)" (asignada)="asignada($event)" />
+}

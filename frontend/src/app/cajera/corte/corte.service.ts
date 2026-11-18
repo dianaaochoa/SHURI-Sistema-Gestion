@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../acceso/auth.service';
 import { CajaService, NombreTurno } from '../caja.service';
 import { OrdenesService } from '../ordenes/ordenes.service';
-import { MetodoSimple, redondear } from '../punto-de-venta/venta.service';
+import { MetodoSimple, VentaService, redondear } from '../punto-de-venta/venta.service';
 import { HistorialVentasService, VentaRegistrada } from '../ventas/historial-ventas.service';
 
 export type MetodoCorte = MetodoSimple | 'mixto';
@@ -38,6 +38,28 @@ export interface Corte {
   comentario: string;
   /** Renglones del corte impreso (C11). Los cortes de prueba no lo traen. */
   desglose?: Desglose;
+  /** Visto bueno del administrador cuando hubo diferencia (AD3.2). */
+  revision?: RevisionCorte;
+  /** Quién contó y cerró, cuando no fue la cajera que abrió el turno. */
+  cerradoPor?: string;
+}
+
+export type DecisionCorte = 'descontar' | 'absorber' | 'investigar';
+
+export interface RevisionCorte {
+  decision: DecisionCorte;
+  fecha: string;
+  por: string;
+  nota?: string;
+}
+
+/** Cómo queda el corte para el administrador (AD3.1). */
+export function revisionDe(c: Corte): { texto: string; tono: string; pendiente: boolean } {
+  if (c.revision?.decision === 'descontar') return { texto: 'Descontado', tono: 'neutro', pendiente: false };
+  if (c.revision?.decision === 'absorber') return { texto: 'Absorbido', tono: 'neutro', pendiente: false };
+  if (c.revision?.decision === 'investigar') return { texto: 'En investigación', tono: 'advertencia', pendiente: true };
+  if (c.contado === c.esperado) return { texto: 'Revisado', tono: 'exito', pendiente: false };
+  return { texto: 'Por revisar', tono: 'advertencia', pendiente: true };
 }
 
 export interface Desglose {
@@ -103,6 +125,11 @@ function cortesDemo(): Corte[] {
         transferencias,
         fondoQueQueda: 1000,
         comentario: dif < 0 ? 'Faltante por cambio mal entregado, se reportó a gerencia.' : dif > 0 ? 'Sobrante: un cliente no esperó su cambio.' : '',
+        // Los cortes con diferencia de hace más de 3 días ya los revisó la administradora (AD3).
+        revision:
+          dif !== 0 && d > 3
+            ? { decision: dif < 0 && i % 2 === 0 ? 'descontar' : 'absorber', fecha: new Date(dia.getFullYear(), dia.getMonth(), dia.getDate() + 1, 10).toISOString(), por: 'Verónica Castillo' }
+            : undefined,
       });
     }
   }
@@ -116,15 +143,20 @@ export class CorteService {
   private readonly ventas = inject(HistorialVentasService);
   private readonly ordenes = inject(OrdenesService);
   private readonly auth = inject(AuthService);
+  private readonly venta = inject(VentaService);
 
   readonly cortes = signal<Corte[]>(cortesDemo());
 
   /** Todo lo que movió dinero desde que se abrió el turno, del más reciente al más antiguo. */
   readonly movimientos = computed<MovimientoTurno[]>(() => {
-    const turno = this.caja.turno();
-    if (!turno) return [];
-    const en = (iso: string) => iso >= turno.desde;
-    const lista: MovimientoTurno[] = [{ fecha: turno.desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: turno.fondo }];
+    const turno = this.caja.turnoDeCaja();
+    return turno ? this.movimientosEntre(turno.desde, '9999', turno.fondo) : [];
+  });
+
+  /** Movimientos de un tramo (turno abierto o un corte cerrado, AD3.2). */
+  movimientosEntre(desde: string, hasta: string, fondo: number): MovimientoTurno[] {
+    const en = (iso: string) => iso >= desde && iso <= hasta;
+    const lista: MovimientoTurno[] = [{ fecha: desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: fondo }];
 
     for (const v of this.ventas.ventas()) {
       if (en(v.fecha) && v.estado !== 'cancelada') lista.push({ fecha: v.fecha, concepto: `Venta ${v.folio} · ${resumenVenta(v)}`, metodo: v.metodo, monto: v.total });
@@ -138,7 +170,8 @@ export class CorteService {
         lista.push({ fecha: o.recibido, concepto: `Anticipo orden ${o.folio} · ${o.cliente.nombre} · ${o.equipo}`, metodo: o.metodoAnticipo as MetodoSimple, monto: o.anticipo });
       }
       if (o.entrega && en(o.entrega.fecha) && o.entrega.cobrado) {
-        lista.push({ fecha: o.entrega.fecha, concepto: `Entrega ${o.folio} · ${o.equipo}`, metodo: (o.entrega.metodo ?? 'efectivo') as MetodoSimple, monto: o.entrega.cobrado });
+        const concepto = o.entrega.cobrado < 0 ? `Devolución de anticipo ${o.folio} · ${o.cliente.nombre}` : `Entrega ${o.folio} · ${o.equipo}`;
+        lista.push({ fecha: o.entrega.fecha, concepto, metodo: (o.entrega.metodo ?? 'efectivo') as MetodoSimple, monto: o.entrega.cobrado });
       }
     }
     for (const p of this.caja.pagosAProveedor()) {
@@ -148,14 +181,20 @@ export class CorteService {
       if (en(m.fecha)) lista.push({ fecha: m.fecha, concepto: m.tipo === 'retiro' ? `Retiro · ${m.motivo}` : `Ingreso · ${m.motivo}`, metodo: 'efectivo', monto: m.tipo === 'retiro' ? -m.monto : m.monto });
     }
     return lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
-  });
+  }
+
+  /** AD3.2 · Visto bueno del administrador: la diferencia se descuenta, se absorbe o se investiga. */
+  revisar(folio: string, decision: DecisionCorte, nota: string, por: string): void {
+    this.cortes.update((lista) => lista.map((c) => (c.folio === folio ? { ...c, revision: { decision, fecha: new Date().toISOString(), por, nota: nota.trim() || undefined } } : c)));
+  }
 
   /** Cifras del turno abierto (C10.1). */
   readonly resumen = computed(() => {
-    const turno = this.caja.turno();
+    const turno = this.caja.turnoDeCaja();
     const desde = turno?.desde ?? '9999';
     const ventas = this.ventas.ventas().filter((v) => v.fecha >= desde && v.estado !== 'cancelada');
-    const entregas = this.ordenes.ordenes().filter((o) => o.entrega && o.entrega.fecha >= desde && (o.entrega.cobrado ?? 0) > 0);
+    // Incluye los anticipos devueltos al entregar sin reparar (cobrado negativo).
+    const entregas = this.ordenes.ordenes().filter((o) => o.entrega && o.entrega.fecha >= desde && (o.entrega.cobrado ?? 0) !== 0);
     const anticipos = this.ordenes.ordenes().filter((o) => o.anticipo > 0 && o.recibido >= desde && o.metodoAnticipo);
     const retiros = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'retiro');
     const ingresos = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'ingreso');
@@ -208,7 +247,7 @@ export class CorteService {
   });
 
   /** Efectivo que debería haber en el cajón (para retiros y pagos a proveedor). 0 con la caja cerrada. */
-  readonly efectivoEnCaja = computed(() => (this.caja.abierta() ? this.resumen().esperado : 0));
+  readonly efectivoEnCaja = computed(() => (this.caja.turnoDeCaja() ? this.resumen().esperado : 0));
 
   siguienteFolio(): string {
     const max = Math.max(0, ...this.cortes().map((c) => Number(c.folio.slice(2))));
@@ -217,13 +256,14 @@ export class CorteService {
 
   /** C10.4: guarda el corte, cierra el turno y devuelve el corte para C10.5. */
   cerrar(contado: number, comentario: string, fondoQueQueda: number): Corte {
-    const turno = this.caja.turno()!;
+    const turno = this.caja.turnoDeCaja()!;
     const r = this.resumen();
     const corte: Corte = {
       folio: this.siguienteFolio(),
       caja: turno.caja,
       turno: turno.turno,
-      cajera: this.auth.sesion()?.nombre ?? '',
+      cajera: turno.cajera ?? this.auth.sesion()?.nombre ?? '',
+      cerradoPor: turno.cajera && turno.cajera !== this.auth.sesion()?.nombre ? this.auth.sesion()?.nombre : undefined,
       desde: turno.desde,
       hasta: new Date().toISOString(),
       fondo: r.fondo,
@@ -240,6 +280,7 @@ export class CorteService {
       desglose: r.desglose,
     };
     this.cortes.update((lista) => [corte, ...lista]);
+    this.venta.descartarAlCerrarTurno();
     this.caja.cerrarTurno();
     return corte;
   }

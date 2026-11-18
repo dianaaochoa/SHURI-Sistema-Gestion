@@ -1,4 +1,4 @@
-import { DIAS_GARANTIA, Orden, sumarDias } from '../../cajera/ordenes/ordenes.service';
+import { diasGarantia, Orden, sumarDias } from '../../cajera/ordenes/ordenes.service';
 
 /** Pestañas de Garantías (Figma J4.1). */
 export type EtapaGarantia = 'por-dictaminar' | 'en-revision' | 'en-reparacion' | 'cerrada';
@@ -16,7 +16,7 @@ export function etapaGarantia(o: Orden): EtapaGarantia | null {
 
 /** Fecha en que vence la garantía original (30 días desde la entrega). */
 export function venceGarantia(o: Orden): string | null {
-  return o.entrega ? sumarDias(o.entrega.fecha, DIAS_GARANTIA) : null;
+  return o.entrega ? sumarDias(o.entrega.fecha, diasGarantia()) : null;
 }
 
 /** Días de garantía que llevaba usados cuando la pidió ("26 de 30 días"). */

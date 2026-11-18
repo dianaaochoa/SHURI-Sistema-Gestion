@@ -1,0 +1,30 @@
+/* Figma AD8.1 · usa ../reportes.css */
+.periodo { gap: 8px; width: 176px; }
+.tipo { width: 200px; }
+.tabla { background: var(--color-superficie); }
+.t-detalle { white-space: normal; }
+.tenue { display: block; font-size: 11px; font-weight: 400; color: var(--color-texto-tenue); }
+.persona { display: flex; align-items: center; gap: 10px; }
+.persona strong { display: block; font-weight: 600; }
+.avatar-chico { display: grid; flex-shrink: 0; width: 28px; height: 28px; place-items: center; border-radius: 999px; background: var(--color-primario-suave); font-size: 10px; font-weight: 700; color: var(--color-primario); }
+.enlace-accion { font-weight: 600; color: var(--color-primario); text-decoration: none; }
+.detalle-celular { display: none; }
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.vacio { color: var(--color-texto-tenue); }
+.pie-tabla { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.paginas { display: flex; gap: 6px; }
+.pagina { min-width: 28px; height: 28px; border: 1px solid var(--color-borde); border-radius: 6px; background: var(--color-superficie); font: inherit; font-size: 12px; color: var(--color-marino); cursor: pointer; }
+.pagina--activa { border-color: var(--color-primario); background: var(--color-primario); color: var(--color-superficie); }
+.pagina--hueco { display: grid; place-items: center; cursor: default; }
+.pagina:disabled { opacity: 0.4; cursor: default; }
+
+@media (max-width: 1280px) { .t-modulo { display: none; } }
+@media (max-width: 768px) {
+  .acciones { flex-wrap: wrap; }
+  .periodo, .tipo { flex: 1 1 140px; width: auto; }
+  .acciones .boton { flex: 1 1 100%; justify-content: center; }
+  .t-detalle { display: none; }
+  .detalle-celular { display: block; margin-top: 4px; font-size: 11px; color: var(--color-texto-tenue); }
+  .persona .avatar-chico { display: none; }
+  .pie-tabla { flex-direction: column; align-items: flex-start; }
+}

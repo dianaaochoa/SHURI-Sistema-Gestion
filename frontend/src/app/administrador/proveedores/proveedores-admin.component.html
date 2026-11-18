@@ -1,0 +1,96 @@
+<div class="reporte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Proveedores</h1>
+      <p class="encabezado-pagina__subtitulo">Compras, pedidos del jefe de técnicos y lo que se les debe</p>
+    </div>
+    <button type="button" class="boton boton--primario boton--40" (click)="nuevo.set(true)"><span class="icono" style="--icono: url(assets/pdv/plus.svg)"></span>Nuevo proveedor</button>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen de proveedores">
+    @for (i of indicadores(); track i.titulo) {
+      <div class="indicador">
+        <p class="indicador__valor valor--{{ i.tono }}">{{ i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ i.detalle }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (aviso()) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+  }
+
+  <div class="columnas">
+    <div class="izquierda">
+      <section class="panel">
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/truck.svg)"></span>Proveedores</h2>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Proveedor</th><th class="t-contacto">Contacto</th><th class="t-surte">Surte</th><th class="t-cond">Condición</th><th>Por pagar</th></tr></thead>
+            <tbody>
+              @for (f of filas(); track f.p.nombre) {
+                <tr [class.elegido]="f.p.nombre === elegido()" tabindex="0" (click)="elegido.set(f.p.nombre)" (keydown.enter)="elegido.set(f.p.nombre)">
+                  <td class="t-nombre">{{ f.p.nombre }}</td>
+                  <td class="t-contacto">{{ f.contacto }}</td>
+                  <td class="t-surte">{{ f.p.surte || '—' }}</td>
+                  <td class="t-cond">{{ f.condicion }}</td>
+                  <td class="deuda" [class.deuda--si]="f.deuda > 0">{{ dinero(f.deuda) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel crece">
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Últimas compras</h2>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Fecha</th><th>Documento</th><th class="t-origen">Origen</th><th>Total</th><th class="t-pago">Pago</th><th>Estado</th></tr></thead>
+            <tbody>
+              @for (c of compras(); track c.e.folio) {
+                <tr>
+                  <td class="t-nombre">{{ c.fecha }}</td>
+                  <td>{{ c.e.documento }}</td>
+                  <td class="t-origen">{{ c.origen }}</td>
+                  <td>{{ dinero(c.e.total) }}</td>
+                  <td class="t-pago">{{ c.pago }}</td>
+                  <td><span class="estado estado--{{ c.estado.tono }}">{{ c.estado.texto }}</span></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="vacio">Todavía no hay compras registradas.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    @if (detalle(); as d) {
+      <aside class="panel lateral">
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>{{ d.p.nombre }}</h2>
+        @for (x of d.datos; track x[0]) {
+          <p class="dato"><span>{{ x[0] }}</span><strong [class.deuda--si]="x[0] === 'Por pagar' && d.proxima">{{ x[1] }}</strong></p>
+        }
+        <div class="separador"></div>
+        @for (a of d.avisos; track $index) {
+          <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg); color: inherit"></span>{{ a }}</p>
+        }
+        <div class="pie">
+          <button type="button" class="boton boton--primario grande" [disabled]="!d.proxima" (click)="pagando.set(d.proxima)"><span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>{{ d.proxima ? 'Registrar pago' : 'Sin pagos pendientes' }}</button>
+          <button type="button" class="boton boton--contorno grande" (click)="estadoDeCuenta()"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Ver estado de cuenta</button>
+        </div>
+      </aside>
+    }
+  </div>
+</div>
+
+@if (pagando(); as f) {
+  <app-registrar-pago [factura]="f" (cerrar)="pagando.set(null)" (pagado)="pagado($event)" />
+}
+@if (nuevo()) {
+  <app-nuevo-proveedor (cerrar)="nuevo.set(false)" (guardado)="guardado($event)" />
+}

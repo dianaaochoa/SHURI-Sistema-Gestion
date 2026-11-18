@@ -1,0 +1,79 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-solicitud" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); mandar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-solicitud">Nueva solicitud de refacción</h2>
+        <p class="modal__subtitulo">Llega al jefe de técnicos para aprobarla y entregarla</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <label class="campo">
+      <span class="campo__etiqueta">Orden *</span>
+      <span class="campo__control campo__control--40">
+        <select class="campo__input campo__select" (change)="orden.set($any($event.target).value)">
+          @for (o of ordenes(); track o.folio) {
+            <option [value]="o.folio" [selected]="o.folio === folio()">{{ o.folio }} · {{ o.equipo }} · {{ o.cliente.nombre }}</option>
+          } @empty {
+            <option value="">No tienes órdenes abiertas</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+    </label>
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="buscar-pieza">Refacción o consumible *</label>
+      <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && !elegido()">
+        <img src="assets/ventas/search.svg" width="16" height="16" alt="" />
+        <input id="buscar-pieza" class="campo__input" type="search" autocomplete="off" placeholder="Busca por nombre o SKU" [value]="texto()" (input)="escribir($any($event.target).value)" />
+      </span>
+      @for (p of resultados(); track p.sku) {
+        <button type="button" class="resultado" [class.resultado--elegido]="elegido()?.sku === p.sku" (click)="elegir(p)">
+          <span class="resultado__icono"><span class="icono" style="--icono: url(assets/menu/package.svg)"></span></span>
+          <span class="resultado__texto"><strong>{{ p.nombre }}</strong><span>{{ p.sku }} · {{ p.categoria === 'Consumibles' ? 'Consumible' : 'Refacción' }}</span></span>
+          @if (stock(p) > 0) {
+            <span class="estado estado--exito">{{ stock(p) }} en stock</span>
+          } @else {
+            <span class="estado estado--peligro">Sin stock</span>
+          }
+        </button>
+      }
+      @if (intentado() && !elegido()) {
+        <span class="campo__error">Elige la pieza del inventario.</span>
+      }
+    </div>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Cantidad *</span>
+        <span class="campo__control campo__control--40">
+          <input class="campo__input" type="number" min="1" [value]="cantidad()" (input)="cantidad.set($any($event.target).valueAsNumber || 0)" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Urgencia</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="urgencia.set($any($event.target).value)">
+            <option value="normal" [selected]="urgencia() === 'normal'">Normal</option>
+            <option value="hoy" [selected]="urgencia() === 'hoy'">Urgente · la necesito hoy</option>
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+    </div>
+
+    <label class="campo">
+      <span class="campo__etiqueta">Nota</span>
+      <span class="campo__control campo__control--40">
+        <input class="campo__input" placeholder="Opcional · para qué la necesitas" [value]="nota()" (input)="nota.set($any($event.target).value)" />
+      </span>
+    </label>
+
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Si no hay stock, el jefe decide si se pide al proveedor. La orden mostrará “Esperando refacción”.</p>
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Enviar solicitud</button>
+    </div>
+  </form>
+</div>

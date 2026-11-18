@@ -1,15 +1,16 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { ClavePermiso, PermisosService } from '../../administrador/permisos.service';
 import { MensajesService } from '../../jefe/mensajes/mensajes.service';
 
 /** Figma J10: los seis destinos del jefe que van abajo en celular (el resto sigue en el cajón). */
-const DESTINOS = [
+const DESTINOS: { etiqueta: string; icono: string; ruta: string; permiso?: ClavePermiso }[] = [
   { etiqueta: 'Inicio', icono: 'home', ruta: 'inicio' },
   { etiqueta: 'Mensajes', icono: 'msg', ruta: 'mensajes' },
   { etiqueta: 'Tablero', icono: 'list', ruta: 'tablero-de-ordenes' },
-  { etiqueta: 'Cotizar', icono: 'receipt', ruta: 'por-cotizar' },
-  { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias' },
-  { etiqueta: 'Refacc.', icono: 'package', ruta: 'refacciones' },
+  { etiqueta: 'Cotizar', icono: 'receipt', ruta: 'por-cotizar', permiso: 'cotizar' },
+  { etiqueta: 'Garantías', icono: 'shield', ruta: 'garantias', permiso: 'cotizar' },
+  { etiqueta: 'Refacc.', icono: 'package', ruta: 'refacciones', permiso: 'pedidos' },
 ];
 
 /** J10 · Barra inferior del jefe de técnicos en celular. */
@@ -18,8 +19,8 @@ const DESTINOS = [
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <nav class="inferior" aria-label="Navegación principal">
-      @for (d of destinos; track d.ruta) {
+    <nav class="inferior" aria-label="Navegación principal" [style.grid-template-columns]="'repeat(' + destinos().length + ', minmax(0, 1fr))'">
+      @for (d of destinos(); track d.ruta) {
         <a class="destino" [routerLink]="'/jefe/' + d.ruta" routerLinkActive="destino--activo" #rla="routerLinkActive" [attr.aria-current]="rla.isActive ? 'page' : null">
           <span class="destino__icono">
             <span class="icono" [style.--icono]="'url(assets/menu/' + d.icono + '.svg)'"></span>
@@ -47,7 +48,9 @@ const DESTINOS = [
   `,
 })
 export class NavegacionMovilComponent {
-  protected readonly destinos = DESTINOS;
+  private readonly permisos = inject(PermisosService);
+  /** Sin los destinos que el rol no tiene permitidos (AD7.3). */
+  protected readonly destinos = computed(() => DESTINOS.filter((d) => !d.permiso || this.permisos.puede(d.permiso)));
   private readonly mensajes = inject(MensajesService);
 
   protected insignia(ruta: string): number {

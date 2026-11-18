@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 8 nov 2026 (J11 Mensajes de clientes · jefe de técnicos completo)
+- **Última actualización:** 17 nov 2026 (abrir y cerrar turno con un solo monto, sin contar por denominación)
 
 ---
 
@@ -34,10 +34,19 @@ flowchart LR
     MOV["Jefe en celular (J10)<br/>barra superior + barra inferior"]:::hecho
     USR["Menú de usuario"]:::hecho
     NOT["Panel de notificaciones"]:::hecho
+    BLQ1["Bloqueo tras 30 min sin uso"]:::hecho
   end
 
   subgraph ADM["02 · Administrador"]
-    AD["AD1–AD9"]:::pendiente
+    AD1["AD1 Inicio<br/>AD1.1 resumen del negocio · AD1.2 notificaciones · AD1.3 menú"]:::hecho
+    AD2["AD2 Reportes<br/>AD2.1 ventas y utilidad · AD2.2 desempeño del taller · AD2.3 mes sin ventas"]:::hecho
+    AD3["AD3 Cortes de caja<br/>AD3.1 cortes del mes · AD3.2 revisión y visto bueno"]:::hecho
+    AD4["AD4 Catálogo y precios<br/>AD4.1 catálogo con costos · AD4.2 editar precio · AD4.3 ajustar en grupo"]:::hecho
+    AD5["AD5 Proveedores<br/>AD5.1 lista y compras · AD5.2 registrar pago · AD5.3 nuevo proveedor"]:::hecho
+    AD6["AD6 Facturación<br/>AD6.1 facturas del mes · AD6.2 cancelar · AD6.3 factura global"]:::hecho
+    AD7["AD7 Usuarios y permisos<br/>AD7.1 lista · AD7.2 nuevo/editar · AD7.3 permisos por rol · AD7.4 contraseña temporal"]:::hecho
+    AD8["AD8 Bitácora<br/>AD8.1 acciones sensibles · AD8.2 exportar"]:::hecho
+    AD9["AD9 Configuración<br/>negocio y marca · cajas y pagos · documentos<br/>taller · facturación · mensajes · correo"]:::hecho
   end
   subgraph CAJ["03 · Cajera"]
     C1["C1 Inicio y apertura de caja<br/>C1.1–C1.5 · C1.7"]:::hecho
@@ -47,7 +56,7 @@ flowchart LR
     C2C["C2 fase 3 · mixto, errores, sin conexión,<br/>atajos, facturación (C2.13–C2.18)"]:::hecho
     C3["C3 Ventas<br/>C3.1 historial · C3.2 sin resultados · C3.3 devolución"]:::hecho
     C4["C4 Órdenes de servicio<br/>C4.1–C4.9"]:::hecho
-    C5["C5 Nueva orden<br/>C5.1 recepción · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
+    C5["C5 Nueva orden<br/>C5.1 recepción (+ fotos del equipo) · C5.2 cliente nuevo · C5.3 confirmación"]:::hecho
     C6["C6 Entrega de equipo<br/>C6.1 normal · C6.2 sin reparar · C6.3 garantía · C6.4 otra persona"]:::hecho
     C7["C7 Inventario<br/>C7.1 alta · C7.2 Excel · C7.3 entrada · C7.4 ajuste<br/>C7.5 pedido del jefe · C7.6 pago · C7.7 historial"]:::hecho
     C8["C8 Clientes<br/>C8.1 lista y ficha · C8.2 nuevo cliente<br/>C8.3 historial · C8.4 contraseña temporal"]:::hecho
@@ -69,10 +78,21 @@ flowchart LR
     J["J11 Mensajes de clientes<br/>J11.1 chat · J11.2 respuestas rápidas · J11.3 todo respondido<br/>J11.4 celular · J11.5 no disponible hoy"]:::hecho
   end
   subgraph TEC["05 · Técnico"]
-    T["T1–T7"]:::pendiente
+    T1["T1 Inicio<br/>T1.1 sigue con esto · avisos · mi día<br/>T1.2 notificaciones · T1.3 menú"]:::hecho
+    T2["T2 Equipos asignados<br/>T2.1 lista con filtros · T2.2 sin equipos"]:::hecho
+    T3["T3 Banco de trabajo<br/>T3.1 diagnóstico · T3.2 esperando · T3.3 en taller · T3.9 devolver · T3.10 garantía<br/>modales: listo, daño adicional, pausa, sin reparación, necesito info, orden en curso"]:::hecho
+    T4["T4 Garantías<br/>T4.1 lista por etapa · T4.2 revisión y reporte"]:::hecho
+    T5["T5 Refacciones<br/>T5.1 lista · T5.2 nueva solicitud · T5.3 devolver · T5.4 sin solicitudes"]:::hecho
+    T6["T6 Mi historial<br/>T6.1 terminados por mes · T6.2 orden de solo lectura"]:::hecho
+    T7["T7 Versión tablet<br/>riel con nombres · banco con pestañas y botones grandes"]:::hecho
   end
   subgraph POR["06 · Portal del cliente"]
-    P["P1–P6"]:::pendiente
+    P1["P1 Acceso y mis equipos<br/>P1.1 entrar · P1.2 mis equipos<br/>P1.3 olvidé · P1.4 crear contraseña"]:::hecho
+    P2["P2 Seguimiento de la reparación<br/>P2.1–P2.11 · aprobar o rechazar desde el portal"]:::hecho
+    P3["P3 Garantía<br/>P3.1 solicitar · P3.2 costo extra · P3.3 aprobada<br/>P3.4 rechazada · P3.5 cerrada"]:::hecho
+    P4["P4 Información<br/>P4.1 cláusulas · P4.2 autofactura · P4.3 privacidad"]:::hecho
+    P5["P5 Chat con el jefe de técnicos<br/>P5.1 vacío · P5.2 chat · P5.3 fuera de horario<br/>P5.4 aviso · P5.5 no disponible"]:::hecho
+    P6["P6 Correos al cliente<br/>acceso · cotización · listo · bodega · respuesta del chat"]:::hecho
   end
 
   BASE --> ACC
@@ -177,6 +197,7 @@ flowchart LR
     PN["PanelNotificaciones"]:::comp
     PP["PaginaPendiente<br/>lugar de cada pantalla"]:::comp
     PF["Perfil<br/>C1.6 · A.6 · todos los roles"]:::comp
+    BLQ["BloqueoSesion<br/>30 min sin uso · pide la contraseña"]:::comp
   end
 
   subgraph JEFE["jefe/"]
@@ -217,9 +238,33 @@ flowchart LR
     RO["ResumenOrden<br/>panel de la orden"]:::comp
     MS["MensajesService<br/>conversaciones, respuestas<br/>rápidas y disponible (simulado)"]:::serv
   end
+  subgraph ADMIN["administrador/"]
+    IAD["InicioAdmin<br/>AD1.1"]:::comp
+    VYU["VentasUtilidad<br/>AD2.1 · AD2.3"]:::comp
+    TRP["TallerReporte<br/>AD2.2"]:::comp
+    RPT["reportes.ts<br/>meses y exportar CSV"]:::serv
+    CAD["CortesAdmin<br/>AD3.1 · DetalleCorte AD3.2"]:::comp
+    CTA["CatalogoAdmin<br/>AD4.1 · EditarPrecio AD4.2<br/>AjustarPrecios AD4.3"]:::comp
+    PRV["ProveedoresAdmin<br/>AD5.1 · RegistrarPago AD5.2<br/>NuevoProveedor AD5.3"]:::comp
+    FAC["FacturacionAdmin<br/>AD6.1 · DetalleFactura<br/>CancelarFactura AD6.2 · FacturaGlobal AD6.3"]:::comp
+    NEG["negocio.ts<br/>utilidad, lo que más deja<br/>y de dónde viene el dinero"]:::serv
+  end
+  subgraph TECNICO["tecnico/"]
+    TI["InicioTecnico<br/>T1.1"]:::comp
+    EA["EquiposAsignados<br/>T2.1 · T2.2"]:::comp
+    BNC["Banco<br/>T3 cabecera, cronómetro y etapas"]:::comp
+    GTC["GarantiasTecnico<br/>T4.1 · RevisionGarantia T4.2"]:::comp
+    RFT["RefaccionesTecnico<br/>T5.1 · T5.4 · NuevaSolicitud T5.2 · DevolverPieza T5.3"]:::comp
+    HST["HistorialTecnico<br/>T6.1 · DetalleHistorial T6.2"]:::comp
+    TTB["TallerTablet<br/>T7 pestañas y acciones"]:::comp
+    BPN["Paneles: Diagnóstico T3.1 · Espera T3.2<br/>Taller T3.3 / T3.10 · Devolver T3.9"]:::comp
+    BMD["Modales: MarcarListo T3.4 · DañoAdicional T3.5<br/>Pausar T3.6 · SinReparación T3.7<br/>NecesitoInfo T3.8 · OrdenEnCurso T3.11"]:::comp
+    BTS["BancoService<br/>equipo en curso y jornada<br/>(simulado)"]:::serv
+    MT["mi-trabajo.ts<br/>asignadas, trabajables, cola"]:::serv
+  end
   subgraph CAJERA["cajera/"]
     IC["InicioCajera<br/>C1.1 · C1.2"]:::comp
-    AT["AbrirTurno<br/>modal C1.3"]:::comp
+    AT["AbrirTurno<br/>modal C1.3 · un solo monto"]:::comp
     ST["SalirConTurno<br/>modal C1.7"]:::comp
     subgraph PDVG["punto-de-venta/"]
       PDV["PuntoDeVenta<br/>C2.1 · C2.2"]:::comp
@@ -286,7 +331,7 @@ flowchart LR
     subgraph CORG["corte/"]
       COR["Corte<br/>encabezado y pestañas"]:::comp
       TA["TurnoActual<br/>C10.1 y arqueo"]:::comp
-      CTU["CerrarTurno<br/>C10.4 por denominación"]:::comp
+      CTU["CerrarTurno<br/>C10.4 · total contado y fondo"]:::comp
       HCO["HistorialCortes<br/>C10.2"]:::comp
       ME["MovimientoEfectivo<br/>C10.3"]:::comp
       TC["TurnoCerrado<br/>C10.5"]:::comp
@@ -298,7 +343,7 @@ flowchart LR
     end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
-  CAT["catalogo.datos.ts"]:::serv
+  CAT["catalogo.datos.ts<br/>precios de las ventas de prueba"]:::serv
   CLI["clientes.datos.ts<br/>clientes, motivos y catálogos del SAT"]:::serv
   DIS["DispositivosService<br/>conexión e impresora (simulado)"]:::serv
   HV["HistorialVentasService<br/>ventas, cancelaciones y<br/>devoluciones (simulado)"]:::serv
@@ -308,18 +353,35 @@ flowchart LR
   COS["CorteService<br/>movimientos y arqueo del turno,<br/>cortes anteriores (simulado)"]:::serv
   ESV["EstadisticasService<br/>historial de prueba por día<br/>+ ventas y órdenes de la app"]:::serv
   CLSV["ClientesService<br/>registro único: une clientes de<br/>caja, órdenes y ventas (simulado)"]:::serv
+  PVS["ProveedoresService<br/>condiciones, facturas a crédito<br/>y pagos (simulado)"]:::serv
+  FCS["FacturacionService<br/>CFDI timbrados, cancelaciones<br/>y timbres (simulado)"]:::serv
 
-  AUTH["AuthService<br/>(simulado)"]:::serv
+  AUTH["AuthService<br/>sesión, cuentas del personal,<br/>bloqueos y pedidos (simulado)"]:::serv
+  USA["UsuariosAdmin AD7.1<br/>UsuarioForm AD7.2 · PermisosRol AD7.3<br/>AsignarTemporal AD7.4"]:::comp
+  PMS["PermisosService<br/>permisos por rol y puede(permiso)<br/>(simulado)"]:::serv
+  BTA["BitacoraAdmin AD8.1<br/>ExportarBitacora AD8.2"]:::comp
+  BIT["BitacoraService<br/>solo agrega: junta precios, ajustes, pagos,<br/>facturas, cortes, caja, descuentos,<br/>almacenaje perdonado y dictámenes"]:::serv
   NOTS["NotificacionesService<br/>(simulado)"]:::serv
-  CAJA["CajaService<br/>turno, retiros, ingresos y<br/>pagos a proveedor (simulado)"]:::serv
+  CAJA["CajaService<br/>turno (de quién lo abrió), retiros,<br/>ingresos y pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
+  ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET y CLAUSULAS_RECEPCION"]:::serv
+  FTO["compartido/fotos-orden<br/>FotosOrden: miniaturas, agregar,<br/>quitar y visor (recepción y técnico)"]:::comp
+  CDN["compartido/campo-dinero.directive.ts<br/>[(campoDinero)]: 1000 al escribir,<br/>$1,000.00 fuera del campo"]:::comp
+  CFA["ConfiguracionAdmin AD9<br/>7 pestañas: Negocio · Cajas · Documentos<br/>Taller · Facturación · Mensajes · Correo"]:::comp
+  CFS["ConfiguracionService<br/>borrador que se guarda junto"]:::serv
   GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
 
   APP --> RUT
   RUT --> LAY --> IS & OC & CC
   RUT --> SL --> ML --> MU & PN
   SL --> NM & PN
+  SL --> BLQ --> AUTH
+  SC --> NC & CLSV
+  CAJA --> AUTH
+  COS --> VS
+  EN --> PVS
+  RUT & ML & NM & VS & EN --> PMS
   NM & ML --> MS
   ML --> ST
   SL --> PP & IC & PDV & VEN
@@ -372,11 +434,36 @@ flowchart LR
   PDV & BB & CB & SCX --> DIS
   DF --> CLI
   PDV & BB & TT & SC & AD & PV & VE --> VS
-  BB --> CAT
+  BB --> INS
+  VS --> CAT
   SC & AD --> CLI
   PDV --> CAJA
   NAV --> RUT & ML & PP
   IS & OC & CC & ML & MU & PP --> AUTH
+  SL --> USA
+  USA --> AUTH & PMS & BIT
+  SL --> BTA
+  BTA --> BIT
+  BIT --> INS & CAJA & COS & FCS & PVS & OS
+  SL --> CFA
+  CFA --> CFS & BIT & CAJA
+  CFS --> ADO & RT9 & FCS
+  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4<br/>Seguimiento P2.1–P2.11 · Garantía P3<br/>Factura P4.2 · hoja de cláusulas y privacidad<br/>Chat P5 · aviso de respuesta"]:::comp
+  PTS["PortalService<br/>entrar, temporal, equipos del cliente"]:::serv
+  PSE["PortalSesion<br/>sesión del cliente (guardas)"]:::serv
+  RUT --> PTA
+  RUT --> PSE
+  PTA --> PTS
+  PTS --> PSE & CLSV & OS
+  CRS["compartido/correos.service.ts<br/>bandeja de correos enviados<br/>+ correos.ts (plantillas, bajo demanda)"]:::serv
+  OS & CLSV & MS --> CRS
+  NO & DO & OJ & PTA & BPN & BMD & TTB --> FTO
+  BNC --> FTO
+  AT & CTU --> CDN
+  CB & PM & NO --> CDN
+  CFA --> CRS
+  PTA --> ADO & FCS & MS
+  TK & OC --> ADO
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
   IC & AT & ST --> FMT
@@ -420,7 +507,29 @@ flowchart LR
   CF --> CFS
   CFS --> RT9
   ET & PB --> RT9
-  GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE
+  GLB -.-> ACCESO & SISTEMA & CAJERA & JEFE & TECNICO
+  SL --> TI & EA & BNC & GTC & RFT & HST & IAD
+  IAD --> ESV & NEG & COS & INS & OS & HV
+  SL --> VYU & TRP & CAD & CTA & PRV & FAC
+  FAC --> FCS & ESV
+  PDV & ENT --> FCS
+  CTA --> INS
+  PRV --> PVS
+  PVS --> INS & CAJA
+  CAD --> COS & HV & RPT
+  VYU --> ESV & NEG & RPT & COS & HV
+  TRP --> OS & ESV & BTS & RPT
+  HST --> OS & BTS & RS
+  RFT --> RS
+  GTC --> OS
+  BNC --> BPN & BMD & BTS & TTB
+  TTB --> BTS & RS
+  BPN & BMD --> OS & RS
+  BNC --> JD
+  EA --> BTS & MT
+  TI --> BTS & MT & RS
+  BTS & MT --> OS
+  ML --> MT
 ```
 
 ---
@@ -442,10 +551,45 @@ npm run build      # compilación de producción
 | `amartinez` | `Shuri2026!` | Cajera → `/cajera/inicio` |
 | `jlopez` | `Shuri2026!` | Jefe de técnicos → `/jefe/inicio` |
 | `cruiz` | `Shuri2026!` | Técnico → `/tecnico/inicio` |
-| `nuevo` | `temporal123` | Simula primer ingreso → A.5 (técnico) |
+| `lortega` | `temporal123` | Simula primer ingreso → A.5 (técnico Luis Ortega) |
+| `lpena`, `mvega` | `Shuri2026!` | Cajero vespertino y técnica de AD7 |
+| `rsanchez` | `Shuri2026!` | Inactivo: “Tu usuario está desactivado” |
 | cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
 
-Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana Martínez, Jorge López, Carlos Ruiz).
+Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
+
+**Pantalla bloqueada (30 min sin uso):** sin tocar el mouse, el teclado ni la pantalla por 30 minutos, se cubre todo con “Pantalla bloqueada” y se pide la contraseña; al escribirla se sigue donde se quedó (una venta a medias sigue ahí). Los fallos cuentan para el bloqueo de la cuenta (3 intentos). “Entrar con otro usuario” cierra la sesión. Para probarlo sin esperar: en la consola, `localStorage.setItem('shuri.actividad', Date.now() - 31 * 60000)` y luego mover el mouse.
+
+**Configuración (`/administrador/configuracion`):** siete pestañas que se guardan juntas con “Guardar cambios” (un punto marca las que tienen cambios; “Descartar” los quita). Si falta algo obligatorio no se guarda y se abre la pestaña a corregir.
+- Negocio y marca: logo (PNG o SVG), datos del negocio y ticket (encabezado, pie, logo, desglose de IVA y quién cobró) con vista previa. El ticket impreso (C11) los usa al guardar.
+- Cajas y pagos: fondo, ubicación y terminal de cada caja (el fondo pasa a la apertura de turno), formas de pago y CLABE (se ve tapada; “Cambiar” pide los 18 dígitos).
+- Documentos: cláusulas que se imprimen en la hoja de recepción; llevan variables como `{garantia}` que se llenan con lo del taller. Aviso de privacidad y vista previa.
+- Taller: el mismo tabulador y reglas de J9; lo que cambia queda también en el historial de J9.
+- Facturación: RFC, razón social, régimen, C.P., CSD (solo guarda el nombre del archivo), serie y timbres. Las facturas nuevas usan la serie y el emisor guardados.
+- Mensajes: medio y texto de cada aviso automático, con variables y vista previa. Correo: cuenta de envío y “Enviar correo de prueba” (simulado).
+
+**Usuarios y permisos (`/administrador/usuarios-y-permisos`):**
+- Activos e inactivos con rol, turno o área, último acceso, tipo de acceso y estado (activo, en turno, pendiente, bloqueado).
+- El aviso amarillo muestra el último pedido de “¿Olvidaste tu contraseña?” (A.3); “Asignar contraseña temporal” (AD7.4) genera una clave tipo `Q8T-3ZK`, puede desbloquear la cuenta y quita el pedido. Al entrar con ella, el login manda a A.5.
+- “Nuevo usuario” (AD7.2) sugiere el usuario a partir del nombre, pide rol, caja y turno (cajeras) u horario (taller) y el descuento máximo; “Editar” permite cambiar datos, desactivar o reactivar (no a uno mismo) y asignar temporal.
+- Cada alta, cambio, desactivación, contraseña temporal y cambio de permisos queda en la Bitácora (AD8).
+- “Permisos por rol” (AD7.3): matriz de 12 permisos; el descuento de la cajera (0 a 20 %) es el valor por omisión de las cajeras nuevas. El punto de venta ya respeta el descuento máximo de cada cajera.
+- Los permisos aplican al guardar: sin “Vender” la cajera no ve Punto de venta; sin “Aplicar descuentos” el botón y la columna de descuento quedan apagados; sin “Cancelar ventas y devoluciones” esos botones de Ventas se desactivan; sin “Retiros y pagos a proveedor” no hay retiro ni ingreso en el corte ni pago en efectivo en las entradas; sin “Recibir mercancía” Inventario solo muestra el catálogo. Al jefe, “Cotizar y dictaminar” quita Por cotizar y Garantías, y “Pedidos” quita Refacciones; al técnico, “Trabajar órdenes en banco” quita Banco y Garantías; al administrador, “Ver reportes” quita los tres reportes. Una ruta sin permiso regresa al inicio del rol.
+
+**Portal del cliente (`/portal`):** sesión aparte de la del personal (no usa el menú).
+
+| Correo | Contraseña | Resultado |
+|---|---|---|
+| `maria.hdz@gmail.com` | `Shuri2026!` | Mis equipos: Samsung S22 Ultra en reparación y 2 entregados |
+| `laura.medina@gmail.com` | `P4R-8XK` (temporal) | P1.4 crear contraseña → Mis equipos |
+
+- 5 intentos fallidos bloquean el acceso 15 minutos. “¿Olvidaste tu contraseña?” genera una temporal nueva (como C8.4) y siempre responde igual, exista o no el correo.
+- La tarjeta de cada equipo abre `/portal/equipo/:folio` (P2): la pantalla cambia con el estado de la orden (recibido, en diagnóstico, necesitamos un dato, presupuesto, rechazado, sin reparación, en taller, cargo adicional, listo, entregado). Con presupuesto o cargo adicional el cliente aprueba o rechaza ahí mismo y el taller lo ve en el historial (“Aprobado en el portal”). Ya entregado: garantía restante, comprobante en PDF y calificación.
+- Garantía (P3): con la orden entregada y dentro de los días de garantía, “Solicitar garantía” abre la hoja de P3.1 (falla, desde cuándo y hasta 3 fotos). La orden pasa a “En garantía” y el jefe la dictamina en J4: sin costo, con costo extra (el cliente acepta o rechaza en el portal) o sin reparar. Al entregarla queda “Garantía cerrada”.
+- Información (P4): “Cláusulas” y “Aviso de privacidad” abren una hoja desde abajo con los textos de Configuración (AD9.3). “Solicitar factura” (o `/portal/factura`, también sin sesión) pide folio y total del ticket; con sesión y folio de un equipo del cliente llena todo con sus datos fiscales. Solo se factura dentro del mismo mes, con el total correcto y si el folio no tiene factura; no acepta el RFC de público en general.
+- Chat (P5): “Contactar” abre `/portal/chat/:folio`, la misma conversación que el jefe ve en Mensajes (J11). Sin mensajes muestra preguntas rápidas; fuera de horario (lunes a sábado 9:00–19:00) o con “Disponible hoy” apagado en J11 avisa cuándo se responde. Si el jefe contesta mientras el cliente está en otra pantalla del portal, aparece el aviso de arriba (P5.4).
+- Correos (P6): al enviar un presupuesto, marcar listo, mandar un recordatorio para recoger, contestar en el chat o generar una contraseña temporal, se arma el correo al cliente (si tiene correo) y queda en la bandeja. En Configuración › Correo se ven las 5 plantillas con los datos de Figma y los correos de la sesión, y se puede descargar su HTML.
+- Para ver las variantes con María: en J3 enviar la re-cotización de #1024 (daño adicional) y aprobarla en el portal; marcarla lista (T3) y entregarla (C6).
 
 **Caja de la cajera:**
 - La primera vez entra con la **caja cerrada** (C1.2).
@@ -453,8 +597,8 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - El turno se guarda en `localStorage` (`shuri.turno`). Para volver a probar la caja cerrada, borra esa clave o ejecuta `localStorage.clear()` en la consola.
 
 **Punto de venta (`/cajera/punto-de-venta`, F1 desde el inicio):**
-- Catálogo de prueba en `cajera/punto-de-venta/catalogo.datos.ts`. Se busca por nombre (“cargador”), SKU (`ACC-020`) o código de barras (`7501000000205`).
-- Para armar la venta de Figma C2.1 (total $899.00): `ACC-001` ×2, `ACC-020` con 10 % de descuento, `ACC-014` y `ACC-052`.
+- Los productos, precios y disponibles salen de Inventario (los de uso interno del taller no aparecen). Se busca por nombre (“cargador”), SKU (`ACC-020`) o código de barras (`7501000000205`). Si el administrador cambia un precio en Catálogo y precios (AD4), caja lo cobra desde ese momento: la Mica a $120.00 sale “$103.45” antes de IVA y el total da $120.00.
+- La venta de Figma C2.1: `ACC-001` ×2, `ACC-020` con 10 % de descuento, `ACC-014` y `ACC-052`. Con los precios de Inventario (IVA incluido) da $775.00; en Figma da $899.00 porque ahí los precios van antes de IVA.
 - `ACC-030` no tiene disponibles: sale atenuado con “Vender como temporal”. Un código que no existe (`7501234567899`) muestra C2.4.
 - Teclas:
   - F2: buscar
@@ -466,9 +610,10 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
   - F12 o Enter: cobrar
   - Esc: cancelar la venta (dentro de un modal, solo lo cierra)
   - En los resultados y en la lista de clientes, ↑/↓ y Enter para elegir
-- Clientes de prueba en `cajera/punto-de-venta/clientes.datos.ts` (María Hernández, Martha Treviño, Raúl Ortiz…). Se buscan por nombre, teléfono o correo.
-- Con la venta de Figma, un descuento del 10 % a toda la venta da $809.10. Arriba de 10 % el modal marca el error y no deja aplicar.
-- Al entrar hay 2 ventas en espera de prueba (V-00864 y V-00863). Retomar una con el ticket lleno pausa primero la venta actual.
+- Cliente (F4) busca en el registro de Clientes (C8): los de prueba (María Hernández, Martha Treviño, Raúl Ortiz…), los de las órdenes y los que se dan de alta. Se buscan por nombre, teléfono o correo. Si no aparece, “Crear cliente nuevo” abre el alta ahí mismo con lo buscado (nombre, teléfono o correo); Esc regresa a la lista y al guardar queda como cliente de la venta y en Clientes.
+- Con esa venta, un descuento del 10 % a toda la venta da $697.50. Arriba de 10 % el modal marca el error y no deja aplicar.
+- Al cobrar, “Monto recibido” (efectivo y transferencia) y los montos del pago mixto muestran el número tal cual mientras se escribe (`1000`) y como dinero fuera del campo (`$1,000.00`), también con “Exacto” y los montos rápidos. Igual el anticipo de Nueva orden.
+- Al entrar hay 2 ventas en espera de prueba (V-00864 y V-00863). Retomar una con el ticket lleno pausa primero la venta actual. Al hacer el corte (C10.4) se descartan junto con la venta sin cobrar; el cierre lo avisa antes (“Al cerrar se descartan 2 ventas en espera y la venta sin cobrar…”).
 - Más teclas: `?` abre todos los atajos (C2.17), Supr quita la fila enfocada del ticket, Ctrl+P reimprime el último ticket, F3 va a Nueva orden y F5 a Ventas.
 - Casos de error simulados (fase 3):
   - **Tarjeta rechazada (C2.14):** cobrar con tarjeta poniendo `0000` en “Últimos 4 dígitos”.
@@ -476,7 +621,7 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
   - **Sin conexión (C2.16):** DevTools › Network › Offline. Las ventas en efectivo o tarjeta se cuentan “por sincronizar” y se suben al volver la conexión.
 - Factura (C2.18): casilla “Facturar” en el cobro. María Hernández ya tiene datos fiscales (HEMM850312QX4).
 
-- Sin turno abierto, el punto de venta pide abrir caja (C1.3). Si se cierra el modal, regresa al inicio.
+- Sin turno abierto, el punto de venta pide abrir caja (C1.3): se escribe el total con el que se abre (o “Es justo el fondo asignado”) y Enter abre la caja. Si se cierra el modal, regresa al inicio.
 
 **Ventas (`/cajera/ventas`):**
 - Hay 7 ventas de prueba (V-00856 a V-00862) con los folios, clientes, métodos y estados de Figma; las fechas son relativas a hoy (V-00862 es de hoy).
@@ -493,6 +638,7 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 **Nueva orden (`/cajera/nueva-orden`, o “Nueva orden” en Órdenes):**
 - Es un modal sobre la lista de órdenes. Busca al cliente con Enter: `55 1234 5678` encuentra a María Hernández (con domicilio); un teléfono que no existe (`55 9876 5432`) abre “Nuevo cliente” con el teléfono ya puesto.
 - Al registrar, la orden queda “Por cotizar” sin técnico (lo asigna el jefe de taller) y se ve la confirmación C5.3. “Ver en Órdenes” abre la lista con esa orden seleccionada (`?folio=1044`).
+- “Fotos del equipo (opcional)”: “Tomar foto” abre la cámara en celular o tablet y el explorador en la computadora (hasta 6, JPG, PNG o HEIC de hasta 15 MB). Tocar una foto la abre en grande (flechas para pasar, Escape cierra). En Órdenes, el detalle deja agregar o quitar fotos mientras la orden siga en el taller; el jefe (tablero), el técnico (banco) y el cliente (portal, “Recibimos tu equipo”) las ven sin poder cambiarlas.
 
 **Entrega de equipo (`/cajera/entrega-de-equipo`, o “Entregar equipo” en Órdenes):**
 - Las tarjetas de arriba son lo que se puede entregar: #1026 y #1021 listas (C6.1/C6.4), #0991 garantía lista (C6.3), #1037 sin reparar (C6.2), vencidas y en bodega.
@@ -504,12 +650,14 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - “Añadir Producto” abre C7.1; el lápiz edita y el reloj muestra los movimientos del producto (con “Ajustar stock”).
 - Importar: cualquier `.xlsx` muestra la vista previa de Figma (la lectura real de Excel llega con la API); un `.csv` con las columnas de la plantilla se lee de verdad. Exportar baja un CSV que abre Excel.
 - Entradas: PED-0123 llega hoy y se paga con efectivo de caja (C7.5 → C7.6). Al registrarla, el kit de sellos queda apartado para #1028 y esa orden pasa de “Esperando refacción” a “En taller”.
+- Con “Crédito del proveedor” se ve el crédito disponible (Distribuidora MovilTec: $9,241.00 de $20,000.00). Una factura que lo rebasa no se registra; un proveedor de contado (Refacciones Móviles del Centro, Importadora Celular GDL) cambia solo a transferencia y no acepta crédito.
 
 **Clientes (`/cajera/clientes`):**
 - La lista junta los clientes de Punto de venta, los de las órdenes y los de las ventas (se reconocen por teléfono o nombre). “Equipos activos”, “Última visita” y “Total gastado” se calculan con Órdenes y Ventas.
 - María Hernández tiene el historial de Figma C8.3 (su equipo #1024 en taller y compras viejas de archivo).
 - “Generar contraseña temporal” abre C8.4 y cambia la ficha a “Temporal · enviada hoy…”. “Nueva orden para este cliente” abre la recepción con el cliente ya buscado (`/cajera/nueva-orden?cliente=55 1234 5678`).
 - Un teléfono o correo que ya tiene otro cliente no se puede registrar (prueba con `jorge.salinas@gmail.com`).
+- “Editar” cambia también sus órdenes: si a María le pones `55 1234 9999`, el detalle de #1024 en Órdenes ya lo muestra, y los correos de aviso de sus órdenes van al correo nuevo.
 
 **Estadísticas (`/cajera/estadisticas`):**
 - Hoy, Semana, Mes y Año. Los días anteriores salen de un historial de prueba de dos años (determinista, con la escala de Figma: ~$48,000 de mostrador y ~$32,000 de reparaciones al mes); a eso se suman las ventas de Ventas y las entregas y presupuestos de Órdenes, así que una venta cobrada en Punto de venta aparece en “Hoy”.
@@ -519,11 +667,12 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 **Corte de caja (`/cajera/corte-de-caja`):**
 - “Turno actual” solo trae lo que pasó desde que se abrió el turno: ventas cobradas, anticipos de órdenes nuevas, entregas cobradas, pagos a proveedor, retiros, ingresos y devoluciones. Para probarlo: abre turno, cobra una venta en Punto de venta, entrega #1026 en efectivo y registra un retiro.
 - El efectivo esperado es fondo + lo cobrado en efectivo − retiros, pagos y devoluciones en efectivo. Lo mismo usan los retiros y el pago a proveedor de Inventario (C7.6): con la caja cerrada no se puede pagar en efectivo.
-- “Cerrar turno e imprimir corte” abre el conteo por denominación (C10.4); si no cuentas por denominación se usa lo que escribiste en el arqueo. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
+- “Cerrar turno e imprimir corte” (C10.4) pide solo el total que hay en el cajón (llega con lo que escribiste en el arqueo) y cuánto se queda como fondo; el resto se entrega a gerencia. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
+- El turno queda a nombre de quien lo abre. Si Ana sale sin corte y entra `lpena`, su Inicio dice “Caja 01 sigue abierta a nombre de Ana Martínez” y el punto de venta no le deja vender ni abrir turno (“Ir a Corte de caja”). En el corte ve el aviso, no puede registrar retiros ni ingresos, y al cerrar el corte queda a nombre de Ana con “Contó y cerró · Luis Peña”; después ya puede abrir su turno.
 
 **Inicio del jefe de técnicos (`/jefe/inicio`, usuario `jlopez`):**
-- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; las preguntas de los técnicos son de prueba (`jefe/jefe.datos.ts`); los mensajes de clientes salen de `MensajesService` (J11) y las solicitudes de refacción de `RefaccionesService` (J5).
+- Indicadores, “Requiere tu atención”, “Carga por técnico” y “Hoy en el taller” salen de las órdenes de la app; las preguntas de los técnicos salen de `PREGUNTAS_TECNICOS` (una de prueba y las que manda el banco, T3.8); los mensajes de clientes salen de `MensajesService` (J11) y las solicitudes de refacción de `RefaccionesService` (J5).
 - Cada pendiente y cada indicador abre su módulo con el folio (`/jefe/por-cotizar?folio=1043`); salvo el tablero, esos módulos todavía son páginas pendientes.
 - Las notificaciones de la campana (J1.2) son las de Figma.
 
@@ -585,6 +734,72 @@ Los nombres y puestos son los de las pantallas de Figma (Verónica Castillo, Ana
 - Para ver la orden de #1024 como en Figma: Órdenes › #1024 › Reimprimir orden › Carta.
 - La impresora sigue simulada: con `localStorage.setItem('shuri.demo.impresora', 'falla')` no se abre la vista y aparecen los avisos de error de siempre.
 
+**Inicio del técnico (`/tecnico/inicio`, usuario `cruiz`):**
+- Indicadores de sus equipos (asignados, por cotizar, por aprobar, en taller y garantías), el equipo en curso con su cronómetro, la cola por fecha prometida, avisos (piezas entregadas, aprobaciones, dictámenes, equipos nuevos) y “Mi día”.
+- “Continuar”, “Ir a mi banco” y cada equipo de la cola llevan al banco de trabajo (T3, todavía pendiente). La campana (T1.2) y el menú de usuario (T1.3) son los del menú lateral.
+
+**Equipos asignados (`/tecnico/equipos-asignados`, usuario `cruiz`):**
+- Tabla con sus equipos: el que trae en el banco va primero y resaltado con “Abrir banco”; los demás por fecha. Buscador (folio, cliente, equipo, falla o estatus), filtros de estado y prioridad, e indicadores que filtran al hacer clic.
+- “Abrir banco” y “Ver orden” llevan al banco de trabajo (T3) y “Revisar” a Garantías (T4, pendiente). Si no tiene equipos se ve el estado vacío de T2.2.
+
+**Banco de trabajo (`/tecnico/banco-de-trabajo`, usuario `cruiz`):**
+- Sin `?folio=` abre la orden en curso (#1029) o la primera que puede trabajar. Cada etapa tiene su vista: diagnóstico (T3.1), esperando al jefe o al cliente (T3.2), en taller (T3.3), garantía aprobada (T3.10) y presupuesto rechazado (T3.9).
+- El cronómetro corre por orden; “Pausar” pide el motivo (T3.6) y “Reanudar” la retoma. Iniciar otra con una corriendo abre T3.11.
+- Para ver las demás vistas sin otro usuario (desde la consola, mientras no exista la API): el jefe asigna #1041 → diagnóstico; dictamina #1002 “aplica” → garantía; caja registra que #1035 se rechazó → devolver.
+- “Enviar diagnóstico”, “No tiene reparación”, “Reportar daño adicional” y “Necesito información” llegan al jefe (J3, J1); “Marcar como listo” y “Devolver a caja” pasan la orden a caja (C6).
+
+**Garantías del técnico (`/tecnico/garantias`, usuario `cruiz`):**
+- Lista de sus garantías abiertas por etapa (por revisar, esperando dictamen, en reparación) con indicadores que filtran; “Cerradas este mes” cuenta las ya resueltas.
+- “Revisar” abre T4.2: reparación original, lo que reporta el cliente, evidencia y el reporte para el jefe (falla, relación con la reparación, mal uso, trabajo y recomendación). Al enviarlo queda “Esperando dictamen” y el jefe lo ve en J4.2. “Ver reporte” lo muestra sin editar y “Abrir banco” lleva a la reparación (T3.10).
+- Las garantías de prueba de Carlos ya traen reporte; para ver una “Por revisar” hay que recibir una en caja (C4.5) asignada a él.
+
+**Refacciones del técnico (`/tecnico/refacciones`, usuario `cruiz`):**
+- Sus solicitudes con stock y estado: pendiente (Cancelar), por pedir a proveedor, pedida, entregada, por devolver (Devolver) y devuelta. Los indicadores filtran.
+- “Nueva solicitud” (T5.2): orden, pieza del inventario con su stock, cantidad, urgencia y nota; llega al jefe en J5.1. “Devolver” (T5.3) le avisa al jefe cómo regresa la pieza y él la recibe en J5.3.
+- De prueba: R-214 pendiente (#1029), R-212 y R-210 entregadas y R-207 por devolver (#0954 no tuvo reparación).
+
+**Mi historial (`/tecnico/mi-historial`, usuario `cruiz`):**
+- Equipos que terminó, por mes (selector arriba a la derecha) y buscador por folio, cliente, modelo o IMEI. Indicadores: terminados, tiempo promedio, garantías recibidas (sobre todos sus equipos) y garantías aplicadas.
+- “Ver” abre la orden en solo lectura (T6.2): diagnóstico y trabajo, fotos, notas, refacciones usadas y la vigencia de la garantía; si la garantía sigue abierta lleva a su revisión (T4.2).
+- En noviembre salen #1026 y #1021; en octubre, #1002, #0986 y #0957.
+
+**Inicio del administrador (`/administrador/inicio`, usuario `vcastillo`):**
+- Indicadores de ingresos, utilidad bruta (con margen), efectivo en caja y órdenes en taller; el selector cambia entre hoy, esta semana y este mes.
+- Ingresos de los últimos 14 días (hoy resaltado), el mes a la fecha contra el mes anterior, ticket promedio, de dónde viene el dinero y lo que más deja.
+- “Atención”: corte con faltante de la última semana, pago a proveedor a crédito por vencer, productos bajo el mínimo, descuentos del día, equipo sin recoger más de 30 días y la tasa de garantías contra la meta de 5 %. Sus enlaces llevan a AD2–AD9 (pendientes).
+- El resumen del menú dice “Caja 01 abierta / cerrada” según la caja real.
+
+**Reportes del administrador (`/administrador/ventas-y-utilidad` y `/administrador/taller`):**
+- Ventas y utilidad (AD2.1) por mes: ventas contra el mes anterior, utilidad bruta, ticket promedio, descuentos, ventas por semana, utilidad por categoría, cómo se cobró en mostrador, quién cobró, devoluciones, cancelaciones y faltantes. Si el mes no tiene ventas sale AD2.3 con “Ver el mes anterior”.
+- Desempeño del taller (AD2.2) por mes, con las órdenes de la app: recibidas y entregadas, presupuestos aprobados, tiempo a cotizar contra el SLA, tasa de garantías, tabla por técnico, órdenes por resultado y motivos de rechazo.
+- “Exportar Excel” descarga un CSV con lo que se ve (Excel lo abre con acentos).
+
+**Cortes de caja del administrador (`/administrador/cortes-de-caja`):**
+- Cortes del mes (los tres últimos meses) con pestañas Por revisar, Todos y Revisados, indicadores (cortes, diferencia acumulada, por revisar, pagos a proveedor) y páginas de 8. Con un turno abierto aparece arriba “Hoy · Abierto · Ver en vivo”.
+- “Revisar” abre AD3.2: movimientos del turno, arqueo, comentario de la cajera y la decisión (descontar a la cajera, absorber o investigar con nota). Queda con el nombre de quien revisó y deja de avisar en el Inicio (AD1).
+
+**Catálogo y precios (`/administrador/catalogo-y-precios`):**
+- Los productos de Inventario que se venden, con costo promedio, precio, margen (verde desde 50 %, ámbar de 35 a 49 %, rojo debajo de 35 %) y proveedor. Buscador, filtros de categoría y margen, y páginas de 9.
+- Clic en un producto (AD4.2): precio, stock mínimo y proveedor principal, con el margen calculado al escribir y el historial de costo de sus compras.
+- “Ajustar precios” (AD4.3): por categoría y proveedor, subir o bajar un porcentaje, fijar un margen sobre el costo o redondear (terminar en $0 o $9), con vista previa.
+- “Añadir producto” abre el mismo alta de Inventario de caja (C7.1).
+
+**Proveedores (`/administrador/proveedores`):**
+- Por pagar, comprado este mes, pagado desde caja y pedidos incompletos. La tabla de proveedores muestra contacto, qué surte, condición y lo que se les debe; clic en uno para ver su detalle a la derecha.
+- “Últimas compras” son las entradas de mercancía de caja (C7.3) con cómo se pagaron; las de crédito dicen cuándo vencen y si están parciales.
+- “Registrar pago” (AD5.2) abona a la factura que vence primero: transferencia (no toca la caja) o efectivo de caja (solo con turno abierto; entra al corte como pago a proveedor). El aviso de AD1 se actualiza.
+- “Ver estado de cuenta” descarga un CSV con compras, pagos y saldo. “Nuevo proveedor” (AD5.3) lo agrega también a las listas de pedidos del jefe y entradas de caja.
+
+**Facturación (`/administrador/facturacion`):**
+- Facturas (CFDI 4.0) del mes elegido con pestañas Todas, Timbradas, Canceladas y Errores; lo facturado, tickets con cliente sin factura, canceladas y timbres que quedan.
+- Las ventas con factura del punto de venta (C2.18) y las entregas con factura (C6) se timbran solas y aparecen aquí; cada una gasta un timbre.
+- PDF y XML se descargan desde la fila. “Ver” muestra el detalle (UUID, subtotal, IVA) y permite cancelar (AD6.2) con motivo del SAT: con motivo 01 se timbra la que la sustituye.
+- “Factura global del mes” (AD6.3) suma lo vendido y cobrado del mes menos lo ya facturado aparte. En el mes en curso no deja timbrar; en un mes cerrado avisa si ya pasó el plazo del 1 al 3, y si ya existe la global no deja repetirla. “Ver tickets incluidos” descarga el detalle por día.
+
+**Versión tablet del técnico (T7, de 769 a 1180 px de ancho):**
+- El menú es un riel de 80 px con el nombre corto bajo cada ícono (Inicio, Equipos, Banco, Garantías, Refacc., Historial).
+- En el banco, una orden en taller o en garantía se ve como Figma T7: encabezado corto con el PIN, pestañas (Trabajo, Refacciones, Fotos, Notas, Equipo), pasos grandes para el dedo y botones de acción (Tomar foto, Pedir refacción, Necesito información, Pausar, Daño adicional y Marcar como listo con los pasos pendientes). Las demás etapas y las otras pantallas usan su vista normal.
+
 ## 5. Estructura de carpetas
 
 ```
@@ -600,7 +815,9 @@ frontend/src/
     ├── app.routes.ts          # rutas + guardas; PANTALLAS = las ya construidas
     ├── compartido/
     │   ├── formato.ts         # dinero, fechas, horas, duración, saludo
-    │   └── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
+    │   ├── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
+    │   ├── fotos-orden/       # fotos del equipo al recibirlo: miniaturas, agregar, quitar y visor
+    │   └── campo-dinero.directive.ts  # campos de dinero: 1000 al escribir, $1,000.00 fuera del campo
     ├── jefe/                  # 04 · Jefe de técnicos
     │   ├── jefe.datos.ts      # preguntas de los técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
@@ -644,10 +861,52 @@ frontend/src/
     │       ├── chat/              # J11.1 · J11.4 conversación
     │       ├── redactar/          # J11.2 respuestas rápidas, compartir estado, foto y mensaje
     │       └── resumen-orden/     # panel derecho con la orden
+    ├── portal/                # 06 · Portal del cliente (rutas /portal, sin menú)
+    │   ├── portal-sesion.ts   # sesión del cliente (la usan las guardas)
+    │   ├── portal.service.ts  # entrar, temporal, crear contraseña y equipos del cliente
+    │   ├── portal.css · compartido/   # columna de celular, marca, pie y modal de cláusulas/privacidad
+    │   ├── acceso/ · olvide/ · crear/ · mis-equipos/   # P1.1 · P1.3 · P1.4 · P1.2
+    │   ├── seguimiento/       # P2.1–P2.11 (seguimiento.component + tarjetas.css)
+    │   ├── garantia/          # P3.1 solicitar-garantia · P3.2–P3.5 garantia-portal
+    │   ├── factura/           # P4.2 autofactura (/portal/factura)
+    │   └── chat/              # P5 chat-portal · aviso-chat (P5.4)
+    ├── administrador/         # 02 · Administrador
+    │   ├── negocio.ts         # utilidad (costo de Inventario y margen de taller de prueba), lo que más deja, origen del dinero
+    │   ├── reportes.ts · reportes.css   # meses, exportar CSV y estilos de AD2
+    │   ├── inicio-admin/      # AD1.1
+    │   ├── ventas-utilidad/   # AD2.1 · AD2.3
+    │   ├── taller-reporte/    # AD2.2
+    │   ├── cortes/            # AD3.1 · detalle-corte/ AD3.2
+    │   ├── catalogo/          # AD4.1 · editar-precio/ AD4.2 · ajustar-precios/ AD4.3
+    │   ├── proveedores/       # AD5.1 · registrar-pago/ AD5.2 · nuevo-proveedor/ AD5.3
+    │   ├── proveedores.service.ts
+    │   ├── facturacion/       # AD6.1 · detalle-factura/ · cancelar-factura/ AD6.2 · factura-global/ AD6.3 · archivos-cfdi.ts
+    │   ├── facturacion.service.ts
+    │   ├── usuarios/          # AD7.1 · usuario-form/ AD7.2 · permisos-rol/ AD7.3 · asignar-temporal/ AD7.4 · temporal.ts
+    │   ├── permisos.service.ts
+    │   ├── bitacora/          # AD8.1 · exportar-bitacora/ AD8.2
+    │   ├── bitacora.service.ts
+    │   ├── pdf-simple.ts      # PDF de texto sin librerías (facturas y bitácora)
+    │   ├── configuracion/     # AD9 · una carpeta por pestaña (negocio-tab, cajas-tab, documentos-tab, taller-tab, facturacion-tab, mensajes-tab, correo-tab)
+    │   └── configuracion.service.ts
+    ├── tecnico/               # 05 · Técnico
+    │   ├── mi-trabajo.ts      # sus equipos, cuáles puede trabajar, etiqueta de la cola y turno
+    │   ├── banco.service.ts   # equipo en curso (paso y cronómetro) y tiempo del día (simulado)
+    │   ├── inicio-tecnico/    # T1.1 (usa los estilos de inicio-jefe)
+    │   ├── equipos-asignados/ # T2.1 · T2.2 (usa jefe/lista-pagina.css)
+    │   ├── garantias/         # T4.1 lista · revision-garantia/ T4.2 reporte para el jefe
+    │   ├── refacciones/       # T5.1 · T5.4 · nueva-solicitud/ T5.2 · devolver-pieza/ T5.3
+    │   ├── historial/         # T6.1 · detalle-historial/ T6.2 · historial.ts (qué cuenta como terminado y estado de la garantía)
+    │   ├── tablet.ts          # T7 · señal enTablet() (769–1180 px)
+    │   └── banco/             # T3 · cabecera, cronómetro y etapas (taller-tablet/ = T7)
+    │       ├── banco-comun.css · modal-banco.css   # estilos de los paneles y de los modales
+    │       ├── diagnostico-panel/ espera-panel/ taller-panel/ devolver-panel/   # T3.1 · T3.2 · T3.3 y T3.10 · T3.9
+    │       ├── marcar-listo/ dano-adicional/ pausar/ sin-reparacion/ necesito-info/ orden-en-curso/   # T3.4–T3.8 · T3.11
+    │       └── ficha-equipo/ buscar-pieza/   # tarjeta del equipo con PIN y buscador del inventario (las fotos usan compartido/fotos-orden)
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
-    │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .datos.ts con los datos de Figma)
-    │   ├── abrir-turno/       # C1.3 modal de conteo del fondo
+    │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .paneles.ts: paneles con datos reales)
+    │   ├── abrir-turno/       # C1.3 modal: total del fondo inicial
     │   ├── salir-con-turno/   # C1.7 modal al cerrar sesión con caja abierta
     │   ├── ordenes/           # C4
     │   │   ├── ordenes.service.ts          # órdenes, estados, respuestas, garantía y bodega (simulado)
@@ -706,7 +965,7 @@ frontend/src/
     │   │   └── devolucion/                 # C3.3
     │   └── punto-de-venta/    # C2
     │       ├── venta.service.ts      # líneas, totales, IVA, folio, cobrar (simulado)
-    │       ├── catalogo.datos.ts     # productos de prueba de Figma
+    │       ├── catalogo.datos.ts     # precios de Figma para las ventas de prueba (historial y en espera)
     │       ├── clientes.datos.ts     # clientes de prueba y motivos de descuento
     │       ├── barra-busqueda/       # buscador + resultados C2.3 + no encontrado C2.4 + reloj
     │       ├── tabla-ticket/         # líneas del ticket con −/+, descuento y quitar
@@ -738,7 +997,8 @@ frontend/src/
         ├── menu-usuario/            # desplegable del avatar
         ├── panel-notificaciones/    # panel de la campana
         ├── pagina-pendiente/        # lugar temporal de cada pantalla por construir
-        └── perfil/                  # C1.6 Mi perfil y cambiar contraseña (todos los roles)
+        ├── perfil/                  # C1.6 Mi perfil y cambiar contraseña (todos los roles)
+        └── bloqueo-sesion/          # pantalla bloqueada tras 30 min sin uso
 ```
 
 ## 6. Convenciones
@@ -828,7 +1088,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Tope de descuento | 10 % por línea y por venta (`DESCUENTO_MAXIMO`). El campo de la tabla no deja pasar de 10; el modal muestra “El máximo permitido es 10 %.” y deshabilita Aplicar. | Es la regla que muestra C2.6. Falta definir si un supervisor puede autorizar más. |
 | Descuento en $ | Se escribe sobre el total con IVA y se guarda sin IVA, igual que el producto temporal | La cajera ve y cobra totales con IVA; el ticket muestra precios antes de IVA. |
 | Motivo del descuento | Lista: Cliente frecuente, Producto con detalle, Promoción vigente, Ajuste de precio, Otro. Solo se pide para toda la venta. | Figma muestra el campo pero no las opciones. |
-| Lista de clientes (C2.5) | “Público general” siempre va primero; “Crear cliente nuevo” lleva a `/cajera/clientes` | Figma no define qué abre ese botón; el alta de clientes es C9. |
+| Lista de clientes (C2.5) | “Público general” siempre va primero. Busca en `ClientesService` (antes en la lista fija de `clientes.datos.ts`). “Crear cliente nuevo” abre `NuevoClienteComponent` (C8.2) en el mismo modal con lo buscado; al guardar entra a Clientes y queda como cliente de la venta | Figma no define qué abre ese botón. Antes llevaba a Clientes y se perdía lo buscado, y quien se daba de alta allá no salía en caja. |
 | Totales de las ventas en espera | Se calculan con sus productos ($522.00 y $464.00) | Los $479 y $400 de Figma no salen de los artículos que lista. |
 | Retomar con el ticket lleno | La venta actual se pausa sola y el subtítulo del modal lo avisa | Figma no define qué pasa con la venta en curso. |
 | Esc dentro de un modal | Solo cierra el modal | Antes el mismo Esc llegaba al punto de venta y abría “¿Cancelar la venta?”. |
@@ -896,7 +1156,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Campos nuevos de la orden | `prioridad`, `prometida`, `diagnostico`, `pausa` y `notas` (internas) en `Orden`; `especialidad` en `Tecnico` | Los usará también el técnico (T1–T7). Las notas internas no las ve el cliente. |
 | Órdenes nuevas de prueba (J2) | #1040 Moto G84 y #1039 Redmi Note 12 en diagnóstico con Luis | Con ellas J1 marca 14 órdenes abiertas, como Figma. |
 | “Técnica: Mariana Vega” | El detalle dice “A cargo de: …” | No se adivina el género por el nombre. |
-| Tiempo trabajado y fotos | El resumen muestra prioridad en lugar de “Tiempo trabajado” y las fotos son espacios vacíos | No hay registro de tiempos ni fotos hasta que el técnico (T) y la API existan. |
+| Tiempo trabajado | El resumen muestra prioridad en lugar de “Tiempo trabajado”; las fotos de recepción y del técnico ya son reales | No hay registro de tiempos hasta que la API exista. |
 | Por cotizar (J3) | Hecho con los PNG de `docs/diseno/04-jefe-de-tecnicos/j3-cotizar.png` (Figma sin llamadas) | Figma usa #1029 para la re-cotización; aquí es #1024 porque #1029 ya está enviada (la usa la cajera en C4.8). |
 | Conceptos del presupuesto | `Concepto` (refacción, mano de obra u otro) con costo interno y precio al público con IVA. El presupuesto guarda conceptos, descuento y vigencia; `refacciones` y `manoObra` se siguen guardando sin IVA para C4 y los documentos | El técnico sugiere los conceptos en su diagnóstico (`diagnostico.conceptos`, `danoAdicional.conceptos`). |
 | Cobro de revisión | El precio del nivel “Revisión / diagnóstico” del tabulador (J9, $300 de inicio). La orden guarda `revision` y `saldo()` la cobra al entregar si el anticipo no alcanza | Las órdenes sin reparación anteriores siguen cobrando el anticipo como revisión. |
@@ -916,57 +1176,119 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Versión celular del jefe (J10) | Hecha con el PNG `docs/diseno/04-jefe-de-tecnicos/j10-version-celular.png`. Las pantallas J2–J9 ya se adaptaban a 360 px; J10 agrega el marco (barras) y el Inicio compacto (2 × 2 indicadores, total de órdenes en el subtítulo) | El dictamen y el pedido de Figma J10 son J4.2 y J5.2 apilados; Mensajes llega con J11. |
 | Mensajes de clientes (J11) | Hecho con el PNG `docs/diseno/04-jefe-de-tecnicos/j11-mensajes-de-clientes.png` (Figma sin llamadas). Las conversaciones usan órdenes de la app: María (#1024) tiene un daño adicional en lugar de la garantía de Figma | Las respuestas rápidas se editan en Configuración (J9, nueva sección) y se guardan al escribir. |
 | Interruptor | Clase global `.interruptor` (Figma J11 “Disponible hoy”) | Para reusar en otros “sí/no”. |
+| Fondo al cerrar turno (C10.4) | Sigue al conteo: el fondo asignado ($1,000) pero nunca más de lo contado, hasta que la cajera lo escriba. Si falta algo para cerrar, se dice junto al botón | Antes se quedaba en $1,000 aunque se contara menos y el cierre se rechazaba con un error pequeño junto al campo. |
+| Inicio de la cajera (C1.1 / C1.2) | Indicadores y paneles se calculan (`inicio-cajera.paneles.ts`): ventas y efectivo del turno (C10), ventas en espera, listos, por enviar a bodega, stock bajo, último corte y avisos de inventario | Ya no coinciden con las cifras de Figma; `inicio-cajera.datos.ts` quedó con los tipos y los accesos rápidos. |
+| Inventario al vender | Cobrar una venta baja el stock; cancelarla lo regresa; una devolución “Buen estado · regresa a venta” lo suma. El buscador del punto de venta muestra los disponibles de Inventario | Los productos temporales no tocan el inventario. |
+| Anticipo devuelto (C6.2) | Al entregar sin reparar con revisión perdonada, el anticipo sale de la caja como “Devolución de anticipo” (cobro negativo en la orden) | Antes solo se mostraba en el panel de cobro. |
+| Plazos en caja | `DIAS_PARA_RECOGER` y `DIAS_GARANTIA` pasaron a `diasParaRecoger()` y `diasGarantia()`, que leen Configuración (J9); las cláusulas de la orden impresa (C11) también | Cambiar los días en J9 cambia caja, garantías y el papel. |
+| Nombres de clase locales | Una clase de un componente no debe llamarse igual que una global de `styles.css` si no quiere sus estilos: el login usa `.portada`, la fuerza de contraseña `.fuerza`, el tablero `.tarjeta-orden` y Técnicos `.tarjeta-tecnico` | Con el mismo nombre se heredaban color, borde, sombra y ancho máximo de la clase global (el título del login salía azul marino). |
+| Inicio del técnico (T1) | Hecho con el PNG `docs/diseno/05-tecnico/t1-inicio.png`. Todo sale de las órdenes de la app: Carlos tiene 5 equipos (Figma: 8) y su equipo en curso es #1029 | El paso (3 de 6), el cronómetro (desde hace 45 min) y la jornada (3 h 40 min, 25 min en pausa) son de prueba en `BancoService` hasta que existan el banco (T3) y la API. |
+| Cola del técnico | Muestra todos sus equipos sin terminar, también los que esperan al jefe o al cliente, con su etiqueta (Diagnóstico, Por cotizar, Por aprobar, En taller, En pausa, Garantía) | En Figma solo aparecen equipos que puede trabajar; con los datos de prueba la cola quedaría vacía. |
+| Técnico de la sesión | Se busca por nombre en `TECNICOS` (`tecnicoDe`) | Con la API vendrá en la sesión. El resumen del menú (“5 equipos asignados”) usa el mismo conteo. |
+| Equipos asignados (T2) | Hecho con el PNG `docs/diseno/05-tecnico/t2-equipos-asignados.png`. Estados para el técnico: Diagnóstico, Por cotizar, Por aprobar, Cargo adicional, En taller, En pausa · refacción y Garantía (revisar, con el jefe, en taller); la acción es “Abrir banco” si puede trabajarlo, “Revisar” en garantías por revisar y “Ver orden” si espera a alguien | En celular se ocultan cliente, falla, prioridad, fecha y acción: la fila entera abre el equipo. |
+| Estado vacío de T2.2 | Usa los mismos 4 indicadores de T2.1 en cero | Figma T2.2 muestra otros títulos (Recibidos, En diagnóstico); se dejó uno solo para que la pantalla no cambie al quedarse sin equipos. |
+| Banco de trabajo (T3) | Hecho con el PNG `docs/diseno/05-tecnico/t3-banco-de-trabajo.png` (11 vistas). Una vista por etapa de la orden y un componente por modal para no pasar el límite de CSS | Las vistas salen del estado real: Carlos arranca con #1029 en taller; diagnóstico, garantía y rechazo se ven al asignar, dictaminar o rechazar desde jefe y caja. |
+| Cronómetro | `BancoService` guarda el tiempo de cada orden y la que trae cada técnico; solo una corre a la vez (T3.11). Pausar, enviar diagnóstico, marcar listo o devolver lo detienen y suman lo corrido a “Mi día” (T1) | Arranca como Figma: #1029 desde hace 45 min con 3 pasos hechos y las órdenes con diagnóstico con 00:42:10. |
+| Pasos del trabajo | Se arman con lo autorizado (`pasosDe`): desarmar, una línea por refacción del presupuesto (o el trabajo), limpiar, probar y armar; en garantía, corregir la falla, probar y armar | Figma usa pasos escritos para #1029; los nuestros cambian con cada orden. |
+| Acciones nuevas | `OrdenesService`: `enviarDiagnostico`, `reportarSinReparacion`, `reportarDanoAdicional`, `pausar`, `reanudar`, `marcarLista`, `devolverACaja`. `RefaccionesService.solicitar`, `InventarioService.liberar`. Las preguntas al jefe (`PREGUNTAS_TECNICOS`) pasaron a señal | Usan los campos que ya leían el jefe (J1, J3.3, J3.4, J5) y caja (C6). |
+| Presupuesto rechazado (T3.9) | La orden sigue entregable en caja como antes; el técnico la ve hasta que la arma y la devuelve (`devueltoACaja`) | Así caja no espera al técnico si el cliente llega antes. |
+| PIN del equipo | Caja ya lo guarda al recibir (`ficha.pin`, C5) y el técnico lo ve en su banco; no se imprime | Las órdenes de prueba no tienen PIN y muestran “—”. |
+| Fotos del técnico | `Orden.evidencias` con etapa (diagnóstico, reparación, daño adicional, salida, sin reparación, devolución, revisión de garantía). En los paneles del banco se guardan al tomarlas; en los modales (daño adicional, listo, sin reparación, devolver, garantía) se guardan al confirmar y siguen siendo obligatorias donde Figma lo marca. El jefe las ve todas (J2.3); el cliente ve las de diagnóstico en el presupuesto, las del daño adicional y cómo quedó el equipo al estar listo | Usan el mismo `FotosOrdenComponent` que las de recepción (reducidas a 1280 px). Se quitó el componente de fotos vacías. En memoria como data URL hasta la API. |
+| Garantías del técnico (T4) | Hecho con el PNG `docs/diseno/05-tecnico/t4-garantias.png`. Pestañas Todas, Por revisar, Esperando dictamen y En reparación; la columna “Días restantes” usa la misma cuenta que J4 (días usados de la garantía) | En celular quedan folio, cliente y estado; la fila abre la revisión. |
+| Reporte de garantía | `OrdenesService.enviarReporteGarantia` guarda `garantia.reporte` con los campos que ya leía el jefe (J4.2); el motivo se arma con la relación y el mal uso (“pieza defectuosa”, “humedad posterior”) y, si no aplica, un costo sugerido opcional | El técnico solo recomienda; el dictamen sigue siendo del jefe. |
+| Técnico de la reparación original | Muestra el técnico actual de la orden | Al recibir la garantía, caja reasigna la orden; con la API habrá que guardar quién hizo la reparación original. |
+| Refacciones del técnico (T5) | Hecho con el PNG `docs/diseno/05-tecnico/t5-refacciones.png`. Estado para el técnico: pendiente con stock, “Por pedir a proveedor” si no alcanza el stock, pedida, entregada (con hora si fue hoy), por devolver si la orden no se reparó, devuelta o rechazada | Cancelar quita la solicitud de la lista del jefe; Ver abre la orden en el banco. |
+| Solicitudes entregadas de prueba | `RefaccionesService` suma R-212, R-210 y R-207 de Carlos y guarda `entregada` (hora) y `nota` | J5 solo lista pendientes y devoluciones, así que no cambia; el banco (T3.3) ya muestra la pieza “Entregada” con su hora. |
+| Devolver pieza | `devolverPieza` crea la devolución que el jefe recibe en J5.3 con el estado que dijo el técnico (nueva, abierta o dañada) | El técnico usa los textos de Figma T5.3 (“Abierta, sin instalar”); el jefe confirma con los suyos. |
+| Mi historial (T6) | Hecho con el PNG `docs/diseno/05-tecnico/t6-mi-historial.png`. Cuenta los equipos que terminó (con fecha de “Listo”), estén por entregar, entregados, en bodega o de vuelta en garantía; no cuenta los “sin reparación” | La garantía cuenta desde la entrega o desde la reparación según Configuración (J9); si no se ha entregado, dice “Por entregar”. |
+| Tiempo de equipos anteriores al banco | `BancoService` les pone de 40 a 89 min según el folio (dato de prueba) para que “Tiempo” y “Tiempo promedio” tengan valores | Lo terminado en el banco usa su cronómetro real. Como el tiempo va por folio, una garantía en reparación arranca su cronómetro con el tiempo de la reparación original. |
+| Versión tablet (T7) | Hecho con el PNG `docs/diseno/05-tecnico/t7-version-tablet.png`. Rango 769–1180 px (`enTablet()`); el banco cambia a `TallerTabletComponent` solo en taller y garantía | “Tomar foto” abre la pestaña Fotos para tomarla o subirla; “Pedir refacción” abre la pestaña Refacciones con el buscador. El botón verde cuenta los pasos sin marcar. |
+| Riel con nombres | `rielConEtiquetas` en la navegación del técnico y `corta` por destino; los estilos van en `styles.css` con `!important` | El CSS del menú lateral ya está en el límite de 4 kB; los otros roles conservan su riel de solo íconos. |
+| Inicio del administrador (AD1) | Hecho con el PNG `docs/diseno/02-administrador/ad1-inicio.png`. Ingresos, gráfica y tablas salen de `EstadisticasService` (el mismo historial de prueba de C9 más las ventas y órdenes de la app; `suma()` pasó a público) | Las cifras no son las de Figma (octubre); el día de hoy usa lo real de la app. |
+| Utilidad bruta | Mostrador: precio sin IVA menos el costo de Inventario (40 % si el producto no está); taller: margen fijo de prueba del 50 % (`MARGEN_TALLER_DEMO`) | Con la API de reportes vendrá el costo real de cada reparación. |
+| Pagos a proveedor | Las entradas a crédito vencen a los 30 días (`DIAS_CREDITO_DEMO`) | Las entradas no guardan plazo de crédito todavía. |
+| Avisos del administrador (AD1.2) | Los 4 de Figma (contraseña, corte con faltante, pago a proveedor y timbres) como datos de prueba | Se conectan cuando existan AD3, AD5, AD6 y AD7. |
+| Ventas y utilidad (AD2.1) | Hecho con el PNG `docs/diseno/02-administrador/ad2-reportes.png`. Mismo origen que AD1 y C9 (`EstadisticasService.suma`); utilidad por categoría con `porCategoria` (costo de Inventario y margen de taller de prueba) | Los descuentos del historial de prueba son el 1.7 % de mostrador (`DESCUENTO_DEMO`); los de la app son los reales. |
+| Quién cobró | La parte de cada cajera según sus cortes del mes, aplicada a las ventas del mes | Los cortes de prueba y el historial de prueba son independientes; sin esto las cajeras sumaban más que el mes. Los cortes de prueba solo cubren ~40 días. |
+| Cómo se cobró | Solo mostrador (el historial no guarda con qué se pagaron las reparaciones) | Figma lo muestra para todo; el título dice “en mostrador”. |
+| Desempeño del taller (AD2.2) | Con las órdenes de la app (pocas: 10 recibidas en octubre); la tasa de garantías usa las entregas del mes de Estadísticas, como AD1 y J4. Las garantías de cada técnico se miden contra todo lo que ha terminado | Las garantías del mes vienen de reparaciones de meses anteriores; contra lo terminado en el mes daba más de 100 %. “En pausa” cuenta sus órdenes pausadas ahora. |
+| Exportar Excel | CSV con BOM (`exportarCsv`) en lugar de .xlsx | No hay librería de Excel en el proyecto; Excel lo abre igual. |
+| Cortes de caja (AD3) | Hecho con el PNG `docs/diseno/02-administrador/ad3-cortes-de-caja.png`. `Corte.revision` guarda la decisión (descontar, absorber o investigar), quién y cuándo; `revisionDe()` da el estado (Revisado si cuadró, Por revisar, Descontado, Absorbido, En investigación) | Los cortes de prueba con diferencia de hace más de 3 días ya vienen revisados; “En investigación” sigue contando como por revisar. |
+| Movimientos de un corte | `CorteService.movimientosEntre()` sirve para el turno abierto y para cualquier corte cerrado | Los cortes de prueba no tienen sus ventas en la app: AD3.2 muestra la apertura y una nota; su arqueo sí es el del corte. |
+| Arqueo (AD3.2) | Fondo + ventas + reparaciones − lo cobrado con tarjeta o transferencia − retiros − pagos = efectivo esperado | Figma no muestra el renglón de tarjeta y transferencia, pero sin él el arqueo no cuadra. |
+| Catálogo y precios (AD4) | Hecho con el PNG `docs/diseno/02-administrador/ad4-catalogo-y-precios.png`. Lee y cambia los productos de `InventarioService`; los cambios de precio quedan en `cambiosPrecio` (antes, después, motivo y quién) para la bitácora (AD8) | “Costo subió” cuenta los productos cuya última compra de los últimos 30 días costó más que su costo promedio. |
+| Proveedores (AD5) | `ProveedoresService` guarda condición de pago, límite y qué surte; las compras son las entradas de `InventarioService` y los pagos en efectivo usan `CajaService.pagarProveedor` (entran al corte) | Los días de crédito salen de la condición del proveedor (antes eran fijos en AD1). Un pago se aplica a una sola factura y no puede pasar su saldo. |
+| Facturación (AD6) | `FacturacionService` guarda los CFDI con serie A y folio consecutivo; el punto de venta y la entrega llaman a `timbrar()` cuando el cliente pidió factura | El timbrado, el UUID, el XML y el PDF son simulados (emisor con el RFC genérico de pruebas del SAT) hasta conectar el PAC. La global toma ventas y cobros del taller de `EstadisticasService` y resta lo facturado aparte. |
+| Usuarios y permisos (AD7) | Las cuentas viven en `AuthService` (sin exponer contraseñas); el login respeta inactivos, bloqueos y contraseñas temporales | El puesto que se muestra (“Cajero”, “Administradora”) lo guarda el administrador; no se deduce del nombre. “En turno”: cajera con su turno de caja abierto o técnico que entró hoy dentro de su horario. |
+| Bitácora (AD8) | `BitacoraService` no guarda copias: arma la lista con lo que ya registran los módulos (cambios de precio, ajustes, pedidos del jefe, pagos a proveedor, facturas canceladas, cortes revisados, retiros e ingresos de caja, ventas con descuento) más lo que se registra con `registrar()` (usuarios y permisos) y un historial de prueba | No hay forma de editar ni borrar. “Excel” descarga una hoja XML (.xls) que Excel abre directo; .xlsx real necesitaría una librería. Los retiros salen como “Caja 01” porque el turno todavía no guarda a la cajera. |
+| Configuración (AD9) | `ConfiguracionService` guarda un borrador; al guardar copia el ticket y las cláusulas a `compartido/ajustes-documentos.ts`, el encabezado a `NEGOCIO`, el emisor a `EMISOR_FISCAL` y el taller a J9 | Los documentos leen objetos simples (como `REGLAS_TALLER`) para no cargar la configuración completa al inicio. Las cláusulas de la hoja de recepción ahora son las 5 de Figma AD9.3 (antes eran 7 fijas). Las contraseñas del CSD y del correo nunca se muestran ni se guardan en el navegador. “Comprar más timbres” solo avisa: la compra será con el proveedor. |
+| Correos al cliente (P6) | `CorreosService` (sin dependencias) guarda lo que se enviaría; `OrdenesService`, `ClientesService` y `MensajesService` lo llaman en cada evento. Las plantillas (`correos.ts`) se cargan bajo demanda | El HTML usa tablas y estilos en línea para clientes de correo. Saludo neutro (“Bienvenido a tu portal”, como en AD9.7): no se deduce el género del nombre. El envío real (SMTP de AD9.7) le toca a la API. |
+| Permisos por rol (AD7.3) | `PermisosService.puede(clave)` con el rol de la sesión. `DestinoMenu.permiso` quita el destino del menú (y de la barra J10) y pone la guarda `conPermiso` en su ruta. Dentro de las pantallas: descuentos (máximo 0), cancelar/devolver, retiros (corte y entradas en efectivo) y mercancía (pestañas y ajustes de Inventario) | Así el administrador ve el efecto en cuanto guarda. “Ver costos”, “Editar precios” y “Administrar usuarios” no quitan nada: la cajera y el técnico no tienen pantallas de costos ni de precios (salvo el precio de C7.1) y la configuración del taller (J9) es del jefe. Con la API, el servidor también revisará cada permiso. |
+| Límite de crédito en entradas (C7.3) | `Entrada` consulta `ProveedoresService`: disponible = límite − saldo de sus facturas a crédito. Con un proveedor de contado (o límite 0) no hay crédito; al elegirlo, la forma de pago pasa sola a transferencia | AD5 pide el límite a cada proveedor con crédito, pero nada lo consultaba. Un proveedor que no está en el directorio no se frena (llega con la API). |
+| Bitácora del taller (AD8) | `BitacoraService` lee de las órdenes el almacenaje perdonado (J8.2, con fecha e importe nuevos en `Orden.almacenaje`) y el dictamen de garantía (J4, con la respuesta del cliente si fue con costo). Los retiros e ingresos guardan quién los hizo (`MovimientoCaja.por`) | Antes solo salían en los datos de prueba y los movimientos de caja decían “Caja 01”. Los perdones viejos de los datos de prueba no tienen fecha y no se repiten. |
+| Editar un cliente | `ClientesService.guardar` busca cómo estaba el cliente y llama a `OrdenesService.actualizarCliente` con sus órdenes (mismo id, teléfono o nombre): toman nombre, teléfono y correo nuevos. Las ventas ya cobradas conservan los datos de su ticket | Órdenes de servicio, sus documentos y los correos de aviso (cotización, listo) usan los datos guardados en la orden; un ticket de venta es un comprobante que no cambia. |
+| Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
+| Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
+| Abrir y cerrar turno sin denominaciones | C1.3 pide solo “Efectivo con el que abres la caja” y C10.4 solo “Efectivo que hay en el cajón” y “Efectivo que se queda como fondo”, con `campoDinero` | **Lo pidió el usuario (17 nov):** anotar la cantidad que hay o la que se deja, no billete por billete. Figma C1.3 y C10.4 traen la tabla por denominación; se conservan el total, la diferencia con el fondo asignado o el esperado, el comentario y lo que se entrega a gerencia. |
+| Bloqueo tras 30 min sin uso | `BloqueoSesionComponent` en `SistemaLayout` (solo personal; el portal del cliente no). Cuenta como uso mover el mouse, teclear, tocar o desplazar; el último uso (`shuri.actividad`) y el bloqueo (`shuri.bloqueada`) van en `localStorage`, así que valen para todas las pestañas y siguen al recargar. Bloquea en vez de cerrar la sesión: atrás queda todo igual, con `inert` y sin que las teclas lleguen a la página (los atajos del punto de venta y Esc no hacen nada). `AuthService.desbloquear` usa el mismo login, así que los fallos cuentan para bloquear la cuenta | Figma solo da la regla general, sin pantalla: se usaron los estilos del login (A.1). Cerrar la sesión haría perder una venta a medias. Con la API, el servidor también debe vencer el token. Sube 6 kB el paquete inicial (va con el menú). |
+| Campos de dinero | Directiva `campoDinero` (`compartido/campo-dinero.directive.ts`) en el cobro (efectivo, transferencia, mixto) y el anticipo de Nueva orden: con el cursor dentro se ve el número sin formato y se selecciona para reemplazarlo; al salir, o si el monto llega de un botón, se ve con `formatearDinero`. Acepta “$1,2a50” y lo lee como 1250; más de 2 decimales se cortan | Dar formato mientras se escribe mueve el cursor. Los campos `type="number"` (corte, entradas, alta de producto) no pueden mostrar “$” y se quedaron igual. |
+| Precios del punto de venta | Caja busca en `InventarioService` y cobra el “Precio de venta (IVA incluido)” de Inventario/AD4; el renglón guarda el precio ÷ 1.16 sin redondear. `calcularTotales` suma sin redondear y redondea solo subtotal y total (el IVA es la resta) | **Figma choca:** en C2 la Mica cuesta $100 + IVA ($116) y en C7/AD4 su precio es $100 con IVA. El usuario eligió el de Inventario (lo que pone el administrador es lo que paga el cliente), así que una venta nueva ya no da los totales de la venta de ejemplo de C2. El historial de Ventas y las ventas en espera siguen con los precios de Figma (`catalogo.datos.ts`) y dan lo mismo que antes ($899.00, $290.00, $406.00). |
+| Fotos del equipo al recibirlo | Caja las toma en Nueva orden (C5.1) y en el detalle de Órdenes (C4); `FotosOrdenComponent` las muestra en el tablero del jefe (J2.3), el banco del técnico (T3/T7) y el seguimiento del cliente (P2.1). Se reducen a 1280 px en JPEG (≈ 100–300 kB), máximo 6 por orden, y cada alta o baja queda en el historial con el nombre de la cajera | **No está en Figma C5**: los cuadros de fotos de J2.3, T3 y P2.1 no tenían de dónde salir. Sirve de evidencia del estado en que llegó el equipo (rayones, golpes). Viven en memoria como data URL hasta que la API las guarde. Ya no se pueden cambiar al entregar la orden. |
+| Chat del portal (P5) | Usa `MensajesService` de J11: `escribirCliente` abre la conversación si no existía y `marcarLeidos` marca lo del jefe al abrir el chat | El mensaje del cliente dice “Leído” cuando el jefe ya contestó después. Las fotos del cliente se avisan con su nombre (la API las guardará). El nombre del jefe sale de `NEGOCIO.encargado`. |
+| Autofactura (P4.2) | Timbra con `FacturacionService` (“Pidió: Autofactura”) y guarda los datos fiscales en el cliente; respeta el interruptor de AD9 (`EMISOR_FISCAL.autofactura`) | Folio y total juntos funcionan como comprobante: sin sesión nadie factura una compra ajena sin conocer su total. El aviso de privacidad ahora va por secciones (“1. Título” y su texto) para mostrarse numerado. |
+| Garantía en el portal (P3) | `OrdenesService.solicitarGarantiaPortal` pone la orden en garantía sin `recibio` (así J4 ya la marca “desde el portal”); `responderGarantia` guarda la respuesta del cliente en el dictamen y, si rechaza, la deja lista para devolver | El costo extra aceptado se suma a lo que caja cobra al entregar (`saldo`). En J4 la recomendación dice “Con costo · aceptado / rechazado”. De las fotos solo se guarda cuántas son (las recibirá la API). |
+| Seguimiento (P2) | Una sola pantalla que elige su variante con el estado de la orden; `OrdenesService.registrarRespuesta` acepta `desdePortal` para dejar “en el portal” en el historial | El cliente solo ve textos para él: el diagnóstico del técnico y las notas internas no se muestran hasta que hay presupuesto. Las fotos de recepción salen de caja (C5); las evidencias del técnico todavía no se muestran. El anticipo y las fotos no cuentan como avance: la orden sigue en “Recibimos tu equipo” hasta que empieza la revisión. “Solicitar garantía” y “Responder” llaman al taller hasta P3 y P5; “Solicitar factura” explica la autofactura. |
+| Portal del cliente (P1) | `PortalService` usa los clientes y órdenes que ya maneja caja (`ClientesService`, `OrdenesService`); la sesión vive en `PortalSesion` (sessionStorage `shuri.portal`) | En pantallas grandes se ve la misma columna de celular centrada (máx. 440 px). Los equipos muestran 6 pasos; el ámbar marca el paso que espera la respuesta del cliente. El aviso de privacidad y las cláusulas salen de Configuración (AD9) vía `compartido/ajustes-documentos.ts`. “Contactar” llama al taller hasta que exista el chat (P5). |
+| Ajustar precios en grupo | Filtra por categoría y proveedor | Figma pide “Marca”, pero los productos no tienen marca guardada. El margen fijo usa precio = costo ÷ (1 − margen) × 1.16. |
 | Clase `.fila` | Las filas del panel de órdenes pasaron a `.dato` y las rejillas de la recepción a `.rejilla` | Chocaban con la clase global `.fila` (filas de los paneles de C1) y les agregaba relleno y borde. |
 
 ## 9. Pendientes conocidos
 
 - [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
-- [ ] El texto de resumen bajo la marca (“Caja 01 · Turno abierto”, “14 órdenes abiertas”…) es fijo en `navegacion.ts`; debe venir de la API.
+- [ ] El texto de resumen bajo la marca ya se calcula para los 4 roles (caja, órdenes abiertas, equipos asignados, estado de la caja); con la API vendrá del servidor.
 - [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
 - [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
-- [ ] Versión T7 tablet (técnico).
-- [ ] Bloqueo de sesión tras 30 min sin uso (regla general de Figma).
-- [ ] Pantallas de cada rol: administrador (AD1–AD9), técnico (T1–T7) y portal del cliente (P1–P6). La cajera (C1–C11 y C1.6) y el jefe de técnicos (J1–J11) quedaron completos.
-- [ ] Mensajes (J11): las conversaciones viven en memoria; el portal del cliente (P) mandará y recibirá los mensajes, el estado compartido y la foto del avance.
-- [ ] Configuración (J9): se guarda en memoria; caja todavía usa sus constantes de garantía (30 días) y plazo para recoger (30 días).
+- [x] Todas las pantallas de Figma: cajera (C1–C11 y C1.6), jefe de técnicos (J1–J11), técnico (T1–T7), administrador (AD1–AD9) y portal del cliente (P1–P6).
+- [ ] Correos (P6): el envío real y los interruptores de “Correo” por mensaje de AD9.6 los aplicará la API; hoy se arma el correo cada vez que el cliente tiene correo.
+- [ ] Chat (P5): el aviso de respuesta solo aparece con el portal abierto (notificaciones push y correo le tocan a la API); el horario está fijo en el código.
+- [ ] Autofactura: el envío por correo de la factura y la validación del RFC contra el SAT le tocan a la API.
+- [ ] Seguimiento (P2): las calificaciones viven en memoria y todavía no las ve el administrador.
+- [ ] Fotos de recepción y del técnico: viven en memoria como data URL (se pierden al recargar); la API debe subirlas a un almacenamiento y dar su URL. El cliente solo las ve mientras la orden está “Recibida”.
+- [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
+- [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
+- [ ] Permisos por rol: “Ver costos y utilidad” y “Editar precios del catálogo” todavía no cambian ninguna pantalla (p. ej. el precio al editar un producto en C7.1); el servidor debe revisar cada permiso y cerrar sesiones en otros equipos (API).
+- [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT).
+- [ ] Cortes de caja: la revisión debe llegar a la nómina cuando se descuente.
+- [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
+- [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
+- [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
+- [ ] El paquete inicial pasó 24 kB del aviso de 500 kB (estilos compartidos, la lógica del técnico que usa el menú y el bloqueo por inactividad); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] Mensajes (J11 y chat P5): las conversaciones viven en memoria; falta guardarlas en la API.
+- [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
 - [ ] Técnicos: el turno (9:00–18:00), el tiempo promedio y las terminadas deben venir de la API (registro de tiempos del técnico, T).
 - [ ] Refacciones: los avisos al técnico y el reclamo al proveedor solo se anotan; las solicitudes las mandarán los técnicos desde T (por ahora son de prueba).
-- [ ] Garantía con costo: falta la respuesta del cliente (portal P3.2 o en sucursal) y cobrar el costo extra al entregar en C6.3.
-- [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5). El anticipo a devolver en C6.2 todavía no sale de la caja en el corte.
-- [ ] Tablero: fotos reales, tiempo trabajado sin pausas y “Ver solicitud” (lleva a Refacciones, J11, aún pendiente). La prioridad y las asignaciones viven en memoria.
-- [ ] El resumen del menú del jefe (“14 órdenes abiertas”) sigue fijo; debe usar el mismo conteo que J1.
+- [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5).
+- [ ] Tablero: tiempo trabajado sin pausas (llega con el registro de tiempos del técnico). La prioridad y las asignaciones viven en memoria.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
 - [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
-- [ ] El anticipo de la orden nueva no entra todavía a la caja ni al corte; el PIN del equipo no se guarda (no se imprime, como pide Figma, pero tampoco llega al técnico).
 - [ ] Los clientes viven en memoria (`ClientesService`): altas, ediciones y contraseñas temporales se pierden al recargar. La contraseña temporal no se envía de verdad.
 - [ ] Algunos clientes de prueba tienen un teléfono en Punto de venta y otro en Órdenes (Laura Medina, Raúl Ortiz, Andrés Vega, Pedro Núñez): se unen por nombre. La API debe tener un solo registro con un id.
-- [ ] Editar un cliente no cambia los datos ya guardados en sus órdenes.
-- [ ] El cobro de la entrega no entra a la caja ni al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
-- [ ] “Entregar equipo” abre C6 con `?folio=`; C6 debe leerlo y marcar la orden como terminada al cobrar el saldo.
-- [ ] Las ventas en espera viven en memoria: se pierden al recargar y todavía no se descartan al cerrar el turno (lo dice el aviso de C2.9). Deben guardarse en la API.
-- [ ] El panel “Ventas en espera” del inicio de la cajera (C1.1) sigue con datos fijos; debe leer `VentaService.pausadas`.
-- [ ] “Crear cliente nuevo” (C2.5) debe abrir el alta de cliente con el nombre buscado cuando exista C9.
+- [ ] El cobro de la entrega entra a la caja (corte C10) pero no al historial de Ventas; la tarjeta no pide autorización de la terminal. “Tomar foto de la carta poder” solo marca que se adjuntó.
+- [ ] Las ventas en espera viven en memoria: se pierden al recargar. Deben guardarse en la API (ligadas al turno).
 - [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
 - [ ] Las ventas cobradas sin conexión solo se cuentan; no se guardan en el equipo ni se suben de verdad.
-- [ ] Los montos del cobro (efectivo, mixto) se ven como 500 en vez de $500.00 mientras se escriben.
 - [ ] Las ventas cobradas, cancelaciones y devoluciones viven en memoria (`HistorialVentasService`): se pierden al recargar. Deben ir a la API.
-- [ ] El panel “Ventas recientes” y “Vendido en el turno” del inicio de la cajera siguen fijos; deben leer el historial.
-- [ ] Cancelar y devolver no mueven inventario ni la caja todavía (el efectivo reembolsado debe restarse en el corte, C10).
 - [ ] La nota de crédito y el “cambio por otro” solo se registran; falta su flujo (saldo del cliente y nueva venta).
-- [ ] El inventario no baja al vender; “disponibles” es fijo en el catálogo de prueba.
-- [ ] El campo “Monto recibido” muestra 1000 en vez de $1,000.00 al usar un monto rápido.
-- [ ] El turno de caja simulado no está ligado a la cajera: si entra otra cajera, verá la caja abierta. La API debe decir de quién es el turno.
-- [ ] El corte cierra el turno de la caja, pero no revisa que la cajera que cierra sea la que abrió.
-- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes y pedidos se pierden al recargar. El punto de venta todavía usa su propio catálogo (`catalogo.datos.ts`, precios sin IVA); debe leer el inventario cuando exista la API.
+- [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes, pedidos y cambios de precio se pierden al recargar. El punto de venta ya cobra con sus nombres, precios y disponibles.
 - [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
 - [ ] Retiros, ingresos, pagos a proveedor y cortes viven en memoria (el turno abierto sí queda en el navegador): al recargar con el turno abierto, el arqueo pierde esos movimientos.
-- [ ] Los pedidos del jefe son datos de prueba; deben venir de su módulo (J6). Avisar al técnico y al jefe solo se anota en el historial de la orden.
+- [ ] Los pedidos del jefe se crean en Refacciones (J5) y viven en memoria. Avisar al técnico y al jefe solo se anota en el historial de la orden.
 - [ ] La foto del producto y la de la factura no se suben a ningún lado (la del producto solo se ve mientras dura la sesión).
 
 ---
@@ -1321,3 +1643,374 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - respuesta rápida “Qué traer” y enviar → Sin responder (1) y el menú marca 1; compartir estado agrega la tarjeta; Resuelto la pasa a Resueltos; contestar a Andrés con Enter deja Sin responder (0) y quita el contador; volver a Mensajes muestra “Todo respondido”; apagar “Disponible hoy” muestra el aviso
   - a 390 px: lista sola; al abrir, chat con tira de la orden, chips y la barra de escribir arriba de la barra inferior; volver regresa a la lista
   - a 1366×768 con el panel de la orden; editar una respuesta rápida en Configuración se ve en el chat; sin errores en consola
+
+### 9 nov 2026 · Corrección: no se podía cerrar turno (C10.4)
+- Causa: en “Cerrar turno” el “Efectivo que se queda como fondo” arrancaba en $1,000 fijo. Si la cajera contaba por denominación menos de $1,000 (o el arqueo daba menos), el fondo quedaba mayor que lo contado y el botón no hacía nada visible: el error “Entre $0.00 y …” aparecía solo bajo ese campo.
+- `CerrarTurnoComponent`: el fondo es un cálculo (asignado, tope lo contado) hasta que la cajera lo escribe; aviso “No se puede cerrar todavía: …” junto al botón con lo que falte (conteo, comentario por diferencia o fondo).
+- Verificado como `amartinez`: turno con esperado $1,899 y $800 contados por denominación → fondo $800 solo, pide comentario y al escribirlo cierra (corte C-0412, fondo $800); turno con fondo escrito a mano de $500 → “A gerencia se entregan $1,399.00” y cierra; sin errores en consola.
+
+### 10 nov 2026 · Pendientes de cajera y jefe
+- Menú del jefe: el texto bajo el logo cuenta las órdenes abiertas igual que su Inicio (18).
+- Caja usa la configuración (J9): plazo para recoger y días de garantía en Órdenes, Entrega, Garantías, tickets y cláusulas de la orden impresa.
+- Anticipo devuelto al entregar sin reparar: sale de la caja y aparece en el corte como “Devolución de anticipo”.
+- Inventario: baja al vender, regresa al cancelar y con devoluciones en buen estado; el punto de venta muestra esos disponibles.
+- Inicio de la cajera y el aviso de salir con turno abierto usan datos reales (corte, ventas, órdenes, inventario).
+- Verificado como `amartinez` y `jlopez`:
+  - caja cerrada: 3 listos, 3 por enviar a bodega, último corte C-0411 y avisos (PED-0123 llega hoy, sin existencias)
+  - vender 2 cargadores ACC-020 lo baja de 32 a 30, cancelar lo regresa a 32; vender 1 y devolverlo en buen estado vuelve a 32; el punto de venta dice “31 disponibles” tras una venta
+  - con turno abierto: “$290 vendido · 1 venta · 2 en espera”, efectivo en caja $1,290; entregar #1038 sin reparar con revisión perdonada deja “Devolución de anticipo #1038 · −$300.00” y el esperado en $990
+  - menú del jefe “18 órdenes abiertas” como su indicador; sin errores en consola
+
+### 10 nov 2026 · Revisión general (cajera y jefe)
+- Login: “Tu mostrador y tu taller, en un solo lugar” vuelve a ser blanco; el panel de marca heredaba `.panel` y `.panel__titulo` globales (borde y texto azul marino). Clases renombradas a `.portada…`.
+- Crear contraseña: la fuerza de la contraseña heredaba `.indicador` (caja con borde, contenido centrado, sin saltos de línea); ahora es `.fuerza…`.
+- Tablero y Técnicos del jefe: las tarjetas heredaban `.tarjeta` del login (sombra y ancho máximo de 440 px); ahora `.tarjeta-orden` y `.tarjeta-tecnico`.
+- Ventas a 360 px: el selector de periodo se salía 22 px de la pantalla; ahora se desplaza dentro de su ancho.
+- Inicio del jefe: “Carlos necesita un dato del cliente · Escribir” abre la conversación de esa orden.
+- Inicio de la cajera: las filas de “Listos para entregar” y “Por enviar a bodega” abren esa orden en Entrega / Órdenes.
+- Revisado con un recorrido automático de todas las pantallas de cajera (caja cerrada y abierta) y jefe a 1440, 1366 y 360 px: sin errores en consola, sin imágenes rotas, sin “NaN/undefined/null” en pantalla y sin desplazamiento horizontal; todos los enlaces del jefe llevan a rutas que existen y los botones de ambos Inicios llegan a su destino.
+
+### 10 nov 2026 · Técnico T1: Inicio
+- Hecho con el PNG `docs/diseno/05-tecnico/t1-inicio.png` (T1.1; T1.2 y T1.3 ya eran la campana y el menú de usuario del menú lateral).
+- Nuevo `tecnico/`: `mi-trabajo.ts` (equipos del técnico y su etiqueta), `BancoService` (equipo en curso y jornada, para T3) e `InicioTecnicoComponent`, que reusa los estilos del inicio del jefe.
+- El resumen del menú del técnico cuenta sus equipos asignados.
+- Desde hoy va un solo commit por pedido (código y bitácora juntos).
+- Verificado como `cruiz`:
+  - a 1440×900: 5 asignados, 1 por cotizar, 1 por aprobar, 1 en taller, 2 garantías “con el jefe”; en curso #1029 Samsung S21 · Andrés Vega con el cronómetro corriendo; cola #1043, #0986, #1002 y #1035; aviso “Refacción entregada · Batería iPhone 14 para #1043”; “Mi día” 3 h 40 min y 1 refacción pendiente
+  - a 1366×768 y 360 px sin desplazamiento horizontal (en celular 2 × 2 indicadores y “Continuar” a lo ancho); sin errores en consola
+
+### 10 nov 2026 · Técnico T2: Equipos asignados
+- Hecho con el PNG `docs/diseno/05-tecnico/t2-equipos-asignados.png` (T2.1 lista y T2.2 sin equipos).
+- `EquiposAsignadosComponent` reusa `jefe/lista-pagina.css`; el estado, la nota bajo la fecha y la acción de cada fila salen de la orden (`filaDe`).
+- Verificado como `cruiz`:
+  - a 1440×900: 5 equipos; #1029 primero y resaltado (“En curso · 00:45”, “Abrir banco”); buscar “iphone” deja 3; “zzz” muestra “No hay equipos con estos filtros” y “Limpiar filtros” regresa los 5; el indicador Garantías filtra 2 y marca el select
+  - clic en #0986 abre `/tecnico/banco-de-trabajo?folio=0986`
+  - sin órdenes (reasignadas en memoria) aparece T2.2 con los indicadores en 0
+  - a 1366×768 la tabla cabe; a 360 px queda Folio · Equipo · Estado sin desplazamiento; sin errores en consola
+
+### 10 nov 2026 · Técnico T3: Banco de trabajo
+- Hecho con el PNG `docs/diseno/05-tecnico/t3-banco-de-trabajo.png`: 11 vistas (T3.1 diagnóstico, T3.2 esperando aprobación, T3.3 en taller, T3.4 marcar listo, T3.5 daño adicional, T3.6 pausar, T3.7 sin reparación, T3.8 necesito información, T3.9 presupuesto rechazado, T3.10 garantía, T3.11 orden en curso).
+- `BancoService` reescrito: cronómetro por orden, una en curso por técnico, pasos marcados y reloj compartido (T1 y T2 ya lo usan).
+- Acciones nuevas en órdenes, refacciones e inventario para que lo del técnico llegue al jefe y a caja; el PIN que captura caja llega al banco.
+- Verificado como `cruiz` (lo de jefe y caja simulado desde la consola):
+  - #1029 en taller como Figma T3.3; pausar con “Comida / descanso” detiene el cronómetro (00:45:34) y “Reanudar” lo sigue; nota interna guardada
+  - iniciar #1041 con #1029 corriendo abre T3.11; “Pausar #1029 e iniciar #1041” deja #1029 en pausa “Atender otra orden urgente”
+  - diagnóstico de #1041 sin texto marca el error; con la pantalla OLED iPhone 13 y nivel medio llega al jefe como “Por cotizar” ($2,400 + $580) y la vista cambia a T3.2
+  - #1035 rechazado: con las 3 revisiones y una foto se devuelve a caja, la pantalla apartada queda libre y el banco pasa a #1002
+  - #1002 garantía aprobada (T3.10): marcar lista sin pruebas avisa “Falta marcar 6 pruebas”; con todo queda “Garantía lista” y se avisa en el portal
+  - necesito información pausa #1029 con el mensaje; daño adicional con flex de cámara frontal llega al jefe ($380 + $150); solicitar adhesivo crea R-216; sin reparación de #1041 queda “con el jefe”
+  - a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
+
+### 11 nov 2026 · Técnico T4: Garantías
+- Hecho con el PNG `docs/diseno/05-tecnico/t4-garantias.png` (T4.1 lista y T4.2 revisión de garantía).
+- `GarantiasTecnicoComponent` (reusa `jefe/lista-pagina.css`) y `RevisionGarantiaComponent` (reusa los estilos del banco); `OrdenesService.enviarReporteGarantia`.
+- Verificado como `cruiz` (caja y jefe simulados desde la consola):
+  - lista con #1002 y #0986 “Esperando dictamen”; caja recibe #0998 en garantía asignada a Carlos → aparece primero “Por revisar · 9 de 30 · Revisar”
+  - T4.2 de #0998 como Figma; reporte “No, daño posterior · Humedad · no aplica · $450” → aviso “queda Esperando dictamen”, el jefe lo recibe como “No aplica · humedad posterior”
+  - el jefe aplica #0986 → pestaña En reparación “Aprobada · Abrir banco”; “Ver reporte” de #1002 muestra el reporte sin editar
+  - a 1366×768 la tabla cabe; a 360 px quedan folio, cliente y estado sin desplazamiento; sin errores en consola
+
+### 11 nov 2026 · Técnico T5: Refacciones
+- Hecho con el PNG `docs/diseno/05-tecnico/t5-refacciones.png` (T5.1 lista, T5.2 nueva solicitud, T5.3 devolver, T5.4 sin solicitudes).
+- `RefaccionesTecnicoComponent` (reusa `jefe/lista-pagina.css`), `NuevaSolicitudComponent` y `DevolverPiezaComponent`; `RefaccionesService.cancelar` y `devolverPieza`.
+- Verificado como `cruiz`:
+  - lista con R-214 pendiente (12 en stock), R-212 y R-210 entregadas y R-207 por devolver; indicadores 1 · 0 · 2 · 1
+  - nueva solicitud del conector flex de iPhone 14 para #1043 → R-216 “Sin stock · Por pedir a proveedor”; Cancelar la quita
+  - devolver R-207 como “Abierta, sin instalar” → queda “Devuelta” y el jefe tiene 2 devoluciones por recibir
+  - sin solicitudes aparece T5.4; a 1366×768 la tabla cabe y a 360 px quedan solicitud, orden, refacción y estado; sin errores en consola
+
+### 11 nov 2026 · Técnico T6: Mi historial
+- Hecho con el PNG `docs/diseno/05-tecnico/t6-mi-historial.png` (T6.1 lista por mes y T6.2 orden de solo lectura).
+- `HistorialTecnicoComponent` (reusa `jefe/lista-pagina.css`), `DetalleHistorialComponent` (reusa los estilos del banco) y `historial.ts`.
+- Verificado como `cruiz`:
+  - noviembre: #1026 y #1021 “Por entregar”, tiempo promedio 1 h 20; octubre: #1002 y #0986 “Esperando dictamen” y #0957, promedio 1 h 02
+  - detalle de #1002: puerto de carga, 54 min, vigencia “29 oct – 28 nov · 18 días restantes”, solicitud de garantía y botón “Ir a la revisión de garantía”
+  - buscar “galaxy” en noviembre dice “Ningún equipo coincide”
+  - a 1366×768 la tabla cabe; a 360 px sin desplazamiento horizontal; sin errores en consola
+
+### 11 nov 2026 · Técnico T7: versión tablet (técnico completo)
+- Hecho con el PNG `docs/diseno/05-tecnico/t7-version-tablet.png`.
+- Riel del técnico con nombres cortos y `TallerTabletComponent` para el banco en tablet; `tecnico/tablet.ts` con la señal del rango.
+- Verificado como `cruiz`:
+  - a 1180×820 #1029 como Figma T7: “#1029 · Samsung S21”, pestañas, 5 pasos grandes y botones; marcar un paso cambia “2 pasos pendientes” a “1”; Tomar foto abre Fotos con una más; Pedir refacción abre Refacciones; Pausar y Marcar como listo abren sus modales
+  - #1043 (esperando) sigue con la vista normal; a 1024×768 también entra la vista tablet sin desplazamiento
+  - a 1440 vuelve el banco de escritorio y el menú de 184 px; a 360 px la vista de celular; sin errores en consola
+
+### 11 nov 2026 · Administrador AD1: Inicio
+- Hecho con el PNG `docs/diseno/02-administrador/ad1-inicio.png` (AD1.1 resumen; AD1.2 y AD1.3 son la campana y el menú de usuario, con los avisos de Figma).
+- Nuevo `administrador/`: `InicioAdminComponent` y `negocio.ts`; el menú del administrador muestra el estado real de la caja.
+- Verificado como `vcastillo`:
+  - a 1440×900 como Figma AD1.1: hoy $1,189 de mostrador, 18 órdenes en taller (1 atrasada), 14 barras con hoy resaltado, “vs octubre +19 %”, lo que más deja con reparaciones del taller arriba y 5 avisos (faltante del 10 nov, pago a MovilTec, 11 productos bajo el mínimo, descuentos del día y #0939 con 57 días)
+  - “Este mes” cambia los indicadores a $31,339 y 54 % de margen, igual que la gráfica
+  - la campana muestra los 4 avisos de AD1.2; a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
+
+### 11 nov 2026 · Administrador AD2: Reportes
+- Hecho con el PNG `docs/diseno/02-administrador/ad2-reportes.png` (AD2.1 ventas y utilidad, AD2.2 desempeño del taller, AD2.3 mes sin ventas).
+- `VentasUtilidadComponent`, `TallerReporteComponent`, `reportes.ts` (meses y CSV) y `porCategoria` en `negocio.ts`.
+- Verificado como `vcastillo`:
+  - octubre: $89,453 (+18 % vs septiembre), 53 % de margen, 5 semanas, utilidad por categoría y faltantes en cortes; noviembre: $31,339 repartidos entre Ana Martínez ($17,439) y Luis Peña ($13,900), 1 devolución de $174
+  - taller de noviembre: 11 recibidas, tabla por técnico y órdenes por resultado; octubre: 10 recibidas, 5 entregadas, 13 h 42 a cotizar (4 fuera del SLA)
+  - a 1366×768 las tablas caben; a 360 px las tablas quedan sin desplazamiento (se ocultan costo, participación, ingreso, tiempo y estado); sin errores en consola
+  - AD2.3 no se pudo ver con los datos de prueba: todos los meses tienen ventas
+
+### 12 nov 2026 · Administrador AD3: Cortes de caja
+- Hecho con el PNG `docs/diseno/02-administrador/ad3-cortes-de-caja.png` (AD3.1 cortes del mes y AD3.2 revisión).
+- `CortesAdminComponent` y `DetalleCorteComponent`; en `CorteService`: `revision`, `revisionDe()`, `revisar()` y `movimientosEntre()`. El Inicio (AD1) solo avisa de faltantes sin revisar.
+- Verificado como `vcastillo`:
+  - noviembre: 20 cortes, −$70 acumulado (4 faltantes, 2 sobrantes), 3 por revisar y páginas de 8
+  - corte del 11 nov matutino: arqueo $1,000 + $6,720 + $3,744 − $2,957 − $1,000 = $7,507 esperado, $7,477 contado, faltante −$30 con el comentario de Ana; “Descontar a la cajera” lo deja “Descontado” y Por revisar baja a 2; el Inicio pasa a avisar del siguiente faltante
+  - sobrante de +$20: “Investigar” sin nota marca el error; con nota queda “En investigación” y sigue en Por revisar
+  - a 1366×768 y 360 px sin desplazamiento horizontal; sin errores en consola
+  - “Ver en vivo” no se probó: la caja estaba cerrada en esta sesión
+
+### 13 nov 2026 · Administrador AD4: Catálogo y precios
+- Hecho con el PNG `docs/diseno/02-administrador/ad4-catalogo-y-precios.png` (AD4.1 catálogo, AD4.2 editar precio, AD4.3 ajustar en grupo).
+- `CatalogoAdminComponent`, `EditarPrecioComponent` y `AjustarPreciosComponent`; en `InventarioService`: `historialCosto`, `cambiarPrecio`, `ajustarPrecios` y `cambiosPrecio`.
+- Verificado como `vcastillo`:
+  - 22 productos, $28,384 a costo, 52 % de margen promedio, 1 con costo que subió; páginas de 9
+  - Pantalla OLED iPhone 13: $2,400 → $2,200 baja el margen de 42 % a 36 % mientras se escribe; la fila cambia y queda el registro con “Verónica Castillo”
+  - Accesorios +5 % terminando en $0: vista previa (Mica $100 → $110) y “Aplicar a 9 productos”; con margen fijo de 100 % el botón se desactiva y con 50 % los precios dejan 50 %
+  - filtros: Consumibles 1, margen alto 14, “iphone” 7; “Añadir producto” abre el alta de C7.1
+  - a 1366×768 la tabla cabe; a 360 px tabla y modales sin desplazamiento; sin errores en consola
+
+### 13 nov 2026 · Administrador AD5: Proveedores
+- Hecho con el PNG `docs/diseno/02-administrador/ad5-proveedores.png` (AD5.1 lista y compras, AD5.2 registrar pago, AD5.3 nuevo proveedor).
+- `ProveedoresService` nuevo; `ProveedoresAdminComponent`, `RegistrarPagoComponent` y `NuevoProveedorComponent`. El aviso de pago de AD1 ya usa las facturas reales.
+- Verificado como `vcastillo`:
+  - FAC-A-20931 por $10,759: pago de $5,000 por transferencia con referencia → “Parcial $5,759” y Por pagar baja; después de otro pago de $759 de caja, el Inicio avisa $5,000
+  - con la caja cerrada la opción de efectivo se desactiva; con turno abierto el pago entra a `pagosAProveedor` y “Pagado desde caja” sube de $348 a $1,107
+  - monto mayor al saldo marca error; Escape cierra
+  - nuevo proveedor: pide nombre y teléfono, detecta nombre repetido, RFC inválido y crédito sin límite; al guardar queda elegido
+  - el estado de cuenta descarga compras, pagos y saldo
+  - a 1366×768 todo cabe; a 360 px tablas y modales sin desplazamiento; sin errores en consola
+
+### 13 nov 2026 · Administrador AD6: Facturación
+- Hecho con el PNG `docs/diseno/02-administrador/ad6-facturacion.png` (AD6.1 facturas, AD6.2 cancelar, AD6.3 factura global).
+- `FacturacionService` nuevo; `FacturacionAdminComponent`, `DetalleFacturaComponent`, `CancelarFacturaComponent`, `FacturaGlobalComponent` y `archivos-cfdi.ts` (XML con forma de CFDI 4.0 y PDF de una hoja). El punto de venta y la entrega timbran cuando el cliente pide factura.
+- Verificado como `vcastillo`:
+  - noviembre: A-0409 a A-0412 como en Figma (V-00862 por $899), $6,379 facturado, 3 tickets con cliente sin factura, 1 cancelada, 436 timbres
+  - cancelar A-0411 con motivo 01: queda cancelada, se timbra A-0413 que la sustituye y los timbres bajan a 435
+  - el PDF descargado tiene la tabla de posiciones correcta y el XML trae serie, folio, totales y UUID
+  - global de noviembre bloqueada (mes en curso); octubre: 121 ventas y 69 entregas por $89,453.20 con aviso de plazo vencido; al timbrarla ya no deja repetirla; “Ver tickets incluidos” descarga 31 días
+  - pestañas y “No hay facturas con error en noviembre 2026”
+  - a 1366×768 la tabla cabe; a 360 px se ocultan fecha, RFC, origen y pidió y la tabla y los modales caben; sin errores nuevos en consola
+
+### 13 nov 2026 · Administrador AD7: Usuarios y permisos
+- Hecho con el PNG `docs/diseno/02-administrador/ad7-usuarios-y-permisos.png` (AD7.1 a AD7.4).
+- `AuthService` ahora guarda las cuentas del personal (crear, editar, desactivar, temporal, bloqueos, pedidos de contraseña); `PermisosService` nuevo; el usuario de prueba `nuevo` pasó a ser `lortega`.
+- Verificado como `vcastillo`:
+  - 7 activos (1 admin · 2 caja · 4 taller), 1 temporal, aviso del pedido de Ana; asignarle temporal quita el aviso
+  - nuevo usuario Daniela Ortiz Méndez → `dortiz`, errores de nombre, usuario y correo; queda Pendiente
+  - desactivar a Luis Peña → Inactivos (2) y su login dice “desactivado”; 3 fallos de `cruiz` → Bloqueado; temporal con desbloqueo → entra, A.5 pide la nueva y llega a su inicio
+  - no puede quitarse el rol ni desactivarse a sí misma; permisos: 2 cambios guardados y el descuento de 15 % pasa a las cajeras nuevas
+  - a 1366×768 y 360 px tablas y modales sin desplazamiento (encabezados cortos en permisos)
+
+### 14 nov 2026 · Administrador AD8: Bitácora
+- Hecho con el PNG `docs/diseno/02-administrador/ad8-bitacora.png` (AD8.1 bitácora, AD8.2 exportar).
+- `BitacoraService`, `BitacoraAdminComponent` y `ExportarBitacoraComponent`; `pdf-simple.ts` sale de lo que hacía el PDF de facturas y ahora lo usan los dos. AD7 registra sus acciones.
+- Verificado como `vcastillo`:
+  - las 8 acciones de Figma con la misma distancia entre ellas; filtros por periodo y acción, páginas de 8 (“Mostrando 8 de 62 acciones de los últimos 30 días”, 1 2 … 8)
+  - salen la factura A-0409 cancelada, los cortes revisados y los ajustes de Inventario; asignar contraseña temporal a Ana y guardar permisos aparecen arriba al instante
+  - “Ver” lleva al módulo; exportar: fechas del 1 del mes a hoy, error si “Desde” es después de “Hasta”, .xls con 39 filas, CSV sin la columna Detalle al quitar la casilla y PDF de 2 hojas con la tabla de posiciones correcta
+  - a 1366×768 la tabla cabe; a 360 px el detalle pasa debajo de la acción y la tabla y el modal caben; sin errores en consola
+
+### 14 nov 2026 · Administrador AD9: Configuración
+- Hecho con el PNG `docs/diseno/02-administrador/ad9-configuracion.png` (AD9.1 a AD9.7). Con esto el administrador quedó completo.
+- `ConfiguracionService`, `ConfiguracionAdminComponent` y una pestaña por componente; `compartido/ajustes-documentos.ts` nuevo; el ticket y la hoja de recepción (C11) leen de ahí; las facturas toman serie y emisor de AD9; `CajaService.fondoAsignado` se puede cambiar.
+- Verificado como `vcastillo`:
+  - pestañas como en Figma (vista previa a la derecha en 1056–1416 px); cambiar el encabezado y quitar el IVA se ve al instante en la vista previa y marca la pestaña
+  - CLABE incompleta: no guarda, avisa y abre Cajas y pagos; garantía de 60 días en Taller cambia el dato y la cláusula 3 en Documentos
+  - guardar 5 pestañas: aviso, sin puntos pendientes y en la Bitácora “Configuración … · Garantía por defecto: 30 → 60”; con serie B, la factura que sustituye a A-0411 sale como B-0413
+  - RFC inválido, “Comprar más timbres” (solo avisa), variables en el mensaje, vista previa del documento de recepción y correo de prueba
+  - a 1366×768 todo cabe; a 360 px las siete pestañas sin desplazamiento (se ocultan columnas secundarias); sin errores en consola
+- La factura de prueba A-0412 ya no queda con hora futura en la madrugada.
+
+### 14 nov 2026 · Portal del cliente P1: acceso y mis equipos
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p1-acceso-y-mis-equipos.png` (P1.1 a P1.4).
+- `PortalService`, `PortalSesion` y las pantallas del portal con rutas `/portal`; Laura Medina tiene una temporal de prueba; `NEGOCIO` ya trae teléfono y dirección corta; el aviso de privacidad pasó a `ajustes-documentos.ts`.
+- Verificado:
+  - campos vacíos, contraseña mala (“Te quedan 4 intentos”) y al quinto fallo bloqueo de 15 minutos
+  - María entra a Mis equipos: 3 equipos con su teléfono, S22 Ultra con 4 de 6 pasos y 2 entregados; la tarjeta abre el lugar de P2; Cláusulas abre el modal; Cerrar sesión regresa al acceso y `/portal/mis-equipos` ya no deja entrar
+  - Laura entra con `P4R-8XK` (sin importar mayúsculas), no puede saltarse P1.4, una contraseña débil marca error y “Segura” la deja pasar; después la temporal ya no funciona y la nueva sí
+  - “¿Olvidaste tu contraseña?” valida el correo y confirma el envío sin decir si existe; la contraseña anterior de María deja de funcionar
+  - a 360 px como en Figma; a 1366 y 1440 px la columna se centra; sin errores en consola
+
+### 14 nov 2026 · Portal del cliente P2: seguimiento de la reparación
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p2-seguimiento-de-la-reparacion.png` (11 pantallas, P2.1 a P2.11).
+- `SeguimientoComponent` reemplaza el lugar provisional; `PortalService` suma `ordenDe`, `responder` y `calificar`; `registrarRespuesta` distingue sucursal y portal.
+- Verificado con María (y, solo en memoria, con órdenes de prueba asignadas a ella para ver cada variante):
+  - #1024 en taller como en Figma P2.7 ($1,508.00 y restante $1,208.00); re-cotización de $530.00 (base $456.90 + IVA $73.10) → “Aprobar $530.00” → en taller con restante $1,738.00 y “Adicional aprobado en el portal” en el historial; lista (plazo de 30 días) y entregada (garantía de 30 días, comprobante PDF)
+  - #1035 presupuesto: rechazar con comentario → “Rechazaste el presupuesto”, revisión cubierta y saldo $0.00; el taller ve “Rechazado en el portal · …”
+  - en diagnóstico, “Necesitamos un dato tuyo” (pausa esperando al cliente), sin reparación y entregado; calificación de 4 estrellas con “Rapidez” y “Trato”
+  - el historial interno del taller no aparece en la pantalla; a 360 px como en Figma, a 1366/1440 px la columna centrada; sin errores en consola
+
+### 14 nov 2026 · Portal del cliente P3: garantía
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p3-garantia-solo-si-se-solicita.png` (P3.1 a P3.5).
+- `SolicitarGarantiaComponent` (hoja) y `GarantiaPortalComponent` (8 pasos en dos filas) dentro del seguimiento; `OrdenesService.solicitarGarantiaPortal` y `responderGarantia`; `saldo` cobra el costo extra aceptado; J4 muestra la respuesta del cliente.
+- Verificado con María:
+  - #1024 entregada: “Solicitar garantía” (sin falla marca error; con falla → “Garantía en revisión” y “Lleva tu equipo…”, historial “Garantía solicitada desde el portal”)
+  - dictamen con costo de $450.00 → “Aceptar costo extra” → “Garantía aprobada · costo extra aceptado” (total a pagar $450.00) → lista → entregada: “Garantía terminada”, costo extra pagado y “Garantía utilizada”
+  - #0998 (solo en memoria, asignada a María): costo extra rechazado → “Rechazaste el costo extra”, sin reparar y 30 días para recogerlo
+  - en Mis equipos un dictamen con costo pendiente se ve “Dictamen de garantía listo · Garantía · requiere tu respuesta” como en Figma P1.2; a 360 px sin desplazamiento; sin errores en consola
+
+### 14 nov 2026 · Portal del cliente P4: información y autofactura
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p4-informacion.png` (P4.1 cláusulas, P4.2 solicita tu factura, P4.3 aviso de privacidad).
+- `InformacionModalComponent` ahora es hoja inferior con folio y secciones numeradas; `FacturaPortalComponent` nuevo; el aviso de privacidad pasó a secciones y AD9 lo muestra con sus saltos de línea; `EMISOR_FISCAL` lleva el interruptor de autofactura.
+- Verificado:
+  - hoja de cláusulas “Contrato de servicio · Folio #1024” con las 5 cláusulas de AD9 llenas con los valores del taller
+  - María, #1024 entregada → “Solicitar factura”: folio, $1,508.00, RFC, razón social, C.P. 06700, 605 y S01 ya llenos; sin aceptar el aviso marca error; al aceptarlo sale A-0413 (Orden #1024, $1,508.00) con PDF y XML
+  - sin sesión: campos vacíos marcan cada error; V-00862 dice “ya tiene la factura A-0412” y deja descargarla; total equivocado, RFC inválido o de público en general marcan error; V-00861 por $290.00 se factura
+  - a 360 px como en Figma; en 1440 px la hoja se ve centrada; sin errores en consola
+
+### 14 nov 2026 · Portal del cliente P5: chat con el jefe de técnicos
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p5-chat-con-el-jefe-de-tecnicos.png` (P5.1 a P5.5).
+- `ChatPortalComponent` y `AvisoChatComponent`; `MensajesService.escribirCliente` y `marcarLeidos`; “Contactar” (Mis equipos, seguimiento y garantía) y “Responder por chat” (P2.3) abren el chat.
+- Verificado con María:
+  - #1024 muestra la conversación de J11 (mensajes, tarjeta “Tu equipo” con “Ver seguimiento”, “Leído / Enviado”)
+  - escribir “Perfecto, gracias”: el botón se activa, el jefe la ve pendiente; su respuesta queda leída al estar el chat abierto
+  - con “Disponible hoy” apagado sale el aviso de P5.5; en horario no hay franja
+  - en el seguimiento, una respuesta nueva del jefe muestra el aviso de arriba; al tocarlo abre el chat y queda leída
+  - #1035 (solo en memoria) sin conversación: preguntas rápidas; tocar una abre la conversación que ve el jefe
+  - a 360 px como en Figma; en 1440 px la columna se centra; sin errores en consola
+
+### 15 nov 2026 · Portal del cliente P6: correos que recibe el cliente
+- Hecho con el PNG `docs/diseno/06-portal-cliente/p6-correos-que-recibe-el-cliente.png` (5 correos). Con esto quedan todas las pantallas de Figma.
+- `CorreosService` (bandeja) y `correos.ts` (plantillas y HTML); avisos desde órdenes (cotización, listo, recordatorio), clientes (contraseña temporal) y mensajes (respuesta del jefe); Configuración › Correo con selector de plantillas y enviados y “Descargar HTML”.
+- Verificado:
+  - las 5 plantillas con los textos de Figma (K7M-4Q2, $1,508.00, $1,208.00, Ricardo · Galaxy A12, respuesta de Jorge)
+  - contraseña temporal de María, #1024 lista, presupuesto de #1043 y respuesta del chat → 4 correos en la bandeja con su asunto y destinatario; Ricardo Gil no tiene correo y no se le manda; recordatorio de Laura → “pasará a bodega en 27 días”
+  - el HTML descargado enlaza a `shuri.mx/portal/chat/1024`; a 360 px sin desplazamiento; sin peticiones fallidas
+
+### 15 nov 2026 · Fotos del equipo al recibirlo
+- La cajera no tenía dónde subir fotos del equipo que recibe (Figma C5.1 no trae el campo), aunque el jefe, el técnico y el portal sí tenían cuadros de fotos vacíos.
+- `FotosOrdenComponent` nuevo en `compartido/fotos-orden/` (miniaturas, agregar con cámara o archivo, quitar y visor) y `reducirImagen` (1280 px, JPEG 0.8). `OrdenesService`: `Orden.fotos`, `crear` las guarda y `agregarFotos` / `quitarFoto` dejan el historial.
+- Nueva orden (C5.1) y el detalle de Órdenes (C4) las agregan; tablero del jefe (J2.3), banco del técnico (diagnóstico, taller y tablet) y seguimiento del cliente (P2.1) las muestran. En el banco, “Ver todas (6)” pasó a contar las fotos reales.
+- Corrección: en el portal, una orden con anticipo se brincaba “Recibimos tu equipo” porque contaba cualquier evento del historial; ahora el anticipo y las fotos no cuentan.
+- Verificado:
+  - Nueva orden de María (Moto G54, anticipo $300): 2 fotos reducidas a ≈ 16 kB; un .txt se rechaza con “Solo se agregan fotos (JPG, PNG o HEIC de hasta 15 MB), máximo 6.”; el visor dice “1 de 2 · Recepción · 15 nov · 10:02” y Escape cierra solo la foto
+  - #1044 en Órdenes: 2 fotos; agregar una deja 3 y “Foto de recepción agregada por Ana Martínez”; quitar una deja 2 y “Foto de recepción quitada por Ana Martínez”
+  - portal de María, #1044: “Recibimos tu equipo” con las 2 fotos; el visor dice “2 de 2 · Ana Martínez · 15 nov · 10:06”; a 360 px sin desplazamiento; sin errores en consola
+  - jefe (Jorge López) asigna #1044 a Mariana Vega: el detalle muestra “Recepción” con las 2 fotos y “Del técnico · Aún no sube fotos”; en el banco de Mariana, #1044 dice “Fotos de recepción (caja) · 2 fotos”; sin errores en consola
+
+### 15 nov 2026 · Limpieza de pendientes
+- Se revisaron los pendientes contra el código y se quitaron los que ya estaban hechos: versión tablet del técnico (T7), autofactura del portal (P4), respuesta y cobro de la garantía con costo (P3 y `saldo`) y Entrega de equipo con `?folio=` (C6).
+- Se dejó solo lo que falta en dos: los mensajes (el chat P5 ya los manda; falta guardarlos en la API) y “Crear cliente nuevo” (C2.5: lleva a Clientes, C8, sin el nombre buscado).
+
+### 15 nov 2026 · Punto de venta con los precios de Inventario
+- Pendiente de solo frontend: los precios que cambiaba el administrador en AD4 no llegaban a caja porque el punto de venta leía `catalogo.datos.ts`.
+- `BarraBusqueda` ahora busca en `InventarioService` (sin lo de uso interno) y arma el producto con el precio de Inventario ÷ 1.16; `VentaService.agregar` usa ese producto. `catalogo.datos.ts` queda solo para las ventas de prueba.
+- `calcularTotales` redondea al final: antes, 7 fundas de $128.45 + otros daban un centavo menos.
+- Decisión del usuario: el cliente paga el precio de Inventario (IVA incluido), no el de la venta de ejemplo de Figma C2.
+- Verificado:
+  - AD4 (Verónica Castillo): Mica de $100.00 a $120.00 → margen 73 %
+  - caja (Ana Martínez, turno abierto con $1,000): “mica” muestra “Mica Cristal templado universal · 124 disponibles · $103.45”; al agregarla el total es $120.00
+  - 3 micas, cable, 7 fundas y audífonos: subtotal $1,348.11, IVA $215.70, total $1,563.81 (lo mismo que sumar los precios con IVA)
+  - Ventas sigue igual a Figma: V-00862 $899.00, V-00861 $290.00, V-00860 $406.00
+
+### 15 nov 2026 · Montos con formato de dinero
+- Pendientes de solo frontend: los montos del cobro se veían “500” y “1000” en lugar de $500.00 y $1,000.00.
+- `CampoDineroDirective` nueva (`[(campoDinero)]`, con `leerDinero`) en Cobro (efectivo y transferencia), PagoMixto y el anticipo de NuevaOrden; se quitaron sus tres `leerNumero` repetidos.
+- Se corrigieron dos datos de “Cómo correrlo” que quedaron viejos con los precios de Inventario: la venta de ejemplo de C2.1 da $775.00 y con 10 % a toda la venta $697.50.
+- Verificado (venta de $464.66: cargador 20W y audífonos):
+  - efectivo: al escribir se ve “1000” y el cambio $535.34; al salir “$1,000.00”; el botón $500 deja “$500.00”; al volver a entrar “500”
+  - mixto: efectivo “$200.00”; al entrar a tarjeta propone “264.66” y al salir “$264.66”; restante $0.00
+  - transferencia: arranca en “$464.66”; “300.555” queda “$300.55”
+  - Nueva orden: el anticipo arranca en “$300.00”; “$1,2a50” se lee como 1250 y se ve “$1,250.00”
+  - `ng build` sin errores; sin errores en consola
+
+### 15 nov 2026 · Bloqueo de pantalla tras 30 min sin uso
+- Pendiente de solo frontend (regla general de Figma): `BloqueoSesionComponent` en `sistema/bloqueo-sesion/`, dentro de `SistemaLayout`; `AuthService` suma `desbloquear` y las claves `shuri.actividad` y `shuri.bloqueada` (entrar o desbloquear las reinicia; cerrar sesión las borra).
+- Verificado como Ana Martínez en el punto de venta (con el último uso puesto 31 min atrás):
+  - al mover el mouse aparece “Pantalla bloqueada · Pasaron 30 minutos sin uso. Ana, escribe tu contraseña…” con el cursor en la contraseña; lo de atrás queda con `inert`
+  - Esc con la pantalla bloqueada no cancela la venta (sigue con su producto)
+  - contraseña incorrecta → “Contraseña incorrecta. Te quedan 2 intentos antes de que la cuenta se bloquee.”
+  - al recargar sigue bloqueada; con la contraseña correcta se quita y la venta a medias (cable USB-C) sigue en el ticket
+  - a 360 px la tarjeta cabe sin desplazamiento; “Entrar con otro usuario” lleva a iniciar sesión y borra sesión, último uso y bloqueo
+  - `ng build` sin errores (paquete inicial 524 kB, +6 kB); sin errores en consola
+
+### 15 nov 2026 · “Crear cliente nuevo” desde caja
+- Pendiente de solo frontend: “Crear cliente nuevo” (C2.5) llevaba a Clientes sin lo buscado. Ahora `SeleccionarCliente` abre `NuevoCliente` ahí mismo (`desdeVenta`, con su propio texto) y al guardar llama a `ClientesService.guardar` y lo pone en la venta.
+- Además el selector busca en `ClientesService` en lugar de la lista fija: los clientes dados de alta en C8 o en Nueva orden ya aparecen en caja.
+- Verificado como Ana Martínez (turno abierto):
+  - F4 · “Sofía Ramírez” → “No hay clientes que coincidan”; “Crear cliente nuevo” abre el alta con el nombre lleno, el cursor en Teléfono y “No encontramos “Sofía Ramírez”. Al guardar queda como cliente de esta venta y en Clientes.”
+  - Esc regresa a la lista con “Sofía Ramírez” en el buscador
+  - con teléfono 87 1123 4567 y correo de prueba, “Guardar cliente” cierra todo y el botón de cliente dice “Sofía Ramírez”
+  - F4 · “871 123” la encuentra; en Clientes aparece “Sofía Ramírez · 87 1123 4567 · Sin equipos”
+  - `ng build` sin errores; sin errores en consola
+
+### 15 nov 2026 · Turno de caja a nombre de la cajera
+- Pendientes de solo frontend: el turno no guardaba quién lo abrió, otra cajera lo veía como suyo y cualquiera hacía el corte.
+- `CajaService`: `Turno.usuario` y `cajera`, `turnoDeCaja`, `ajeno` y `turno`/`abierta` solo con el de la sesión; `CorteService` trabaja con el turno de la caja y guarda `cerradoPor`. Abrir turno (C1.3) e Inicio avisan cuando la caja está abierta por otra cajera; el corte muestra el aviso y oculta retiros e ingresos. El administrador (cortes, AD3.2, Cajas en AD9, Usuarios e Inicio) usa el turno de la caja con el nombre de quien lo abrió. El ticket del corte firma “Contó y cerró”.
+- Verificado:
+  - Ana abre turno → se guarda con `usuario: amartinez` y `cajera: Ana Martínez`; sale sin corte
+  - `lpena`: Inicio “Caja abierta por Ana Martínez” y “Caja 01 sigue abierta a nombre de Ana Martínez”; el punto de venta muestra “Caja 01 sigue abierta · Turno vespertino de Ana Martínez · desde las 20:28” con “Ir a Corte de caja”
+  - en el corte: aviso “Este turno lo abrió Ana Martínez…”, sin retiro ni ingreso; al contar $1,000.00 sale C-0412 a nombre de Ana con `cerradoPor: Luis Peña`; luego abre su turno (`lpena`) y ya tiene retiros e ingresos
+  - Ana vuelve a entrar y ve la caja abierta por Luis Peña
+  - administración: la fila en vivo de cortes dice “Hoy · Vespertino · Luis Peña · Abierto”; en Usuarios Luis “En turno” y Ana “Activo”; Efectivo en caja “turno abierto”
+  - “Contó y cerró” del ticket: solo compilado (el corte de prueba se perdió al recargar)
+  - `ng build` sin errores; sin errores en consola
+
+### 15 nov 2026 · Ventas en espera al hacer el corte
+- Pendiente de solo frontend: el aviso de C2.9 dice que las ventas en espera se descartan al cerrar el turno, pero seguían ahí.
+- `VentaService.pendientesDelTurno` y `descartarAlCerrarTurno`; `CorteService.cerrar` las descarta junto con la venta sin cobrar; `CerrarTurno` (C10.4) muestra el aviso antes de cerrar.
+- Verificado como Luis Peña (turno abierto, V-00864 y V-00863 en espera y una mica en la venta):
+  - el cierre dice “Al cerrar se descartan 2 ventas en espera y la venta sin cobrar del punto de venta: no se cobraron ni apartan inventario.”
+  - al contar $1,000.00 sale C-0412; después el punto de venta tiene 0 ventas en espera y la venta vacía
+  - `ng build` sin errores
+
+### 16 nov 2026 · Editar un cliente actualiza sus órdenes
+- Pendiente de solo frontend: al editar a un cliente (C8.2 o desde Nueva orden) sus órdenes se quedaban con el nombre, teléfono y correo viejos.
+- `OrdenesService.actualizarCliente` y `ClientesService.guardar` (compara con cómo estaba antes de guardar). Las ventas cobradas no se tocan.
+- Verificado como Ana Martínez: en Clientes, María Hernández → Editar → teléfono `55 1234 9999` → “Se guardaron los cambios de María Hernández.”; sigue una sola María en la lista y el detalle de #1024 en Órdenes dice “María Hernández · 55 1234 9999”. `ng build` sin errores.
+
+### 16 nov 2026 · Bitácora AD8: almacenaje perdonado y dictámenes de garantía
+- Pendiente de solo frontend: perdonar almacenaje (J8.2) y dictaminar garantías (J4) no llegaban a la bitácora del administrador.
+- Al revisar se vio que las cancelaciones de factura, los pagos a proveedor y la revisión de cortes ya entraban (desde AD8): se corrigieron esos tres pendientes.
+- `Orden.almacenaje` guarda `fecha` e `importe`; la política de bodega manda el monto también al perdonar. `BitacoraService` lee de `OrdenesService` los perdones y dictámenes; `MovimientoCaja.por` guarda quién hizo el retiro o ingreso.
+- Grafo 3: `BTS` se usaba para BancoService y para BitacoraService; la bitácora ahora es `BIT`.
+- Verificado:
+  - Jorge López, Equipos terminados: #0939 (Rosa Núñez, 27 días × $20.00 = $540.00) → Perdonar almacenaje → “#0939: almacenaje perdonado; queda registrado a tu nombre”
+  - Garantías: #0986 (Karla Ibarra) → Publicar dictamen con costo $450.00
+  - Verónica Castillo, Bitácora: “Jorge López · Perdonó almacenaje · #0939 · $540.00 · 27 días en bodega” y “Dictamen de garantía · #0986 · con costo $450.00 · espera respuesta del cliente”
+  - el nombre en retiros e ingresos: solo compilado
+  - `ng build` sin errores; sin errores en consola
+
+### 16 nov 2026 · Límite de crédito en las entradas de mercancía
+- Pendiente de solo frontend: el límite de crédito de AD5 se guardaba pero caja podía registrar a crédito cualquier factura.
+- `Entrada` (C7.3): `credito` (disponible con `ProveedoresService.deudaDe`), `elegirProveedor` y dos errores nuevos en la forma de pago; texto “Crédito disponible” bajo la forma de pago.
+- Verificado como Ana Martínez en Inventario › Entradas:
+  - Distribuidora MovilTec: “Crédito disponible: $9,241.00 de $20,000.00”
+  - 8 pantallas OLED iPhone 13 a $1,208 ($11,210.24) → “Rebasa el crédito: quedan $9,241.00 de $20,000.00…” y no se registra
+  - al cambiar a Refacciones Móviles del Centro la forma de pago pasa a transferencia; forzar crédito → “Refacciones Móviles del Centro vende de contado…”
+  - 5 pantallas ($7,006.40) a crédito con MovilTec → ENT-0056; después quedan $2,234.60 disponibles
+  - `ng build` sin errores; sin errores en consola
+
+### 16 nov 2026 · Permisos por rol aplicados
+- Pendiente de solo frontend: la matriz de AD7.3 se guardaba pero las pantallas no la consultaban (solo el descuento).
+- `PermisosService.puede`; `DestinoMenu.permiso` en `navegacion.ts` (vender, cotizar, pedidos, banco, reportes); guarda `conPermiso` en `app.routes.ts`; `MenuLateral` y `NavegacionMovil` filtran destinos. En pantallas: `VentaService.descuentoMaximo` (0 sin permiso, botón y columna apagados), `DetalleVenta` (cancelar/devolver), `Corte` (retiro/ingreso), `Entrada` (pago en efectivo), `Inventario` y `Movimientos` (entradas, ajustes y “Ajustar stock”).
+- Verificado:
+  - Verónica Castillo quita a la cajera vender, descuentos, cancelar, retiros y mercancía, y al jefe cotizar → “Permisos guardados (6 cambios)”
+  - Ana Martínez: el menú ya no tiene Punto de venta y `/cajera/punto-de-venta` regresa a Inicio; Inventario solo tiene “Catálogo” (aunque se pida `?vista=entradas`); en Ventas “Cancelar venta” y “Devolución” desactivados con “Tu rol no tiene permiso para cancelar ventas ni hacer devoluciones”
+  - Jorge López: menú sin Por cotizar ni Garantías, barra de celular con 4 destinos; `/jefe/garantias` regresa a Inicio
+  - descuentos, retiros del corte y pago en efectivo de entradas: solo compilados
+  - `ng build` sin errores (paquete inicial 528 kB)
+
+### 17 nov 2026 · Fotos reales del técnico
+- Pendiente de solo frontend: las fotos del técnico eran cuadros vacíos (en el banco, los modales, su historial, el tablero del jefe y el seguimiento del cliente).
+- `OrdenesService`: `EtapaFoto`, `ETAPAS_FOTO`, `Orden.evidencias`, `evidenciasDe`, `agregarEvidencias` y `quitarEvidencia` (quedan en el historial). `fotosSinGuardar` en `fotos-orden` para los modales.
+- Banco: diagnóstico, taller y tablet guardan al momento; daño adicional, marcar listo, sin reparación, devolver y revisión de garantía al confirmar. Devolver muestra las de recepción reales; T6.2 muestra recepción y salida. Jefe (J2.3) “Del técnico” y portal (presupuesto, adicional y listo). Se borró `tecnico/banco/fotos/`.
+- Verificado:
+  - Luis Ortega (`lortega`, con contraseña nueva de prueba): #1040 en diagnóstico → subir una foto → “1 foto de diagnóstico (Luis Ortega)” en el historial
+  - #1024 en tablet: “Tomar foto” abre la pestaña Fotos (“0 de 6”); Marcar como listo sin nada → “Falta marcar 6 pruebas…” y “Agrega al menos una foto de salida.”; con las pruebas y una foto → la orden queda lista con su foto de salida
+  - María en el portal, #1024: “Tu equipo está listo” con “Así quedó tu equipo:” y la foto
+  - Jorge López, #1040: “Del técnico” con la foto
+  - sin probar en la app: daño adicional, sin reparación, devolver, revisión de garantía, T6.2 y las fotos del presupuesto y del adicional en el portal (solo compilado)
+  - `ng build` sin errores; sin errores en consola
+
+### 17 nov 2026 · Abrir y cerrar turno con un solo monto
+- Pedido del usuario: abrir y cerrar turno escribiendo solo la cantidad (lo que hay o lo que se deja), sin contar por denominación.
+- `AbrirTurno` (C1.3): un campo con `campoDinero`, atajo “Es justo el fondo asignado” y Enter para abrir. `CerrarTurno` (C10.4): “Efectivo que hay en el cajón” (arranca con el arqueo) y el fondo que se queda, también con `campoDinero`. Se quitaron las tablas y su CSS.
+- Verificado como Ana Martínez:
+  - abrir: el cursor queda en el campo; “1500” → “Sobran $500.00 respecto al fondo asignado ($1,000.00)” y $1,500.00; Enter abre el turno con fondo 1500
+  - cerrar: esperado $1,500.00; “1450” → faltante −$50.00; fondo $500.00 → “A gerencia se entregan $950.00”; sin comentario → “No se puede cerrar todavía: Explica la diferencia.”; con comentario sale C-0412 (contado 1450, fondo 500)
+  - `ng build` sin errores; sin errores en consola

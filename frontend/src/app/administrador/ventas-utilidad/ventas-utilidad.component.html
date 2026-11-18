@@ -1,0 +1,104 @@
+<div class="reporte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Ventas y utilidad</h1>
+      <p class="encabezado-pagina__subtitulo">Mostrador y taller juntos · Precios con IVA incluido · Utilidad = venta − costo de lo vendido</p>
+    </div>
+    <div class="acciones">
+      <span class="campo__control campo__control--40 mes">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <select class="campo__input campo__select" aria-label="Mes" (change)="mesId.set($any($event.target).value)">
+          @for (m of meses; track m.id) {
+            <option [value]="m.id" [selected]="m.id === mesId()">{{ m.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+      <button type="button" class="boton boton--contorno boton--40" [disabled]="vacio()" (click)="exportar()"><span class="icono" style="--icono: url(assets/inventario/download-primario.svg)"></span>Exportar Excel</button>
+    </div>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen del mes">
+    @for (i of indicadores(); track i.titulo) {
+      <div class="indicador">
+        <p class="indicador__valor valor--{{ i.tono }}">{{ vacio() ? '—' : i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ vacio() ? 'Sin ventas en el periodo' : i.detalle }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (vacio()) {
+    <!-- AD2.3 · Mes sin ventas -->
+    <div class="sin-datos">
+      <span class="sin-datos__icono"><span class="icono" style="--icono: url(assets/menu/chart.svg)"></span></span>
+      <p class="sin-datos__titulo">Todavía no hay ventas en {{ mes().texto.split(' ')[0].toLowerCase() }}</p>
+      <p class="sin-datos__texto">Cuando caja registre la primera venta del mes, aquí verás las gráficas y la utilidad. Puedes revisar un mes anterior.</p>
+      <button type="button" class="boton boton--contorno boton--40" (click)="verMesAnterior()"><span class="icono" style="--icono: url(assets/inventario/calendar.svg)"></span>Ver {{ meses[1].texto.toLowerCase() }}</button>
+    </div>
+  } @else {
+    <div class="columnas">
+      <div class="izquierda">
+        <section class="panel">
+          <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/chart.svg)"></span>Ventas por semana (miles de pesos)</h2>
+          <div class="grafica" role="img" aria-label="Ventas por semana del mes">
+            @for (s of semanas(); track s.etiqueta) {
+              <div class="grafica__col" [title]="s.etiqueta + ': ' + dinero(s.total)">
+                <span class="grafica__barra" [class.grafica__barra--fuerte]="s.ultima" [style.height.%]="s.alto"></span>
+                <span class="grafica__etiqueta">{{ s.etiqueta }}</span>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="panel crece">
+          <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/wallet.svg)"></span>Utilidad por categoría</h2>
+          <div class="tabla">
+            <table>
+              <thead>
+                <tr><th>Categoría</th><th>Ventas</th><th class="t-costo">Costo</th><th>Utilidad</th><th>Margen</th><th class="t-part">Participación</th></tr>
+              </thead>
+              <tbody>
+                @for (f of categorias(); track f.categoria) {
+                  <tr [class.total]="f.categoria === 'Total'">
+                    <td class="t-nombre">{{ f.categoria }}</td>
+                    <td>{{ f.ventas < 0 ? '− ' + dinero(-f.ventas) : dinero(f.ventas) }}</td>
+                    <td class="t-costo">{{ f.costo ? dinero(f.costo) : '—' }}</td>
+                    <td>{{ f.utilidad < 0 ? '− ' + dinero(-f.utilidad) : dinero(f.utilidad) }}</td>
+                    <td>{{ f.margen === null ? '—' : f.margen + '%' }}</td>
+                    <td class="t-part">{{ f.participacion === null ? '—' : f.participacion + '%' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <aside class="panel lateral">
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/pdv/card.svg)"></span>Cómo se cobró en mostrador</h2>
+        @for (m of metodos(); track m.texto) {
+          <div class="metodo">
+            <p class="dato"><span>{{ m.texto }}</span><strong>{{ dinero(m.monto) }} · {{ m.porcentaje }}%</strong></p>
+            <span class="riel"><span [style.width.%]="m.porcentaje"></span></span>
+          </div>
+        }
+        <div class="separador"></div>
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/users.svg)"></span>Quién cobró</h2>
+        @for (c of cajeras(); track c.nombre) {
+          <p class="dato"><span>{{ c.nombre }} · {{ c.detalle }}</span><strong>{{ dinero(c.monto) }} · {{ c.ventas }} ventas</strong></p>
+        } @empty {
+          <p class="dato"><span>Sin cortes registrados en este mes</span></p>
+        }
+        <div class="separador"></div>
+        <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Devoluciones y cancelaciones</h2>
+        @for (d of devoluciones(); track d.texto) {
+          <p class="dato"><span>{{ d.texto }}</span><strong [class.alerta]="d.alerta">{{ d.valor }}</strong></p>
+        }
+        <p class="aviso aviso--info pie"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>La utilidad de reparaciones descuenta las refacciones usadas a su costo promedio.</p>
+      </aside>
+    </div>
+  }
+</div>

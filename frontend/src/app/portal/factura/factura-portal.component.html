@@ -1,0 +1,107 @@
+<header class="barra">
+  <div class="barra__interior">
+    <a class="atras" [routerLink]="volver" aria-label="Volver"><img src="assets/cajera/chev-r.svg" width="16" height="16" alt="" /></a>
+    <span class="marca"><img src="assets/acceso/logo-shuri.png" width="32" height="32" alt="" /><span><strong>SHURI</strong><small>Reparación y venta</small></span></span>
+    <span class="derecha"><strong>Facturación</strong><small>Autofactura</small></span>
+  </div>
+</header>
+
+<main class="columna">
+  @if (emitida(); as f) {
+    <div class="listo">
+      <img src="assets/iconos/circle-check-lg.svg" width="48" height="48" alt="" />
+      <h1 class="titulo-pagina">Tu factura está lista</h1>
+      <p class="sub">Factura {{ f.serie }}-{{ f.folio.toString().padStart(4, '0') }} · {{ f.origen }} · {{ dinero(f.total) }}</p>
+      <p class="sub">También te la enviamos a tu correo.</p>
+    </div>
+    <div class="descargas">
+      <button type="button" class="boton boton--primario boton--44" (click)="pdf(f)"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>Descargar PDF</button>
+      <button type="button" class="boton boton--contorno boton--44" (click)="xml(f)"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>Descargar XML</button>
+    </div>
+    <a class="enlace enlace-centro" [routerLink]="volver">Volver</a>
+  } @else {
+    <div>
+      <h1 class="titulo-pagina">Solicita tu factura</h1>
+      <p class="sub">Usa el folio y el total de tu ticket o de tu orden. Puedes facturar dentro del mismo mes de la compra.</p>
+    </div>
+
+    @if (!disponible) {
+      <p class="aviso aviso--advertencia" role="status"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>La autofactura no está disponible por ahora. Pide tu factura en caja con tu ticket.</p>
+    }
+
+    <form class="formulario" (submit)="$event.preventDefault(); generar()" novalidate>
+      <div class="dos">
+        <label class="campo">
+          <span class="campo__etiqueta">Folio *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['folio']"><input class="campo__input" maxlength="10" placeholder="#1024 o V-00862" [value]="folio()" (input)="folio.set($any($event.target).value)" /></span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Total pagado *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['total']"><span class="signo">$</span><input class="campo__input" inputmode="decimal" maxlength="12" placeholder="0.00" [value]="total()" (input)="total.set($any($event.target).value)" /></span>
+        </label>
+      </div>
+      @if (intentado() && (errores()['folio'] || errores()['total'])) {
+        <p class="campo__error">{{ errores()['folio'] || errores()['total'] }}</p>
+      }
+      @if (yaFacturada(); as f) {
+        <div class="ya">
+          <button type="button" class="texto-enlace" (click)="pdf(f)">Descargar PDF de {{ f.serie }}-{{ f.folio.toString().padStart(4, '0') }}</button>
+          <button type="button" class="texto-enlace" (click)="xml(f)">XML</button>
+        </div>
+      }
+
+      <label class="campo">
+        <span class="campo__etiqueta">RFC *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['rfc']"><input class="campo__input" maxlength="13" autocomplete="off" [value]="rfc()" (input)="rfc.set($any($event.target).value.toUpperCase())" /></span>
+        @if (intentado() && errores()['rfc']) { <span class="campo__error">{{ errores()['rfc'] }}</span> }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Nombre o razón social *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['razon']"><input class="campo__input" maxlength="120" [value]="razon()" (input)="razon.set($any($event.target).value)" /></span>
+        @if (intentado() && errores()['razon']) { <span class="campo__error">{{ errores()['razon'] }}</span> }
+      </label>
+      <div class="dos">
+        <label class="campo">
+          <span class="campo__etiqueta">C.P. fiscal *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['cp']"><input class="campo__input" inputmode="numeric" maxlength="5" [value]="cp()" (input)="cp.set($any($event.target).value)" /></span>
+        </label>
+        <label class="campo">
+          <span class="campo__etiqueta">Régimen *</span>
+          <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['regimen']">
+            <select class="campo__input campo__select" (change)="regimen.set($any($event.target).value)">
+              <option value="" [selected]="!regimen()">Elige</option>
+              @for (r of regimenes; track r.clave) { <option [value]="r.clave" [selected]="r.clave === regimen()">{{ r.clave }} · {{ r.nombre }}</option> }
+            </select>
+            <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+          </span>
+        </label>
+      </div>
+      @if (intentado() && (errores()['cp'] || errores()['regimen'])) {
+        <p class="campo__error">{{ errores()['cp'] || errores()['regimen'] }}</p>
+      }
+      <label class="campo">
+        <span class="campo__etiqueta">Uso del CFDI *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['uso']">
+          <select class="campo__input campo__select" (change)="uso.set($any($event.target).value)">
+            <option value="" [selected]="!uso()">Elige</option>
+            @for (u of usos; track u.clave) { <option [value]="u.clave" [selected]="u.clave === uso()">{{ u.clave }} · {{ u.nombre }}</option> }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+        @if (intentado() && errores()['uso']) { <span class="campo__error">{{ errores()['uso'] }}</span> }
+      </label>
+
+      <span class="espacio"></span>
+      <label class="acepto">
+        <input type="checkbox" [checked]="acepto()" (change)="acepto.set($any($event.target).checked)" />
+        <span>Acepto el <button type="button" class="texto-enlace" (click)="$event.preventDefault(); privacidad.set(true)">aviso de privacidad</button> de SHURI</span>
+      </label>
+      @if (intentado() && errores()['acepto']) { <span class="campo__error">{{ errores()['acepto'] }}</span> }
+      <button type="submit" class="boton boton--primario boton--bloque" [disabled]="!disponible"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Generar factura</button>
+    </form>
+  }
+</main>
+
+@if (privacidad()) {
+  <app-informacion-modal tipo="privacidad" (cerrar)="privacidad.set(false)" />
+}

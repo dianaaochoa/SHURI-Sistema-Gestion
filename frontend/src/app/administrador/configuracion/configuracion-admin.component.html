@@ -1,0 +1,39 @@
+<div class="pagina">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Configuración</h1>
+      <p class="encabezado-pagina__subtitulo">Datos que aparecen en tickets, documentos, facturas y en el portal del cliente</p>
+    </div>
+    <div class="acciones">
+      @if (conCambios().size) {
+        <button type="button" class="boton boton--contorno boton--40" (click)="descartar()">Descartar</button>
+      }
+      <button type="button" class="boton boton--primario boton--40" [disabled]="!conCambios().size" (click)="guardar()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Guardar cambios</button>
+    </div>
+  </header>
+
+  <nav class="pestanas" aria-label="Secciones de configuración">
+    @for (p of pestanas; track p.id) {
+      <button type="button" [class.activa]="pestana() === p.id" [attr.aria-current]="pestana() === p.id ? 'page' : null" (click)="elegir(p.id)">
+        {{ p.texto }}@if (conCambios().has(p.id)) {<span class="punto" aria-label="con cambios sin guardar"></span>}
+      </button>
+    }
+  </nav>
+
+  @if (error()) {
+    <p class="aviso aviso--error" role="alert"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>{{ error() }}</p>
+  }
+  @if (aviso()) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+  }
+
+  @switch (pestana()) {
+    @case ('negocio') { <app-negocio-tab /> }
+    @case ('cajas') { <app-cajas-tab /> }
+    @case ('documentos') { <app-documentos-tab /> }
+    @case ('taller') { <app-taller-tab /> }
+    @case ('facturacion') { <app-facturacion-tab /> }
+    @case ('mensajes') { <app-mensajes-tab /> }
+    @case ('correo') { <app-correo-tab /> }
+  }
+</div>

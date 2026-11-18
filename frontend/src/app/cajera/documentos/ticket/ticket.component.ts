@@ -1,9 +1,10 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { formatearDinero, formatearFechaCorta, formatearHora } from '../../../compartido/formato';
-import { DIAS_GARANTIA, Orden, sumarDias } from '../../ordenes/ordenes.service';
+import { diasGarantia, Orden, sumarDias } from '../../ordenes/ordenes.service';
 import { calcularTotales, totalLinea } from '../../punto-de-venta/venta.service';
 import { VentaRegistrada, importeDevolucion } from '../../ventas/historial-ventas.service';
 import { Documento, DocumentosService, NEGOCIO } from '../documentos.service';
+import { AJUSTES_TICKET } from '../../../compartido/ajustes-documentos';
 
 const METODOS: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mixto: 'Mixto' };
 const REEMBOLSO: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'A la tarjeta', nota: 'Nota de crédito', cambio: 'Cambio por otro producto' };
@@ -20,6 +21,8 @@ export class TicketComponent {
   readonly doc = input.required<Documento>();
 
   protected readonly negocio = NEGOCIO;
+  /** Encabezado, pie y opciones del ticket (AD9.1). */
+  protected readonly ticket = () => AJUSTES_TICKET;
   protected readonly metodos = METODOS;
   protected readonly reembolso = REEMBOLSO;
   protected readonly totalLinea = totalLinea;
@@ -71,16 +74,16 @@ export class TicketComponent {
 
   /** Garantía de la entrega: del día de entrega a 30 días después. */
   protected garantiaHasta(o: Orden): string {
-    return o.entrega ? formatearFechaCorta(new Date(sumarDias(o.entrega.fecha, DIAS_GARANTIA))) : '';
+    return o.entrega ? formatearFechaCorta(new Date(sumarDias(o.entrega.fecha, diasGarantia()))) : '';
   }
 
   protected venceGarantia(o: Orden): string {
-    return sumarDias(o.entrega!.fecha, DIAS_GARANTIA);
+    return sumarDias(o.entrega!.fecha, diasGarantia());
   }
 
   protected diasGarantia(o: Orden): number {
     if (!o.entrega || !o.garantia) return 0;
-    const vence = new Date(sumarDias(o.entrega.fecha, DIAS_GARANTIA)).getTime();
+    const vence = new Date(sumarDias(o.entrega.fecha, diasGarantia())).getTime();
     return Math.max(0, Math.ceil((vence - new Date(o.garantia.recibida).getTime()) / 86_400_000));
   }
 

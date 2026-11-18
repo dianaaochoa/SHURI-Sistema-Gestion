@@ -1,0 +1,67 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-proveedor" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); guardar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-proveedor">Nuevo proveedor</h2>
+        <p class="modal__subtitulo">Aparecerá en los pedidos del jefe de técnicos y en las entradas de caja</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <label class="campo">
+      <span class="campo__etiqueta">Nombre comercial *</span>
+      <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['nombre']"><input class="campo__input" maxlength="80" [value]="nombre()" (input)="nombre.set($any($event.target).value)" /></span>
+      @if (intentado() && errores()['nombre']) { <span class="campo__error">{{ errores()['nombre'] }}</span> }
+    </label>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">RFC</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['rfc']"><input class="campo__input" maxlength="13" [value]="rfc()" (input)="rfc.set($any($event.target).value)" /></span>
+        @if (intentado() && errores()['rfc']) { <span class="campo__error">{{ errores()['rfc'] }}</span> }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Contacto</span>
+        <span class="campo__control campo__control--40"><input class="campo__input" maxlength="60" [value]="contacto()" (input)="contacto.set($any($event.target).value)" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Teléfono o correo para pedidos *</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['telefono']"><input class="campo__input" maxlength="60" [value]="telefono()" (input)="telefono.set($any($event.target).value)" /></span>
+        @if (intentado() && errores()['telefono']) { <span class="campo__error">{{ errores()['telefono'] }}</span> }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Correo</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['correo']"><input class="campo__input" type="email" maxlength="80" [value]="correo()" (input)="correo.set($any($event.target).value)" /></span>
+        @if (intentado() && errores()['correo']) { <span class="campo__error">{{ errores()['correo'] }}</span> }
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Condición de pago *</span>
+        <span class="campo__control campo__control--40">
+          <select class="campo__input campo__select" (change)="condicion.set($any($event.target).value)">
+            @for (c of condiciones; track c[0]) {
+              <option [value]="c[0]" [selected]="c[0] === condicion()">{{ c[1].texto }}</option>
+            }
+          </select>
+          <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+        </span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Límite de crédito</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['limite']">
+          <input class="campo__input" type="number" min="0" step="100" [disabled]="condicion() === 'contado'" [placeholder]="condicion() === 'contado' ? 'Sin crédito' : '$0.00'" [value]="limite() ?? ''" (input)="limite.set($any($event.target).valueAsNumber)" />
+        </span>
+        @if (intentado() && errores()['limite']) { <span class="campo__error">{{ errores()['limite'] }}</span> }
+      </label>
+    </div>
+
+    <label class="campo">
+      <span class="campo__etiqueta">¿Qué surte?</span>
+      <span class="campo__control campo__control--40"><input class="campo__input" maxlength="80" placeholder="Ej. Pantallas, baterías y flex" [value]="surte()" (input)="surte.set($any($event.target).value)" /></span>
+    </label>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Guardar proveedor</button>
+    </div>
+  </form>
+</div>

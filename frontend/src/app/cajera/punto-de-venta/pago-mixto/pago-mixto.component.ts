@@ -1,4 +1,5 @@
 import { Component, computed, input, model, signal } from '@angular/core';
+import { CampoDineroDirective } from '../../../compartido/campo-dinero.directive';
 import { formatearDinero } from '../../../compartido/formato';
 import { MetodoSimple, ParteMixta, redondear } from '../venta.service';
 
@@ -29,6 +30,7 @@ export function resumenMixto(partes: ParteMixta[], total: number) {
 @Component({
   selector: 'app-pago-mixto',
   standalone: true,
+  imports: [CampoDineroDirective],
   template: `
     @for (parte of partes(); track $index) {
       <div class="parte">
@@ -52,9 +54,9 @@ export function resumenMixto(partes: ParteMixta[], total: number) {
             autocomplete="off"
             placeholder="$0.00"
             [attr.aria-label]="'Monto en ' + info[parte.metodo].titulo"
-            [value]="parte.monto ?? ''"
+            [campoDinero]="parte.monto"
             (focus)="alEnfocar($index)"
-            (input)="cambiar($index, { monto: leerNumero($any($event.target).value) })"
+            (campoDineroChange)="cambiar($index, { monto: $event })"
           />
         </div>
         <button type="button" class="parte__quitar" [attr.aria-label]="'Quitar ' + info[parte.metodo].titulo" [disabled]="partes().length === 1" (click)="quitar($index)">
@@ -129,11 +131,6 @@ export class PagoMixtoComponent {
   protected readonly metodosDisponibles = computed<MetodoSimple[]>(() =>
     this.enLinea() ? ['efectivo', 'tarjeta', 'transferencia'] : ['efectivo', 'tarjeta'],
   );
-
-  protected leerNumero(texto: string): number | null {
-    const limpio = texto.replace(/[^0-9.]/g, '');
-    return limpio ? Number(limpio) : null;
-  }
 
   protected cambiar(indice: number, cambios: Partial<ParteMixta>): void {
     this.partes.update((lista) => lista.map((p, i) => (i === indice ? { ...p, ...cambios } : p)));

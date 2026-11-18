@@ -1,0 +1,47 @@
+<div class="columnas">
+  <section class="panel">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Mensajes automáticos</h2>
+    <p class="nota">Se envían solos cuando la orden cambia de etapa. Elige por qué medio llega cada uno.</p>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Mensaje</th><th class="t-cuando">Cuándo se envía</th><th>Portal</th><th>Correo</th><th>Activo</th><th><span class="oculto">Acciones</span></th></tr></thead>
+        <tbody>
+          @for (m of c().mensajes; track m.id) {
+            <tr [class.elegido]="m.id === elegido()" [class.apagado]="!m.activo">
+              <td class="t-nombre">{{ m.nombre }}</td>
+              <td class="t-cuando">{{ m.cuando }}</td>
+              <td><input type="checkbox" [checked]="m.portal" [attr.aria-label]="m.nombre + ' por portal'" (change)="cambiar(m.id, 'portal', $any($event.target).checked)" /></td>
+              <td><input type="checkbox" [checked]="m.correo" [attr.aria-label]="m.nombre + ' por correo'" (change)="cambiar(m.id, 'correo', $any($event.target).checked)" /></td>
+              <td><input type="checkbox" [checked]="m.activo" [attr.aria-label]="m.nombre + ' activo'" (change)="cambiar(m.id, 'activo', $any($event.target).checked)" /></td>
+              <td><button type="button" class="enlace-accion" (click)="elegido.set(m.id)">Editar</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="panel lateral">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/iconos/smartphone.svg)"></span>Vista previa · {{ mensaje().nombre }}</h2>
+    <label class="campo">
+      <span class="campo__etiqueta">Texto del mensaje</span>
+      <textarea #area class="campo__area" rows="4" maxlength="320" [value]="mensaje().texto" (input)="cambiar(mensaje().id, 'texto', $any($event.target).value)"></textarea>
+    </label>
+    <div class="variables">
+      @for (v of variables; track v) {
+        <button type="button" class="variable" (click)="insertar(area, v)">{{ v }}</button>
+      }
+    </div>
+    @if (vista().faltan.length) {
+      <p class="nota">Sin {{ '{enlace}' }} el cliente no tendrá botón para abrir su orden.</p>
+    }
+    <div class="burbuja-fondo">
+      <div class="burbuja">
+        <p>{{ vista().texto }}</p>
+        <small>11:42 · {{ vista().medios }}</small>
+      </div>
+    </div>
+    <span class="espacio"></span>
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Cada aviso aparece en el portal y llega por correo con un botón para abrir la orden. Si el cliente responde, su mensaje entra al chat del jefe de técnicos.</p>
+  </aside>
+</div>

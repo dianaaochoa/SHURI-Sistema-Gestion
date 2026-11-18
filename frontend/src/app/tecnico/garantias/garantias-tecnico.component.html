@@ -1,0 +1,62 @@
+@if (revisando(); as o) {
+  <app-revision-garantia [orden]="o" (volver)="volver($event)" />
+} @else {
+  <div class="lista-pagina">
+    <header class="encabezado-pagina">
+      <div>
+        <h1 class="encabezado-pagina__titulo">Garantías</h1>
+        <p class="encabezado-pagina__subtitulo">Equipos que regresaron dentro de su periodo de garantía. Revisa el equipo y envía tu reporte; el jefe de técnicos decide si aplica.</p>
+      </div>
+    </header>
+
+    <section class="indicadores" aria-label="Resumen">
+      @for (i of indicadores(); track i.titulo) {
+        <button type="button" class="indicador indicador--boton" [class.indicador--activo]="i.vista !== 'todas' && vista() === i.vista" (click)="elegir(i.vista)">
+          <span class="indicador__valor indicador__valor--conteo valor--{{ i.tono }}">{{ i.valor }}</span>
+          <span>
+            <span class="indicador__titulo">{{ i.titulo }}</span>
+            <span class="indicador__detalle">{{ i.detalle }}</span>
+          </span>
+        </button>
+      }
+    </section>
+
+    <nav class="pestanas" aria-label="Vistas">
+      @for (p of pestanas(); track p.id) {
+        <button type="button" class="pestana" [class.pestana--activa]="p.id === vista()" [attr.aria-current]="p.id === vista() ? 'page' : null" (click)="elegir(p.id)">{{ p.texto }}</button>
+      }
+    </nav>
+
+    @if (aviso()) {
+      <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+    }
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Folio</th><th>Cliente</th><th class="t-equipo">Equipo</th><th class="t-original">Reparación original</th><th class="t-detalle">Falla reportada</th><th class="t-vence">Días restantes</th><th>Estado</th><th class="t-accion">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of renglones(); track r.o.folio) {
+            <tr [class.por-revisar]="r.etapa.accion === 'Revisar'" tabindex="0" (click)="abrir(r.o)" (keydown.enter)="abrir(r.o)">
+              <td class="t-folio">{{ r.o.folio }}</td>
+              <td>{{ r.o.cliente.nombre }}</td>
+              <td class="t-equipo">{{ r.o.equipo }}</td>
+              <td class="t-original">{{ r.original }}</td>
+              <td class="t-detalle">{{ r.falla }}</td>
+              <td class="t-vence">{{ r.dias }}</td>
+              <td><span class="estado estado--{{ r.etapa.tono }}">{{ r.etapa.texto }}</span></td>
+              <td class="t-accion"><button type="button" class="enlace-accion" (click)="$event.stopPropagation(); abrir(r.o)">{{ r.etapa.accion }}</button></td>
+            </tr>
+          } @empty {
+            <tr><td class="vacio" colspan="8">No tienes garantías aquí.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/shield.svg)"></span>El dictamen (aplica / no aplica) lo da el jefe de técnicos. Si aplica, la orden regresa a tu banco con el mismo folio y sin costo para el cliente.</p>
+  </div>
+}

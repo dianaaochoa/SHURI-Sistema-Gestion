@@ -1,0 +1,65 @@
+/* Figma AD1.1: indicadores, columna de 772 px con gráfica, reparto y tabla, y "Atención" de 420 px. */
+:host { display: block; }
+.inicio { display: flex; flex-direction: column; gap: 16px; min-height: 100%; }
+.acciones { display: flex; gap: 8px; }
+.periodo { gap: 8px; width: 140px; }
+.boton .icono, .panel__titulo .icono { width: 16px; height: 16px; }
+.panel__titulo .icono { color: var(--color-primario); }
+.indicadores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.valor--exito { color: var(--color-exito); }
+.valor--primario { color: var(--color-primario); }
+.valor--advertencia { color: var(--color-advertencia); }
+
+.columnas { display: flex; flex: 1; gap: 16px; }
+.izquierda { display: flex; flex: 1; flex-direction: column; gap: 16px; min-width: 0; }
+.panel { gap: 12px; }
+.crece { flex: 1; }
+
+.grafica { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding-top: 8px; }
+.grafica__dia { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
+.grafica__barra { width: 100%; max-width: 24px; border-radius: 4px 4px 0 0; background: #a6d8de; }
+.grafica__barra--hoy { background: var(--color-primario); }
+.grafica__etiqueta { font-size: 10px; color: var(--color-texto-tenue); }
+.resumen-mes { display: flex; flex-wrap: wrap; gap: 8px 32px; font-size: 12px; color: var(--color-texto-tenue); }
+.resumen-mes strong { margin-left: 6px; color: var(--color-marino); }
+.resumen-mes .sube { color: var(--color-exito); }
+.resumen-mes .baja { color: var(--color-peligro); }
+
+.barra-origen { display: flex; height: 12px; overflow: hidden; border-radius: 999px; background: var(--color-borde); }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 12px; color: var(--color-texto-secundario); }
+.leyenda i { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 999px; }
+
+.tabla { overflow-x: auto; border: 1px solid var(--color-borde); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--color-marino); }
+th { padding: 12px 16px; background: var(--color-fondo); font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap; }
+td { padding: 12px 16px; border-top: 1px solid var(--color-borde); white-space: nowrap; }
+.t-nombre { font-weight: 600; white-space: normal; }
+.vacio { font-size: 13px; color: var(--color-texto-tenue); }
+
+.atencion { width: 420px; flex-shrink: 0; }
+.aviso-admin { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--color-borde); border-radius: 8px; text-decoration: none; }
+.aviso-admin:hover { border-color: var(--color-primario); }
+.aviso-admin__icono { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; }
+.aviso-admin__icono .icono { width: 18px; height: 18px; }
+.aviso-admin__icono--peligro { background: var(--color-peligro-suave); color: var(--color-peligro); }
+.aviso-admin__icono--advertencia { background: var(--color-advertencia-suave); color: var(--color-advertencia); }
+.aviso-admin__icono--info { background: var(--color-primario-suave); color: var(--color-primario); }
+.aviso-admin__texto { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; font-size: 11px; color: var(--color-texto-tenue); }
+.aviso-admin__texto strong { font-size: 13px; font-weight: 600; color: var(--color-marino); }
+.garantias { margin-top: auto; }
+.garantias .icono { width: 16px; height: 16px; }
+
+@media (max-width: 1280px) {
+  .indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .columnas { flex-direction: column; }
+  .atencion { width: auto; }
+}
+
+@media (max-width: 768px) {
+  .encabezado-pagina { flex-wrap: wrap; }
+  .acciones { flex: 1 1 100%; }
+  .periodo { flex: 1; }
+  .indicadores { gap: 8px; }
+  .indicador { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; white-space: normal; }
+  .grafica { gap: 4px; }
+}

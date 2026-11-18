@@ -1,0 +1,5 @@
+.fila-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.crece { flex: 1; }
+.nota { font-size: 13px; color: var(--color-texto-secundario); }
+.campo__control { gap: 8px; }
+.boton-grande:disabled { opacity: 0.6; }

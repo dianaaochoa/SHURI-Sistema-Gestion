@@ -1,0 +1,18 @@
+/* Figma AD5.1 · usa ../reportes.css; detalle del proveedor de 400 px a la derecha */
+.columnas { display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; align-items: stretch; }
+.izquierda { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tabla { background: var(--color-superficie); }
+tbody tr[tabindex] { cursor: pointer; }
+tbody tr[tabindex]:hover, tr.elegido { background: var(--color-primario-suave); }
+.t-surte, .t-pago { white-space: normal; }
+.deuda--si { color: var(--color-advertencia); font-weight: 700; }
+.vacio { color: var(--color-texto-tenue); }
+.lateral { gap: 14px; }
+.lateral .aviso { align-items: flex-start; }
+.lateral .aviso--advertencia .icono { color: inherit; }
+.pie { display: flex; flex-direction: column; gap: 10px; }
+.grande { width: 100%; height: 44px; justify-content: center; }
+
+@media (max-width: 1280px) { .columnas { grid-template-columns: minmax(0, 1fr) 340px; } .t-contacto, .t-origen { display: none; } }
+@media (max-width: 1024px) { .columnas { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .t-surte, .t-cond, .t-pago { display: none; } }

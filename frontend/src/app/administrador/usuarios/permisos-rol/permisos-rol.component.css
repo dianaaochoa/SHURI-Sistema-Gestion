@@ -1,0 +1,24 @@
+/* Figma AD7.3 · usa ../../reportes.css */
+.tabla { background: var(--color-superficie); }
+.t-permiso { white-space: normal; }
+.celda { display: inline-flex; align-items: center; gap: 8px; }
+.celda input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-primario); cursor: pointer; }
+.celda input:disabled { cursor: not-allowed; }
+.nota { font-size: 11px; color: var(--color-texto-tenue); }
+.nivel { gap: 4px; height: 28px; padding: 0 8px; border-color: var(--color-primario); }
+.nivel select { font-size: 12px; font-weight: 600; color: var(--color-primario); }
+.aviso--info { background: var(--color-primario-suave); }
+.corto { display: none; }
+
+@media (max-width: 768px) {
+  .acciones { flex-wrap: wrap; }
+  .acciones .boton { flex: 1 1 100%; justify-content: center; }
+  .celda { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .nota { font-size: 10px; }
+  .nivel { padding: 0 2px; }
+  .nivel select { width: 58px; font-size: 10px; text-overflow: ellipsis; }
+  .nivel img { display: none; }
+  th { font-size: 10px; }
+  .largo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .corto { display: inline; }
+}

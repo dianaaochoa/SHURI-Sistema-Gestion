@@ -46,8 +46,7 @@
                 inputmode="decimal"
                 autocomplete="off"
                 placeholder="$0.00"
-                [value]="recibido() === null ? '' : recibido()"
-                (input)="recibido.set(leerNumero($any($event.target).value))"
+                [(campoDinero)]="recibido"
               />
             </div>
           </div>
@@ -161,8 +160,8 @@
                 class="campo__input"
                 inputmode="decimal"
                 autocomplete="off"
-                [value]="montoTransferencia() ?? total()"
-                (input)="montoTransferencia.set(leerNumero($any($event.target).value))"
+                [campoDinero]="montoTransferencia() ?? total()"
+                (campoDineroChange)="montoTransferencia.set($event)"
               />
             </div>
           </div>

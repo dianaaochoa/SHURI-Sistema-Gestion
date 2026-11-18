@@ -1,0 +1,18 @@
+/* Figma AD9.6 */
+.t-nombre { font-weight: 600; white-space: nowrap; }
+tr.elegido { background: var(--color-primario-suave); }
+tr.apagado td:not(:last-child) { color: var(--color-texto-tenue); }
+.lateral { align-self: stretch; }
+.variables { display: flex; flex-wrap: wrap; gap: 6px; }
+.variable { padding: 3px 8px; border: 0; border-radius: 6px; background: var(--color-primario-suave); font: inherit; font-size: 12px; font-weight: 600; color: var(--color-primario); cursor: pointer; }
+.burbuja-fondo { padding: 14px; border-radius: 10px; background: #e3efe7; }
+.burbuja { padding: 12px; border-radius: 8px; background: var(--color-superficie); font-size: 12px; color: var(--color-marino); overflow-wrap: anywhere; }
+.burbuja small { display: block; margin-top: 6px; font-size: 10px; color: var(--color-texto-tenue); }
+.espacio { flex: 1; }
+
+@media (max-width: 1280px) { .t-cuando { display: none; } }
+@media (max-width: 768px) {
+  .t-nombre { white-space: normal; }
+  th, td { padding: 8px 6px; }
+  th { white-space: normal; }
+}

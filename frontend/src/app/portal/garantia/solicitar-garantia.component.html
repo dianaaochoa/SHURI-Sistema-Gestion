@@ -1,0 +1,42 @@
+<div class="fondo" (click)="cerrar.emit()">
+  <form class="hoja" role="dialog" aria-modal="true" aria-labelledby="titulo-garantia" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); enviar()">
+    <span class="hoja__asa" aria-hidden="true"></span>
+    <div class="hoja__encabezado">
+      <div>
+        <h2 id="titulo-garantia">Solicitar garantía</h2>
+        <p class="tenue">Folio {{ orden().folio }} · {{ orden().equipo }}</p>
+      </div>
+      <button type="button" class="cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+    <p class="activa"><span class="icono" style="--icono: url(assets/menu/history.svg)"></span>{{ garantia().texto }}</p>
+
+    <label class="campo">
+      <span class="campo__etiqueta">¿Qué falla presenta tu equipo? *</span>
+      <textarea class="campo__area" rows="3" maxlength="300" placeholder="Ej. El equipo volvió a dejar de cargar desde ayer." [class.error]="intentado() && !falla().trim()" [value]="falla()" (input)="falla.set($any($event.target).value)"></textarea>
+      @if (intentado() && !falla().trim()) { <span class="campo__error">Cuéntanos qué falla presenta.</span> }
+    </label>
+    <label class="campo">
+      <span class="campo__etiqueta">¿Cuándo empezó la falla?</span>
+      <span class="campo__control campo__control--40"><input class="campo__input" type="date" [min]="garantia().minimo" [max]="hoy" [value]="desde()" (input)="desde.set($any($event.target).value)" /></span>
+    </label>
+
+    <label class="fotos" [class.fotos--llena]="fotos().length >= 3">
+      <span class="icono" style="--icono: url(assets/inventario/image-primario.svg)"></span>
+      {{ fotos().length ? 'Agregar otra foto (' + fotos().length + ' de 3)' : 'Agregar fotos de la falla (opcional)' }}
+      <input type="file" accept="image/*" multiple class="oculto" [disabled]="fotos().length >= 3" (change)="elegirFotos($any($event.target))" />
+    </label>
+    @if (fotos().length) {
+      <ul class="lista-fotos">
+        @for (f of fotos(); track i; let i = $index) {
+          <li><span>{{ f }}</span><button type="button" class="quitar" [attr.aria-label]="'Quitar ' + f" (click)="quitarFoto(i)">Quitar</button></li>
+        }
+      </ul>
+    }
+
+    <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Lleva tu equipo a SHURI con el folio {{ orden().folio }}. Si el técnico detecta un daño nuevo (golpe, humedad), te cotizaremos un costo extra antes de repararlo.</p>
+    <div class="acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44">Enviar solicitud</button>
+    </div>
+  </form>
+</div>

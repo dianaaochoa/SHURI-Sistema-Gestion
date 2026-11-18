@@ -1,7 +1,8 @@
 import { Component, DestroyRef, ElementRef, computed, inject, output, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatearDinero } from '../../../compartido/formato';
-import { CATALOGO, Producto } from '../catalogo.datos';
+import { InventarioService, disponible } from '../../inventario/inventario.service';
+import { Producto } from '../catalogo.datos';
 import { DispositivosService } from '../dispositivos.service';
 import { IVA, VentaService } from '../venta.service';
 
@@ -28,6 +29,7 @@ export class BarraBusquedaComponent {
   readonly temporal = output<{ nombre: string; precio: number | null }>();
 
   private readonly venta = inject(VentaService);
+  private readonly inventario = inject(InventarioService);
   private readonly campo = viewChild.required<ElementRef<HTMLInputElement>>('campo');
   protected readonly dinero = formatearDinero;
 
@@ -40,9 +42,20 @@ export class BarraBusquedaComponent {
   protected readonly resultados = computed(() => {
     const texto = sinAcentos(this.busqueda().trim());
     if (texto.length < 2) return [];
-    return CATALOGO.filter(
-      (p) => sinAcentos(p.nombre).includes(texto) || sinAcentos(p.sku).includes(texto) || p.codigoBarras === texto,
-    );
+    // Nombres, precios y disponibles salen de Inventario (C7): lo que cambia el administrador (AD4)
+    // se cobra desde ese momento. Lo de uso interno del taller no se vende en mostrador.
+    return this.inventario
+      .productos()
+      .filter((p) => !p.usoInterno && (sinAcentos(p.nombre).includes(texto) || sinAcentos(p.sku).includes(texto) || p.codigoBarras === texto))
+      .map((p): Producto => ({
+        sku: p.sku,
+        nombre: p.nombre,
+        categoria: p.categoria,
+        // Inventario guarda el precio al público con IVA; el ticket va antes de IVA (sin redondear, para que el total cuadre).
+        precio: p.precio / (1 + IVA),
+        disponibles: disponible(p),
+        codigoBarras: p.codigoBarras,
+      }));
   });
   protected readonly abierta = computed(() => this.busqueda().trim().length >= 2);
   protected readonly esCodigo = computed(() => /^\d{6,}$/.test(this.busqueda().trim()));

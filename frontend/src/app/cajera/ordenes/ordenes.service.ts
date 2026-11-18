@@ -1,4 +1,8 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { CorreosService } from '../../compartido/correos.service';
+import type { CORREOS } from '../../compartido/correos';
+import type { FotoOrden } from '../../compartido/fotos-orden/fotos-orden.component';
+import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { redondear } from '../punto-de-venta/venta.service';
 
 export type EstadoOrden =
@@ -78,6 +82,24 @@ export interface Adicional {
   monto: number;
 }
 
+/** Etapa de una foto del técnico. */
+export type EtapaFoto = 'diagnostico' | 'reparacion' | 'adicional' | 'salida' | 'sin-reparar' | 'devolucion' | 'garantia';
+export const ETAPAS_FOTO: Record<EtapaFoto, string> = {
+  diagnostico: 'Diagnóstico',
+  reparacion: 'Reparación',
+  adicional: 'Daño adicional',
+  salida: 'Salida',
+  'sin-reparar': 'Sin reparación',
+  devolucion: 'Devolución',
+  garantia: 'Revisión de garantía',
+};
+export type FotoEvidencia = FotoOrden & { etapa: EtapaFoto };
+
+/** Fotos del técnico de esas etapas (todas si no se dice cuáles). */
+export function evidenciasDe(o: Pick<Orden, 'evidencias'>, ...etapas: EtapaFoto[]): FotoEvidencia[] {
+  return (o.evidencias ?? []).filter((f) => !etapas.length || etapas.includes(f.etapa));
+}
+
 export interface Orden {
   folio: string;
   /** ISO */
@@ -107,6 +129,10 @@ export interface Orden {
   garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string; reporte?: ReporteGarantia; decision?: DecisionGarantia };
   /** Lo que se capturó en la recepción (C5.1); lo usan la orden impresa y sus comprobantes (C11). */
   ficha?: FichaRecepcion;
+  /** Fotos del equipo al recibirlo (C5.1 / C4); las ven el técnico, el jefe y el cliente (P2.1). */
+  fotos?: FotoOrden[];
+  /** Fotos que sube el técnico, por etapa (T3, T4, T7). */
+  evidencias?: FotoEvidencia[];
   /** Lo define el jefe al asignar (J2.2); sin valor = normal. */
   prioridad?: Prioridad;
   /** ISO: fecha prometida al cliente (J2.2). */
@@ -118,7 +144,7 @@ export interface Orden {
   /** Daño encontrado durante la reparación; el jefe lo re-cotiza (J3.4). */
   danoAdicional?: { fecha: string; texto: string; urgente: boolean; conceptos: Concepto[] };
   /** Política de bodega (J8.2): almacenaje que caja cobra al entregar, o perdonado por el jefe. */
-  almacenaje?: { dias: number; monto: number; por: string; perdonado?: boolean };
+  almacenaje?: { dias: number; monto: number; por: string; perdonado?: boolean; fecha?: string; /** Lo que se perdonó (para la bitácora AD8). */ importe?: number };
   /** Cobro de revisión de un equipo sin reparación (J3.3). Sin valor: la revisión es el anticipo. */
   revision?: { cobrar: boolean; monto: number };
   /** Orden en pausa (J2.3): desde cuándo y por qué. */
@@ -126,6 +152,8 @@ export interface Orden {
   /** Notas internas del taller (no las ve el cliente). */
   notas?: Evento[];
   bodega?: { ubicacion: string; estante: string; enviado: string; por: string };
+  /** ISO: el técnico armó el equipo con presupuesto rechazado y lo devolvió a caja (T3.9). */
+  devueltoACaja?: string;
   historial: Evento[];
   /** Avisos y recordatorios al cliente (C4.6 "Intentos de contacto"). */
   contactos: Evento[];
@@ -156,6 +184,8 @@ export interface DecisionGarantia {
   concepto?: string;
   costo?: number;
   por: string;
+  /** Con costo: lo que respondió el cliente en su portal (P3.2). */
+  respuesta?: { fecha: string; acepta: boolean };
 }
 
 export interface FichaRecepcion {
@@ -170,6 +200,8 @@ export interface FichaRecepcion {
   falla?: string;
   /** Contraseña temporal del portal que se imprimió con la orden. */
   contrasena?: string;
+  /** PIN o patrón del equipo: no se imprime, solo lo ve el técnico en su banco (T3). */
+  pin?: string;
 }
 
 /** Técnico de una orden recién recibida: la asigna el jefe de taller (C5.3). */
@@ -188,6 +220,9 @@ export interface NuevaOrden {
   condicion: string;
   anticipo: number;
   metodoAnticipo: string;
+  pin?: string;
+  /** Fotos ya reducidas (C5.1). */
+  fotos?: { url: string; nombre: string }[];
 }
 
 export const TECNICOS: Tecnico[] = [
@@ -197,8 +232,9 @@ export const TECNICOS: Tecnico[] = [
 ];
 
 /** Días para recoger antes de pasar a bodega y días de garantía (reglas de Figma C4). */
-export const DIAS_PARA_RECOGER = 30;
-export const DIAS_GARANTIA = 30;
+/** Plazo para recoger y días de garantía: los fija Configuración del taller (J9). */
+export const diasParaRecoger = () => REGLAS_TALLER.diasSinCobro;
+export const diasGarantia = () => REGLAS_TALLER.garantiaDias;
 
 export const ESTADOS_ORDEN: Record<EstadoOrden, { texto: string; tono: string; paso: number }> = {
   'por-cotizar': { texto: 'Por cotizar', tono: 'neutro', paso: 2 },
@@ -237,7 +273,7 @@ export const sumarDias = (iso: string, dias: number) => new Date(new Date(iso).g
 /** Días de garantía que le quedan a una orden entregada (0 si ya venció). */
 export function garantiaRestante(orden: Orden): number {
   if (!orden.entrega || orden.estado === 'sin-reparar-entregada') return 0;
-  return Math.max(0, DIAS_GARANTIA - diasDesde(orden.entrega.fecha));
+  return Math.max(0, diasGarantia() - diasDesde(orden.entrega.fecha));
 }
 
 /** Etiqueta de estado de la tabla: "Terminado · garantía" mientras la garantía sigue vigente (Figma C4.1). */
@@ -251,7 +287,10 @@ export function saldo(orden: Orden): number {
   // Almacenaje de la política de bodega (J8.2): se suma a lo que falta cobrar al entregar.
   const almacenaje = ENTREGABLES.includes(orden.estado) ? (orden.almacenaje?.monto ?? 0) : 0;
   if (orden.estado === 'sin-reparacion' && orden.revision?.cobrar) return redondear(Math.max(0, orden.revision.monto - orden.anticipo) + almacenaje);
-  if (['sin-reparacion', 'garantia-lista', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return almacenaje;
+  // Garantía con costo extra que el cliente aceptó (P3.2): se cobra al entregar.
+  const extra = orden.garantia?.decision?.tipo === 'con-costo' && orden.garantia.decision.respuesta?.acepta ? (orden.garantia.decision.costo ?? 0) : 0;
+  if (orden.estado === 'garantia-lista') return redondear(extra + almacenaje);
+  if (['sin-reparacion', 'sin-reparar-entregada'].includes(orden.estado) || !orden.presupuesto) return almacenaje;
   return redondear(Math.max(0, orden.presupuesto.total - orden.anticipo) + almacenaje);
 }
 
@@ -792,6 +831,22 @@ const ahoraIso = () => new Date().toISOString();
 @Injectable({ providedIn: 'root' })
 export class OrdenesService {
   readonly ordenes = signal<Orden[]>(ordenesDemo());
+  private readonly correos = inject(CorreosService);
+
+  /** P6 · Correo al cliente con la orden ya actualizada. */
+  private correo(folio: string, armar: (o: Orden, plantillas: typeof CORREOS) => Parameters<CorreosService['enviar']>[0] | null): void {
+    const o = this.ordenes().find((x) => x.folio === folio);
+    if (!o?.cliente.correo) return;
+    // Las plantillas se cargan al primer envío para no crecer el paquete inicial.
+    import('../../compartido/correos').then(({ CORREOS: plantillas }) => {
+      const c = armar(o, plantillas);
+      if (c) this.correos.enviar(c);
+    });
+  }
+
+  private limiteRecoger(o: Orden): string {
+    return new Date(new Date(o.listaDesde ?? Date.now()).getTime() + REGLAS_TALLER.diasSinCobro * 86_400_000).toISOString();
+  }
 
   /** Folio que tendrá la siguiente orden (C5.1 "Nueva orden #1044"). */
   readonly siguienteFolio = computed(() => {
@@ -819,8 +874,9 @@ export class OrdenesService {
       accesorios: datos.accesorios || 'Ninguno',
       anticipo: datos.anticipo,
       metodoAnticipo: datos.anticipo > 0 ? datos.metodoAnticipo.toLowerCase() : undefined,
-      ficha: { tipo: datos.tipo, marca: datos.marca, modelo: datos.modelo, color: datos.color, condicion: datos.condicion.trim(), recibio: cajera, contrasena },
-      historial,
+      ficha: { tipo: datos.tipo, marca: datos.marca, modelo: datos.modelo, color: datos.color, condicion: datos.condicion.trim(), recibio: cajera, contrasena, pin: datos.pin?.trim() || undefined },
+      fotos: datos.fotos?.length ? datos.fotos.slice(0, 6).map((f, i) => ({ ...f, id: `${this.siguienteFolio()}-${i}`, fecha: ahora, por: cajera })) : undefined,
+      historial: datos.fotos?.length ? [...historial, { fecha: ahora, texto: `${datos.fotos.length === 1 ? '1 foto' : `${Math.min(6, datos.fotos.length)} fotos`} del equipo al recibirlo` }] : historial,
       contactos: datos.cliente.correo ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
     };
     this.ordenes.update((lista) => [orden, ...lista]);
@@ -828,7 +884,8 @@ export class OrdenesService {
   }
 
   /** C4.2 / C4.8: respuesta del cliente registrada en mostrador. */
-  registrarRespuesta(folio: string, aprobo: boolean, nota: string, cajera: string): void {
+  registrarRespuesta(folio: string, aprobo: boolean, nota: string, cajera: string, desdePortal = false): void {
+    const donde = desdePortal ? 'en el portal' : `en sucursal por ${cajera}`;
     this.actualizar(folio, (o) => {
       const sufijo = nota.trim() ? ` · “${nota.trim()}”` : '';
       if (o.estado === 'adicional' && o.adicional && o.presupuesto) {
@@ -838,7 +895,7 @@ export class OrdenesService {
           estado: 'en-taller',
           presupuesto,
           adicional: undefined,
-          historial: [...o.historial, { fecha: ahoraIso(), texto: `Adicional ${aprobo ? 'aprobado' : 'rechazado'} en sucursal por ${cajera}${sufijo}` }],
+          historial: [...o.historial, { fecha: ahoraIso(), texto: `Adicional ${aprobo ? 'aprobado' : 'rechazado'} ${donde}${sufijo}` }],
         };
       }
       return {
@@ -848,7 +905,7 @@ export class OrdenesService {
         presupuesto: o.presupuesto && aprobo ? { ...o.presupuesto, aprobado: ahoraIso() } : o.presupuesto,
         listaDesde: aprobo ? o.listaDesde : ahoraIso(),
         trabajo: aprobo ? o.trabajo : 'Sin reparación · el cliente no aprobó',
-        historial: [...o.historial, { fecha: ahoraIso(), texto: `${aprobo ? 'Aprobado' : 'Rechazado'} en sucursal por ${cajera}${sufijo}` }],
+        historial: [...o.historial, { fecha: ahoraIso(), texto: `${aprobo ? 'Aprobado' : 'Rechazado'} ${donde}${sufijo}` }],
       };
     });
   }
@@ -862,6 +919,87 @@ export class OrdenesService {
       garantia: { recibida: ahoraIso(), falla: falla.trim(), dictamen: 'En revisión', resolucion: '', condicion: condicion.trim() || undefined, recibio: cajera },
       historial: [...o.historial, { fecha: ahoraIso(), texto: `Recibido en garantía por ${cajera}: ${falla.trim()}` }],
     }));
+  }
+
+  /** P3.1 · El cliente pide la garantía desde su portal; lleva el equipo al taller con el mismo folio. */
+  solicitarGarantiaPortal(folio: string, falla: string, desde: string, fotos: number): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      estado: 'en-garantia',
+      garantia: { recibida: ahora, falla: `${falla.trim()}${desde ? ` (desde el ${desde})` : ''}`, dictamen: 'En revisión', resolucion: '' },
+      historial: [...o.historial, { fecha: ahora, texto: `Garantía solicitada desde el portal${fotos ? ` con ${fotos} ${fotos === 1 ? 'foto' : 'fotos'}` : ''}` }],
+    }));
+  }
+
+  /** P3.2 · El cliente acepta o rechaza el costo extra del dictamen. Si rechaza, se devuelve sin reparar. */
+  responderGarantia(folio: string, acepta: boolean): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const d = o.garantia?.decision;
+      if (!o.garantia || !d || d.tipo !== 'con-costo' || d.respuesta) return o;
+      const decision = { ...d, respuesta: { fecha: ahora, acepta } };
+      return {
+        ...o,
+        estado: acepta ? o.estado : 'garantia-lista',
+        listaDesde: acepta ? o.listaDesde : ahora,
+        garantia: { ...o.garantia, decision, resolucion: acepta ? o.garantia.resolucion : 'Se devuelve sin reparar: el cliente rechazó el costo extra.' },
+        historial: [...o.historial, { fecha: ahora, texto: acepta ? `Costo extra de $${(d.costo ?? 0).toFixed(2)} aceptado en el portal` : 'Costo extra rechazado en el portal: se devuelve sin reparar' }],
+      };
+    });
+  }
+
+  /** C4 · Más fotos de recepción después de registrar la orden (máximo 6). */
+  /** C8.2 · Al editar un cliente, sus órdenes toman el nombre, teléfono y correo nuevos (los avisos por correo usan los de la orden). */
+  actualizarCliente(esSuya: (o: Orden) => boolean, datos: Orden['cliente']): number {
+    let cambiadas = 0;
+    this.ordenes.update((lista) =>
+      lista.map((o) => {
+        if (!esSuya(o)) return o;
+        const cliente = { ...o.cliente, ...datos };
+        if (cliente.nombre === o.cliente.nombre && cliente.telefono === o.cliente.telefono && cliente.correo === o.cliente.correo) return o;
+        cambiadas++;
+        return { ...o, cliente };
+      }),
+    );
+    return cambiadas;
+  }
+
+  agregarFotos(folio: string, fotos: { url: string; nombre: string }[], por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const nuevas = fotos.slice(0, Math.max(0, 6 - (o.fotos?.length ?? 0))).map((f, i) => ({ ...f, id: `${o.folio}-${Date.now()}-${i}`, fecha: ahora, por }));
+      if (!nuevas.length) return o;
+      return { ...o, fotos: [...(o.fotos ?? []), ...nuevas], historial: [...o.historial, { fecha: ahora, texto: `${nuevas.length === 1 ? 'Foto de recepción agregada' : `${nuevas.length} fotos de recepción agregadas`} por ${por}` }] };
+    });
+  }
+
+  /** Fotos del técnico (diagnóstico, reparación, salida…). Quedan en el historial con su nombre. */
+  agregarEvidencias(folio: string, etapa: EtapaFoto, fotos: { url: string; nombre: string }[], por: string): void {
+    if (!fotos.length) return;
+    const ahora = ahoraIso();
+    const marca = Date.now();
+    this.actualizar(folio, (o) => {
+      const nuevas: FotoEvidencia[] = fotos.map((f, i) => ({ ...f, id: `${folio}-${etapa}-${marca}-${i}`, fecha: ahora, por, etapa }));
+      const texto = `${nuevas.length === 1 ? '1 foto' : `${nuevas.length} fotos`} de ${ETAPAS_FOTO[etapa].toLowerCase()} (${por})`;
+      return { ...o, evidencias: [...(o.evidencias ?? []), ...nuevas], historial: [...o.historial, { fecha: ahora, texto }] };
+    });
+  }
+
+  quitarEvidencia(folio: string, id: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const foto = o.evidencias?.find((f) => f.id === id);
+      if (!foto) return o;
+      return { ...o, evidencias: o.evidencias!.filter((f) => f.id !== id), historial: [...o.historial, { fecha: ahora, texto: `Foto de ${ETAPAS_FOTO[foto.etapa].toLowerCase()} quitada (${por})` }] };
+    });
+  }
+
+  quitarFoto(folio: string, id: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) =>
+      o.fotos?.some((f) => f.id === id) ? { ...o, fotos: o.fotos.filter((f) => f.id !== id), historial: [...o.historial, { fecha: ahora, texto: `Foto de recepción quitada por ${por}` }] } : o,
+    );
   }
 
   /** C4.7 */
@@ -897,11 +1035,16 @@ export class OrdenesService {
         return { ...o, estado: 'terminada', historial: evento(`Entregado tras garantía a ${entrega.recoge}`), contactos };
       }
       if (o.estado === 'sin-reparacion') {
+        // Revisión que se queda el taller; si el anticipo era mayor, el resto se devuelve en efectivo y sale de la caja (C10).
+        const revision = o.revision ? (o.revision.cobrar ? o.revision.monto : 0) : o.anticipo;
+        const devuelto = Math.max(0, redondear(o.anticipo - revision));
+        const cobrado = redondear(entrega.pagado - devuelto);
+        const nota = devuelto ? ` · se devolvieron $${devuelto.toFixed(2)} del anticipo en efectivo` : '';
         return {
           ...o,
           estado: 'sin-reparar-entregada',
-          entrega: { fecha: ahora, por, pagado: o.revision ? (o.revision.cobrar ? o.revision.monto : 0) : o.anticipo, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.pagado > 0 ? entrega.metodo : undefined },
-          historial: evento(`Entregado sin reparar a ${entrega.recoge}`),
+          entrega: { fecha: ahora, por, pagado: Math.min(revision, o.anticipo) + Math.max(0, cobrado), recogio: entrega.recoge, cobrado, metodo: devuelto ? 'efectivo' : entrega.pagado > 0 ? entrega.metodo : undefined },
+          historial: evento(`Entregado sin reparar a ${entrega.recoge}${nota}`),
           contactos,
         };
       }
@@ -973,6 +1116,9 @@ export class OrdenesService {
         contactos: [...o.contactos, { fecha: ahora, texto: 'Presupuesto publicado en el portal' }],
       };
     });
+    this.correo(folio, (o, CORREOS) =>
+      CORREOS.cotizacion({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, descripcion: o.presupuesto?.descripcion ?? '', total: o.presupuesto?.total ?? 0, anticipo: o.anticipo }),
+    );
   }
 
   /** J3.2 / J3.3 · La orden vuelve al técnico con una pregunta: regresa a "Diagnóstico" en el tablero. */
@@ -1068,21 +1214,136 @@ export class OrdenesService {
     );
   }
 
+  // ---------- Banco de trabajo del técnico (T3) ----------
+
+  /** T3.1 · El técnico envía su diagnóstico y la propuesta: la orden pasa a "Por cotizar" en el tablero del jefe (J3). */
+  enviarDiagnostico(folio: string, d: { texto: string; resumen: string; causa: string; dificultad: string; tiempo: string; nota: string; conceptos: Concepto[]; por: string }): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      pausa: undefined,
+      diagnostico: { fecha: ahora, texto: d.texto.trim(), resumen: d.resumen, causa: d.causa, dificultad: d.dificultad, nota: d.nota.trim() || undefined, conceptos: d.conceptos },
+      historial: [...o.historial, { fecha: ahora, texto: `Diagnóstico enviado al jefe por ${d.por} (${d.tiempo})` }],
+    }));
+  }
+
+  /** T3.7 · El técnico reporta que no tiene reparación; el jefe lo confirma en J3.3. */
+  reportarSinReparacion(folio: string, motivo: string, texto: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      pausa: undefined,
+      sinReparacion: { fecha: ahora, motivo, texto: texto.trim() },
+      historial: [...o.historial, { fecha: ahora, texto: `${por} reportó que no tiene reparación: ${motivo.toLowerCase()}` }],
+    }));
+  }
+
+  /** T3.5 · Daño encontrado al reparar; el jefe lo re-cotiza en J3.4. Lo ya autorizado se puede terminar. */
+  reportarDanoAdicional(folio: string, texto: string, urgente: boolean, conceptos: Concepto[], por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      danoAdicional: { fecha: ahora, texto: texto.trim(), urgente, conceptos },
+      historial: [...o.historial, { fecha: ahora, texto: `${por} reportó daño adicional${urgente ? ' (urgente)' : ''}: ${texto.trim()}` }],
+    }));
+  }
+
+  /** T3.6 / T3.8 · Pausa la orden con su motivo; "Esperando refacción" la deja en esa columna del tablero. */
+  pausar(folio: string, motivo: string, detalle: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      estado: motivo === 'Esperando refacción' && o.estado === 'en-taller' ? 'esperando-refaccion' : o.estado,
+      pausa: { desde: ahora, motivo, detalle: detalle.trim() },
+      historial: [...o.historial, { fecha: ahora, texto: `En pausa (${por}): ${motivo.toLowerCase()}${detalle.trim() ? ` · ${detalle.trim()}` : ''}` }],
+    }));
+  }
+
+  /** El técnico retoma la orden pausada. */
+  reanudar(folio: string, por: string): void {
+    this.actualizar(folio, (o) =>
+      o.pausa || o.estado === 'esperando-refaccion'
+        ? { ...o, estado: o.estado === 'esperando-refaccion' ? 'en-taller' : o.estado, pausa: undefined, historial: [...o.historial, { fecha: ahoraIso(), texto: `Reanudada por ${por}` }] }
+        : o,
+    );
+  }
+
+  /** T3.4 · Equipo listo: el cliente recibe el aviso en su portal y caja lo entrega (C6). En garantía queda "Garantía lista". */
+  marcarLista(folio: string, d: { realizado: string; notaInterna: string; tiempo: string; por: string }): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => {
+      const garantia = o.estado === 'en-garantia';
+      const notas = d.notaInterna.trim() ? [...(o.notas ?? []), { fecha: ahora, texto: `${d.por}: ${d.notaInterna.trim()}` }] : o.notas;
+      return {
+        ...o,
+        estado: garantia ? 'garantia-lista' : 'lista',
+        listaDesde: ahora,
+        pausa: undefined,
+        realizado: d.realizado.trim() || o.realizado,
+        garantia: garantia && o.garantia ? { ...o.garantia, resolucion: d.realizado.trim() || o.garantia.resolucion } : o.garantia,
+        notas,
+        historial: [...o.historial, { fecha: ahora, texto: `${garantia ? 'Garantía lista' : 'Listo'} · ${d.por} (${d.tiempo} de trabajo)` }],
+        contactos: [...o.contactos, { fecha: ahora, texto: 'Aviso de “Listo” en el portal' }],
+      };
+    });
+    this.correo(folio, (o, CORREOS) => CORREOS.listo({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, equipo: o.equipo, restante: saldo(o), limite: this.limiteRecoger(o) }));
+  }
+
+  /** T4.2 · El técnico revisa la garantía y manda su reporte; el jefe da el dictamen (J4.2). */
+  enviarReporteGarantia(folio: string, reporte: Omit<ReporteGarantia, 'fecha'>, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) =>
+      o.garantia
+        ? {
+            ...o,
+            garantia: { ...o.garantia, reporte: { ...reporte, fecha: ahora } },
+            historial: [...o.historial, { fecha: ahora, texto: `${por.split(' ')[0]} envió su reporte de garantía` }],
+          }
+        : o,
+    );
+  }
+
+  /** T3.9 · Presupuesto rechazado: el técnico arma el equipo como llegó y lo devuelve a caja. */
+  devolverACaja(folio: string, nota: string, por: string): void {
+    const ahora = ahoraIso();
+    this.actualizar(folio, (o) => ({
+      ...o,
+      devueltoACaja: ahora,
+      notas: nota.trim() ? [...(o.notas ?? []), { fecha: ahora, texto: `${por}: ${nota.trim()}` }] : o.notas,
+      historial: [...o.historial, { fecha: ahora, texto: `Armado y devuelto a caja sin reparar por ${por}` }],
+    }));
+  }
+
   /** J8.2 · Política de bodega: cobrar almacenaje al entregar o perdonarlo (queda con el nombre del jefe). */
   aplicarAlmacenaje(folio: string, datos: { dias: number; monto: number; perdonar: boolean; por: string }): void {
     const texto = datos.perdonar
-      ? `Almacenaje de ${datos.dias} días perdonado por ${datos.por}`
+      ? `Almacenaje de ${datos.dias} días ($${datos.monto.toFixed(2)}) perdonado por ${datos.por}`
       : `Almacenaje de ${datos.dias} días ($${datos.monto.toFixed(2)}) por cobrar al entregar (${datos.por})`;
+    const fecha = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
-      almacenaje: { dias: datos.dias, monto: datos.perdonar ? 0 : datos.monto, por: datos.por, perdonado: datos.perdonar || undefined },
-      historial: [...o.historial, { fecha: ahoraIso(), texto }],
+      almacenaje: {
+        dias: datos.dias,
+        monto: datos.perdonar ? 0 : datos.monto,
+        por: datos.por,
+        perdonado: datos.perdonar || undefined,
+        fecha,
+        importe: datos.perdonar ? datos.monto : undefined,
+      },
+      historial: [...o.historial, { fecha, texto }],
     }));
   }
 
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */
   avisar(folio: string, texto: string): void {
     this.actualizar(folio, (o) => ({ ...o, contactos: [...o.contactos, { fecha: ahoraIso(), texto }], historial: [...o.historial, { fecha: ahoraIso(), texto }] }));
+    // Recordatorios para recoger (C4.6, J8): también llegan por correo.
+    if (/recordatorio|último aviso/i.test(texto))
+      this.correo(folio, (o, CORREOS) => {
+        const limite = this.limiteRecoger(o);
+        const dias = Math.max(0, Math.ceil((new Date(limite).getTime() - Date.now()) / 86_400_000));
+        return CORREOS.bodega({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, equipo: o.equipo, listoDesde: o.listaDesde ?? o.recibido, limite, almacenaje: REGLAS_TALLER.almacenajeDia, dias });
+      });
   }
 
   private actualizar(folio: string, cambio: (orden: Orden) => Orden): void {

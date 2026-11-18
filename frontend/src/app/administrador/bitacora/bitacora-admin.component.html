@@ -1,0 +1,83 @@
+<div class="reporte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Bitácora</h1>
+      <p class="encabezado-pagina__subtitulo">Registro de acciones sensibles · No se puede editar ni borrar</p>
+    </div>
+    <div class="acciones">
+      <span class="campo__control campo__control--40 periodo">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <select class="campo__input campo__select" aria-label="Periodo" (change)="cambiarPeriodo($any($event.target).value)">
+          @for (p of periodos; track p.id) {
+            <option [value]="p.id" [selected]="p.id === periodo()">{{ p.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+      <span class="campo__control campo__control--40 tipo">
+        <select class="campo__input campo__select" aria-label="Acción" (change)="cambiarAccion($any($event.target).value)">
+          <option value="" [selected]="accion() === ''">Todas las acciones</option>
+          @for (a of acciones; track a.id) {
+            <option [value]="a.id" [selected]="a.id === accion()">{{ a.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+      <button type="button" class="boton boton--contorno boton--40" (click)="exportando.set(true)"><span class="icono" style="--icono: url(assets/inventario/download-primario.svg)"></span>Exportar</button>
+    </div>
+  </header>
+
+  <div class="tabla">
+    <table>
+      <thead>
+        <tr><th>Hora</th><th>Usuario</th><th>Acción</th><th class="t-detalle">Detalle</th><th class="t-modulo">Módulo</th><th><span class="oculto">Ver</span></th></tr>
+      </thead>
+      <tbody>
+        @for (f of filas(); track f.r.id) {
+          <tr>
+            <td class="t-nombre t-hora">{{ f.hora }}@if (f.dia) {<span class="tenue">{{ f.dia }}</span>}</td>
+            <td>
+              <span class="persona">
+                <span class="avatar-chico" aria-hidden="true">{{ f.iniciales }}</span>
+                <span><strong>{{ f.r.nombre }}</strong><span class="tenue">{{ f.puesto }}</span></span>
+              </span>
+            </td>
+            <td><span class="estado estado--{{ f.tono }}">{{ f.etiqueta }}</span><span class="detalle-celular">{{ f.r.detalle }}</span></td>
+            <td class="t-detalle">{{ f.r.detalle }}</td>
+            <td class="t-modulo">{{ f.r.modulo }}</td>
+            <td>
+              @if (f.r.ruta) {
+                <a class="enlace-accion" [routerLink]="f.r.ruta" [attr.aria-label]="'Ver en ' + f.r.modulo">Ver</a>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="vacio">No hay acciones con estos filtros.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (total()) {
+    <div class="pie-tabla">
+      <p class="tenue">{{ resumen() }}</p>
+      @if (paginas() > 1) {
+        <nav class="paginas" aria-label="Páginas">
+          <button type="button" class="pagina" aria-label="Anterior" [disabled]="pagina() === 1" (click)="ir(pagina() - 1)">‹</button>
+          @for (n of numeros(); track $index) {
+            @if (n === null) {
+              <span class="pagina pagina--hueco">…</span>
+            } @else {
+              <button type="button" class="pagina" [class.pagina--activa]="n === pagina()" [attr.aria-current]="n === pagina() ? 'page' : null" (click)="ir(n)">{{ n }}</button>
+            }
+          }
+          <button type="button" class="pagina" aria-label="Siguiente" [disabled]="pagina() === paginas()" (click)="ir(pagina() + 1)">›</button>
+        </nav>
+      }
+    </div>
+  }
+</div>
+
+@if (exportando()) {
+  <app-exportar-bitacora (cerrar)="exportando.set(false)" />
+}

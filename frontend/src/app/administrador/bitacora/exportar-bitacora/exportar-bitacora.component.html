@@ -1,0 +1,44 @@
+<div class="modal-fondo" (click)="cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-exportar" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); descargar()">
+    <div class="modal__encabezado">
+      <div>
+        <h2 class="modal__titulo" id="titulo-exportar">Exportar información</h2>
+        <p class="modal__subtitulo">Descarga un archivo para tu contador o para respaldo</p>
+      </div>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+    </div>
+
+    <div class="dos">
+      <label class="campo">
+        <span class="campo__etiqueta">Desde</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="!!error()"><input class="campo__input" type="date" [max]="hoy" [value]="desde()" (input)="desde.set($any($event.target).value)" /></span>
+      </label>
+      <label class="campo">
+        <span class="campo__etiqueta">Hasta</span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="!!error()"><input class="campo__input" type="date" [max]="hoy" [value]="hasta()" (input)="hasta.set($any($event.target).value)" /></span>
+      </label>
+    </div>
+    @if (error()) {
+      <p class="campo__error" role="alert">{{ error() }}</p>
+    }
+
+    <fieldset class="opciones">
+      <legend class="campo__etiqueta">Formato</legend>
+      <div class="formatos">
+        @for (f of formatos; track f.id) {
+          <label class="opcion-radio" [class.opcion-radio--elegida]="formato() === f.id">
+            <input type="radio" name="formato" [checked]="formato() === f.id" (change)="formato.set(f.id)" />
+            <span class="opcion-radio__texto"><strong>{{ f.texto }}</strong></span>
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <label class="casilla"><input type="checkbox" [checked]="detalle()" (change)="detalle.set($any($event.target).checked)" />Incluir detalle de cada acción</label>
+
+    <div class="modal__acciones">
+      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+      <button type="submit" class="boton boton--primario boton--44" [disabled]="!!error() || !cuantos()"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>Descargar{{ error() ? '' : ' (' + cuantos() + ')' }}</button>
+    </div>
+  </form>
+</div>

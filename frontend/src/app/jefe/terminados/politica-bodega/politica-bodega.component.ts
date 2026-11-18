@@ -75,7 +75,8 @@ export class PoliticaBodegaComponent {
         this.aplicada.emit(`${o.folio}: último aviso enviado a ${o.cliente.nombre} en su portal y su chat`);
         break;
       default:
-        this.servicio.aplicarAlmacenaje(o.folio, { dias: this.diasCobro(), monto: 0, perdonar: true, por: this.jefe });
+        // Se manda el monto para que quede cuánto se perdonó (bitácora AD8); caja no cobra nada.
+        this.servicio.aplicarAlmacenaje(o.folio, { dias: this.diasCobro(), monto: this.monto(), perdonar: true, por: this.jefe });
         this.aplicada.emit(`${o.folio}: almacenaje perdonado; queda registrado a tu nombre`);
     }
   }

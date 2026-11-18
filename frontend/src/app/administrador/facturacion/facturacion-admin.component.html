@@ -1,0 +1,84 @@
+<div class="reporte">
+  <header class="encabezado-pagina">
+    <div>
+      <h1 class="encabezado-pagina__titulo">Facturación</h1>
+      <p class="encabezado-pagina__subtitulo">Facturas (CFDI 4.0) de ventas y reparaciones · Se timbran al cobrar o cuando el cliente autofactura</p>
+    </div>
+    <div class="acciones">
+      <span class="campo__control campo__control--40 mes">
+        <img src="assets/inventario/calendar.svg" width="16" height="16" alt="" />
+        <select class="campo__input campo__select" aria-label="Mes" (change)="cambiarMes($any($event.target).value)">
+          @for (m of meses; track m.id) {
+            <option [value]="m.id" [selected]="m.id === mesId()">{{ m.texto }}</option>
+          }
+        </select>
+        <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+      </span>
+      <button type="button" class="boton boton--contorno boton--40" (click)="global.set(true)"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Factura global del mes</button>
+    </div>
+  </header>
+
+  <section class="indicadores" aria-label="Resumen de facturación">
+    @for (i of indicadores(); track i.titulo) {
+      <div class="indicador">
+        <p class="indicador__valor valor--{{ i.tono }}">{{ i.valor }}</p>
+        <div>
+          <p class="indicador__titulo">{{ i.titulo }}</p>
+          <p class="indicador__detalle">{{ i.detalle }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (aviso()) {
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
+  }
+
+  <nav class="pestanas" aria-label="Estado de la factura">
+    @for (p of pestanas; track p.id) {
+      <button type="button" [class.activa]="pestana() === p.id" (click)="pestana.set(p.id)">{{ p.texto }}@if (p.id === 'todas' || p.id === 'error') { ({{ conteo()[p.id] }}) }</button>
+    }
+  </nav>
+
+  <div class="tabla">
+    <table>
+      <thead>
+        <tr><th>Serie-folio</th><th class="t-fecha">Fecha</th><th>Cliente / RFC</th><th class="t-origen">Origen</th><th>Total</th><th class="t-pidio">Pidió</th><th>Estado</th><th class="t-archivos">Archivos</th></tr>
+      </thead>
+      <tbody>
+        @for (r of filas(); track r.id) {
+          <tr>
+            <td class="t-nombre">{{ r.id }}</td>
+            <td class="t-fecha">{{ r.dia }}</td>
+            <td class="t-cliente">{{ r.f.cliente }}<span class="rfc"> · {{ r.f.rfc }}</span></td>
+            <td class="t-origen">{{ r.f.origen }}</td>
+            <td>{{ dinero(r.f.total) }}</td>
+            <td class="t-pidio">{{ r.f.pidio }}</td>
+            <td><span class="estado estado--{{ r.estado.tono }}">{{ r.estado.texto }}</span></td>
+            <td class="t-archivos">
+              <span class="archivos">
+                <button type="button" class="enlace-accion solo-ancho" (click)="pdf(r.f)" [attr.aria-label]="'Descargar PDF de ' + r.id"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>PDF</button>
+                <button type="button" class="enlace-accion solo-ancho" (click)="xml(r.f)" [attr.aria-label]="'Descargar XML de ' + r.id"><span class="icono" style="--icono: url(assets/inventario/download-14.svg)"></span>XML</button>
+                <button type="button" class="enlace-accion" (click)="viendo.set(r.id)" [attr.aria-label]="'Ver ' + r.id">Ver</button>
+              </span>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="8" class="vacio">No hay facturas {{ pestana() === 'todas' ? '' : pestana() === 'error' ? 'con error' : pestana() === 'timbrada' ? 'timbradas' : 'canceladas' }} en {{ mes().texto.toLowerCase() }}.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/receipt.svg)"></span>Lo que no se facture en el mes entra en la factura global a público en general. La cancelación requiere motivo y queda en la bitácora.</p>
+</div>
+
+@if (vista(); as f) {
+  <app-detalle-factura [factura]="f" (cerrar)="viendo.set(null)" (cancelar)="pedirCancelacion($event)" />
+}
+@if (porCancelar(); as f) {
+  <app-cancelar-factura [factura]="f" (cerrar)="cancelando.set(null)" (cancelada)="cancelada($event)" />
+}
+@if (global()) {
+  <app-factura-global [mes]="mes()" (cerrar)="global.set(false)" (timbrada)="timbrada($event)" />
+}

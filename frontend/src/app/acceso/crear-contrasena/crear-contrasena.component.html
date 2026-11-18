@@ -69,22 +69,22 @@
     }
   </div>
 
-  <div class="indicador" id="indicador-contrasena" [style.--nivel-color]="nivel().color">
-    <div class="indicador__barras">
+  <div class="fuerza" id="indicador-contrasena" [style.--nivel-color]="nivel().color">
+    <div class="fuerza__barras">
       @for (barra of barras; track barra) {
-        <span class="indicador__barra" [class.indicador__barra--activa]="barra <= puntaje()"></span>
+        <span class="fuerza__barra" [class.fuerza__barra--activa]="barra <= puntaje()"></span>
       }
     </div>
-    <p class="indicador__nivel">
+    <p class="fuerza__nivel">
       Seguridad: <strong>{{ nivel().etiqueta }}</strong>
     </p>
-    <ul class="indicador__requisitos">
+    <ul class="fuerza__requisitos">
       @for (requisito of requisitos(); track requisito.texto) {
         <li [class.cumple]="requisito.cumple">
           @if (requisito.cumple) {
             <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="Cumple:" />
           } @else {
-            <span class="indicador__pendiente" aria-hidden="true"></span>
+            <span class="fuerza__pendiente" aria-hidden="true"></span>
           }
           {{ requisito.texto }}
         </li>

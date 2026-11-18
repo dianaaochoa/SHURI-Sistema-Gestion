@@ -1,0 +1,17 @@
+/* Figma AD2.1: columna de 812 px y lateral de 380 px */
+.columnas { display: flex; flex: 1; gap: 16px; }
+.izquierda { display: flex; flex: 1; flex-direction: column; gap: 16px; min-width: 0; }
+.lateral { width: 380px; flex-shrink: 0; }
+tr.total td { font-weight: 700; }
+.metodo { display: flex; flex-direction: column; gap: 6px; }
+.riel { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: var(--color-borde); }
+.riel span { display: block; height: 100%; border-radius: 999px; background: var(--color-primario); }
+.alerta { color: var(--color-peligro) !important; }
+
+@media (max-width: 1280px) {
+  .columnas { flex-direction: column; }
+  .lateral { width: auto; }
+}
+@media (max-width: 600px) {
+  .t-costo, .t-part { display: none; }
+}

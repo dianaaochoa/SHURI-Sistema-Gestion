@@ -1,0 +1,49 @@
+<app-aviso-chat />
+<header class="barra">
+  <div class="barra__interior">
+    <span class="marca"><img src="assets/acceso/logo-shuri.png" width="32" height="32" alt="" /><span><strong>SHURI</strong><small>Reparación y venta</small></span></span>
+    <span class="usuario"><strong>{{ cliente()?.nombre }}</strong><button type="button" class="texto-enlace" (click)="salir()">Cerrar sesión</button></span>
+  </div>
+</header>
+
+<main class="columna lista">
+  <div>
+    <h1 class="titulo-pagina">Mis equipos</h1>
+    <p class="subtitulo">{{ subtitulo() }}</p>
+  </div>
+
+  @for (e of equipos(); track e.folio) {
+    <a class="equipo" [routerLink]="e.ruta" [attr.aria-label]="e.equipo + ', ' + e.estado.texto">
+      <span class="equipo__fila">
+        <span class="equipo__icono"><span class="icono" style="--icono: url(assets/iconos/smartphone.svg)"></span></span>
+        <span class="equipo__texto">
+          <strong>{{ e.equipo }}</strong>
+          <small>{{ e.detalle }}</small>
+          <span class="estado estado--{{ e.estado.tono }}">{{ e.estado.texto }}</span>
+        </span>
+        <img src="assets/cajera/chev-r.svg" width="16" height="16" alt="" />
+      </span>
+      <span class="avance" aria-hidden="true">
+        @for (p of pasos; track p) {
+          <span class="avance__paso" [class.avance__paso--hecho]="p <= e.pasos" [class.avance__paso--espera]="e.responder && p === e.pasos + 1"></span>
+        }
+      </span>
+    </a>
+  } @empty {
+    <p class="vacio">Todavía no hay equipos con tu correo. Si dejaste uno hace poco, pide en el taller que revisen tu correo registrado.</p>
+  }
+
+  <span class="espacio"></span>
+  <div class="acciones">
+    @if (chat(); as ruta) {
+      <a class="boton boton--contorno boton--44" [routerLink]="ruta"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
+    } @else {
+      <a class="boton boton--contorno boton--44" [href]="'tel:' + telefono"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Contactar</a>
+    }
+    <button type="button" class="boton boton--contorno boton--44" (click)="clausulas.set(true)"><span class="icono" style="--icono: url(assets/menu/file.svg)"></span>Cláusulas</button>
+  </div>
+</main>
+
+@if (clausulas()) {
+  <app-informacion-modal tipo="clausulas" (cerrar)="clausulas.set(false)" />
+}

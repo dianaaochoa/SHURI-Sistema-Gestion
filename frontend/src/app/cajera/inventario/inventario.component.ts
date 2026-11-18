@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { PermisosService } from '../../administrador/permisos.service';
 import { map } from 'rxjs';
 import { AjusteInventarioComponent } from './ajuste-inventario/ajuste-inventario.component';
 import { AjustesComponent } from './ajustes/ajustes.component';
@@ -33,10 +34,14 @@ export class InventarioComponent {
   private readonly router = inject(Router);
   private readonly ruta = inject(ActivatedRoute);
   protected readonly inventario = inject(InventarioService);
-  protected readonly pestanas = PESTANAS;
+  private readonly permisos = inject(PermisosService);
+  /** AD7.3 · “Recibir mercancía y ajustar inventario”: sin él solo queda el catálogo. */
+  protected readonly puedeMercancia = computed(() => this.permisos.puede('mercancia'));
+  protected readonly pestanas = computed(() => (this.puedeMercancia() ? PESTANAS : PESTANAS.filter((p) => p.vista === 'catalogo')));
 
   /** La pestaña va en la URL (?vista=entradas) para poder enlazarla desde Inicio. */
-  protected readonly vista = toSignal(this.ruta.queryParamMap.pipe(map((q) => (q.get('vista') as Vista) || 'catalogo')), { initialValue: 'catalogo' as Vista });
+  private readonly vistaPedida = toSignal(this.ruta.queryParamMap.pipe(map((q) => (q.get('vista') as Vista) || 'catalogo')), { initialValue: 'catalogo' as Vista });
+  protected readonly vista = computed<Vista>(() => (this.puedeMercancia() ? this.vistaPedida() : 'catalogo'));
   protected readonly pestanaActiva = computed(() => (this.vista() === 'historial' ? 'entradas' : this.vista()));
 
   protected readonly meses = computed(() => mesesDe(this.inventario.entradas()));
@@ -67,6 +72,10 @@ export class InventarioComponent {
 
   protected ajustar(sku: string | null): void {
     this.movimientos.set(null);
+    if (!this.puedeMercancia()) {
+      this.aviso.set(null);
+      return;
+    }
     this.ajuste.set({ sku });
   }
 
