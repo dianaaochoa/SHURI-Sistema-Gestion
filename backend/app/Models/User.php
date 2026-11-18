@@ -2,44 +2,137 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * Tabla: users (original en español: users)
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $table = 'users';
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
-    protected $hidden = [
+    protected $fillable = [
+        'role_id',
+        'cash_register_id',
+        'name',
+        'username',
+        'email',
+        'email_verified_at',
         'password',
+        'phone',
+        'specialty',
+        'shift',
+        'start_time',
+        'end_time',
+        'max_discount_pct',
+        'authorization_code',
+        'must_change_password',
+        'two_factor_enabled',
+        'security_question',
+        'security_answer_hash',
+        'password_reset_requested_at',
+        'chat_available',
+        'unavailable_until',
+        'unavailable_message',
+        'failed_attempts',
+        'locked_until',
+        'is_active',
+        'last_login_at',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+    protected $hidden = [
+        'password',
+        'authorization_code',
+        'security_answer_hash',
+        'remember_token',
+    ];
+
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'max_discount_pct' => 'decimal:2',
+        'authorization_code' => 'hashed',
+        'must_change_password' => 'boolean',
+        'two_factor_enabled' => 'boolean',
+        'password_reset_requested_at' => 'datetime',
+        'chat_available' => 'boolean',
+        'unavailable_until' => 'datetime',
+        'locked_until' => 'datetime',
+        'is_active' => 'boolean',
+        'last_login_at' => 'datetime',
     ];
+
+    public function cashRegister(): BelongsTo
+    {
+        return $this->belongsTo(CashRegister::class, 'cash_register_id');
+    }
+
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function technicianServiceOrders(): HasMany
+    {
+        return $this->hasMany(ServiceOrder::class, 'technician_id');
+    }
+
+    public function userRoleSubstitutions(): HasMany
+    {
+        return $this->hasMany(RoleSubstitution::class, 'user_id');
+    }
+
+    public function userCashShifts(): HasMany
+    {
+        return $this->hasMany(CashShift::class, 'user_id');
+    }
+
+    public function cashierSales(): HasMany
+    {
+        return $this->hasMany(Sale::class, 'cashier_id');
+    }
+
+    /** @var array<int, string>|null Códigos de permiso en caché para esta petición */
+    private ?array $permissionCodesCache = null;
+
+    /**
+     * Códigos de permiso del rol del usuario más los del rol que esté cubriendo
+     * hoy por una suplencia activa (p. ej. un técnico que cubre al jefe).
+     *
+     * @return array<int, string>
+     */
+    public function permissionCodes(): array
+    {
+        if ($this->permissionCodesCache !== null) {
+            return $this->permissionCodesCache;
+        }
+
+        $roleIds = $this->userRoleSubstitutions()
+            ->whereNull('revoked_at')
+            ->where('starts_at', '<=', now())
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
+            ->pluck('role_id')
+            ->push($this->role_id)
+            ->unique();
+
+        return $this->permissionCodesCache = Permission::query()
+            ->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $roleIds))
+            ->pluck('code')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function hasPermission(string $code): bool
+    {
+        return in_array($code, $this->permissionCodes(), true);
+    }
 }

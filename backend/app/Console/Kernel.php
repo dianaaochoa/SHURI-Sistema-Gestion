@@ -12,7 +12,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Borra los tokens de Sanctum que vencieron hace más de 24 h
+        $schedule->command('sanctum:prune-expired --hours=24')->daily();
+        // Borra los retos MFA viejos (modelos con el trait Prunable)
+        $schedule->command('model:prune')->daily();
+        // RF-09: avisos de almacenaje y paso a "En Abandono" antes de abrir la sucursal
+        $schedule->command('shuri:process-storage')->dailyAt('08:00')->withoutOverlapping();
     }
 
     /**

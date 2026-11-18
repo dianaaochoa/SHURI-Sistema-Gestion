@@ -28,6 +28,19 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Protección contra fuerza bruta en los endpoints de acceso: por cuenta y por IP
+        RateLimiter::for('login', function (Request $request) {
+            $account = mb_strtolower((string) ($request->input('login')
+                ?? $request->input('email')
+                ?? $request->input('challenge_id')
+                ?? $request->input('recovery_id')));
+
+            return [
+                Limit::perMinute(5)->by('login:'.$account.'|'.$request->ip()),
+                Limit::perMinute(20)->by('login-ip:'.$request->ip()),
+            ];
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

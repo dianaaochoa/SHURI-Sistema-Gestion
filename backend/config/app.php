@@ -57,6 +57,12 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Portal del cliente (Angular): enlace en los correos al cliente
+    'portal_url' => env('PORTAL_URL', 'http://localhost:4200/portal'),
+
+    // Acceso del personal (Angular): enlace en el correo de alta de empleados (AD7)
+    'staff_login_url' => env('STAFF_LOGIN_URL', 'http://localhost:4200/iniciar-sesion'),
+
     'asset_url' => env('ASSET_URL'),
 
     /*
@@ -70,7 +76,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Torreón, Coahuila (UTC-6, no daylight saving). Must match DB_TIMEZONE because
+    // triggers and views compare stored dates with MySQL's NOW().
+    'timezone' => env('APP_TIMEZONE', 'America/Mexico_City'),
 
     /*
     |--------------------------------------------------------------------------
@@ -83,7 +91,8 @@ return [
     |
     */
 
-    'locale' => 'en',
+    // Mensajes de validación en español (lang/es); las claves que falten usan el inglés
+    'locale' => 'es',
 
     /*
     |--------------------------------------------------------------------------
