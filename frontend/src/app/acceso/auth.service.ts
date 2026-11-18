@@ -64,7 +64,7 @@ interface Registro extends CuentaUsuario {
   contrasena: string;
 }
 
-const CLAVE_SESION = 'shuri.sesion';
+export const CLAVE_SESION = 'shuri.sesion';
 /** Último uso de la app (ms) y pantalla bloqueada por inactividad; compartidos entre pestañas. */
 export const CLAVE_ACTIVIDAD = 'shuri.actividad';
 export const CLAVE_BLOQUEO = 'shuri.bloqueada';
