@@ -285,13 +285,16 @@ El diagrama de arquitectura está en la [sección 14.1](#141-diagrama-de-arquite
 
 ### 8.3 Patrones de diseño
 
-Además del patrón arquitectónico **MVC**, se aplican tres patrones de diseño:
+Además del patrón arquitectónico **MVC** (en una API REST la "vista" son los *API Resources* que arman el JSON), el backend aplica cuatro patrones de diseño. Cada uno resuelve un problema concreto del negocio:
 
-| Patrón | Tipo | Dónde se aplica | Beneficio |
+| Patrón | Tipo | Dónde se aplica | Problema que resuelve |
 |---|---|---|---|
-| **Repository** | Estructural | `InventoryRepository`, `OrderRepository` | Separa los controladores de las consultas Eloquent; facilita cambios en la BD y pruebas unitarias con *mocks*. |
-| **Observer** | Comportamiento | `RepairOrderObserver`, `StockObserver` | Al cambiar el estado de una orden o el stock, registra automáticamente la bitácora, la auditoría y las alertas de stock mínimo sin cargar el controlador. |
-| **Singleton** | Creacional | Administrador de conexiones de Laravel (`DatabaseManager`, registrado como *singleton* en el contenedor) | Una sola conexión a MySQL por petición HTTP; menor consumo de memoria y CPU. |
+| **Repository** | Estructural | Contratos `OrderRepositoryInterface` e `InventoryRepositoryInterface` (`app/Repositories/Contracts`), implementados con Eloquent en `app/Repositories/Eloquent` y enlazados en `AppServiceProvider` | Las búsquedas de órdenes (C4, J2, T2) y de productos (C7, J6) tienen muchos filtros. Quedan en un solo lugar en vez de repetirse en cada controlador, y los servicios dependen del contrato, no de Eloquent. |
+| **Observer** | Comportamiento | `ServiceOrderObserver` y `StockObserver` (`app/Observers`) | Cada cambio de una orden (estado, técnico, diagnóstico, pausa) debe quedar en la bitácora que ve el cliente (P2), y un producto que cruza su stock mínimo debe avisar a quien hace pedidos. Los observadores lo hacen solos al guardar el modelo, así ningún controlador puede olvidarlo. |
+| **Singleton** | Creacional | `SettingsService` y `FolioService`, registrados con `singleton()` en `AppServiceProvider` | La configuración del negocio (días de gracia, IVA, descuento máximo…) se lee muchas veces en una misma petición; con una sola instancia se consulta la tabla `settings` una vez. Los folios (`OS-`, `V-`, `C-`…) salen de un único servicio que bloquea la fila de su secuencia para que dos cajas no tomen el mismo número. |
+| **Strategy** | Comportamiento | `StamperInterface` con la implementación `SimulatedStamper` (`app/Services/Invoicing`), enlazada en `AppServiceProvider` | El timbrado de facturas (RF-16) es simulado. `InvoiceService` solo conoce la interfaz: para timbrar ante el SAT con un PAC real basta con otra implementación y cambiar una línea, sin tocar la lógica de facturación. |
+
+También se usa una **máquina de estados** (`app/Support/OrderStatusFlow.php`) que solo permite los cambios de estado del diagrama de la [sección 14.4](#144-diagrama-de-estados-de-una-orden-de-servicio); la base de datos lo refuerza con el trigger `trg_service_orders_workflow`.
 
 ---
 
@@ -639,26 +642,27 @@ flowchart LR
     subgraph Back["Capa de negocio — Laravel 10 (API REST)"]
         direction TB
         Rutas["routes/api.php"]
-        MW["Middleware<br/>auth:sanctum + rol"]
-        Ctrl["Controllers + Form Requests"]
+        MW["Middleware<br/>auth:sanctum + actor + permission"]
+        Ctrl["Controllers + validación"]
         Svc["Services<br/>(reglas de negocio, DB::transaction)"]
         Repo["Repositories<br/>(InventoryRepository, OrderRepository)"]
-        Obs["Observers<br/>(RepairOrderObserver, StockObserver)"]
+        Obs["Observers<br/>(ServiceOrderObserver, StockObserver)"]
+        Mail["MailService<br/>(registra cada envío)"]
         Rutas --> MW --> Ctrl --> Svc --> Repo
-        Repo -. eventos .-> Obs
+        Svc -. "guardar modelo" .-> Obs
+        Svc --> Mail
     end
 
     subgraph Datos["Capa de datos"]
-        DB[("MySQL 8<br/>InnoDB · ACID")]
+        DB[("MySQL 8<br/>InnoDB · ACID<br/>vistas, triggers, procedimiento")]
     end
 
     PC --> Front
     Movil --> Front
     Servicios -- "HTTPS · JSON" --> Rutas
     Repo -- "Eloquent ORM" --> DB
-    Obs -- "bitácora · auditoría" --> DB
-    Obs -- "avisos" --> Cola["Cola de trabajos<br/>(jobs)"]
-    Cola -- "SMTP" --> Correo["📧 Correo del cliente"]
+    Obs -- "bitácora · avisos" --> DB
+    Mail -- "SMTP" --> Correo["📧 Correo del cliente"]
 ```
 
 ### 14.2 Diagrama de casos de uso (UML)
@@ -793,12 +797,15 @@ El diccionario **columna por columna** (tipo de dato, obligatoriedad, valor por 
 | [`users`](backend/README.md#users) | Seguridad y personal | Personal interno que inicia sesión en el sistema. |
 | [`password_reset_tokens`](backend/README.md#password_reset_tokens) | Seguridad y personal | Tokens de Laravel para que el personal restablezca su contraseña. |
 | [`personal_access_tokens`](backend/README.md#personal_access_tokens) | Seguridad y personal | Tokens de sesión de Laravel Sanctum (personal y clientes). |
+| [`two_factor_challenges`](backend/README.md#two_factor_challenges) | Seguridad y personal | Códigos de verificación (MFA) que se mandan por correo al iniciar sesión. |
+| [`role_substitutions`](backend/README.md#role_substitutions) | Seguridad y personal | Suplencias: un empleado cubre por un tiempo el rol de otro. |
 | [`customers`](backend/README.md#customers) | Clientes y portal | Clientes finales. El **correo** es su usuario del portal. |
 | [`customer_password_reset_tokens`](backend/README.md#customer_password_reset_tokens) | Clientes y portal | Solicitudes de "Recuperar contraseña" del portal del cliente. |
 | [`customer_tax_profiles`](backend/README.md#customer_tax_profiles) | Clientes y portal | Datos para facturar a un cliente (RFC, razón social, etc.). |
 | [`devices`](backend/README.md#devices) | Clientes y portal | Dispositivos de los clientes (celulares, laptops, etc.). |
 | [`conversations`](backend/README.md#conversations) | Clientes y portal | Chat del portal entre el cliente y el Jefe de Técnicos (pantallas P5 y J11). |
 | [`messages`](backend/README.md#messages) | Clientes y portal | Cada mensaje escrito en una conversación. Solo inserción: los mensajes no se editan ni se borran. |
+| [`quick_replies`](backend/README.md#quick_replies) | Clientes y portal | Respuestas rápidas del jefe de técnicos en el chat. |
 | [`order_statuses`](backend/README.md#order_statuses) | Taller (órdenes de servicio) | Catálogo de estados por los que pasa una orden de servicio. |
 | [`service_orders`](backend/README.md#service_orders) | Taller (órdenes de servicio) | Cada equipo recibido para reparación (orden con folio único). |
 | [`order_time_logs`](backend/README.md#order_time_logs) | Taller (órdenes de servicio) | Cronómetro de trabajo del técnico por orden, incluidas las pausas. |
@@ -808,6 +815,7 @@ El diccionario **columna por columna** (tipo de dato, obligatoriedad, valor por 
 | [`quotes`](backend/README.md#quotes) | Cotización y presupuestos | Cotizaciones: las que propone el técnico, las que cotiza el jefe y las de mostrador. |
 | [`quote_items`](backend/README.md#quote_items) | Cotización y presupuestos | Renglones de un presupuesto (refacciones y mano de obra). |
 | [`services`](backend/README.md#services) | Cotización y presupuestos | Tabulador de mano de obra y servicios con su precio. |
+| [`labor_levels`](backend/README.md#labor_levels) | Cotización y presupuestos | Niveles de mano de obra (Bajo, Medio, Alto…) que elige el técnico al diagnosticar. |
 | [`categories`](backend/README.md#categories) | Inventario, refacciones y compras | Agrupación de productos (Pantallas, Baterías, Audífonos…). |
 | [`products`](backend/README.md#products) | Inventario, refacciones y compras | Catálogo maestro de refacciones, accesorios y consumibles con su existencia. |
 | [`price_histories`](backend/README.md#price_histories) | Inventario, refacciones y compras | Registro de cada cambio de costo o precio de un producto. |
@@ -834,6 +842,7 @@ El diccionario **columna por columna** (tipo de dato, obligatoriedad, valor por 
 | [`settings`](backend/README.md#settings) | Sistema, notificaciones y auditoría | Parámetros del sistema editables por el administrador (clave = valor). |
 | [`sequences`](backend/README.md#sequences) | Sistema, notificaciones y auditoría | Contadores para generar folios consecutivos por año. |
 | [`sent_emails`](backend/README.md#sent_emails) | Sistema, notificaciones y auditoría | Registro de cada correo enviado a clientes o personal. Nunca guarda contraseñas. |
+| [`message_templates`](backend/README.md#message_templates) | Sistema, notificaciones y auditoría | Mensajes automáticos del portal y del correo, editables por el administrador. |
 | [`notifications`](backend/README.md#notifications) | Sistema, notificaciones y auditoría | Notificaciones internas (campanita) de Laravel. |
 | [`jobs`](backend/README.md#jobs) | Sistema, notificaciones y auditoría | Cola de trabajos de Laravel (envío de correos en segundo plano). |
 | [`failed_jobs`](backend/README.md#failed_jobs) | Sistema, notificaciones y auditoría | Trabajos de la cola que fallaron. |
@@ -875,10 +884,13 @@ cd backend
 composer install
 cp .env.example .env          # en PowerShell: copy .env.example .env
 php artisan key:generate
-# Editar .env: DB_DATABASE=shuri_db, DB_USERNAME, DB_PASSWORD
+# Crear las bases shuri_db y shuri_test, y editar en .env DB_USERNAME y DB_PASSWORD
 php artisan migrate --seed
-php artisan serve             # http://localhost:8000
+php artisan serve             # http://localhost:8000/api/v1
+php artisan test              # pruebas automatizadas (usan la base shuri_test)
 ```
+
+Usuarios de prueba, correo, proceso diario y despliegue: [`backend/README.md`, sección 4](backend/README.md#4-instalación).
 
 **Frontend (Angular)**
 
@@ -899,15 +911,21 @@ SHURI-Sistema-Gestion/
 │   └── pull_request_template.md     # Plantilla de Pull Request
 ├── backend/                         # API REST — Laravel 10
 │   ├── app/
-│   │   ├── Http/Controllers/
+│   │   ├── Console/Commands/        # shuri:process-storage (proceso diario de resguardo)
+│   │   ├── Http/Controllers/Api/    # Un controlador por módulo (Auth, Workshop, Pos, Portal…)
+│   │   ├── Http/Middleware/         # actor, permission, password.changed, SecurityHeaders
+│   │   ├── Http/Resources/          # Formato JSON de cada respuesta
 │   │   ├── Models/
-│   │   ├── Observers/               # RepairOrderObserver, StockObserver   (Sprint 2–3)
-│   │   ├── Repositories/            # InventoryRepository, OrderRepository (Sprint 2–3)
-│   │   └── Services/                # Reglas de negocio                    (Sprint 2–3)
-│   ├── database/migrations/
+│   │   ├── Observers/               # ServiceOrderObserver, StockObserver
+│   │   ├── Repositories/            # Contratos y repositorios Eloquent (órdenes, inventario)
+│   │   ├── Services/                # Reglas de negocio por módulo
+│   │   └── Support/                 # OrderStatusFlow, OrderBalance, SatCatalog
+│   ├── database/migrations/         # Tablas, vistas, triggers y procedimiento almacenado
+│   ├── database/seeders/            # Catálogos, configuración y usuarios de prueba
 │   ├── routes/api.php
+│   ├── tests/Feature/               # Pruebas automatizadas por módulo
 │   ├── .env.example
-│   └── README.md                    # DER detallado y diccionario de datos
+│   └── README.md                    # DER, diccionario de datos e instalación
 ├── frontend/                        # SPA — Angular 17
 │   └── src/app/
 │       ├── core/                    # guards, interceptors, servicios      (Sprint 2–3)
@@ -915,6 +933,8 @@ SHURI-Sistema-Gestion/
 │       └── shared/                  # componentes reutilizables            (Sprint 2–3)
 │   └── README.md                    # Prototipo, pantallas y sistema de diseño
 ├── docs/
+│   ├── api/endpoints.md             # Guía de la API para el frontend
+│   ├── sprints/                     # Registro de sprints y análisis de riesgos
 │   └── diseno/                      # Prototipo exportado de Figma
 │       ├── 01-acceso/ … 06-portal-cliente/   # Pantallas por rol
 │       ├── 07-componentes/          # Sistema de diseño
