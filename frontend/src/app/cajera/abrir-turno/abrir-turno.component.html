@@ -66,63 +66,28 @@
         </div>
       </div>
 
-      <p class="campo__etiqueta">Conteo del fondo inicial</p>
-
-      <div class="abrir-turno__conteos">
-        @for (grupo of [billetes, monedas]; track $index; let esMonedas = $last) {
-          <table class="conteo">
-            <thead>
-              <tr>
-                <th>Denominación</th>
-                <th class="conteo__cantidad">Cantidad</th>
-                <th class="conteo__importe">Importe</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (d of grupo; track d.valor) {
-                <tr>
-                  <td>{{ d.etiqueta }}</td>
-                  <td class="conteo__cantidad">
-                    <input
-                      type="number"
-                      min="0"
-                      inputmode="numeric"
-                      [attr.aria-label]="'Cantidad de ' + d.etiqueta"
-                      [value]="cantidades()[d.valor] || 0"
-                      (input)="cambiarCantidad(d.valor, $any($event.target).value)"
-                      (focus)="$any($event.target).select()"
-                    />
-                  </td>
-                  <td class="conteo__importe">{{ dinero(importe(d.valor)) }}</td>
-                </tr>
-              }
-              @if (esMonedas) {
-                <tr>
-                  <td>Centavos</td>
-                  <td class="conteo__cantidad">
-                    <input
-                      type="number"
-                      min="0"
-                      max="0.99"
-                      step="0.1"
-                      inputmode="decimal"
-                      placeholder="—"
-                      aria-label="Importe en centavos"
-                      [value]="centavos() || ''"
-                      (input)="cambiarCentavos($any($event.target).value)"
-                    />
-                  </td>
-                  <td class="conteo__importe">{{ dinero(centavos()) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
+      <div class="campo">
+        <label class="campo__etiqueta" for="fondo-inicial">Efectivo con el que abres la caja *</label>
+        <div class="campo__control campo__control--44 abrir-turno__monto">
+          <input
+            id="fondo-inicial"
+            class="campo__input"
+            inputmode="decimal"
+            autocomplete="off"
+            placeholder="$0.00"
+            [(campoDinero)]="fondo"
+            (keydown.enter)="abrir()"
+          />
+        </div>
+        <p class="abrir-turno__ayuda">
+          Cuenta el efectivo del cajón y escribe el total.
+          <button type="button" class="enlace" (click)="fondo.set(fondoAsignado)">Es justo el fondo asignado ({{ dinero(fondoAsignado) }})</button>
+        </p>
       </div>
 
       <div class="total" [class.total--diferencia]="diferencia() !== 0" aria-live="polite">
         <div>
-          <p class="total__titulo">Fondo inicial contado</p>
+          <p class="total__titulo">Fondo inicial</p>
           <p class="total__detalle">
             @if (diferencia() === 0) {
               Coincide con el fondo asignado ({{ dinero(fondoAsignado) }})

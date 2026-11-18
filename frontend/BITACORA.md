@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 17 nov 2026 (fotos reales del técnico: diagnóstico, reparación, salida y más; las ven el jefe y el cliente)
+- **Última actualización:** 17 nov 2026 (abrir y cerrar turno con un solo monto, sin contar por denominación)
 
 ---
 
@@ -264,7 +264,7 @@ flowchart LR
   end
   subgraph CAJERA["cajera/"]
     IC["InicioCajera<br/>C1.1 · C1.2"]:::comp
-    AT["AbrirTurno<br/>modal C1.3"]:::comp
+    AT["AbrirTurno<br/>modal C1.3 · un solo monto"]:::comp
     ST["SalirConTurno<br/>modal C1.7"]:::comp
     subgraph PDVG["punto-de-venta/"]
       PDV["PuntoDeVenta<br/>C2.1 · C2.2"]:::comp
@@ -331,7 +331,7 @@ flowchart LR
     subgraph CORG["corte/"]
       COR["Corte<br/>encabezado y pestañas"]:::comp
       TA["TurnoActual<br/>C10.1 y arqueo"]:::comp
-      CTU["CerrarTurno<br/>C10.4 por denominación"]:::comp
+      CTU["CerrarTurno<br/>C10.4 · total contado y fondo"]:::comp
       HCO["HistorialCortes<br/>C10.2"]:::comp
       ME["MovimientoEfectivo<br/>C10.3"]:::comp
       TC["TurnoCerrado<br/>C10.5"]:::comp
@@ -459,6 +459,7 @@ flowchart LR
   OS & CLSV & MS --> CRS
   NO & DO & OJ & PTA & BPN & BMD & TTB --> FTO
   BNC --> FTO
+  AT & CTU --> CDN
   CB & PM & NO --> CDN
   CFA --> CRS
   PTA --> ADO & FCS & MS
@@ -620,7 +621,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
   - **Sin conexión (C2.16):** DevTools › Network › Offline. Las ventas en efectivo o tarjeta se cuentan “por sincronizar” y se suben al volver la conexión.
 - Factura (C2.18): casilla “Facturar” en el cobro. María Hernández ya tiene datos fiscales (HEMM850312QX4).
 
-- Sin turno abierto, el punto de venta pide abrir caja (C1.3). Si se cierra el modal, regresa al inicio.
+- Sin turno abierto, el punto de venta pide abrir caja (C1.3): se escribe el total con el que se abre (o “Es justo el fondo asignado”) y Enter abre la caja. Si se cierra el modal, regresa al inicio.
 
 **Ventas (`/cajera/ventas`):**
 - Hay 7 ventas de prueba (V-00856 a V-00862) con los folios, clientes, métodos y estados de Figma; las fechas son relativas a hoy (V-00862 es de hoy).
@@ -666,7 +667,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 **Corte de caja (`/cajera/corte-de-caja`):**
 - “Turno actual” solo trae lo que pasó desde que se abrió el turno: ventas cobradas, anticipos de órdenes nuevas, entregas cobradas, pagos a proveedor, retiros, ingresos y devoluciones. Para probarlo: abre turno, cobra una venta en Punto de venta, entrega #1026 en efectivo y registra un retiro.
 - El efectivo esperado es fondo + lo cobrado en efectivo − retiros, pagos y devoluciones en efectivo. Lo mismo usan los retiros y el pago a proveedor de Inventario (C7.6): con la caja cerrada no se puede pagar en efectivo.
-- “Cerrar turno e imprimir corte” abre el conteo por denominación (C10.4); si no cuentas por denominación se usa lo que escribiste en el arqueo. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
+- “Cerrar turno e imprimir corte” (C10.4) pide solo el total que hay en el cajón (llega con lo que escribiste en el arqueo) y cuánto se queda como fondo; el resto se entrega a gerencia. Con diferencia pide comentario. Al cerrar se ve C10.5 y la caja queda cerrada.
 - “Historial de cortes” trae ~80 cortes de prueba (Ana Martínez matutino, Luis Peña vespertino) y los que cierres.
 - El turno queda a nombre de quien lo abre. Si Ana sale sin corte y entra `lpena`, su Inicio dice “Caja 01 sigue abierta a nombre de Ana Martínez” y el punto de venta no le deja vender ni abrir turno (“Ir a Corte de caja”). En el corte ve el aviso, no puede registrar retiros ni ingresos, y al cerrar el corte queda a nombre de Ana con “Contó y cerró · Luis Peña”; después ya puede abrir su turno.
 
@@ -905,7 +906,7 @@ frontend/src/
     ├── cajera/
     │   ├── caja.service.ts    # turno de caja abierto/cerrado (simulado)
     │   ├── inicio-cajera/     # C1.1 · C1.2 (+ .paneles.ts: paneles con datos reales)
-    │   ├── abrir-turno/       # C1.3 modal de conteo del fondo
+    │   ├── abrir-turno/       # C1.3 modal: total del fondo inicial
     │   ├── salir-con-turno/   # C1.7 modal al cerrar sesión con caja abierta
     │   ├── ordenes/           # C4
     │   │   ├── ordenes.service.ts          # órdenes, estados, respuestas, garantía y bodega (simulado)
@@ -1228,6 +1229,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Editar un cliente | `ClientesService.guardar` busca cómo estaba el cliente y llama a `OrdenesService.actualizarCliente` con sus órdenes (mismo id, teléfono o nombre): toman nombre, teléfono y correo nuevos. Las ventas ya cobradas conservan los datos de su ticket | Órdenes de servicio, sus documentos y los correos de aviso (cotización, listo) usan los datos guardados en la orden; un ticket de venta es un comprobante que no cambia. |
 | Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
 | Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
+| Abrir y cerrar turno sin denominaciones | C1.3 pide solo “Efectivo con el que abres la caja” y C10.4 solo “Efectivo que hay en el cajón” y “Efectivo que se queda como fondo”, con `campoDinero` | **Lo pidió el usuario (17 nov):** anotar la cantidad que hay o la que se deja, no billete por billete. Figma C1.3 y C10.4 traen la tabla por denominación; se conservan el total, la diferencia con el fondo asignado o el esperado, el comentario y lo que se entrega a gerencia. |
 | Bloqueo tras 30 min sin uso | `BloqueoSesionComponent` en `SistemaLayout` (solo personal; el portal del cliente no). Cuenta como uso mover el mouse, teclear, tocar o desplazar; el último uso (`shuri.actividad`) y el bloqueo (`shuri.bloqueada`) van en `localStorage`, así que valen para todas las pestañas y siguen al recargar. Bloquea en vez de cerrar la sesión: atrás queda todo igual, con `inert` y sin que las teclas lleguen a la página (los atajos del punto de venta y Esc no hacen nada). `AuthService.desbloquear` usa el mismo login, así que los fallos cuentan para bloquear la cuenta | Figma solo da la regla general, sin pantalla: se usaron los estilos del login (A.1). Cerrar la sesión haría perder una venta a medias. Con la API, el servidor también debe vencer el token. Sube 6 kB el paquete inicial (va con el menú). |
 | Campos de dinero | Directiva `campoDinero` (`compartido/campo-dinero.directive.ts`) en el cobro (efectivo, transferencia, mixto) y el anticipo de Nueva orden: con el cursor dentro se ve el número sin formato y se selecciona para reemplazarlo; al salir, o si el monto llega de un botón, se ve con `formatearDinero`. Acepta “$1,2a50” y lo lee como 1250; más de 2 decimales se cortan | Dar formato mientras se escribe mueve el cursor. Los campos `type="number"` (corte, entradas, alta de producto) no pueden mostrar “$” y se quedaron igual. |
 | Precios del punto de venta | Caja busca en `InventarioService` y cobra el “Precio de venta (IVA incluido)” de Inventario/AD4; el renglón guarda el precio ÷ 1.16 sin redondear. `calcularTotales` suma sin redondear y redondea solo subtotal y total (el IVA es la resta) | **Figma choca:** en C2 la Mica cuesta $100 + IVA ($116) y en C7/AD4 su precio es $100 con IVA. El usuario eligió el de Inventario (lo que pone el administrador es lo que paga el cliente), así que una venta nueva ya no da los totales de la venta de ejemplo de C2. El historial de Ventas y las ventas en espera siguen con los precios de Figma (`catalogo.datos.ts`) y dan lo mismo que antes ($899.00, $290.00, $406.00). |
@@ -2003,4 +2005,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - María en el portal, #1024: “Tu equipo está listo” con “Así quedó tu equipo:” y la foto
   - Jorge López, #1040: “Del técnico” con la foto
   - sin probar en la app: daño adicional, sin reparación, devolver, revisión de garantía, T6.2 y las fotos del presupuesto y del adicional en el portal (solo compilado)
+  - `ng build` sin errores; sin errores en consola
+
+### 17 nov 2026 · Abrir y cerrar turno con un solo monto
+- Pedido del usuario: abrir y cerrar turno escribiendo solo la cantidad (lo que hay o lo que se deja), sin contar por denominación.
+- `AbrirTurno` (C1.3): un campo con `campoDinero`, atajo “Es justo el fondo asignado” y Enter para abrir. `CerrarTurno` (C10.4): “Efectivo que hay en el cajón” (arranca con el arqueo) y el fondo que se queda, también con `campoDinero`. Se quitaron las tablas y su CSS.
+- Verificado como Ana Martínez:
+  - abrir: el cursor queda en el campo; “1500” → “Sobran $500.00 respecto al fondo asignado ($1,000.00)” y $1,500.00; Enter abre el turno con fondo 1500
+  - cerrar: esperado $1,500.00; “1450” → faltante −$50.00; fondo $500.00 → “A gerencia se entregan $950.00”; sin comentario → “No se puede cerrar todavía: Explica la diferencia.”; con comentario sale C-0412 (contado 1450, fondo 500)
   - `ng build` sin errores; sin errores en consola
