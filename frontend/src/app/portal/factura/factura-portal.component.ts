@@ -10,6 +10,7 @@ import { HistorialVentasService } from '../../cajera/ventas/historial-ventas.ser
 import { formatearDinero } from '../../compartido/formato';
 import { InformacionModalComponent } from '../compartido/informacion-modal.component';
 import { PortalService } from '../portal.service';
+import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 const RFC = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
 
@@ -31,6 +32,8 @@ function normalizar(t: string): string {
   styleUrls: ['../portal.css', './factura-portal.component.css'],
 })
 export class FacturaPortalComponent {
+  /** Logo de Configuración (AD9.1). */
+  protected readonly logo = rutaLogo;
   private readonly portal = inject(PortalService);
   private readonly ventas = inject(HistorialVentasService);
   private readonly ordenes = inject(OrdenesService);

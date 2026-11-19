@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NEGOCIO } from '../cajera/documentos/documentos.service';
-import { AJUSTES_TICKET, AVISO_PRIVACIDAD, CLAUSULAS_RECEPCION, Clausula } from '../compartido/ajustes-documentos';
+import { AJUSTES_TICKET, AVISO_PRIVACIDAD, CLAUSULAS_RECEPCION, Clausula, FORMAS_PAGO_CAJA, LOGO_NEGOCIO } from '../compartido/ajustes-documentos';
 import { ReglasTaller } from '../compartido/reglas-taller';
 import { ConfiguracionTallerService, NivelManoObra } from '../jefe/configuracion/configuracion.service';
 
@@ -141,6 +141,8 @@ export class ConfiguracionService {
     Object.assign(EMISOR_FISCAL, { rfc: c.fiscal.rfc, razonSocial: c.fiscal.razonSocial, regimen: c.fiscal.regimen, cp: c.fiscal.cp, serie: c.fiscal.serie, autofactura: c.fiscal.autofactura });
     // Lo que leen los documentos impresos (C11).
     Object.assign(AJUSTES_TICKET, c.ticket);
+    LOGO_NEGOCIO.set(c.negocio.logo);
+    Object.assign(FORMAS_PAGO_CAJA, { tarjeta: c.pagos.tarjeta, transferencia: c.pagos.transferencia, mixto: c.pagos.mixto, banco: c.transferencia.banco, clabe: c.transferencia.clabe, titular: c.transferencia.titular });
     AVISO_PRIVACIDAD.texto = c.privacidad;
     CLAUSULAS_RECEPCION.splice(0, CLAUSULAS_RECEPCION.length, ...c.clausulas.map((k) => ({ ...k })));
     const [marca, ...lema] = c.negocio.nombre.split(' · ');

@@ -8,6 +8,7 @@ import { DispositivosService } from '../dispositivos.service';
 import { PagoMixtoComponent, resumenMixto } from '../pago-mixto/pago-mixto.component';
 import { TarjetaRechazadaComponent } from '../tarjeta-rechazada/tarjeta-rechazada.component';
 import { MetodoPago, ParteMixta, Pago } from '../venta.service';
+import { FORMAS_PAGO_CAJA, clabeLegible } from '../../../compartido/ajustes-documentos';
 
 interface OpcionMetodo {
   id: MetodoPago;
@@ -59,7 +60,8 @@ export class CobroComponent implements AfterViewInit {
   /** Sin conexión no hay transferencias ni facturas (C2.16). */
   protected readonly enLinea = inject(DispositivosService).enLinea;
 
-  protected readonly metodos = METODOS;
+  /** Solo las formas de pago que el administrador dejó activas (AD9.2); el efectivo siempre. */
+  protected readonly metodos = METODOS.filter((m) => m.id === 'efectivo' || FORMAS_PAGO_CAJA[m.id as 'tarjeta' | 'transferencia' | 'mixto']);
   protected readonly bancos = BANCOS;
   protected readonly dinero = formatearDinero;
   protected readonly metodo = signal<MetodoPago>('efectivo');
@@ -80,12 +82,14 @@ export class CobroComponent implements AfterViewInit {
   // Mixto (C2.13): efectivo y tarjeta, como en Figma.
   protected readonly partes = signal<ParteMixta[]>([
     { metodo: 'efectivo', monto: null, referencia: '' },
-    { metodo: 'tarjeta', monto: null, referencia: '' },
+    { metodo: FORMAS_PAGO_CAJA.tarjeta || !FORMAS_PAGO_CAJA.transferencia ? 'tarjeta' : 'transferencia', monto: null, referencia: '' },
   ]);
   private readonly mixto = computed(() => resumenMixto(this.partes(), this.total()));
 
   // Transferencia
-  protected readonly clabe = '012 580 0123 4567 8901';
+  /** Cuenta de Configuración (AD9.2). */
+  protected readonly clabe = clabeLegible(FORMAS_PAGO_CAJA.clabe);
+  protected readonly cuenta = `Cuenta ${FORMAS_PAGO_CAJA.titular.split(' ')[0]} · ${FORMAS_PAGO_CAJA.banco}`;
   protected bancoOrigen = BANCOS[0];
   protected readonly montoTransferencia = signal<number | null>(null);
   protected readonly rastreo = signal('');

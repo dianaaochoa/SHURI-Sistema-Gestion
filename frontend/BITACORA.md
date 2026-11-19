@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 17 nov 2026 (abrir y cerrar turno con un solo monto, sin contar por denominación)
+- **Última actualización:** 19 nov 2026 (el logo y las formas de pago de Configuración ya se usan en el menú, el acceso, el portal y el cobro)
 
 ---
 
@@ -365,7 +365,7 @@ flowchart LR
   CAJA["CajaService<br/>turno (de quién lo abrió), retiros,<br/>ingresos y pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
-  ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET y CLAUSULAS_RECEPCION"]:::serv
+  ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET, CLAUSULAS_RECEPCION,<br/>LOGO_NEGOCIO y FORMAS_PAGO_CAJA"]:::serv
   FTO["compartido/fotos-orden<br/>FotosOrden: miniaturas, agregar,<br/>quitar y visor (recepción y técnico)"]:::comp
   CDN["compartido/campo-dinero.directive.ts<br/>[(campoDinero)]: 1000 al escribir,<br/>$1,000.00 fuera del campo"]:::comp
   CFA["ConfiguracionAdmin AD9<br/>7 pestañas: Negocio · Cajas · Documentos<br/>Taller · Facturación · Mensajes · Correo"]:::comp
@@ -461,6 +461,7 @@ flowchart LR
   BNC --> FTO
   AT & CTU --> CDN
   CB & PM & NO --> CDN
+  CB & PM & ML & PTA --> ADO
   CFA --> CRS
   PTA --> ADO & FCS & MS
   TK & OC --> ADO
@@ -562,7 +563,8 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 
 **Configuración (`/administrador/configuracion`):** siete pestañas que se guardan juntas con “Guardar cambios” (un punto marca las que tienen cambios; “Descartar” los quita). Si falta algo obligatorio no se guarda y se abre la pestaña a corregir.
 - Negocio y marca: logo (PNG o SVG), datos del negocio y ticket (encabezado, pie, logo, desglose de IVA y quién cobró) con vista previa. El ticket impreso (C11) los usa al guardar.
-- Cajas y pagos: fondo, ubicación y terminal de cada caja (el fondo pasa a la apertura de turno), formas de pago y CLABE (se ve tapada; “Cambiar” pide los 18 dígitos).
+- Cajas y pagos: fondo, ubicación y terminal de cada caja (el fondo pasa a la apertura de turno), formas de pago y CLABE (se ve tapada; “Cambiar” pide los 18 dígitos). Al guardar, el cobro del punto de venta solo ofrece las formas activas (el efectivo siempre) y muestra la cuenta y CLABE de aquí.
+- El logo que se sube en Negocio y marca aparece, al guardar, en el menú, la barra del jefe en celular, el inicio de sesión, el portal del cliente y la hoja carta de la orden.
 - Documentos: cláusulas que se imprimen en la hoja de recepción; llevan variables como `{garantia}` que se llenan con lo del taller. Aviso de privacidad y vista previa.
 - Taller: el mismo tabulador y reglas de J9; lo que cambia queda también en el historial de J9.
 - Facturación: RFC, razón social, régimen, C.P., CSD (solo guarda el nombre del archivo), serie y timbres. Las facturas nuevas usan la serie y el emisor guardados.
@@ -1229,6 +1231,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Editar un cliente | `ClientesService.guardar` busca cómo estaba el cliente y llama a `OrdenesService.actualizarCliente` con sus órdenes (mismo id, teléfono o nombre): toman nombre, teléfono y correo nuevos. Las ventas ya cobradas conservan los datos de su ticket | Órdenes de servicio, sus documentos y los correos de aviso (cotización, listo) usan los datos guardados en la orden; un ticket de venta es un comprobante que no cambia. |
 | Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
 | Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
+| Logo y formas de pago (AD9) | Al guardar, `ConfiguracionService` pone el logo en `LOGO_NEGOCIO` (signal) y las formas de pago y la cuenta en `FORMAS_PAGO_CAJA` (`compartido/ajustes-documentos.ts`, objetos simples para no cargar la configuración completa al inicio). Cobro y pago mixto filtran las formas apagadas; la CLABE del cobro sale de AD9.2 | La CLABE de C2.12 (Figma) cambia a la de AD9.2, que es la que el administrador edita. La comisión de tarjeta todavía no se suma. Los mensajes automáticos (AD9.6) no se conectaron: sus valores de Figma apagan el correo de la contraseña temporal, el presupuesto y el recordatorio de bodega, que P6 sí manda; falta decidir cuál manda. |
 | Abrir y cerrar turno sin denominaciones | C1.3 pide solo “Efectivo con el que abres la caja” y C10.4 solo “Efectivo que hay en el cajón” y “Efectivo que se queda como fondo”, con `campoDinero` | **Lo pidió el usuario (17 nov):** anotar la cantidad que hay o la que se deja, no billete por billete. Figma C1.3 y C10.4 traen la tabla por denominación; se conservan el total, la diferencia con el fondo asignado o el esperado, el comentario y lo que se entrega a gerencia. |
 | Bloqueo tras 30 min sin uso | `BloqueoSesionComponent` en `SistemaLayout` (solo personal; el portal del cliente no). Cuenta como uso mover el mouse, teclear, tocar o desplazar; el último uso (`shuri.actividad`) y el bloqueo (`shuri.bloqueada`) van en `localStorage`, así que valen para todas las pestañas y siguen al recargar. Bloquea en vez de cerrar la sesión: atrás queda todo igual, con `inert` y sin que las teclas lleguen a la página (los atajos del punto de venta y Esc no hacen nada). `AuthService.desbloquear` usa el mismo login, así que los fallos cuentan para bloquear la cuenta | Figma solo da la regla general, sin pantalla: se usaron los estilos del login (A.1). Cerrar la sesión haría perder una venta a medias. Con la API, el servidor también debe vencer el token. Sube 6 kB el paquete inicial (va con el menú). |
 | Campos de dinero | Directiva `campoDinero` (`compartido/campo-dinero.directive.ts`) en el cobro (efectivo, transferencia, mixto) y el anticipo de Nueva orden: con el cursor dentro se ve el número sin formato y se selecciona para reemplazarlo; al salir, o si el monto llega de un botón, se ve con `formatearDinero`. Acepta “$1,2a50” y lo lee como 1250; más de 2 decimales se cortan | Dar formato mientras se escribe mueve el cursor. Los campos `type="number"` (corte, entradas, alta de producto) no pueden mostrar “$” y se quedaron igual. |
@@ -1257,7 +1260,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Seguimiento (P2): las calificaciones viven en memoria y todavía no las ve el administrador.
 - [ ] Fotos de recepción y del técnico: viven en memoria como data URL (se pierden al recargar); la API debe subirlas a un almacenamiento y dar su URL. El cliente solo las ve mientras la orden está “Recibida”.
 - [ ] Portal: las contraseñas que crea el cliente viven en memoria (al recargar vuelve a la de prueba); el envío real de la temporal por correo le toca a la API.
-- [ ] Configuración: el logo elegido solo se ve en Configuración y en sus vistas previas (falta llevarlo al menú y al portal); las formas de pago y los mensajes automáticos se guardan pero el punto de venta y los avisos todavía no los consultan; los CSD y el correo de prueba se conectarán con la API.
+- [ ] Configuración: los mensajes automáticos (AD9.6) se guardan pero los avisos no los consultan (sus interruptores de correo chocan con P6: hay que decidir cuál manda); la comisión de tarjeta no se suma al cobro; el logo y la configuración viven en memoria; los CSD y el correo de prueba se conectarán con la API.
 - [ ] Permisos por rol: “Ver costos y utilidad” y “Editar precios del catálogo” todavía no cambian ninguna pantalla (p. ej. el precio al editar un producto en C7.1); el servidor debe revisar cada permiso y cerrar sesiones en otros equipos (API).
 - [ ] Facturación: conectar un PAC real (timbrado, cancelación y acuse del SAT).
 - [ ] Cortes de caja: la revisión debe llegar a la nómina cuando se descuente.
@@ -2013,4 +2016,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - Verificado como Ana Martínez:
   - abrir: el cursor queda en el campo; “1500” → “Sobran $500.00 respecto al fondo asignado ($1,000.00)” y $1,500.00; Enter abre el turno con fondo 1500
   - cerrar: esperado $1,500.00; “1450” → faltante −$50.00; fondo $500.00 → “A gerencia se entregan $950.00”; sin comentario → “No se puede cerrar todavía: Explica la diferencia.”; con comentario sale C-0412 (contado 1450, fondo 500)
+  - `ng build` sin errores; sin errores en consola
+
+### 19 nov 2026 · Logo y formas de pago de Configuración aplicados
+- La rama se puso al día con `develop` (avance rápido: solo traía el backend del PR #10).
+- Pendiente de solo frontend: el logo y las formas de pago de AD9 se guardaban pero nadie los usaba.
+- `compartido/ajustes-documentos.ts`: `LOGO_NEGOCIO`, `rutaLogo`, `FORMAS_PAGO_CAJA` y `clabeLegible`; `ConfiguracionService.guardar` los actualiza. Logo en `MenuLateral`, `SistemaLayout`, `AccesoLayout`, `PortalMarca`, Mis equipos, Seguimiento, Factura y `OrdenCarta`. `Cobro` y `PagoMixto` filtran las formas apagadas y usan la cuenta de AD9.2.
+- Verificado:
+  - Verónica Castillo sube un logo de prueba y apaga “Tarjeta de débito / crédito” → “Cambios guardados en Negocio y marca, Cajas y pagos…”; el menú ya muestra el logo nuevo
+  - el inicio de sesión y el portal (`/portal`) muestran el logo nuevo
+  - Ana Martínez abre turno y cobra: métodos “Efectivo, Transferencia, Mixto” (sin tarjeta); transferencia “Cuenta SHURI · BBVA · CLABE 012 180 0012 3456 4821”; mixto arranca con Efectivo y Transferencia y “Agregar otro método” solo ofrece esos dos
   - `ng build` sin errores; sin errores en consola

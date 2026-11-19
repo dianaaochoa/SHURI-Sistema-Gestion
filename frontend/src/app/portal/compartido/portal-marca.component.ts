@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
+import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 /** Logo, nombre y lema del taller arriba de las pantallas de acceso del portal (Figma P1). */
 @Component({
   selector: 'app-portal-marca',
   standalone: true,
   template: `
-    <img src="assets/acceso/logo-shuri.png" width="56" height="56" alt="" />
+    <img [src]="logo()" width="56" height="56" alt="" />
     <p class="nombre">SHURI</p>
     <p class="lema">Reparaciones y Ventas</p>
   `,
@@ -16,4 +17,6 @@ import { Component } from '@angular/core';
     .lema { font-size: 13px; color: var(--color-texto-tenue); }`,
   ],
 })
-export class PortalMarcaComponent {}
+export class PortalMarcaComponent {
+  protected readonly logo = rutaLogo;
+}

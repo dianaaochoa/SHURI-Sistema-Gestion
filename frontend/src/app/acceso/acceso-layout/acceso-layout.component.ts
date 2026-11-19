@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 /** Marco común de las pantallas de acceso (A.1–A.5): panel de marca + columna del formulario. */
 @Component({
@@ -9,4 +10,7 @@ import { RouterOutlet } from '@angular/router';
   templateUrl: './acceso-layout.component.html',
   styleUrl: './acceso-layout.component.css',
 })
-export class AccesoLayoutComponent {}
+export class AccesoLayoutComponent {
+  /** Logo de Configuración (AD9.1). */
+  protected readonly logo = rutaLogo;
+}

@@ -8,7 +8,7 @@
   (mouseleave)="desplegado.set(abierto() !== null)"
 >
   <div class="marca">
-    <span class="marca__logo"><img src="assets/acceso/logo-shuri.png" alt="" /></span>
+    <span class="marca__logo"><img [src]="logo()" alt="" /></span>
     <span class="marca__texto">
       <strong>SHURI</strong>
       <span>Reparación y venta</span>

@@ -7,6 +7,7 @@ import { MenuLateralComponent } from '../menu-lateral/menu-lateral.component';
 import { NavegacionMovilComponent } from '../navegacion-movil/navegacion-movil.component';
 import { NotificacionesService } from '../notificaciones.service';
 import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-notificaciones.component';
+import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 /**
  * Estructura de la app del personal: menú lateral + contenido con scroll propio.
@@ -29,7 +30,7 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
         @if (esJefe()) {
           <header class="barra-movil barra-movil--jefe">
             <button type="button" class="barra-movil__marca" aria-label="Abrir menú completo" (click)="menuMovil.set(true)">
-              <span class="barra-movil__logo"><img src="assets/acceso/logo-shuri.png" alt="" /></span>
+              <span class="barra-movil__logo"><img [src]="logo()" alt="" /></span>
               <span class="barra-movil__texto"><strong>SHURI</strong><span>Jefe de técnicos</span></span>
             </button>
             <button type="button" class="barra-movil__campana" [attr.aria-label]="'Notificaciones: ' + notificaciones.nuevas().length + ' nuevas'" [attr.aria-expanded]="avisos()" (click)="avisos.set(!avisos())">
@@ -99,6 +100,7 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
   `,
 })
 export class SistemaLayoutComponent {
+  protected readonly logo = rutaLogo;
   protected readonly menuMovil = signal(false);
   protected readonly avisos = signal(false);
   protected readonly notificaciones = inject(NotificacionesService);

@@ -13,6 +13,7 @@ import { SolicitarGarantiaComponent } from '../garantia/solicitar-garantia.compo
 import { AvisoChatComponent } from '../chat/aviso-chat.component';
 import { FotosOrdenComponent } from '../../compartido/fotos-orden/fotos-orden.component';
 import { PortalService } from '../portal.service';
+import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 type Variante = 'garantia' | 'recibido' | 'revision' | 'dato' | 'presupuesto' | 'rechazado' | 'sin-reparacion' | 'taller' | 'adicional' | 'listo' | 'entregado';
 
@@ -78,6 +79,8 @@ const VARIANTES: Record<Variante, { badge: string; tono: string; titulo: string;
   styleUrls: ['../portal.css', './seguimiento.component.css', './tarjetas.css'],
 })
 export class SeguimientoComponent {
+  /** Logo de Configuración (AD9.1). */
+  protected readonly logo = rutaLogo;
   /** Fotos del técnico que ve el cliente: diagnóstico en el presupuesto, daño adicional y cómo quedó al final. */
   protected fotosDe(...etapas: EtapaFoto[]): FotoEvidencia[] {
     const o = this.orden();

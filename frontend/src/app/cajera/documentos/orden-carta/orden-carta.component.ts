@@ -5,6 +5,7 @@ import { Orden } from '../../ordenes/ordenes.service';
 import { textoDireccion } from '../../punto-de-venta/clientes.datos';
 import { NEGOCIO } from '../documentos.service';
 import { CLAUSULAS_RECEPCION, llenarClausula } from '../../../compartido/ajustes-documentos';
+import { rutaLogo } from '../../../compartido/ajustes-documentos';
 
 /** C11 · Orden de servicio en hoja carta, con cláusulas y firmas. */
 @Component({
@@ -14,6 +15,7 @@ import { CLAUSULAS_RECEPCION, llenarClausula } from '../../../compartido/ajustes
   styleUrl: './orden-carta.component.css',
 })
 export class OrdenCartaComponent {
+  protected readonly logo = rutaLogo;
   private readonly clientes = inject(ClientesService);
   readonly orden = input.required<Orden>();
   protected readonly negocio = NEGOCIO;
