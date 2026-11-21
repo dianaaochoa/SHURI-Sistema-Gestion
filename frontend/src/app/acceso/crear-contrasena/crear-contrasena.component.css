@@ -1,3 +1,17 @@
+/* Pregunta secreta (para recuperar la contraseña en línea, A.3) */
+
+.pregunta-secreta__titulo {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-marino);
+}
+
+.pregunta-secreta__ayuda {
+  font-size: 12px;
+  color: var(--color-texto-tenue);
+}
+
 /* Indicador de contraseña (Figma › componente "Indicador de contraseña") */
 
 .fuerza {

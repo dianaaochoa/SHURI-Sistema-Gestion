@@ -1,73 +1,135 @@
-<form class="tarjeta" [formGroup]="formulario" (ngSubmit)="iniciarSesion()" novalidate>
-  <div class="tarjeta__encabezado">
-    <h1 class="tarjeta__titulo">Bienvenido de nuevo</h1>
-    <p class="tarjeta__descripcion">
-      Inicia sesión con tu usuario. Si es tu primer ingreso, usa la contraseña temporal que te dio tu
-      administrador; te pediremos cambiarla.
-    </p>
-  </div>
-
-  @if (error(); as mensaje) {
-    <div class="aviso aviso--error" role="alert">
-      <img src="assets/iconos/alert.svg" width="16" height="16" alt="" />
-      <span>{{ mensaje }}</span>
+@if (reto(); as paso) {
+  <!-- A.1b Verificación en dos pasos (MFA): la contraseña fue correcta y se mandó un código por correo -->
+  <form class="tarjeta" [formGroup]="formularioCodigo" (ngSubmit)="verificarCodigo()" novalidate>
+    <span class="tarjeta__icono">
+      <img src="assets/iconos/lock-lg.svg" width="26" height="26" alt="" />
+    </span>
+    <div class="tarjeta__encabezado">
+      <h1 class="tarjeta__titulo">Revisa tu correo</h1>
+      <p class="tarjeta__descripcion">
+        Te enviamos un código de 6 dígitos a {{ paso.correo }}. Escríbelo para terminar de iniciar sesión; vence
+        en 10 minutos.
+      </p>
     </div>
-  }
 
-  <div class="campo">
-    <label class="campo__etiqueta" for="usuario">Usuario</label>
-    <div class="campo__control" [class.campo__control--error]="campoInvalido('usuario')">
-      <img src="assets/iconos/user.svg" width="16" height="16" alt="" />
-      <input
-        id="usuario"
-        class="campo__input"
-        formControlName="usuario"
-        autocomplete="username"
-        autocapitalize="none"
-        spellcheck="false"
-      />
-    </div>
-    @if (campoInvalido('usuario')) {
-      <span class="campo__error">Escribe tu usuario.</span>
+    @if (error(); as mensaje) {
+      <div class="aviso aviso--error" role="alert">
+        <img src="assets/iconos/alert.svg" width="16" height="16" alt="" />
+        <span>{{ mensaje }}</span>
+      </div>
+    } @else if (aviso()) {
+      <div class="aviso aviso--info" role="status">
+        <img src="assets/iconos/send.svg" width="16" height="16" alt="" />
+        <span>{{ aviso() }}</span>
+      </div>
     }
-  </div>
 
-  <div class="campo">
-    <label class="campo__etiqueta" for="contrasena">Contraseña</label>
-    <div class="campo__control" [class.campo__control--error]="campoInvalido('contrasena') || error()">
-      <img src="assets/iconos/lock.svg" width="16" height="16" alt="" />
-      <input
-        id="contrasena"
-        class="campo__input"
-        formControlName="contrasena"
-        [type]="verContrasena() ? 'text' : 'password'"
-        autocomplete="current-password"
-      />
-      <button
-        type="button"
-        class="campo__boton-icono"
-        [class.campo__boton-icono--activo]="verContrasena()"
-        [attr.aria-label]="verContrasena() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-        [attr.aria-pressed]="verContrasena()"
-        (click)="verContrasena.set(!verContrasena())"
-      >
-        <img src="assets/iconos/eye.svg" width="16" height="16" alt="" />
+    <div class="campo">
+      <label class="campo__etiqueta" for="codigo">Código de verificación</label>
+      <div class="campo__control" [class.campo__control--error]="codigoInvalido || error()">
+        <img src="assets/iconos/key-btn.svg" width="16" height="16" alt="" />
+        <input
+          id="codigo"
+          class="campo__input iniciar-sesion__codigo"
+          formControlName="codigo"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="7"
+          placeholder="000000"
+        />
+      </div>
+      @if (codigoInvalido) {
+        <span class="campo__error">Escribe los 6 dígitos del código.</span>
+      }
+    </div>
+
+    <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">
+      <img src="assets/iconos/check-btn.svg" width="16" height="16" alt="" />
+      {{ enviando() ? 'Verificando…' : 'Verificar y entrar' }}
+    </button>
+
+    <div class="iniciar-sesion__opciones">
+      <button type="button" class="enlace" (click)="volver()">
+        <img src="assets/iconos/undo.svg" width="14" height="14" alt="" />
+        Volver
+      </button>
+      <button type="button" class="enlace" [disabled]="segundosReenvio() > 0" (click)="reenviarCodigo()">
+        {{ segundosReenvio() > 0 ? 'Reenviar código en ' + segundosReenvio() + ' s' : 'Reenviar código' }}
       </button>
     </div>
-    @if (campoInvalido('contrasena')) {
-      <span class="campo__error">Escribe tu contraseña.</span>
+  </form>
+} @else {
+  <form class="tarjeta" [formGroup]="formulario" (ngSubmit)="iniciarSesion()" novalidate>
+    <div class="tarjeta__encabezado">
+      <h1 class="tarjeta__titulo">Bienvenido de nuevo</h1>
+      <p class="tarjeta__descripcion">
+        Inicia sesión con tu usuario. Si es tu primer ingreso, usa la contraseña temporal que te dio tu
+        administrador; te pediremos cambiarla.
+      </p>
+    </div>
+
+    @if (error(); as mensaje) {
+      <div class="aviso aviso--error" role="alert">
+        <img src="assets/iconos/alert.svg" width="16" height="16" alt="" />
+        <span>{{ mensaje }}</span>
+      </div>
     }
-  </div>
 
-  <div class="iniciar-sesion__opciones">
-    <label class="casilla">
-      <input type="checkbox" formControlName="recordar" />
-      Recordar este equipo
-    </label>
-    <a class="enlace" routerLink="/olvide-contrasena">¿Olvidaste tu contraseña?</a>
-  </div>
+    <div class="campo">
+      <label class="campo__etiqueta" for="usuario">Usuario</label>
+      <div class="campo__control" [class.campo__control--error]="campoInvalido('usuario')">
+        <img src="assets/iconos/user.svg" width="16" height="16" alt="" />
+        <input
+          id="usuario"
+          class="campo__input"
+          formControlName="usuario"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+        />
+      </div>
+      @if (campoInvalido('usuario')) {
+        <span class="campo__error">Escribe tu usuario.</span>
+      }
+    </div>
 
-  <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">
-    {{ enviando() ? 'Iniciando sesión…' : 'Iniciar sesión' }}
-  </button>
-</form>
+    <div class="campo">
+      <label class="campo__etiqueta" for="contrasena">Contraseña</label>
+      <div class="campo__control" [class.campo__control--error]="campoInvalido('contrasena') || error()">
+        <img src="assets/iconos/lock.svg" width="16" height="16" alt="" />
+        <input
+          id="contrasena"
+          class="campo__input"
+          formControlName="contrasena"
+          [type]="verContrasena() ? 'text' : 'password'"
+          autocomplete="current-password"
+        />
+        <button
+          type="button"
+          class="campo__boton-icono"
+          [class.campo__boton-icono--activo]="verContrasena()"
+          [attr.aria-label]="verContrasena() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+          [attr.aria-pressed]="verContrasena()"
+          (click)="verContrasena.set(!verContrasena())"
+        >
+          <img src="assets/iconos/eye.svg" width="16" height="16" alt="" />
+        </button>
+      </div>
+      @if (campoInvalido('contrasena')) {
+        <span class="campo__error">Escribe tu contraseña.</span>
+      }
+    </div>
+
+    <div class="iniciar-sesion__opciones">
+      <label class="casilla">
+        <input type="checkbox" formControlName="recordar" />
+        Recordar este equipo
+      </label>
+      <a class="enlace" routerLink="/olvide-contrasena">¿Olvidaste tu contraseña?</a>
+    </div>
+
+    <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">
+      {{ enviando() ? 'Iniciando sesión…' : 'Iniciar sesión' }}
+    </button>
+  </form>
+}
