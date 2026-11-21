@@ -33,10 +33,14 @@ class UserService
         private readonly MailService $mailer,
     ) {}
 
-    /** @param  array<string, mixed>  $filters */
-    public function paginate(array $filters): LengthAwarePaginator
+    /**
+     * @param  array<string, mixed>  $filters
+     * @param  User|null  $actor  quien consulta: solo el super usuario ve su propia cuenta en la lista
+     */
+    public function paginate(array $filters, ?User $actor = null): LengthAwarePaginator
     {
         return User::with(['role', 'cashRegister'])
+            ->when(! $actor?->isSuperUser(), fn ($q) => $q->whereHas('role', fn ($r) => $r->where('slug', '<>', Role::SUPER_ADMIN)))
             ->when($filters['search'] ?? null, function ($q, string $search) {
                 $like = '%'.addcslashes($search, '%_\\').'%';
                 $q->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('username', 'like', $like)->orWhere('email', 'like', $like));
@@ -156,9 +160,13 @@ class UserService
      *
      * @return Collection<int, Role>
      */
-    public function roles(): Collection
+    public function roles(?User $actor = null): Collection
     {
-        return Role::with('permissions')->withCount(['users' => fn ($q) => $q->where('is_active', true)])->orderBy('id')->get();
+        return Role::with('permissions')
+            ->withCount(['users' => fn ($q) => $q->where('is_active', true)])
+            ->when(! $actor?->isSuperUser(), fn ($q) => $q->where('slug', '<>', Role::SUPER_ADMIN))
+            ->orderBy('id')
+            ->get();
     }
 
     /**
@@ -172,7 +180,7 @@ class UserService
             return;
         }
 
-        $isAdmin = Role::whereKey($data['role_id'] ?? 0)->value('slug') === 'admin';
+        $isAdmin = in_array(Role::whereKey($data['role_id'] ?? 0)->value('slug'), ['admin', Role::SUPER_ADMIN], true);
         $cap = (float) $this->settings->get('max_discount_cap_pct', 20);
 
         if (! $isAdmin && (float) $data['max_discount_pct'] > $cap) {

@@ -24,6 +24,9 @@ class AuthService
 
     public const CUSTOMER = 'customer';
 
+    /** Minutos de bloqueo del super usuario tras los intentos fallidos (no hay quien lo desbloquee). */
+    public const SUPER_USER_LOCK_MINUTES = 15;
+
     public function __construct(
         private readonly SettingsService $settings,
         private readonly AuditService $audit,
@@ -43,10 +46,17 @@ class AuthService
             ->where(fn ($q) => $q->where('email', $login)->orWhere('username', $login))
             ->first();
 
+        $lockMinutes = $this->settings->int('staff_lock_minutes', 0); // 0 = hasta que el administrador la desbloquee
+
+        // Nadie puede desbloquear al super usuario: su bloqueo siempre es por tiempo
+        if ($user?->isSuperUser() && $lockMinutes === 0) {
+            $lockMinutes = self::SUPER_USER_LOCK_MINUTES;
+        }
+
         $user = $this->verifyCredentials(
             $user, $password,
             $this->settings->int('staff_max_attempts', 3),
-            $this->settings->int('staff_lock_minutes', 0), // 0 = until the admin unlocks it
+            $lockMinutes,
         );
 
         if ($this->twoFactor->requiredFor($user)) {

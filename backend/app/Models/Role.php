@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Role extends Model
 {
+    /** Rol con acceso total; solo existe una cuenta y no se asigna desde la pantalla de usuarios. */
+    public const SUPER_ADMIN = 'super_admin';
+
     protected $table = 'roles';
 
     protected $fillable = [

@@ -28,7 +28,7 @@ class UserController extends Controller
             'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
         ]);
 
-        return AdminUserResource::collection($this->users->paginate($filters));
+        return AdminUserResource::collection($this->users->paginate($filters, $request->user()));
     }
 
     /** GET /users/{user} */
@@ -92,10 +92,10 @@ class UserController extends Controller
     }
 
     /** GET /roles — AD7.3 matriz de permisos por rol */
-    public function roles(): JsonResponse
+    public function roles(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->users->roles()->map(fn ($role) => [
+            'data' => $this->users->roles($request->user())->map(fn ($role) => [
                 'id' => $role->id,
                 'slug' => $role->slug,
                 'name' => $role->name,

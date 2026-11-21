@@ -30,6 +30,8 @@ class StaffUserResource extends JsonResource
             'permissions' => $this->permissionCodes(),
             'max_discount_pct' => (float) $this->max_discount_pct,
             'cash_register_id' => $this->cash_register_id,
+            // El menú lateral muestra "Cajera · Caja 01"
+            'cash_register' => $this->cashRegister ? ['id' => $this->cashRegister->id, 'name' => $this->cashRegister->name] : null,
             'must_change_password' => $this->must_change_password,
             'is_locked' => (bool) $this->locked_until?->isFuture(),
             'has_security_question' => $this->security_answer_hash !== null,
