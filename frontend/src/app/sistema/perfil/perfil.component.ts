@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../acceso/auth.service';
+import { AuthService, SesionActiva } from '../../acceso/auth.service';
 import { REQUISITOS } from '../../acceso/contrasena';
 import { formatearFechaCorta, formatearHora } from '../../compartido/formato';
 import { CajaService } from '../../cajera/caja.service';
@@ -118,6 +118,64 @@ export class PerfilComponent implements AfterViewInit {
       this.repetida.set('');
       this.intentado.set(false);
       this.listo.set(true);
+    });
+  }
+
+  // ---------- Mis sesiones (multisesión: dispositivos con sesión abierta) ----------
+  protected readonly sesiones = signal<SesionActiva[]>([]);
+  protected readonly cargandoSesiones = signal(true);
+  protected readonly cerrandoSesion = signal<number | 'todas' | null>(null);
+  protected readonly avisoSesiones = signal<{ tipo: 'exito' | 'error'; texto: string } | null>(null);
+  protected readonly otrasSesiones = computed(() => this.sesiones().filter((s) => !s.actual).length);
+
+  constructor() {
+    this.cargarSesiones();
+  }
+
+  private cargarSesiones(): void {
+    this.cargandoSesiones.set(true);
+    this.auth.sesionesActivas().subscribe({
+      next: (lista) => {
+        this.sesiones.set(lista);
+        this.cargandoSesiones.set(false);
+      },
+      error: () => {
+        this.cargandoSesiones.set(false);
+        this.avisoSesiones.set({ tipo: 'error', texto: 'No se pudieron cargar tus sesiones.' });
+      },
+    });
+  }
+
+  /** "Chrome · Windows" o el nombre que se le dio al dispositivo. */
+  protected nombreDispositivo(s: SesionActiva): string {
+    return s.dispositivo || [s.navegador, s.sistema].filter(Boolean).join(' · ') || 'Dispositivo desconocido';
+  }
+
+  /** "Hoy 09:02", "12 nov 18:40" */
+  protected cuando(iso: string | null): string {
+    if (!iso) return '—';
+    const f = new Date(iso);
+    const dia = f.toDateString() === new Date().toDateString() ? 'Hoy' : formatearFechaCorta(f);
+    return `${dia} ${formatearHora(f)}`;
+  }
+
+  protected cerrarSesionDe(s: SesionActiva): void {
+    if (this.cerrandoSesion()) return;
+    this.cerrandoSesion.set(s.id);
+    this.auth.cerrarSesionRemota(s.id).subscribe((r) => {
+      this.cerrandoSesion.set(null);
+      this.avisoSesiones.set({ tipo: r.ok ? 'exito' : 'error', texto: r.ok ? `Se cerró la sesión en ${this.nombreDispositivo(s)}.` : r.mensaje });
+      if (r.ok) this.sesiones.update((lista) => lista.filter((x) => x.id !== s.id));
+    });
+  }
+
+  protected cerrarOtras(): void {
+    if (this.cerrandoSesion() || !this.otrasSesiones()) return;
+    this.cerrandoSesion.set('todas');
+    this.auth.cerrarOtrasSesiones().subscribe((r) => {
+      this.cerrandoSesion.set(null);
+      this.avisoSesiones.set({ tipo: r.ok ? 'exito' : 'error', texto: r.mensaje });
+      if (r.ok) this.sesiones.update((lista) => lista.filter((x) => x.actual));
     });
   }
 

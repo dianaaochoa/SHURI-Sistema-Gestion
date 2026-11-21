@@ -45,6 +45,25 @@ const MATRIZ_DEMO: MatrizPermisos = {
   usuarios: fila(false, false, false, true),
 };
 
+/**
+ * Permiso de las pantallas → permisos de la API que lo conceden (basta con uno).
+ * La API manda los de cada usuario en `user.permissions` (docs/api/endpoints.md §13).
+ */
+export const CODIGOS_API: Record<ClavePermiso, string[]> = {
+  vender: ['pos.sell'],
+  descuentos: ['pos.discount'],
+  cancelar: ['pos.cancel_sale', 'pos.refund'],
+  retiros: ['cash.withdrawal', 'suppliers.manage'],
+  costos: ['catalog.view_costs'],
+  precios: ['catalog.prices'],
+  mercancia: ['inventory.stock_in', 'inventory.adjust'],
+  pedidos: ['purchasing.orders', 'parts.handle'],
+  cotizar: ['orders.quote', 'warranties.rule'],
+  banco: ['orders.repair'],
+  reportes: ['reports.view'],
+  usuarios: ['users.manage'],
+};
+
 /** Niveles de descuento que el administrador puede dar a la cajera (0 a 20 %). */
 export const NIVELES_DESCUENTO = [0, 5, 10, 15, 20];
 export const textoDescuento = (n: number) => (n === 0 ? 'Sin descuentos' : `Hasta ${n}%${n === 20 ? ' (máximo)' : ''}`);
@@ -60,10 +79,16 @@ export class PermisosService {
   readonly descuentoCajera = signal(10);
   private readonly auth = inject(AuthService);
 
-  /** ¿El rol de quien tiene la sesión tiene este permiso? Se recalcula si el administrador lo cambia. */
+  /**
+   * ¿Quien tiene la sesión tiene este permiso? Se decide con los permisos reales que mandó la API
+   * al iniciar sesión; la matriz de prueba solo queda para una sesión vieja que no los trae.
+   * La API vuelve a revisar cada permiso en el servidor (403 si no lo tiene).
+   */
   puede(clave: ClavePermiso): boolean {
-    const rol = this.auth.sesion()?.rol;
-    return !!rol && this.matriz()[clave][rol];
+    const sesion = this.auth.sesion();
+    if (!sesion) return false;
+    if (sesion.permisos) return CODIGOS_API[clave].some((codigo) => sesion.permisos!.includes(codigo));
+    return this.matriz()[clave][sesion.rol];
   }
 
   guardar(matriz: MatrizPermisos, descuento: number): void {

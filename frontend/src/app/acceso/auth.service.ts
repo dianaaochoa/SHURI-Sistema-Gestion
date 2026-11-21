@@ -29,6 +29,47 @@ export interface Sesion {
   tienePregunta?: boolean;
 }
 
+/** Un dispositivo con sesión abierta (multisesión, GET /auth/sessions). */
+export interface SesionActiva {
+  id: number;
+  dispositivo: string | null;
+  navegador: string | null;
+  sistema: string | null;
+  ip: string | null;
+  /** ISO */
+  inicio: string;
+  /** ISO: última petición hecha con esa sesión. */
+  ultimoUso: string | null;
+  /** ISO */
+  vence: string | null;
+  /** Es la sesión de este navegador (no se puede cerrar desde la lista). */
+  actual: boolean;
+}
+
+interface SesionActivaApi {
+  id: number;
+  device_name: string | null;
+  browser: string | null;
+  platform: string | null;
+  ip_address: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string | null;
+  is_current: boolean;
+}
+
+const sesionActivaDesdeApi = (s: SesionActivaApi): SesionActiva => ({
+  id: s.id,
+  dispositivo: s.device_name,
+  navegador: s.browser,
+  sistema: s.platform,
+  ip: s.ip_address,
+  inicio: s.created_at,
+  ultimoUso: s.last_used_at,
+  vence: s.expires_at,
+  actual: s.is_current,
+});
+
 /** Pregunta del catálogo de la API (GET /security-questions), para el select. */
 export interface PreguntaSecreta {
   clave: string;
@@ -314,6 +355,29 @@ export class AuthService {
         }
         return r;
       }),
+    );
+  }
+
+  /** C1.6 · Mis sesiones: dispositivos con sesión abierta (la actual primero). */
+  sesionesActivas(): Observable<SesionActiva[]> {
+    return this.http.get<{ data: SesionActivaApi[] }>(`${this.api}/auth/sessions`).pipe(
+      map((r) => r.data.map(sesionActivaDesdeApi).sort((a, b) => Number(b.actual) - Number(a.actual))),
+    );
+  }
+
+  /** Cierra la sesión de otro dispositivo (ese equipo vuelve al inicio de sesión). */
+  cerrarSesionRemota(id: number): Observable<{ ok: boolean; mensaje: string }> {
+    return this.http.delete<{ message: string }>(`${this.api}/auth/sessions/${id}`).pipe(
+      map((r) => ({ ok: true, mensaje: r.message })),
+      catchError((error) => of({ ok: false, mensaje: mensajeDeError(error) })),
+    );
+  }
+
+  /** Cierra todas las sesiones menos la de este navegador. */
+  cerrarOtrasSesiones(): Observable<{ ok: boolean; mensaje: string }> {
+    return this.http.delete<{ message: string }>(`${this.api}/auth/sessions`).pipe(
+      map((r) => ({ ok: true, mensaje: r.message })),
+      catchError((error) => of({ ok: false, mensaje: mensajeDeError(error) })),
     );
   }
 

@@ -131,5 +131,44 @@
         </button>
       </div>
     </section>
+
+    <section class="tarjeta-perfil" aria-labelledby="titulo-sesiones">
+      <h2 id="titulo-sesiones"><span class="icono" style="--icono: url(assets/menu/user.svg)"></span>Mis sesiones</h2>
+      <p class="sesiones__ayuda">Equipos donde tu cuenta tiene la sesión abierta. Si no reconoces alguno, ciérralo y cambia tu contraseña.</p>
+
+      @if (avisoSesiones(); as aviso) {
+        <p class="aviso" [class.aviso--exito]="aviso.tipo === 'exito'" [class.aviso--error]="aviso.tipo === 'error'" role="status">
+          <img [src]="aviso.tipo === 'exito' ? 'assets/iconos/circle-check-sm.svg' : 'assets/iconos/alert.svg'" width="14" height="14" alt="" />{{ aviso.texto }}
+        </p>
+      }
+
+      @if (cargandoSesiones()) {
+        <p class="sesiones__ayuda">Cargando sesiones…</p>
+      } @else {
+        <ul class="sesiones">
+          @for (s of sesiones(); track s.id) {
+            <li class="sesion" [class.sesion--actual]="s.actual">
+              <div class="sesion__datos">
+                <strong>{{ nombreDispositivo(s) }}</strong>
+                @if (s.actual) { <span class="estado estado--exito">Este equipo</span> }
+                <span>Entró {{ cuando(s.inicio) }} · último uso {{ cuando(s.ultimoUso) }}</span>
+                @if (s.ip) { <span>IP {{ s.ip }}</span> }
+              </div>
+              @if (!s.actual) {
+                <button type="button" class="boton boton--secundario" [disabled]="cerrandoSesion() !== null" (click)="cerrarSesionDe(s)">
+                  {{ cerrandoSesion() === s.id ? 'Cerrando…' : 'Cerrar' }}
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="acciones">
+        <button type="button" class="boton boton--secundario boton--44" [disabled]="!otrasSesiones() || cerrandoSesion() !== null" (click)="cerrarOtras()">
+          {{ cerrandoSesion() === 'todas' ? 'Cerrando…' : 'Cerrar todas las demás (' + otrasSesiones() + ')' }}
+        </button>
+      </div>
+    </section>
   </div>
 </div>
