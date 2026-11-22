@@ -167,7 +167,11 @@ class CashShiftService
     }
 
     /** AD3: el administrador revisa el corte (sobre todo los que tienen diferencia). */
-    public function review(CashShift $shift, User $admin, ?string $comment): CashShift
+    /**
+     * AD3.2 Revisión del administrador. Con diferencia decide: descontar, absorber o investigar.
+     * "Investigar" deja el corte pendiente (sigue cerrado) para revisarlo de nuevo después.
+     */
+    public function review(CashShift $shift, User $admin, ?string $comment, ?string $decision = null): CashShift
     {
         if ($shift->status !== 'closed') {
             throw ValidationException::withMessages(['status' => $shift->status === 'open'
@@ -176,13 +180,15 @@ class CashShiftService
         }
 
         $shift->forceFill([
-            'status' => 'reviewed',
+            'status' => $decision === 'investigate' ? 'closed' : 'reviewed',
             'reviewed_by' => $admin->id,
             'reviewed_at' => now(),
+            'review_decision' => $decision,
             'review_comment' => $comment,
         ])->save();
 
-        $this->audit->log('cash', 'shift_reviewed', "Corte {$shift->folio} revisado".($comment ? ": {$comment}" : ''), $admin->id, 'cash_shifts', $shift->id);
+        $decisions = ['deduct' => 'se descuenta', 'absorb' => 'lo absorbe el negocio', 'investigate' => 'en investigación'];
+        $this->audit->log('cash', 'shift_reviewed', "Corte {$shift->folio} revisado".($decision ? " ({$decisions[$decision]})" : '').($comment ? ": {$comment}" : ''), $admin->id, 'cash_shifts', $shift->id);
 
         return $shift->load(['cashRegister', 'user', 'closedBy', 'reviewedBy']);
     }
@@ -206,6 +212,38 @@ class CashShiftService
             'cash_refunds' => (float) $row->cash_refunds,
             'cash_supplier_payments' => (float) $row->cash_supplier_payments,
             'expected_cash' => round((float) $row->expected_cash, 2),
+        ] + $this->breakdown($shift);
+    }
+
+    /**
+     * Desglose del corte (C10.1, C11): ventas de productos contra entregas de equipos
+     * (liquidación de órdenes, costo extra de garantías y almacenaje), con cuántas de cada una.
+     *
+     * @return array{sales_count: int, products_total: float, products_count: int, repairs_total: float, repairs_count: int, cash_out_count: int, cash_in_count: int}
+     */
+    private function breakdown(CashShift $shift): array
+    {
+        $repairTypes = ['service_order', 'additional_charge', 'storage_fee', 'deposit'];
+
+        $items = DB::table('sale_items')
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->where('sales.cash_shift_id', $shift->id)
+            ->whereIn('sales.status', ['paid', 'partially_returned'])
+            ->selectRaw('sale_items.sale_id, sale_items.type, sale_items.subtotal')
+            ->get();
+
+        $repairs = $items->whereIn('type', $repairTypes);
+        $products = $items->whereNotIn('type', $repairTypes);
+        $movements = DB::table('cash_movements')->where('cash_shift_id', $shift->id)->get(['type']);
+
+        return [
+            'sales_count' => $items->pluck('sale_id')->unique()->count(),
+            'products_total' => round((float) $products->sum('subtotal'), 2),
+            'products_count' => $products->pluck('sale_id')->unique()->count(),
+            'repairs_total' => round((float) $repairs->sum('subtotal'), 2),
+            'repairs_count' => $repairs->count(),
+            'cash_out_count' => $movements->where('type', 'cash_out')->count(),
+            'cash_in_count' => $movements->where('type', 'cash_in')->count(),
         ];
     }
 

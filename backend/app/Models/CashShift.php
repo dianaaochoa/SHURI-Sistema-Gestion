@@ -33,6 +33,7 @@ class CashShift extends Model
         'status',
         'reviewed_by',
         'reviewed_at',
+        'review_decision',
         'review_comment',
     ];
 

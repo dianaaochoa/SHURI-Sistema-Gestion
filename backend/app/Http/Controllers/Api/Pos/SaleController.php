@@ -42,7 +42,8 @@ class SaleController extends Controller
 
         $user = $request->user();
 
-        $sales = Sale::with(['cashier', 'customer', 'payments'])
+        // Con renglones: el corte describe cada venta ("Entrega OS-…", "Mica + funda")
+        $sales = Sale::with(['cashier', 'customer', 'payments', 'saleItems'])
             ->when(! $user->hasPermission('reports.view'), fn ($q) => $q->where('cashier_id', $user->id))
             ->when($filters['search'] ?? null, fn ($q, $s) => $q->where('folio', 'like', '%'.addcslashes($s, '%_\\').'%'))
             ->when($filters['cash_shift_id'] ?? null, fn ($q, $id) => $q->where('cash_shift_id', $id))

@@ -19,12 +19,26 @@ class CashShiftController extends Controller
 {
     public function __construct(private readonly CashShiftService $cash) {}
 
-    /** GET /cash-registers — cajas activas para elegir al abrir turno */
+    /**
+     * GET /cash-registers — cajas activas para elegir al abrir turno, con el turno abierto
+     * de cada una (de quien sea): así se ve si otra cajera dejó la caja abierta (C1.7).
+     */
     public function registers(): JsonResponse
     {
+        $open = CashShift::with('user:id,name')->where('status', 'open')->get()->keyBy('cash_register_id');
+
         return response()->json([
             'data' => CashRegister::where('is_active', true)->orderBy('name')
-                ->get(['id', 'name', 'location', 'default_opening_amount', 'shifts']),
+                ->get(['id', 'name', 'location', 'default_opening_amount', 'shifts'])
+                ->map(fn (CashRegister $r) => $r->toArray() + [
+                    'open_shift' => ($s = $open->get($r->id)) ? [
+                        'id' => $s->id,
+                        'shift' => $s->shift,
+                        'opened_at' => $s->opened_at?->toIso8601String(),
+                        'opening_amount' => (float) $s->opening_amount,
+                        'cashier' => ['id' => $s->user->id, 'name' => $s->user->name],
+                    ] : null,
+                ]),
         ]);
     }
 
@@ -86,12 +100,23 @@ class CashShiftController extends Controller
     /** POST /cash-shifts/{shift}/review — AD3 el administrador revisa el corte */
     public function review(Request $request, CashShift $shift): JsonResponse
     {
-        $data = $request->validate(['comment' => ['nullable', 'string', 'max:255']], [], ['comment' => 'comentario']);
+        $data = $request->validate([
+            'comment' => ['nullable', 'string', 'max:255'],
+            'decision' => ['nullable', 'in:deduct,absorb,investigate'],
+        ], [], ['comment' => 'comentario', 'decision' => 'decisión']);
 
-        return $this->respond($this->cash->review($shift, $request->user(), $data['comment'] ?? null), 'Corte revisado.');
+        $decision = $data['decision'] ?? null;
+
+        return $this->respond(
+            $this->cash->review($shift, $request->user(), $data['comment'] ?? null, $decision),
+            $decision === 'investigate' ? 'Corte marcado en investigación.' : 'Corte revisado.',
+        );
     }
 
-    /** GET /cash-shifts?status=&user_id= — la cajera ve los suyos; el administrador todos */
+    /**
+     * GET /cash-shifts?status=&user_id= — la cajera ve los suyos; el administrador todos.
+     * Cada turno trae su resumen (ventas, entregas, retiros) para el historial de cortes.
+     */
     public function index(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate([
@@ -104,13 +129,15 @@ class CashShiftController extends Controller
         $user = $request->user();
         $seesAll = $user->hasPermission('cash.review_closing');
 
-        $shifts = CashShift::with(['cashRegister', 'user'])
+        $shifts = CashShift::with(['cashRegister', 'user', 'reviewedBy', 'closedBy'])
             ->when(! $seesAll, fn ($q) => $q->where('user_id', $user->id))
             ->when($seesAll && ($filters['user_id'] ?? null), fn ($q) => $q->where('user_id', $filters['user_id']))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($filters['with_difference'] ?? false, fn ($q) => $q->where('difference', '<>', 0))
             ->orderByDesc('opened_at')
             ->paginate((int) ($filters['per_page'] ?? 20));
+
+        $shifts->getCollection()->each(fn (CashShift $s) => $s->setAttribute('summary', $this->cash->summary($s)));
 
         return CashShiftResource::collection($shifts);
     }
@@ -129,7 +156,7 @@ class CashShiftController extends Controller
 
     private function respond(CashShift $shift, ?string $message = null, int $status = 200): JsonResponse
     {
-        $shift->loadMissing(['cashRegister', 'user', 'cashMovements', 'reviewedBy']);
+        $shift->loadMissing(['cashRegister', 'user', 'cashMovements', 'reviewedBy', 'closedBy']);
 
         return response()->json(array_filter([
             'message' => $message,

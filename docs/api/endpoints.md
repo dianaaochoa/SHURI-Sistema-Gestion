@@ -734,7 +734,9 @@ La cajera solo ve y opera **sus** turnos; el administrador ve todos y puede cerr
 
 ### `GET /cash-registers`
 
-`{ "data": [ { "id": 1, "name": "Caja 01", "location": "Mostrador principal", "default_opening_amount": "1000.00", "shifts": "Matutino · Vespertino" } ] }`
+`{ "data": [ { "id": 1, "name": "Caja 01", "location": "Mostrador principal", "default_opening_amount": "1000.00", "shifts": "Matutino · Vespertino", "open_shift": null } ] }`
+
+`open_shift` es el turno abierto en esa caja, **de quien sea**: `{ "id", "shift", "opened_at", "opening_amount", "cashier": { "id", "name" } }`. Sirve para avisar que otra cajera dejó la caja abierta (C1.7).
 
 ### `GET /cash-shifts/current`
 
@@ -766,10 +768,14 @@ Todas las respuestas de caja traen el turno y su **resumen en vivo**:
   "summary": {
     "opening_amount": 1000, "cash_sales": 1300, "card_sales": 900, "transfer_sales": 0,
     "cash_in": 0, "cash_out": 200, "cash_refunds": 0, "cash_supplier_payments": 0,
-    "expected_cash": 2100
+    "expected_cash": 2100,
+    "sales_count": 3, "products_total": 900, "products_count": 2, "repairs_total": 1300, "repairs_count": 1,
+    "cash_out_count": 1, "cash_in_count": 0
   }
 }
 ```
+
+El desglose separa las **ventas de productos** (`products_*`) de las **entregas de equipos** (`repairs_*`: liquidación de órdenes, costo extra de garantías y almacenaje). `GET /cash-shifts` trae el mismo `summary` en cada turno, para el historial de cortes.
 
 ### `POST /cash-shifts/{id}/movements`
 
@@ -793,7 +799,13 @@ Guarda el efectivo esperado, lo contado, la diferencia y lo que se entrega (`cas
 
 ### `POST /cash-shifts/{id}/review`
 
-AD3: el administrador revisa un corte cerrado: `{ "comment": "Faltante descontado de nómina" }`. El turno pasa a `reviewed`.
+AD3: el administrador revisa un corte cerrado:
+
+```json
+{ "decision": "deduct", "comment": "Faltante descontado de nómina" }
+```
+
+`decision` (opcional; para cortes con diferencia): `deduct` (se descuenta a la cajera), `absorb` (lo absorbe el negocio) o `investigate` (en investigación). Con `deduct` o `absorb` el turno pasa a `reviewed`; con `investigate` sigue `closed` para volver a revisarlo. La respuesta trae `review_decision`, `reviewed_by` y `closed_by` (quién hizo el corte).
 
 ### `GET /cash-shifts` · `GET /cash-shifts/{id}`
 

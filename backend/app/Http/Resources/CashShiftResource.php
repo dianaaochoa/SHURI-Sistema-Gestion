@@ -44,7 +44,11 @@ class CashShiftResource extends JsonResource
             'closing_notes' => $this->closing_notes,
             'reviewed_by' => $this->whenLoaded('reviewedBy', fn () => $this->reviewedBy?->name),
             'reviewed_at' => $this->reviewed_at?->toIso8601String(),
+            'review_decision' => $this->review_decision,
             'review_comment' => $this->review_comment,
+            'closed_by' => $this->whenLoaded('closedBy', fn () => $this->closedBy?->name),
+            // En el historial (GET /cash-shifts) cada turno trae su resumen
+            'summary' => $this->when($this->resource->getAttribute('summary') !== null, fn () => $this->resource->getAttribute('summary')),
             'movements' => $this->whenLoaded('cashMovements', fn () => $this->cashMovements->map(fn ($m) => [
                 'id' => $m->id,
                 'folio' => $m->folio,
