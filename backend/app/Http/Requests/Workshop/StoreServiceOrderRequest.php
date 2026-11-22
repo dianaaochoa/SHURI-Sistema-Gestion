@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Workshop;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * C5 Nueva orden de servicio. Acepta un cliente existente (customer_id) o uno nuevo
@@ -41,6 +42,9 @@ class StoreServiceOrderRequest extends FormRequest
             'device_pin' => ['nullable', 'string', 'max:50'],
             'priority' => ['nullable', 'in:low,normal,high,urgent'],
             'promised_date' => ['nullable', 'date', 'after_or_equal:today'],
+            // Anticipo opcional cobrado en mostrador (entra al turno de caja)
+            'deposit' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'deposit_method' => [Rule::requiredIf(fn () => (float) $this->input('deposit') > 0), 'nullable', 'in:cash,card,transfer'],
         ];
     }
 
@@ -66,6 +70,8 @@ class StoreServiceOrderRequest extends FormRequest
             'device_pin' => 'PIN o patrón',
             'priority' => 'prioridad',
             'promised_date' => 'fecha prometida',
+            'deposit' => 'anticipo',
+            'deposit_method' => 'forma de pago del anticipo',
         ];
     }
 

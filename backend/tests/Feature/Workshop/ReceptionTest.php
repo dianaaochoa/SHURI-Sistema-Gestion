@@ -67,6 +67,32 @@ class ReceptionTest extends TestCase
             ->postJson('/api/v1/service-orders', $payload);
     }
 
+    public function test_deposit_is_charged_into_the_cashier_shift(): void
+    {
+        $this->withToken($this->cashier->createToken('Caja 1', ['staff'])->plainTextToken)
+            ->postJson('/api/v1/cash-shifts', ['opening_amount' => 500])->assertCreated();
+
+        $this->receive($this->newOrderPayload(['deposit' => 200, 'deposit_method' => 'card']))
+            ->assertCreated()
+            ->assertJsonPath('data.deposit', 200);
+
+        $order = ServiceOrder::firstOrFail();
+        $this->assertDatabaseHas('sale_items', ['service_order_id' => $order->id, 'type' => 'deposit', 'subtotal' => 200]);
+        $this->assertDatabaseHas('payments', ['method' => 'card', 'amount' => 200]);
+        $this->assertDatabaseHas('order_logs', ['service_order_id' => $order->id, 'type' => 'intake', 'visible_to_customer' => true]);
+    }
+
+    public function test_deposit_requires_an_open_shift_and_a_method(): void
+    {
+        $this->receive($this->newOrderPayload(['deposit' => 200]))
+            ->assertStatus(422)->assertJsonValidationErrors('deposit_method');
+
+        $this->receive($this->newOrderPayload(['deposit' => 200, 'deposit_method' => 'cash']))
+            ->assertStatus(422)->assertJsonValidationErrors('deposit');
+
+        $this->assertSame(0, ServiceOrder::count()); // no queda nada a medias
+    }
+
     public function test_cashier_receives_a_device_of_a_new_customer(): void
     {
         $year = now()->year;

@@ -167,10 +167,13 @@ class QuoteService
     }
 
     /**
-     * Paso 3 (RF-07): el cliente aprueba o rechaza desde el portal.
-     * La decisión queda en la bitácora visible y el técnico la ve en su banco.
+     * Paso 3 (RF-07): el cliente aprueba o rechaza desde el portal, o la cajera registra la
+     * respuesta que dio en mostrador o por teléfono (C4). La decisión queda en la bitácora
+     * visible y el técnico la ve en su banco.
+     *
+     * @param  'portal'|'counter'|'phone'  $channel
      */
-    public function respond(Quote $quote, Customer $customer, bool $approved, ?string $comment, ?string $ip): Quote
+    public function respond(Quote $quote, Customer $customer, bool $approved, ?string $comment, ?string $ip, string $channel = 'portal', ?User $staff = null): Quote
     {
         // La vigencia se revisa fuera de la transacción: si se marcara "vencido" adentro,
         // el error que sigue revertiría también esa marca
@@ -179,7 +182,7 @@ class QuoteService
             throw ValidationException::withMessages(['status' => 'El presupuesto venció. Comunícate con la sucursal para pedir uno nuevo.']);
         }
 
-        DB::transaction(function () use ($quote, $customer, $approved, $comment, $ip) {
+        DB::transaction(function () use ($quote, $customer, $approved, $comment, $ip, $channel, $staff) {
             $quote = Quote::lockForUpdate()->findOrFail($quote->id);
             $order = ServiceOrder::with('status')->lockForUpdate()->findOrFail($quote->service_order_id);
 
@@ -192,7 +195,8 @@ class QuoteService
 
             $quote->forceFill([
                 'status' => $approved ? 'approved' : 'rejected',
-                'response_channel' => 'portal',
+                'response_channel' => $channel,
+                'answered_by' => $staff?->id,
                 'customer_comment' => $comment,
                 'answered_at' => now(),
                 'response_ip' => $ip,
@@ -213,11 +217,13 @@ class QuoteService
 
             $order->forceFill($orderData)->save();
 
-            $this->log($order, null, 'customer_response', ($approved ? 'El cliente aprobó' : 'El cliente rechazó')
-                ." el presupuesto {$quote->folio}".($comment ? ": «{$comment}»" : '.'), $quote->id);
+            $via = ['portal' => '', 'counter' => ' en mostrador', 'phone' => ' por teléfono'][$channel] ?? '';
 
-            $this->audit->log('portal', $approved ? 'quote_approved' : 'quote_rejected',
-                "Presupuesto {$quote->folio} (cliente #{$customer->id})", null, 'quotes', $quote->id);
+            $this->log($order, $staff, 'customer_response', ($approved ? 'El cliente aprobó' : 'El cliente rechazó')
+                ." el presupuesto {$quote->folio}{$via}".($comment ? ": «{$comment}»" : '.'), $quote->id);
+
+            $this->audit->log($staff ? 'workshop' : 'portal', $approved ? 'quote_approved' : 'quote_rejected',
+                "Presupuesto {$quote->folio} (cliente #{$customer->id}){$via}", $staff?->id, 'quotes', $quote->id);
         });
 
         return $quote->fresh('quoteItems');

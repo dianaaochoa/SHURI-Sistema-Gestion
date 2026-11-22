@@ -72,6 +72,41 @@ class QuoteController extends Controller
         ]);
     }
 
+    /**
+     * POST /service-orders/{folio}/quote-response — C4: la cajera registra la respuesta que el
+     * cliente dio en mostrador o por teléfono al presupuesto pendiente de la orden.
+     */
+    public function counterResponse(Request $request, string $folio): JsonResponse
+    {
+        $data = $request->validate([
+            'approved' => ['required', 'boolean'],
+            'channel' => ['required', 'in:counter,phone'],
+            'comment' => ['nullable', 'string', 'max:255'],
+        ], [], ['approved' => 'respuesta', 'channel' => 'medio', 'comment' => 'comentario']);
+
+        $order = $this->orders->findByFolio($folio);
+
+        if (! $order) {
+            return response()->json(['message' => "No existe la orden {$folio}.", 'code' => 'NOT_FOUND'], 404);
+        }
+
+        $quote = $order->quotes->where('status', 'pending')->sortByDesc('id')->first();
+
+        if (! $quote) {
+            return response()->json(['message' => "La orden {$folio} no tiene un presupuesto esperando respuesta.", 'code' => 'NO_PENDING_QUOTE'], 422);
+        }
+
+        $approved = (bool) $data['approved'];
+        $this->quotes->respond($quote, $order->customer, $approved, $data['comment'] ?? null, $request->ip(), $data['channel'], $request->user());
+
+        return response()->json([
+            'message' => $approved
+                ? "Presupuesto {$quote->folio} aprobado; el técnico puede comenzar la reparación."
+                : "Presupuesto {$quote->folio} rechazado; el equipo se entregará sin reparación.",
+            'data' => new ServiceOrderResource($this->orders->findByFolio($folio)),
+        ]);
+    }
+
     /** POST /service-orders/{folio}/release — J8 equipo terminado → Listo para recoger */
     public function release(Request $request, string $folio): JsonResponse
     {

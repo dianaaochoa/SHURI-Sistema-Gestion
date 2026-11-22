@@ -81,6 +81,57 @@ class ServiceOrderResource extends JsonResource
             'assigned_at' => $this->assigned_at?->toIso8601String(),
             'ready_at' => $this->ready_at?->toIso8601String(),
             'delivered_at' => $this->delivered_at?->toIso8601String(),
+            'labor_cost' => (float) $this->labor_cost,
+            'parts_cost' => (float) $this->parts_cost,
+            // Dónde está el equipo: taller, mostrador o bodega (J9, C4.7)
+            'location' => $this->location,
+            'sent_to_storage_at' => $this->sent_to_storage_at?->toIso8601String(),
+            'storage_fee_waived' => (bool) $this->storage_fee_waived,
+            'warranty_until' => $this->warranty_until?->toDateString(),
+            'picked_up_by_name' => $this->picked_up_by_name,
+            'delivered_by' => $this->whenLoaded('deliveredBy', fn () => $this->deliveredBy?->name),
+            // Último presupuesto (inicial o adicional), con sus conceptos
+            'quote' => $this->whenLoaded('quotes', fn () => ($q = $this->quotes->sortByDesc('id')->first()) ? [
+                'folio' => $q->folio,
+                'type' => $q->type,
+                'status' => $q->status,
+                'labor_amount' => (float) $q->labor_amount,
+                'parts_amount' => (float) $q->parts_amount,
+                'discount' => (float) $q->discount,
+                'total' => (float) $q->total,
+                'valid_until' => $q->valid_until?->toDateString(),
+                'sent_at' => $q->sent_at?->toIso8601String(),
+                'answered_at' => $q->answered_at?->toIso8601String(),
+                'items' => $q->relationLoaded('quoteItems') ? $q->quoteItems->map(fn ($i) => [
+                    'type' => $i->type,
+                    'concept' => $i->concept,
+                    'quantity' => $i->quantity,
+                    'unit_price' => (float) $i->unit_price,
+                ])->all() : [],
+            ] : null),
+            // Garantía más reciente (P3, C4.5, J4)
+            'warranty' => $this->whenLoaded('warranties', fn () => ($w = $this->warranties->sortByDesc('id')->first()) ? [
+                'folio' => $w->folio,
+                'status' => $w->status,
+                'request_channel' => $w->request_channel,
+                'customer_reason' => $w->customer_reason,
+                'ruling' => $w->ruling,
+                'ruling_reason' => $w->ruling_reason,
+                'extra_cost' => $w->extra_cost !== null ? (float) $w->extra_cost : null,
+                'extra_cost_accepted' => $w->extra_cost_accepted,
+                'created_at' => $w->created_at?->toIso8601String(),
+                'received_at' => $w->received_at?->toIso8601String(),
+                'ruled_at' => $w->ruled_at?->toIso8601String(),
+                'finished_at' => $w->finished_at?->toIso8601String(),
+            ] : null),
+            // Bitácora: lo que vio el cliente y las notas internas, en orden
+            'logs' => $this->whenLoaded('orderLogs', fn () => $this->orderLogs->sortBy('id')->map(fn ($l) => [
+                'type' => $l->type,
+                'description' => $l->description,
+                'visible_to_customer' => (bool) $l->visible_to_customer,
+                'user' => $l->user?->name,
+                'created_at' => $l->created_at?->toIso8601String(),
+            ])->values()->all()),
         ];
     }
 }

@@ -117,6 +117,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('warranties/{folio}', [WarrantyController::class, 'show']);
             });
             Route::middleware('permission:orders.receive')->group(function () {
+                // C4: respuesta del cliente al presupuesto dada en mostrador o por teléfono (RF-07)
+                Route::post('service-orders/{folio}/quote-response', [QuoteController::class, 'counterResponse']);
                 Route::post('service-orders/{folio}/warranties', [WarrantyController::class, 'storeAtCounter']);
                 Route::post('warranties/{folio}/receive', [WarrantyController::class, 'receive']);
             });
@@ -210,6 +212,7 @@ Route::prefix('v1')->group(function () {
             });
             Route::middleware('permission:customers.manage')->group(function () {
                 Route::post('customers', [CustomerController::class, 'store']);
+                Route::put('customers/{customer}', [CustomerController::class, 'update'])->whereNumber('customer');
                 Route::post('customers/{customer}/temporary-password', [CustomerController::class, 'temporaryPassword'])->whereNumber('customer');
             });
 

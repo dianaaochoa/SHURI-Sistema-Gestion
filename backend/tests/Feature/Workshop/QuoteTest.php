@@ -217,6 +217,47 @@ class QuoteTest extends TestCase
             ->assertJsonPath('data.amount_due', 300); // costo de revisión
     }
 
+    public function test_cashier_records_the_answer_given_by_phone(): void
+    {
+        $cashier = User::factory()->cashier()->create();
+        $folio = $this->diagnose();
+        $this->sendQuote($folio);
+
+        $this->as($cashier, 'POST', "/api/v1/service-orders/{$this->order->folio}/quote-response", [
+            'approved' => true, 'channel' => 'phone', 'comment' => 'Llamó para autorizar',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status.code', 'in_repair')
+            ->assertJsonPath('data.quote.status', 'approved')
+            ->assertJsonPath('data.quote.total', 1300);
+
+        $this->assertDatabaseHas('quotes', ['folio' => $folio, 'response_channel' => 'phone', 'answered_by' => $cashier->id]);
+        $this->assertDatabaseHas('order_logs', [
+            'service_order_id' => $this->order->id, 'type' => 'customer_response', 'user_id' => $cashier->id,
+        ]);
+
+        // Ya no hay presupuesto pendiente
+        $this->as($cashier, 'POST', "/api/v1/service-orders/{$this->order->folio}/quote-response", [
+            'approved' => false, 'channel' => 'counter',
+        ])->assertStatus(422)->assertJsonPath('code', 'NO_PENDING_QUOTE');
+    }
+
+    public function test_order_detail_includes_quote_items_and_log(): void
+    {
+        $cashier = User::factory()->cashier()->create();
+        $this->sendQuote($this->diagnose());
+
+        $response = $this->as($cashier, 'GET', "/api/v1/service-orders/{$this->order->folio}")
+            ->assertOk()
+            ->assertJsonPath('data.quote.status', 'pending')
+            ->assertJsonPath('data.quote.items.0.concept', 'Pantalla Galaxy A54')
+            ->assertJsonPath('data.warranty', null)
+            ->assertJsonPath('data.location', $this->order->fresh()->location);
+
+        $this->assertNotEmpty($response->json('data.logs'));
+        $this->assertSame('quote', collect($response->json('data.logs'))->last()['type']);
+    }
+
     public function test_quote_can_only_be_answered_once_and_only_by_its_owner(): void
     {
         $folio = $this->diagnose();

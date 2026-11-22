@@ -31,7 +31,8 @@ class ServiceOrderController extends Controller
             'technician_id' => ['nullable', 'integer'],
             'unassigned' => ['nullable', 'boolean'],
             'active' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
+            // Hasta 500: las pantallas de mostrador y del taller cargan todas las órdenes activas
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:500'],
         ]);
 
         return ServiceOrderResource::collection(

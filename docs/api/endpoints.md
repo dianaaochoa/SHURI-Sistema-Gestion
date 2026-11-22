@@ -81,7 +81,7 @@ Los errores de validación (`422`) traen además el detalle por campo, listo par
 
 ### Listas paginadas
 
-Las listas responden con `data`, `links` y `meta` (formato de Laravel) y aceptan `?page=`. Las de órdenes, mis equipos, productos, kardex, turnos de caja, ventas y usuarios aceptan además `?per_page=` (5 a 100; 20 por defecto, 30 en el kardex). Las de garantías, solicitudes de refacción, pedidos, compras y facturas traen 30 por página fijos.
+Las listas responden con `data`, `links` y `meta` (formato de Laravel) y aceptan `?page=`. Las de órdenes, mis equipos, productos, kardex, turnos de caja, ventas y usuarios aceptan además `?per_page=` (5 a 100, hasta 500 en órdenes; 20 por defecto, 30 en el kardex). Las de garantías, solicitudes de refacción, pedidos, compras y facturas traen 30 por página fijos.
 
 ```json
 { "data": [ "…" ], "meta": { "current_page": 1, "last_page": 3, "total": 52 } }
@@ -351,7 +351,19 @@ Permiso: `customers.manage` u `orders.receive`. Busca por nombre, teléfono o co
 }
 ```
 
-`GET /customers/{id}` incluye además `devices` (sus equipos), para elegir uno en C5.
+Sin `search` trae **a todos** los clientes (C8). Cada uno incluye `address`, `city`, `postal_code`, `notes`, `created_at`, `portal_temporary_expires_at` y su resumen:
+
+```json
+"summary": { "active_orders": ["ready_for_pickup"], "last_visit": "2026-11-20T12:00:00-06:00", "total_spent": 1600, "visits": 3 }
+```
+
+`active_orders` son los códigos de estado de sus equipos que siguen en la sucursal.
+
+`GET /customers/{id}` responde `{ "data": { …cliente con devices… }, "history": { "orders": […], "sales": […] }, "portal_temporary_password": "Kt7mPq2x" | null }`: sus equipos (para elegir uno en C5), su historial de órdenes (con garantías) y compras (C8.3), y la contraseña temporal del portal para reimprimirla mientras no cree la suya.
+
+### `PUT /customers/{id}`
+
+C8 editar cliente (permiso `customers.manage`). Todos los campos son opcionales; teléfono y correo siguen siendo únicos.
 
 ### `POST /customers`
 
@@ -385,13 +397,17 @@ C5 Nueva orden (permiso `orders.receive`). Acepta un **cliente existente o uno n
   "intake_checklist": { "enciende": false, "pantalla": true },
   "device_pin": "1234",
   "priority": "high",
-  "promised_date": "2026-11-20"
+  "promised_date": "2026-11-20",
+  "deposit": 300,
+  "deposit_method": "cash"
 }
 ```
 
 Con un cliente y un equipo que ya existen: `"customer_id": 8, "device": { "id": 14 }`.
 
 `priority`: `low`, `normal`, `high` o `urgent`.
+
+**Anticipo (opcional):** `deposit` con `deposit_method` (`cash`, `card` o `transfer`; obligatorio si hay anticipo). Se cobra en el **turno abierto de la cajera** como una venta de tipo `deposit` (aparece en su corte como reparación), queda en `deposit` de la orden y se descuenta del saldo al entregar. Sin turno abierto responde `422` en `deposit` y no se registra nada.
 
 **Respuesta `201`:**
 
@@ -406,13 +422,11 @@ Con un cliente y un equipo que ya existen: `"customer_id": 8, "device": { "id": 
 
 `portal_access` solo viene **una vez** y solo si el cliente aún no tiene contraseña propia: es para **imprimirla en la hoja de recepción** (C11). Si ya tiene contraseña, viene `null`. El cliente recibe un correo con el folio y su acceso.
 
-> El **anticipo** todavía no se guarda aquí: se cobra en el punto de venta, ligado al turno de caja.
-
 ### `GET /service-orders` · `GET /service-orders/{folio}`
 
 C4 lista y detalle (permisos de mostrador, jefe o administrador).
 
-**Filtros:** `?search=` (folio, cliente, teléfono, equipo) · `?status=received` · `?technician_id=3` · `?unassigned=1` · `?active=1`
+**Filtros:** `?search=` (folio, cliente, teléfono, equipo) · `?status=received` · `?technician_id=3` · `?unassigned=1` · `?active=1` · `?per_page=` (hasta **500**: las pantallas de mostrador y del taller cargan todas las órdenes de una vez)
 
 **Una orden:**
 
@@ -448,11 +462,41 @@ C4 lista y detalle (permisos de mostrador, jefe o administrador).
   "created_at": "2026-11-11T10:00:00-06:00",
   "assigned_at": "2026-11-11T10:30:00-06:00",
   "ready_at": "2026-11-12T16:00:00-06:00",
-  "delivered_at": null
+  "delivered_at": null,
+  "labor_cost": 480,
+  "parts_cost": 820,
+  "location": "counter",
+  "sent_to_storage_at": null,
+  "storage_fee_waived": false,
+  "warranty_until": null,
+  "picked_up_by_name": null,
+  "delivered_by": null,
+  "quote": {
+    "folio": "COT-2026-00001", "type": "initial", "status": "approved",
+    "labor_amount": 580, "parts_amount": 820, "discount": 100, "total": 1300,
+    "valid_until": "2026-11-19", "sent_at": "2026-11-11T12:00:00-06:00", "answered_at": "2026-11-11T13:10:00-06:00",
+    "items": [ { "type": "part", "concept": "Pantalla Galaxy A54", "quantity": 1, "unit_price": 720 } ]
+  },
+  "warranty": null,
+  "logs": [
+    { "type": "intake", "description": "Equipo recibido en sucursal.", "visible_to_customer": true, "user": "Sofía Cajera", "created_at": "2026-11-11T10:00:00-06:00" }
+  ]
 }
 ```
 
 - `device_pin` solo aparece para quien repara (permiso `orders.repair`); los demás solo ven `has_device_pin`.
+- `quote` es el **último presupuesto** (inicial o `additional`) con sus conceptos, sin costos internos; `warranty`, la garantía más reciente (`status`, `ruling`, `extra_cost`…); `logs`, la bitácora completa en orden (`visible_to_customer: false` son notas internas).
+- `location`: `workshop`, `counter` o `storage` (bodega, [sección 19](#19-resguardo-y-abandono-j9)).
+
+### `POST /service-orders/{folio}/quote-response`
+
+C4.2 / C4.8 (permiso `orders.receive`): la cajera registra la respuesta que el cliente dio **en mostrador o por teléfono** al presupuesto pendiente (inicial o adicional). Hace lo mismo que aprobar o rechazar desde el portal ([sección 8](#8-cotización-y-liberación-j3-j8)), pero queda con el canal y el nombre de quien la registró.
+
+```json
+{ "approved": true, "channel": "phone", "comment": "Llamó para autorizar" }
+```
+
+`channel`: `counter` o `phone`. Responde la orden actualizada en `data`. Si la orden no tiene un presupuesto esperando respuesta: `422` con `code: NO_PENDING_QUOTE`.
 - `balance` solo aparece cuando el equipo espera recolección y no se ha pagado: `amount_due` es **lo que la cajera debe cobrar** en C6, y ya incluye el almacenaje (`storage_fee`) si pasaron los días de gracia ([sección 19](#19-resguardo-y-abandono-j9)).
 
 ---
