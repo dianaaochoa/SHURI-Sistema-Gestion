@@ -46,7 +46,7 @@ export interface SesionActiva {
   actual: boolean;
 }
 
-interface SesionActivaApi {
+export interface SesionActivaApi {
   id: number;
   device_name: string | null;
   browser: string | null;
@@ -58,7 +58,7 @@ interface SesionActivaApi {
   is_current: boolean;
 }
 
-const sesionActivaDesdeApi = (s: SesionActivaApi): SesionActiva => ({
+export const sesionActivaDesdeApi = (s: SesionActivaApi): SesionActiva => ({
   id: s.id,
   dispositivo: s.device_name,
   navegador: s.browser,
@@ -167,6 +167,14 @@ export interface CuentaUsuario {
   temporal: boolean;
   /** ISO */
   ultimoAcceso?: string;
+  /** Id en la API (para editar, dar de baja, asignar temporal y ver sus sesiones). */
+  id?: number;
+  cajaId?: number | null;
+  /** Bloqueada por intentos fallidos. */
+  bloqueado?: boolean;
+  /** ISO: no pudo recuperar su contraseña en línea y pidió ayuda al administrador. */
+  pidioAyuda?: string | null;
+  tienePregunta?: boolean;
 }
 
 /** Pedido de "¿Olvidaste tu contraseña?" (A.3) que ve el administrador en AD7. */

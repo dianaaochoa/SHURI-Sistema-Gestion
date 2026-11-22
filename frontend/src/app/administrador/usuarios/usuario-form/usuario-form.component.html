@@ -3,10 +3,17 @@
     <div class="modal__encabezado">
       <div>
         <h2 class="modal__titulo" id="titulo-usuario">{{ esNuevo() ? 'Nuevo usuario' : 'Editar usuario' }}</h2>
-        <p class="modal__subtitulo">{{ esNuevo() ? 'Recibirá una contraseña temporal y deberá cambiarla en su primer acceso' : cuenta()!.usuario + ' · los cambios aplican la próxima vez que entre' }}</p>
+        <p class="modal__subtitulo">{{ esNuevo() ? 'Recibirá en su correo una contraseña temporal y deberá cambiarla en su primer acceso' : cuenta()!.usuario + ' · los cambios aplican desde su siguiente acción' }}</p>
       </div>
       <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
     </div>
+
+    @if (errorGeneral(); as e) {
+      <p class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ e }}</p>
+    }
+    @if (cuenta()?.bloqueado) {
+      <p class="aviso aviso--advertencia" role="status"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />Cuenta bloqueada por intentos fallidos. Desbloquéala o asígnale una contraseña temporal.</p>
+    }
 
     <div class="dos">
       <label class="campo">
@@ -17,16 +24,17 @@
       <label class="campo">
         <span class="campo__etiqueta">Usuario *</span>
         <span class="campo__control campo__control--40" [class.solo-lectura]="!esNuevo()" [class.campo__control--error]="intentado() && errores()['usuario']">
-          <input class="campo__input" maxlength="20" autocomplete="off" [readonly]="!esNuevo()" [value]="usuario()" (input)="escribirUsuario($any($event.target).value)" />
+          <input class="campo__input" maxlength="40" autocomplete="off" [readonly]="!esNuevo()" [value]="usuario()" (input)="escribirUsuario($any($event.target).value)" />
         </span>
         @if (intentado() && errores()['usuario']) { <span class="campo__error">{{ errores()['usuario'] }}</span> }
       </label>
       <label class="campo">
         <span class="campo__etiqueta">Teléfono</span>
-        <span class="campo__control campo__control--40"><input class="campo__input" type="tel" maxlength="20" [value]="telefono()" (input)="telefono.set($any($event.target).value)" /></span>
+        <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['telefono']"><input class="campo__input" type="tel" maxlength="20" placeholder="10 dígitos" [value]="telefono()" (input)="telefono.set($any($event.target).value)" /></span>
+        @if (intentado() && errores()['telefono']) { <span class="campo__error">{{ errores()['telefono'] }}</span> }
       </label>
       <label class="campo">
-        <span class="campo__etiqueta">Correo</span>
+        <span class="campo__etiqueta">Correo *</span>
         <span class="campo__control campo__control--40" [class.campo__control--error]="intentado() && errores()['correo']"><input class="campo__input" type="email" maxlength="80" [value]="correo()" (input)="correo.set($any($event.target).value)" /></span>
         @if (intentado() && errores()['correo']) { <span class="campo__error">{{ errores()['correo'] }}</span> }
       </label>
@@ -42,6 +50,7 @@
           </label>
         }
       </div>
+      @if (intentado() && errores()['rol']) { <span class="campo__error">{{ errores()['rol'] }}</span> }
     </fieldset>
 
     @if (rol() === 'cajera') {
@@ -49,8 +58,8 @@
         <label class="campo">
           <span class="campo__etiqueta">Caja asignada</span>
           <span class="campo__control campo__control--40">
-            <select class="campo__input campo__select" (change)="caja.set($any($event.target).value)">
-              @for (c of cajas; track c) { <option [value]="c" [selected]="c === caja()">{{ c }}</option> }
+            <select class="campo__input campo__select" (change)="cajaId.set(+$any($event.target).value || null)">
+              @for (c of cajas(); track c.id) { <option [value]="c.id" [selected]="c.id === cajaId()">{{ c.nombre }}</option> }
             </select>
             <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
           </span>
@@ -78,12 +87,6 @@
     }
 
     <div class="dos">
-      @if (esNuevo()) {
-        <label class="campo">
-          <span class="campo__etiqueta">Contraseña temporal</span>
-          <span class="campo__control campo__control--40 solo-lectura"><input class="campo__input" readonly [value]="clave()" /></span>
-        </label>
-      }
       @if (rol() === 'cajera') {
         <label class="campo">
           <span class="campo__etiqueta">Descuento máximo (0% a 20%)</span>
@@ -93,22 +96,56 @@
             </select>
             <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
           </span>
+          @if (intentado() && errores()['descuento']) { <span class="campo__error">{{ errores()['descuento'] }}</span> }
         </label>
       }
     </div>
+
+    @if (esNuevo()) {
+      <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/pdv/info.svg)"></span>El sistema genera una contraseña temporal y se la envía a su correo. También te la mostramos una sola vez al crear la cuenta, por si hay que entregarla en persona.</p>
+    } @else if (cuenta()!.activo) {
+      <!-- Control de dispositivos: dónde tiene la sesión abierta -->
+      <div class="campo">
+        <div class="sesiones__titulo">
+          <span class="campo__etiqueta">Sesiones abiertas{{ sesiones() ? ' (' + sesiones()!.length + ')' : '' }}</span>
+          @if (sesiones()?.length && !esYo()) {
+            <button type="button" class="enlace-accion" [disabled]="cerrandoSesion() !== null" (click)="cerrarTodas()">{{ cerrandoSesion() === 'todas' ? 'Cerrando…' : 'Cerrar todas' }}</button>
+          }
+        </div>
+        @if (sesiones() === null) {
+          <span class="campo__ayuda">Cargando…</span>
+        } @else {
+          <ul class="sesiones">
+            @for (s of sesiones()!; track s.id) {
+              <li class="sesion">
+                <span><strong>{{ nombreDispositivo(s) }}</strong>Último uso {{ cuando(s.ultimoUso) }}{{ s.ip ? ' · IP ' + s.ip : '' }}</span>
+                @if (!esYo()) {
+                  <button type="button" class="enlace-accion" [disabled]="cerrandoSesion() !== null" (click)="cerrarSesion(s)">{{ cerrandoSesion() === s.id ? 'Cerrando…' : 'Cerrar' }}</button>
+                }
+              </li>
+            } @empty {
+              <li class="sesion">No tiene sesiones abiertas.</li>
+            }
+          </ul>
+        }
+      </div>
+    }
 
     <div class="modal__acciones">
       @if (!esNuevo()) {
         <span class="pie-izq">
           @if (!esYo()) {
-            <button type="button" class="boton boton--44" [class.boton--peligro-contorno]="cuenta()!.activo" [class.boton--contorno]="!cuenta()!.activo" (click)="alternarActivo()">{{ cuenta()!.activo ? 'Desactivar' : 'Reactivar' }}</button>
+            <button type="button" class="boton boton--44" [disabled]="guardando()" [class.boton--peligro-contorno]="cuenta()!.activo" [class.boton--contorno]="!cuenta()!.activo" (click)="alternarActivo()">{{ cuenta()!.activo ? 'Desactivar' : 'Reactivar' }}</button>
+          }
+          @if (cuenta()!.bloqueado) {
+            <button type="button" class="boton boton--contorno boton--44" [disabled]="guardando()" (click)="desbloquear()">Desbloquear</button>
           }
         </span>
         <button type="button" class="boton boton--contorno boton--44" (click)="temporal.emit(cuenta()!.usuario)"><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Contraseña temporal</button>
       } @else {
         <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
       }
-      <button type="submit" class="boton boton--primario boton--44"><span class="icono" [style.--icono]="esNuevo() ? 'url(assets/pdv/plus.svg)' : 'url(assets/iconos/check.svg)'"></span>{{ esNuevo() ? 'Crear usuario' : 'Guardar cambios' }}</button>
+      <button type="submit" class="boton boton--primario boton--44" [disabled]="guardando()"><span class="icono" [style.--icono]="esNuevo() ? 'url(assets/pdv/plus.svg)' : 'url(assets/iconos/check.svg)'"></span>{{ guardando() ? 'Guardando…' : esNuevo() ? 'Crear usuario' : 'Guardar cambios' }}</button>
     </div>
   </form>
 </div>

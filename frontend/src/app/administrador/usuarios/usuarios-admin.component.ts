@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { AuthService, CuentaUsuario } from '../../acceso/auth.service';
 import { CajaService } from '../../cajera/caja.service';
+import { UsuariosService } from '../usuarios.service';
 import { AsignarTemporalComponent } from './asignar-temporal/asignar-temporal.component';
 import { PermisosRolComponent } from './permisos-rol/permisos-rol.component';
 import { UsuarioFormComponent } from './usuario-form/usuario-form.component';
@@ -35,9 +36,16 @@ const iniciales = (nombre: string) =>
   templateUrl: './usuarios-admin.component.html',
   styleUrls: ['../reportes.css', './usuarios-admin.component.css'],
 })
-export class UsuariosAdminComponent {
+export class UsuariosAdminComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly caja = inject(CajaService);
+  /** Empleados de la API (AD7). */
+  protected readonly servicio = inject(UsuariosService);
+  private readonly cuentas = this.servicio.cuentas;
+
+  ngOnInit(): void {
+    this.servicio.cargar();
+  }
 
   protected readonly vista = signal<'usuarios' | 'permisos'>('usuarios');
   protected readonly pestana = signal<'activos' | 'inactivos'>('activos');
@@ -60,14 +68,11 @@ export class UsuariosAdminComponent {
     return hora >= desde && hora < hasta;
   }
 
-  private readonly bloqueados = computed(() => new Set(this.auth.bloqueados()));
-
   protected readonly filas = computed(() =>
-    this.auth
-      .usuarios()
+    this.cuentas()
       .filter((u) => (this.pestana() === 'activos' ? u.activo : !u.activo))
       .map((u) => {
-        const bloqueado = this.bloqueados().has(u.usuario);
+        const bloqueado = !!u.bloqueado;
         const estado = !u.activo
           ? { texto: 'Inactivo', tono: 'neutro' }
           : bloqueado
@@ -81,7 +86,7 @@ export class UsuariosAdminComponent {
           u.rol === 'administrador'
             ? 'Todo el negocio'
             : u.rol === 'cajera'
-              ? `${u.caja ?? 'Caja 01'} · ${(u.turno ?? 'Matutino').toLowerCase()}`
+              ? [u.caja ?? 'Sin caja', u.turno?.toLowerCase()].filter(Boolean).join(' · ')
               : u.rol === 'tecnico'
                 ? `Taller · ${u.horario ?? ''}`
                 : 'Taller';
@@ -90,15 +95,15 @@ export class UsuariosAdminComponent {
   );
 
   protected readonly conteo = computed(() => {
-    const todos = this.auth.usuarios();
+    const todos = this.cuentas();
     return { activos: todos.filter((u) => u.activo).length, inactivos: todos.filter((u) => !u.activo).length };
   });
 
   protected readonly indicadores = computed(() => {
-    const activos = this.auth.usuarios().filter((u) => u.activo);
+    const activos = this.cuentas().filter((u) => u.activo);
     const turno = activos.filter((u) => this.enTurno(u)).map((u) => u.nombre.split(' ')[0]);
     const temporales = activos.filter((u) => u.temporal).length;
-    const bloqueados = this.auth.bloqueados().length;
+    const bloqueados = activos.filter((u) => u.bloqueado).length;
     const de = (rol: string[]) => activos.filter((u) => rol.includes(u.rol)).length;
     const nombres = turno.length > 2 ? `${turno.slice(0, -1).join(', ')} y ${turno.at(-1)}` : turno.join(' y ');
     return [
@@ -109,22 +114,26 @@ export class UsuariosAdminComponent {
     ];
   });
 
-  /** Aviso amarillo: el pedido de contraseña más reciente. */
+  /**
+   * Aviso amarillo: el empleado más reciente que no pudo recuperar su contraseña en línea
+   * (no tiene pregunta secreta o la falló) y necesita una temporal.
+   */
   protected readonly solicitud = computed(() => {
-    const lista = this.auth.solicitudes();
-    const s = lista[0];
-    const u = s && this.auth.usuarios().find((x) => x.usuario === s.usuario);
-    if (!s || !u) return null;
-    const f = new Date(s.fecha);
-    const cuandoFue = new Date().toDateString() === f.toDateString() ? `hoy ${f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}` : cuando(s.fecha).toLowerCase();
+    const lista = this.cuentas()
+      .filter((u) => u.activo && u.pidioAyuda)
+      .sort((a, b) => Date.parse(b.pidioAyuda!) - Date.parse(a.pidioAyuda!));
+    const u = lista[0];
+    if (!u) return null;
+    const f = new Date(u.pidioAyuda!);
+    const cuandoFue = new Date().toDateString() === f.toDateString() ? `hoy ${f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}` : cuando(u.pidioAyuda!).toLowerCase();
     return { u, detalle: `${u.usuario} · ${u.puesto} · ${cuandoFue} desde “¿Olvidaste tu contraseña?”${lista.length > 1 ? ` · y ${lista.length - 1} más` : ''}` };
   });
 
   protected readonly editando = computed(() => {
     const id = this.formulario();
-    return id ? (this.auth.usuarios().find((u) => u.usuario === id) ?? null) : null;
+    return id ? (this.cuentas().find((u) => u.usuario === id) ?? null) : null;
   });
-  protected readonly paraTemporal = computed(() => this.auth.usuarios().find((u) => u.usuario === this.temporalPara()) ?? null);
+  protected readonly paraTemporal = computed(() => this.cuentas().find((u) => u.usuario === this.temporalPara()) ?? null);
 
   protected guardado(texto: string): void {
     this.formulario.set(null);

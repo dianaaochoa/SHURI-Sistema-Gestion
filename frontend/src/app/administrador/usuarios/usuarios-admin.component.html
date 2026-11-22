@@ -39,6 +39,12 @@
     @if (aviso()) {
       <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
     }
+    @if (servicio.error(); as e) {
+      <p class="aviso aviso--error" role="alert">
+        <img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ e }}
+        <button type="button" class="enlace-accion" (click)="servicio.cargar()">Reintentar</button>
+      </p>
+    }
 
     <nav class="pestanas" aria-label="Usuarios">
       <button type="button" [class.activa]="pestana() === 'activos'" (click)="pestana.set('activos')">Activos ({{ conteo().activos }})</button>
@@ -67,7 +73,7 @@
               <td><button type="button" class="enlace-accion" (click)="formulario.set(f.u.usuario)" [attr.aria-label]="'Editar a ' + f.u.nombre">Editar</button></td>
             </tr>
           } @empty {
-            <tr><td colspan="7" class="vacio">No hay usuarios {{ pestana() === 'activos' ? 'activos' : 'inactivos' }}.</td></tr>
+            <tr><td colspan="7" class="vacio">{{ servicio.cargando() ? 'Cargando usuarios…' : 'No hay usuarios ' + (pestana() === 'activos' ? 'activos' : 'inactivos') + '.' }}</td></tr>
           }
         </tbody>
       </table>

@@ -1,6 +1,8 @@
 /* Figma AD7.3 · usa ../../reportes.css */
 .tabla { background: var(--color-superficie); }
 .t-permiso { white-space: normal; }
+/* Encabezado de cada módulo dentro de la matriz */
+.t-modulo th { padding: 10px 12px 6px; font-size: 12px; font-weight: 700; text-align: left; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-texto-tenue); background: var(--color-fondo); }
 .celda { display: inline-flex; align-items: center; gap: 8px; }
 .celda input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-primario); cursor: pointer; }
 .celda input:disabled { cursor: not-allowed; }

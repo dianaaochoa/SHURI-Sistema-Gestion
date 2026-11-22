@@ -1,34 +1,46 @@
-<div class="modal-fondo" (click)="cerrar.emit()">
-  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-temporal" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); asignar()">
+<div class="modal-fondo" (click)="clave() ? listo() : cerrar.emit()">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-temporal" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); clave() ? listo() : asignar()">
     <div class="modal__encabezado">
       <div>
         <h2 class="modal__titulo" id="titulo-temporal">Asignar contraseña temporal</h2>
         <p class="modal__subtitulo">{{ cuenta().nombre }} · {{ cuenta().usuario }} · {{ cuenta().puesto }}</p>
       </div>
-      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
+      <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="clave() ? listo() : cerrar.emit()"><img src="assets/inventario/x.svg" width="20" height="20" alt="" /></button>
     </div>
 
-    <div class="campo">
-      <span class="campo__etiqueta" id="etiqueta-clave">Contraseña temporal</span>
-      <div class="clave">
-        <span class="campo__control campo__control--40">
-          <span class="icono" style="--icono: url(assets/menu/key.svg)"></span>
-          <input class="campo__input" readonly aria-labelledby="etiqueta-clave" [value]="clave()" />
-          <button type="button" class="copiar" [attr.aria-label]="copiado() ? 'Copiada' : 'Copiar contraseña'" [title]="copiado() ? 'Copiada' : 'Copiar'" (click)="copiar()">
-            <span class="icono" [style.--icono]="copiado() ? 'url(assets/iconos/check.svg)' : 'url(assets/pdv/copy.svg)'"></span>
-          </button>
-        </span>
-        <button type="button" class="boton boton--contorno boton--40" (click)="otra()"><span class="icono" style="--icono: url(assets/pdv/refresh-primario.svg)"></span>Generar otra</button>
+    @if (error(); as e) {
+      <p class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ e }}</p>
+    }
+
+    @if (clave(); as c) {
+      <!-- Resultado: la contraseña que generó el servidor -->
+      <div class="campo">
+        <span class="campo__etiqueta" id="etiqueta-clave">Contraseña temporal de {{ primerNombre() }}</span>
+        <div class="clave">
+          <span class="campo__control campo__control--40">
+            <span class="icono" style="--icono: url(assets/menu/key.svg)"></span>
+            <input class="campo__input" readonly aria-labelledby="etiqueta-clave" [value]="c" />
+            <button type="button" class="copiar" [attr.aria-label]="copiado() ? 'Copiada' : 'Copiar contraseña'" [title]="copiado() ? 'Copiada' : 'Copiar'" (click)="copiar()">
+              <span class="icono" [style.--icono]="copiado() ? 'url(assets/iconos/check.svg)' : 'url(assets/pdv/copy.svg)'"></span>
+            </button>
+          </span>
+        </div>
       </div>
-    </div>
-
-    <label class="casilla"><input type="checkbox" [checked]="cerrarSesiones()" (change)="cerrarSesiones.set($any($event.target).checked)" />Cerrar las sesiones abiertas de {{ primerNombre() }} en otros equipos</label>
-    <label class="casilla"><input type="checkbox" [checked]="desbloquear()" (change)="desbloquear.set($any($event.target).checked)" />Desbloquear la cuenta si estaba bloqueada</label>
-
-    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/pdv/info.svg)"></span>Entrégasela en persona. Cuando {{ primerNombre() }} entre con ella, el sistema le pedirá crear su contraseña nueva (A.5). La contraseña anterior deja de funcionar y queda registro en la bitácora.</p>
-    <div class="modal__acciones">
-      <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
-      <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Asignar contraseña</button>
-    </div>
+      @if (correoEnviado()) {
+        <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Se la enviamos a {{ cuenta().correo }}. Solo la verás aquí esta vez.</p>
+      } @else {
+        <p class="aviso aviso--advertencia" role="status"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />No se pudo enviar el correo. Entrégasela en persona: solo la verás aquí esta vez.</p>
+      }
+      <div class="modal__acciones">
+        <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Listo</button>
+      </div>
+    } @else {
+      <!-- Confirmación -->
+      <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/pdv/info.svg)"></span>El sistema genera una contraseña nueva y se la envía a {{ cuenta().correo }}. Su contraseña anterior deja de funcionar, su cuenta se desbloquea y se cierran sus sesiones abiertas. Al entrar, creará la suya (A.5).</p>
+      <div class="modal__acciones">
+        <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
+        <button type="submit" class="boton boton--primario boton--44" [disabled]="enviando()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>{{ enviando() ? 'Asignando…' : 'Asignar contraseña' }}</button>
+      </div>
+    }
   </form>
 </div>
