@@ -24,18 +24,16 @@
         <div><dt>Último acceso</dt><dd>{{ ultimoAcceso() }}</dd></div>
       </dl>
 
-      <div class="preguntas">
-        <h3><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Preguntas de seguridad</h3>
-        @if (avisoPreguntas()) {
-          <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Preguntas guardadas. Te las pediremos en tu próximo inicio de sesión.</p>
+      <div class="pregunta-seguridad">
+        <h3><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Pregunta de seguridad</h3>
+        @if (avisoPregunta()) {
+          <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Pregunta guardada. Te la pediremos en tu próximo inicio de sesión.</p>
         }
-        @if (cambiandoPreguntas()) {
-          <app-elegir-preguntas [enPerfil]="true" (guardadas)="preguntasGuardadas()" (cancelado)="cambiandoPreguntas.set(false)" />
+        @if (cambiandoPregunta()) {
+          <app-elegir-pregunta [enPerfil]="true" (guardada)="preguntaGuardada()" (cancelado)="cambiandoPregunta.set(false)" />
         } @else {
-          <ul class="preguntas__lista">
-            @for (p of preguntas(); track p) { <li>{{ p }}</li> } @empty { <li>Aún no eliges tus preguntas.</li> }
-          </ul>
-          <button type="button" class="boton boton--contorno boton--40" (click)="cambiandoPreguntas.set(true); avisoPreguntas.set(false)">Cambiar preguntas</button>
+          <p class="pregunta-seguridad__texto">{{ pregunta() ?? 'Aún no eliges tu pregunta.' }}</p>
+          <button type="button" class="boton boton--contorno boton--40" (click)="cambiandoPregunta.set(true); avisoPregunta.set(false)">Cambiar pregunta</button>
         }
       </div>
     </section>

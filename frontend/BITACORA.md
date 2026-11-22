@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 22 nov 2026 (preguntas de seguridad iguales al backend y “¿Olvidaste tu contraseña?” con pregunta de seguridad, como la API)
+- **Última actualización:** 22 nov 2026 (una sola pregunta de seguridad, como el backend; el portal del cliente ya tiene su pregunta y la usa para recuperar la contraseña)
 
 ---
 
@@ -27,8 +27,8 @@ flowchart LR
     A4["A.4 Correo enviado"]:::hecho
     A5["A.5 Crea tu contraseña"]:::hecho
     A6["A.6 Cambiar contraseña<br/>(en Mi perfil, C1.6)"]:::hecho
-    A7["Confirma que eres tú<br/>2 preguntas de seguridad"]:::hecho
-    A8["Elegir preguntas de seguridad<br/>(primer acceso y Mi perfil)"]:::hecho
+    A7["Confirma que eres tú<br/>pregunta de seguridad"]:::hecho
+    A8["Elegir pregunta de seguridad<br/>(primer acceso y Mi perfil)"]:::hecho
   end
 
   subgraph SHELL["Estructura de la app"]
@@ -90,7 +90,7 @@ flowchart LR
     T7["T7 Versión tablet<br/>riel con nombres · banco con pestañas y botones grandes"]:::hecho
   end
   subgraph POR["06 · Portal del cliente"]
-    P1["P1 Acceso y mis equipos<br/>P1.1 entrar · P1.2 mis equipos<br/>P1.3 olvidé · P1.4 crear contraseña"]:::hecho
+    P1["P1 Acceso y mis equipos<br/>P1.1 entrar · P1.2 mis equipos<br/>P1.3 olvidé (con pregunta) · P1.4 crear contraseña<br/>pregunta de seguridad del cliente"]:::hecho
     P2["P2 Seguimiento de la reparación<br/>P2.1–P2.11 · aprobar o rechazar desde el portal"]:::hecho
     P3["P3 Garantía<br/>P3.1 solicitar · P3.2 costo extra · P3.3 aprobada<br/>P3.4 rechazada · P3.5 cerrada"]:::hecho
     P4["P4 Información<br/>P4.1 cláusulas · P4.2 autofactura · P4.3 privacidad"]:::hecho
@@ -157,7 +157,7 @@ flowchart TD
   G1{{"conContrasenaTemporal"}}:::guarda
 
   LOGIN -->|"¿Olvidaste tu contraseña?"| OLV
-  OLV -->|"usuario o correo → pregunta 1 → temporal al correo"| OLV
+  OLV -->|"usuario o correo → su pregunta → temporal al correo"| OLV
   OLV -->|"Volver / Entrar con temporal"| LOGIN
   LOGIN -->|"entra con contraseña temporal"| G1 --> CREAR
   LOGIN -->|"entra con su contraseña"| INICIO
@@ -191,8 +191,8 @@ flowchart LR
     IS["IniciarSesion"]:::comp
     OC["OlvideContrasena"]:::comp
     CC["CrearContrasena"]:::comp
-    VPR["VerificarPreguntas<br/>2 preguntas al entrar"]:::comp
-    EPR["ElegirPreguntas<br/>primer acceso y Mi perfil"]:::comp
+    VPR["VerificarPregunta<br/>su pregunta al entrar"]:::comp
+    EPR["ElegirPregunta<br/>primer acceso, Mi perfil y portal"]:::comp
   end
 
   subgraph SISTEMA["sistema/"]
@@ -460,12 +460,13 @@ flowchart LR
   SL --> CFA
   CFA --> CFS & BIT & CAJA
   CFS --> ADO & RT9 & FCS
-  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 · CrearPortal P1.4<br/>Seguimiento P2.1–P2.11 · Garantía P3<br/>Factura P4.2 · hoja de cláusulas y privacidad<br/>Chat P5 · aviso de respuesta"]:::comp
-  PTS["PortalService<br/>entrar, temporal, equipos del cliente"]:::serv
+  PTA["portal/ (fuera del menú)<br/>AccesoPortal P1.1 · MisEquipos P1.2<br/>OlvidePortal P1.3 (con pregunta) · CrearPortal P1.4<br/>PreguntaPortal · pregunta de seguridad<br/>Seguimiento P2.1–P2.11 · Garantía P3<br/>Factura P4.2 · hoja de cláusulas y privacidad<br/>Chat P5 · aviso de respuesta"]:::comp
+  PTS["PortalService<br/>entrar, pregunta y recuperación,<br/>temporal, equipos del cliente"]:::serv
   PSE["PortalSesion<br/>sesión del cliente (guardas)"]:::serv
   RUT --> PTA
   RUT --> PSE
   PTA --> PTS
+  PTA --> EPR
   PTS --> PSE & CLSV & OS
   CRS["compartido/correos.service.ts<br/>bandeja de correos enviados<br/>+ correos.ts (plantillas, bajo demanda)"]:::serv
   OS & CLSV & MS --> CRS
@@ -573,9 +574,9 @@ npm run build      # compilación de producción
 | `rsanchez` | `Shuri2026!` | Inactivo: “Tu usuario está desactivado” |
 | cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
 
-**Preguntas de seguridad:** después de usuario y contraseña se piden 2 preguntas (“Confirma que eres tú”). Se eligen del mismo catálogo de 6 que el backend (`first_pet`, `birth_city`, `first_school`, `childhood_friend`, `favorite_teacher`, `first_job`). Los usuarios de prueba tienen “¿Cómo se llamaba tu primera mascota?” → `Firulais` y “¿Cómo se llama tu mejor amigo(a) de la infancia?” → `Pepe` (no importan mayúsculas ni acentos). Las respuestas mal cuentan para el bloqueo (3 intentos). `lortega`, después de crear su contraseña, elige sus preguntas. En Mi perfil se cambian (pide la contraseña actual). Si alguien olvida sus respuestas, el administrador le asigna una contraseña temporal (AD7.4): eso también borra sus preguntas y al entrar elige nuevas. La pantalla bloqueada (30 min) solo pide la contraseña.
+**Pregunta de seguridad:** como en el backend, cada cuenta tiene **una** pregunta, elegida del mismo catálogo de 6 (`first_pet`, `birth_city`, `first_school`, `childhood_friend`, `favorite_teacher`, `first_job`). Se pide después de usuario y contraseña (“Confirma que eres tú”). Los usuarios de prueba tienen “¿Cómo se llamaba tu primera mascota?” → `Firulais` (no importan mayúsculas ni acentos). Las respuestas mal cuentan para el bloqueo (3 intentos). `lortega`, después de crear su contraseña, elige su pregunta. En Mi perfil se cambia (pide la contraseña actual). Si alguien olvida la respuesta, el administrador le asigna una contraseña temporal (AD7.4): eso también borra su pregunta y al entrar elige otra. La pantalla bloqueada (30 min) solo pide la contraseña.
 
-**¿Olvidaste tu contraseña? (A.3):** como la API, pide usuario o correo, hace la pregunta 1 de la cuenta y, si la respuesta es correcta, “envía” una contraseña temporal de 10 letras y números y desbloquea la cuenta. Sin backend no sale el correo: la temporal aparece en la consola del navegador (`[demo] Contraseña temporal de …`). Con 3 respuestas mal se anula. Una cuenta sin preguntas (`lortega`) recibe “No podemos recuperar esta cuenta en línea…” y su pedido le llega al administrador (AD7).
+**¿Olvidaste tu contraseña? (A.3):** como la API, pide usuario o correo, hace la pregunta de la cuenta y, si la respuesta es correcta, “envía” una contraseña temporal de 10 letras y números y desbloquea la cuenta. Sin backend no sale el correo: la temporal aparece en la consola del navegador (`[demo] Contraseña temporal de …`). Con 3 respuestas mal se anula. Una cuenta sin pregunta (`lortega`) recibe “No podemos recuperar esta cuenta en línea…” y su pedido le llega al administrador (AD7).
 
 Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
 
@@ -609,7 +610,9 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 | `maria.hdz@gmail.com` | `Shuri2026!` | Mis equipos: Samsung S22 Ultra en reparación y 2 entregados |
 | `laura.medina@gmail.com` | `P4R-8XK` (temporal) | P1.4 crear contraseña → Mis equipos |
 
-- 5 intentos fallidos bloquean el acceso 15 minutos. “¿Olvidaste tu contraseña?” genera una temporal nueva (como C8.4) y siempre responde igual, exista o no el correo.
+- 5 intentos fallidos bloquean el acceso 15 minutos.
+- Pregunta de seguridad (como `PUT /portal/security-question`): al crear su contraseña (P1.4) se le ofrece elegirla (“Ahora no” la salta) y en Mis equipos › “Pregunta de seguridad” la cambia; pide la contraseña actual. María tiene “¿Cómo se llamaba tu primera mascota?” → `Firulais`.
+- “¿Olvidaste tu contraseña?” (P1.3), como `/portal/password/forgot` y `/answer`: correo → su pregunta → temporal nueva (como C8.4) por correo, y se quita el bloqueo. La temporal sale en la consola (`[demo] Contraseña temporal de …`) y en la bandeja de correos (P6). Con 3 respuestas mal se anula. Sin pregunta o sin cuenta: “No podemos recuperar esta cuenta en línea. Pide una contraseña temporal en la sucursal.”
 - La tarjeta de cada equipo abre `/portal/equipo/:folio` (P2): la pantalla cambia con el estado de la orden (recibido, en diagnóstico, necesitamos un dato, presupuesto, rechazado, sin reparación, en taller, cargo adicional, listo, entregado). Con presupuesto o cargo adicional el cliente aprueba o rechaza ahí mismo y el taller lo ve en el historial (“Aprobado en el portal”). Ya entregado: garantía restante, comprobante en PDF y calificación.
 - Garantía (P3): con la orden entregada y dentro de los días de garantía, “Solicitar garantía” abre la hoja de P3.1 (falla, desde cuándo y hasta 3 fotos). La orden pasa a “En garantía” y el jefe la dictamina en J4: sin costo, con costo extra (el cliente acepta o rechaza en el portal) o sin reparar. Al entregarla queda “Garantía cerrada”.
 - Información (P4): “Cláusulas” y “Aviso de privacidad” abren una hoja desde abajo con los textos de Configuración (AD9.3). “Solicitar factura” (o `/portal/factura`, también sin sesión) pide folio y total del ticket; con sesión y folio de un equipo del cliente llena todo con sus datos fiscales. Solo se factura dentro del mismo mes, con el total correcto y si el folio no tiene factura; no acepta el RFC de público en general.
@@ -895,6 +898,7 @@ frontend/src/
     │   ├── portal.service.ts  # entrar, temporal, crear contraseña y equipos del cliente
     │   ├── portal.css · compartido/   # columna de celular, marca, pie y modal de cláusulas/privacidad
     │   ├── acceso/ · olvide/ · crear/ · mis-equipos/   # P1.1 · P1.3 · P1.4 · P1.2
+    │   ├── pregunta/          # pregunta de seguridad del cliente
     │   ├── seguimiento/       # P2.1–P2.11 (seguimiento.component + tarjetas.css)
     │   ├── garantia/          # P3.1 solicitar-garantia · P3.2–P3.5 garantia-portal
     │   ├── factura/           # P4.2 autofactura (/portal/factura)
@@ -1016,8 +1020,8 @@ frontend/src/
     │   ├── auth.service.ts    # sesión, intentos, contraseña temporal (simulado)
     │   ├── acceso-layout/     # marco común A.1–A.5
     │   ├── iniciar-sesion/    # A.1 · A.2
-    │   ├── verificar-preguntas/ # “Confirma que eres tú”: 2 preguntas de seguridad
-    │   ├── elegir-preguntas/  # elegir las 2 preguntas (primer acceso y Mi perfil)
+    │   ├── verificar-pregunta/ # “Confirma que eres tú”: la pregunta de seguridad
+    │   ├── elegir-pregunta/   # elegir la pregunta (primer acceso, Mi perfil y portal)
     │   ├── olvide-contrasena/ # A.3 · A.4
     │   └── crear-contrasena/  # A.5 + indicador de seguridad
     └── sistema/
@@ -1029,7 +1033,7 @@ frontend/src/
         ├── menu-usuario/            # desplegable del avatar
         ├── panel-notificaciones/    # panel de la campana
         ├── pagina-pendiente/        # lugar temporal de cada pantalla por construir
-        ├── perfil/                  # C1.6 Mi perfil, cambiar contraseña y preguntas de seguridad (todos los roles)
+        ├── perfil/                  # C1.6 Mi perfil, cambiar contraseña y pregunta de seguridad (todos los roles)
         ├── notificaciones/          # “Ver todas las notificaciones” (todos los roles)
         └── bloqueo-sesion/          # pantalla bloqueada tras 30 min sin uso
 ```
@@ -1263,8 +1267,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
 | Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
 | Formas de pago (AD9) y nombre y logo fijos | Al guardar, `ConfiguracionService` pone las formas de pago y la cuenta en `FORMAS_PAGO_CAJA` (`compartido/ajustes-documentos.ts`); cobro y pago mixto filtran las formas apagadas y la CLABE del cobro sale de AD9.2. **El nombre comercial y el logo son siempre los de SHURI** (pedido del usuario, 21 nov): se quitó “Marca del negocio” y “Nombre comercial” de AD9.1 | La CLABE de C2.12 (Figma) cambia a la de AD9.2. La comisión de tarjeta todavía no se suma. Los mensajes automáticos (AD9.6) no se conectaron: sus valores de Figma apagan el correo de la contraseña temporal, el presupuesto y el recordatorio de bodega, que P6 sí manda; falta decidir cuál manda. |
-| Preguntas de seguridad iguales al backend (pedido del usuario, 22 nov) | `PREGUNTAS_SEGURIDAD` es `{ clave, texto }` con las 6 de `App\Support\SecurityQuestions` (`GET /security-questions`); se guarda la clave, como `users.security_question`. A.3 sigue `POST /auth/password/forgot` y `/answer`: usuario o correo, la pregunta 1, 3 intentos y temporal al correo con la cuenta desbloqueada | Así el frontend manda al backend claves que conoce. La pregunta 1 es la que la API guarda para recuperar; la 2 solo existe en el frontend hasta que Diana agregue la segunda. |
-| Preguntas de seguridad (pedido del usuario, 21 nov) | Después de usuario y contraseña, “Confirma que eres tú” pide 2 preguntas (`AuthService.porVerificar`, `responderPreguntas`); sin preguntas (primer acceso o tras una temporal) la sesión trae `requierePreguntas` y las guardas mandan a elegirlas. Respuestas guardadas sin acentos ni mayúsculas, nunca salen del servicio; los fallos suman al mismo bloqueo de 3 intentos. La pantalla bloqueada solo pide la contraseña | No están en Figma: se usaron los estilos de A.1/A.5. **La API de Diana usa una sola pregunta y solo para “¿Olvidaste tu contraseña?”**: para pedir 2 al iniciar sesión hay que ajustar el backend. |
+| Una sola pregunta de seguridad (pedido del usuario, 22 nov) | `Registro.pregunta` (una, como `users.security_question`); `responderPregunta`, `guardarPregunta`, `preguntaDeSesion`, `requierePregunta`; rutas `verificar` y `pregunta-seguridad`. El portal guarda la suya en `PortalService` (como `customers.security_question`), la elige en `/portal/pregunta-seguridad` con el mismo `ElegirPregunta` (`guardarCon`) y P1.3 la pide como `/portal/password/forgot` y `/answer` | Si el backend guarda una, el frontend también. El personal la contesta al iniciar sesión (pedido del usuario); el backend aún no la pide ahí. El cliente no la contesta al entrar al portal: en la API solo sirve para recuperar la contraseña. |
+| Preguntas de seguridad iguales al backend (pedido del usuario, 22 nov) | `PREGUNTAS_SEGURIDAD` es `{ clave, texto }` con las 6 de `App\Support\SecurityQuestions` (`GET /security-questions`); se guarda la clave, como `users.security_question`. A.3 sigue `POST /auth/password/forgot` y `/answer`: usuario o correo, la pregunta 1, 3 intentos y temporal al correo con la cuenta desbloqueada | Así el frontend manda al backend claves que conoce. Después quedó una sola pregunta (fila de arriba). |
+| Preguntas de seguridad (pedido del usuario, 21 nov; luego una sola) | Después de usuario y contraseña, “Confirma que eres tú” pedía 2 preguntas (`AuthService.porVerificar`, `responderPreguntas`); sin preguntas (primer acceso o tras una temporal) la sesión trae `requierePreguntas` y las guardas mandan a elegirlas. Respuestas guardadas sin acentos ni mayúsculas, nunca salen del servicio; los fallos suman al mismo bloqueo de 3 intentos. La pantalla bloqueada solo pide la contraseña | No están en Figma: se usaron los estilos de A.1/A.5. **La API de Diana usa una sola pregunta y solo para “¿Olvidaste tu contraseña?”**: para pedir 2 al iniciar sesión hay que ajustar el backend. |
 | Ver todas las notificaciones | Pantalla `/<rol>/notificaciones` con filtros por tipo y “Abrir”; cada aviso trae su `ruta`. El panel de la campana tiene el pie de Figma que lleva ahí | Figma dibuja el enlace pero no la pantalla: se armó con los estilos del panel y de las listas. |
 | Impresos nuevos y QR | Comprobante de entrada de mercancía en ticket (C7) e historial del cliente en hoja carta (C8.3). QR con generador propio (`compartido/qr`, modo byte, nivel M, versiones 1–10) en ticket de venta, orden (ticket y carta) y nota de crédito. El papel de la vista de impresión se carga con `@defer` | Figma no tiene esos dos formatos. Instalar una librería de QR fue bloqueado por el sistema de permisos; el propio se probó leyendo con OpenCV 6 códigos (v1 a v10, con acentos) y el QR de la orden en pantalla. Con `@defer` el paquete inicial bajó de 542 a 500 kB. |
 | Abrir y cerrar turno sin denominaciones | C1.3 pide solo “Efectivo con el que abres la caja” y C10.4 solo “Efectivo que hay en el cajón” y “Efectivo que se queda como fondo”, con `campoDinero` | **Lo pidió el usuario (17 nov):** anotar la cantidad que hay o la que se deja, no billete por billete. Figma C1.3 y C10.4 traen la tabla por denominación; se conservan el total, la diferencia con el fondo asignado o el esperado, el comentario y lo que se entrega a gerencia. |
@@ -1282,7 +1287,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 
 ## 9. Pendientes conocidos
 
-- [ ] Preguntas de seguridad: el catálogo y la recuperación ya son iguales a la API (PR #10), pero la API guarda una sola pregunta y no la pide al iniciar sesión; para las 2 al iniciar sesión hay que ajustar el backend (hablar con Diana). Las respuestas viven en memoria. El portal del cliente aún no tiene dónde elegir su pregunta (la API sí la tiene: `PUT /portal/security-question`).
+- [ ] Pregunta de seguridad: el catálogo, la cantidad (una), la recuperación del personal y la del portal ya son iguales a la API (PR #10). Falta que el backend pida la pregunta al iniciar sesión del personal (hablar con Diana). Las respuestas viven en memoria.
 - [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
 - [ ] El texto de resumen bajo la marca ya se calcula para los 4 roles (caja, órdenes abiertas, equipos asignados, estado de la caja); con la API vendrá del servidor.
 - [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
@@ -2092,3 +2097,15 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - `lortega` → “No podemos recuperar esta cuenta en línea. Pide una contraseña temporal al administrador.”
   - Verónica Castillo: “Confirma que eres tú” muestra la pregunta de la mascota y la del mejor amigo(a); “firulais/Pepe” entra; Mi perfil › Cambiar preguntas lista las 6 del backend
   - `ng build` sin errores (paquete inicial 504.3 kB); sin errores en consola
+
+### 22 nov 2026 · Una sola pregunta de seguridad y pregunta del cliente en el portal
+- Pedido del usuario: si el backend guarda una sola pregunta, el frontend también; y terminar lo pendiente (pregunta del cliente en el portal y validar los grafos).
+- `AuthService`: `Registro.pregunta` (una) en lugar de `preguntas`; `responderPregunta`, `guardarPregunta(clave, respuesta, actual)`, `preguntaDeSesion`, `Sesion.requierePregunta`. `enmascararCorreo` se exporta para el portal.
+- `acceso/verificar-pregunta/` y `acceso/elegir-pregunta/` (antes en plural): un campo; `ElegirPregunta` acepta `guardarCon` para el portal. Ruta `pregunta-seguridad` (antes `preguntas-seguridad`). Mi perfil muestra “Pregunta de seguridad” y “Cambiar pregunta”.
+- Portal: `PortalService.preguntaDelCliente`, `guardarPregunta`, `iniciarRecuperacion`, `responderRecuperacion` (reemplazan a `solicitarTemporal`); `portal/pregunta/` (`/portal/pregunta-seguridad`); P1.3 con el paso de la pregunta; P1.4 ofrece elegirla si no tiene; enlace “Pregunta de seguridad” en Mis equipos.
+- Verificado:
+  - Ana Martínez: “Confirma que eres tú” con una sola pregunta (“¿Cómo se llamaba tu primera mascota?”); “Max” → “La respuesta no coincide. Te quedan 2 intentos…”; “Firuláis” → su Inicio
+  - Mi perfil: “Cambiar pregunta” → “¿En qué ciudad naciste?” con su contraseña → “Pregunta guardada…” y muestra la nueva
+  - Portal: `maria.hdz@gmail.com` en “¿Olvidaste tu contraseña?” → su pregunta; “Rocky” → “Te quedan 2 intentos”; “firulais” → “Te enviamos una contraseña temporal a ma•••••••@gmail.com” (la temporal sale en la consola)
+  - Portal: Laura entra con `P4R-8XK`, crea su contraseña y llega a “Pregunta de seguridad”; la guarda con su contraseña → “Pregunta guardada…”; desde Mis equipos › “Pregunta de seguridad” se abre con su pregunta actual
+  - Los 3 grafos de Mermaid validados; `ng build` sin errores (paquete inicial 504.3 kB); sin errores en consola

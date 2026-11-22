@@ -21,14 +21,14 @@ const aSuInicio: CanActivateFn = () => {
   const router = inject(Router);
   if (!sesion) return router.parseUrl('/iniciar-sesion');
   if (sesion.requiereCambioContrasena) return router.parseUrl('/crear-contrasena');
-  return router.parseUrl(sesion.requierePreguntas ? '/preguntas-seguridad' : rutaInicio(sesion.rol));
+  return router.parseUrl(sesion.requierePregunta ? '/pregunta-seguridad' : rutaInicio(sesion.rol));
 };
 
 /** “Confirma que eres tú”: solo con usuario y contraseña ya correctos. */
 const conVerificacion: CanActivateFn = () => (inject(AuthService).verificacion() ? true : inject(Router).parseUrl('/iniciar-sesion'));
 
-/** Elegir preguntas: solo si la sesión aún no las tiene. */
-const sinPreguntas: CanActivateFn = () => (inject(AuthService).sesion()?.requierePreguntas ? true : inject(Router).parseUrl('/inicio'));
+/** Elegir pregunta: solo si la sesión aún no la tiene. */
+const sinPregunta: CanActivateFn = () => (inject(AuthService).sesion()?.requierePregunta ? true : inject(Router).parseUrl('/inicio'));
 
 /** Portal del cliente (P1): sesión aparte de la del personal. */
 const clienteDentro: CanActivateFn = () => {
@@ -54,7 +54,7 @@ const soloRol =
   (rol: Rol): CanActivateFn =>
   () => {
     const sesion = inject(AuthService).sesion();
-    if (sesion?.rol === rol && !sesion.requiereCambioContrasena && !sesion.requierePreguntas) return true;
+    if (sesion?.rol === rol && !sesion.requiereCambioContrasena && !sesion.requierePregunta) return true;
     return inject(Router).parseUrl('/inicio');
   };
 
@@ -153,14 +153,14 @@ export const routes: Routes = [
       {
         path: 'verificar',
         canActivate: [conVerificacion],
-        loadComponent: () => import('./acceso/verificar-preguntas/verificar-preguntas.component').then((m) => m.VerificarPreguntasComponent),
+        loadComponent: () => import('./acceso/verificar-pregunta/verificar-pregunta.component').then((m) => m.VerificarPreguntaComponent),
         title: 'Confirma que eres tú · SHURI',
       },
       {
-        path: 'preguntas-seguridad',
-        canActivate: [sinPreguntas],
-        loadComponent: () => import('./acceso/elegir-preguntas/elegir-preguntas.component').then((m) => m.ElegirPreguntasComponent),
-        title: 'Preguntas de seguridad · SHURI',
+        path: 'pregunta-seguridad',
+        canActivate: [sinPregunta],
+        loadComponent: () => import('./acceso/elegir-pregunta/elegir-pregunta.component').then((m) => m.ElegirPreguntaComponent),
+        title: 'Pregunta de seguridad · SHURI',
       },
     ],
   },
@@ -175,6 +175,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', canActivate: [clienteFuera], loadComponent: () => import('./portal/acceso/acceso-portal.component').then((m) => m.AccesoPortalComponent), title: 'Rastrea tu equipo · SHURI' },
       { path: 'olvide-contrasena', loadComponent: () => import('./portal/olvide/olvide-portal.component').then((m) => m.OlvidePortalComponent), title: '¿Olvidaste tu contraseña? · SHURI' },
       { path: 'crear-contrasena', canActivate: [clienteConTemporal], loadComponent: () => import('./portal/crear/crear-portal.component').then((m) => m.CrearPortalComponent), title: 'Crea tu contraseña · SHURI' },
+      { path: 'pregunta-seguridad', canActivate: [clienteDentro], loadComponent: () => import('./portal/pregunta/pregunta-portal.component').then((m) => m.PreguntaPortalComponent), title: 'Pregunta de seguridad · SHURI' },
       { path: 'mis-equipos', canActivate: [clienteDentro], loadComponent: () => import('./portal/mis-equipos/mis-equipos.component').then((m) => m.MisEquiposComponent), title: 'Mis equipos · SHURI' },
       { path: 'equipo/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/seguimiento/seguimiento.component').then((m) => m.SeguimientoComponent), title: 'Seguimiento · SHURI' },
       { path: 'chat/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/chat/chat-portal.component').then((m) => m.ChatPortalComponent), title: 'Chat con el taller · SHURI' },

@@ -11,8 +11,8 @@ export interface Sesion {
   puesto: string;
   /** Entró con contraseña temporal: debe crear la suya (A.5) antes de seguir. */
   requiereCambioContrasena: boolean;
-  /** Aún no elige sus 2 preguntas de seguridad: debe hacerlo antes de seguir. */
-  requierePreguntas?: boolean;
+  /** Aún no elige su pregunta de seguridad: debe hacerlo antes de seguir. */
+  requierePregunta?: boolean;
   /** ISO: cuándo inició sesión en este equipo (C1.6 "Último acceso"). */
   desde?: string;
 }
@@ -28,7 +28,7 @@ export interface Perfil {
 
 export type ResultadoInicioSesion =
   | { ok: true; sesion: Sesion }
-  /** Usuario y contraseña correctos: falta contestar sus 2 preguntas de seguridad. */
+  /** Usuario y contraseña correctos: falta contestar su pregunta de seguridad. */
   | { ok: true; verificar: true }
   | { ok: false; mensaje: string };
 
@@ -93,15 +93,12 @@ export interface SolicitudContrasena {
 
 interface Registro extends CuentaUsuario {
   contrasena: string;
-  /** Sus 2 preguntas de seguridad; sin ellas, al entrar se le piden. */
-  preguntas?: PreguntaSeguridad[];
+  /** Su pregunta de seguridad (como `users.security_question` y `security_answer_hash`); sin ella, al entrar se le pide. */
+  pregunta?: PreguntaSeguridad;
 }
 
-/** Respuestas de prueba de los usuarios demo: primera mascota “Firulais”, mejor amigo(a) de la infancia “Pepe”. */
-const PREGUNTAS_DEMO: PreguntaSeguridad[] = [
-  { clave: 'first_pet', respuesta: 'firulais' },
-  { clave: 'childhood_friend', respuesta: 'pepe' },
-];
+/** Respuesta de prueba de los usuarios demo: primera mascota “Firulais”. */
+const PREGUNTA_DEMO: PreguntaSeguridad = { clave: 'first_pet', respuesta: 'firulais' };
 
 const CLAVE_SESION = 'shuri.sesion';
 /** Último uso de la app (ms) y pantalla bloqueada por inactividad; compartidos entre pestañas. */
@@ -135,7 +132,7 @@ function usuariosDemo(): Record<string, Registro> {
     { usuario: 'lortega', contrasena: 'temporal123', nombre: 'Luis Ortega', rol: 'tecnico', puesto: 'Técnico', correo: 'lortega@shuri.mx', telefono: '55 4433 5544', horario: '10:00–19:00', activo: true, temporal: true },
     { usuario: 'rsanchez', contrasena: 'Shuri2026!', nombre: 'Raúl Sánchez', rol: 'tecnico', puesto: 'Técnico', correo: 'rsanchez@shuri.mx', telefono: '55 4433 8899', horario: '9:00–18:00', activo: false, temporal: false, ultimoAcceso: haceDias('18:00', 41) },
   ];
-  return Object.fromEntries(lista.map((r) => [r.usuario, r.temporal ? r : { ...r, preguntas: PREGUNTAS_DEMO }]));
+  return Object.fromEntries(lista.map((r) => [r.usuario, r.temporal ? r : { ...r, pregunta: PREGUNTA_DEMO }]));
 }
 
 /** Segunda línea del menú lateral: "Cajera · Caja 01", "Técnico · Taller". */
@@ -147,7 +144,7 @@ function puestoSesion(r: CuentaUsuario): string {
 
 function sinContrasena(r: Registro): CuentaUsuario {
   // Ni la contraseña ni las respuestas de seguridad salen del servicio.
-  const { contrasena: _contrasena, preguntas: _preguntas, ...cuenta } = r;
+  const { contrasena: _contrasena, pregunta: _pregunta, ...cuenta } = r;
   return cuenta;
 }
 
@@ -167,13 +164,13 @@ export class AuthService {
   /** Pedidos de contraseña nueva pendientes (el más reciente primero). */
   readonly solicitudes = signal<SolicitudContrasena[]>([{ usuario: 'amartinez', fecha: haceDias('10:38') }]);
 
-  /** Usuario y contraseña ya correctos, esperando las respuestas de sus preguntas de seguridad. */
+  /** Usuario y contraseña ya correctos, esperando la respuesta de su pregunta de seguridad. */
   private readonly porVerificar = signal<{ usuario: string; recordar: boolean } | null>(null);
-  /** Lo que muestra la pantalla de preguntas: nombre y las 2 preguntas (nunca las respuestas). */
+  /** Lo que muestra “Confirma que eres tú”: nombre y su pregunta (nunca la respuesta). */
   readonly verificacion = computed(() => {
     const p = this.porVerificar();
     const r = p ? this.registros()[p.usuario] : undefined;
-    return r?.preguntas ? { nombre: r.nombre, preguntas: r.preguntas.map((q) => textoPregunta(q.clave)) } : null;
+    return r?.pregunta ? { nombre: r.nombre, pregunta: textoPregunta(r.pregunta.clave) } : null;
   });
 
   /** Revisa bloqueo, contraseña y que la cuenta esté activa; los fallos cuentan para el bloqueo. */
@@ -206,7 +203,7 @@ export class AuthService {
       rol: registro.rol,
       puesto: puestoSesion(registro),
       requiereCambioContrasena: registro.temporal,
-      requierePreguntas: !registro.temporal && !registro.preguntas?.length,
+      requierePregunta: !registro.temporal && !registro.pregunta,
       desde: new Date().toISOString(),
     };
     this.guardarSesion(sesion, recordar);
@@ -214,34 +211,34 @@ export class AuthService {
   }
 
   /**
-   * A.1 · Con contraseña temporal entra directo a crearla (A.5); sin preguntas, entra y las elige;
-   * con preguntas, primero las contesta (pantalla “Confirma que eres tú”).
+   * A.1 · Con contraseña temporal entra directo a crearla (A.5); sin pregunta, entra y la elige;
+   * con pregunta, primero la contesta (pantalla “Confirma que eres tú”).
    */
   iniciarSesion(usuario: string, contrasena: string, recordar: boolean): Observable<ResultadoInicioSesion> {
     const r = this.comprobar(usuario, contrasena);
     let resultado: ResultadoInicioSesion;
     if (!r.ok) resultado = r;
-    else if (!r.registro.temporal && r.registro.preguntas?.length) {
+    else if (!r.registro.temporal && r.registro.pregunta) {
       this.porVerificar.set({ usuario: r.registro.usuario, recordar });
       resultado = { ok: true, verificar: true };
     } else resultado = { ok: true, sesion: this.abrirSesion(r.registro, recordar) };
     return of(resultado).pipe(delay(500));
   }
 
-  /** Segundo paso del acceso: las 2 respuestas (sin importar mayúsculas ni acentos). Los fallos cuentan para el bloqueo. */
-  responderPreguntas(respuestas: string[]): Observable<ResultadoInicioSesion> {
+  /** Segundo paso del acceso: la respuesta (sin importar mayúsculas ni acentos). Los fallos cuentan para el bloqueo. */
+  responderPregunta(respuesta: string): Observable<ResultadoInicioSesion> {
     const p = this.porVerificar();
     const registro = p ? this.registros()[p.usuario] : undefined;
     let resultado: ResultadoInicioSesion;
-    if (!p || !registro?.preguntas) resultado = { ok: false, mensaje: 'Vuelve a iniciar sesión.' };
+    if (!p || !registro?.pregunta) resultado = { ok: false, mensaje: 'Vuelve a iniciar sesión.' };
     else if ((this.intentosFallidos()[p.usuario] ?? 0) >= INTENTOS_PERMITIDOS) {
       this.porVerificar.set(null);
       resultado = { ok: false, mensaje: 'Tu cuenta está bloqueada por seguridad. Pide al administrador que la desbloquee.' };
-    } else if (registro.preguntas.every((q, i) => q.respuesta === normalizarRespuesta(respuestas[i] ?? ''))) {
+    } else if (registro.pregunta.respuesta === normalizarRespuesta(respuesta)) {
       this.porVerificar.set(null);
       resultado = { ok: true, sesion: this.abrirSesion(registro, p.recordar) };
     } else {
-      const mensaje = this.sumarFallo(p.usuario, 'Alguna respuesta no coincide.');
+      const mensaje = this.sumarFallo(p.usuario, 'La respuesta no coincide.');
       if ((this.intentosFallidos()[p.usuario] ?? 0) >= INTENTOS_PERMITIDOS) this.porVerificar.set(null);
       resultado = { ok: false, mensaje };
     }
@@ -253,25 +250,26 @@ export class AuthService {
     this.porVerificar.set(null);
   }
 
-  /** Preguntas que tiene la cuenta con sesión (para Mi perfil; sin respuestas). */
-  preguntasDeSesion(): string[] {
+  /** Pregunta que tiene la cuenta con sesión (para Mi perfil; sin la respuesta). */
+  preguntaDeSesion(): string | null {
     const s = this.sesionActual();
-    return (s && this.registros()[s.usuario]?.preguntas?.map((q) => textoPregunta(q.clave))) || [];
+    const q = s ? this.registros()[s.usuario]?.pregunta : undefined;
+    return q ? textoPregunta(q.clave) : null;
   }
 
   /**
-   * Guarda 2 preguntas distintas con su respuesta. Al elegirlas por primera vez no pide contraseña
-   * (acaba de escribirla); para cambiarlas desde Mi perfil pide la actual.
+   * Guarda la pregunta con su respuesta, como `PUT /auth/security-question`. Al elegirla por primera vez no pide
+   * contraseña (acaba de escribirla); para cambiarla desde Mi perfil pide la actual.
    */
-  guardarPreguntas(lista: { clave: ClavePregunta; respuesta: string }[], actual?: string): Observable<{ ok: boolean; mensaje?: string }> {
+  guardarPregunta(clave: ClavePregunta, respuesta: string, actual?: string): Observable<{ ok: boolean; mensaje?: string }> {
     const sesion = this.sesionActual();
     const registro = sesion ? this.registros()[sesion.usuario] : undefined;
     if (!sesion || !registro) return of({ ok: false, mensaje: 'Vuelve a iniciar sesión.' });
-    if (!sesion.requierePreguntas && registro.contrasena !== actual) return of({ ok: false, mensaje: 'La contraseña actual no es correcta.' }).pipe(delay(400));
-    if (lista.length !== 2 || lista[0].clave === lista[1].clave || lista.some((q) => normalizarRespuesta(q.respuesta).length < 2))
-      return of({ ok: false, mensaje: 'Elige 2 preguntas distintas y contesta las dos.' });
-    this.actualizar(registro.usuario, { preguntas: lista.map((q) => ({ clave: q.clave, respuesta: normalizarRespuesta(q.respuesta) })) });
-    if (sesion.requierePreguntas) this.guardarSesion({ ...sesion, requierePreguntas: false }, this.estaRecordada());
+    if (!sesion.requierePregunta && registro.contrasena !== actual) return of({ ok: false, mensaje: 'La contraseña actual no es correcta.' }).pipe(delay(400));
+    if (!PREGUNTAS_SEGURIDAD.some((p) => p.clave === clave) || normalizarRespuesta(respuesta).length < 2)
+      return of({ ok: false, mensaje: 'Elige una pregunta y escribe al menos 2 letras.' });
+    this.actualizar(registro.usuario, { pregunta: { clave, respuesta: normalizarRespuesta(respuesta) } });
+    if (sesion.requierePregunta) this.guardarSesion({ ...sesion, requierePregunta: false }, this.estaRecordada());
     return of({ ok: true }).pipe(delay(400));
   }
 
@@ -280,20 +278,20 @@ export class AuthService {
   private readonly recuperando = signal<{ usuario: string; intentos: number } | null>(null);
 
   /**
-   * A.3 paso 1, como `POST /auth/password/forgot`: con usuario o correo devuelve su pregunta de seguridad
-   * (la primera de las suyas). Si la cuenta no existe, está inactiva o no tiene preguntas, el mismo aviso
+   * A.3 paso 1, como `POST /auth/password/forgot`: con usuario o correo devuelve su pregunta de seguridad.
+   * Si la cuenta no existe, está inactiva o no tiene pregunta, el mismo aviso
    * para todos (así nadie averigua qué cuentas hay) y el pedido le llega al administrador.
    */
   iniciarRecuperacion(login: string): Observable<{ pregunta: string } | { mensaje: string }> {
     const texto = login.trim().toLowerCase();
     const registro = Object.values(this.registros()).find((r) => r.usuario === texto || r.correo.toLowerCase() === texto);
-    if (!registro?.activo || !registro.preguntas?.length) {
+    if (!registro?.activo || !registro.pregunta) {
       this.recuperando.set(null);
       if (registro) this.solicitudes.update((lista) => [{ usuario: registro.usuario, fecha: new Date().toISOString() }, ...lista.filter((s) => s.usuario !== registro.usuario)]);
       return of({ mensaje: 'No podemos recuperar esta cuenta en línea. Pide una contraseña temporal al administrador.' }).pipe(delay(500));
     }
     this.recuperando.set({ usuario: registro.usuario, intentos: 0 });
-    return of({ pregunta: textoPregunta(registro.preguntas[0].clave) }).pipe(delay(500));
+    return of({ pregunta: textoPregunta(registro.pregunta.clave) }).pipe(delay(500));
   }
 
   /**
@@ -303,8 +301,8 @@ export class AuthService {
   responderRecuperacion(respuesta: string): Observable<{ ok: true; correo: string; usuario: string } | { ok: false; mensaje: string; anulada: boolean }> {
     const p = this.recuperando();
     const registro = p ? this.registros()[p.usuario] : undefined;
-    if (!p || !registro?.preguntas?.length) return of({ ok: false as const, mensaje: 'Vuelve a escribir tu usuario.', anulada: true });
-    if (registro.preguntas[0].respuesta !== normalizarRespuesta(respuesta)) {
+    if (!p || !registro?.pregunta) return of({ ok: false as const, mensaje: 'Vuelve a escribir tu usuario.', anulada: true });
+    if (registro.pregunta.respuesta !== normalizarRespuesta(respuesta)) {
       const intentos = p.intentos + 1;
       if (intentos >= INTENTOS_PERMITIDOS) {
         this.recuperando.set(null);
@@ -327,8 +325,8 @@ export class AuthService {
     const sesion = this.sesionActual();
     if (sesion) {
       this.actualizar(sesion.usuario, { contrasena: nueva, temporal: false });
-      const sinPreguntas = !this.registros()[sesion.usuario]?.preguntas?.length;
-      this.guardarSesion({ ...sesion, requiereCambioContrasena: false, requierePreguntas: sinPreguntas }, this.estaRecordada());
+      const sinPregunta = !this.registros()[sesion.usuario]?.pregunta;
+      this.guardarSesion({ ...sesion, requiereCambioContrasena: false, requierePregunta: sinPregunta }, this.estaRecordada());
     }
     return of(undefined).pipe(delay(500));
   }
@@ -368,8 +366,8 @@ export class AuthService {
 
   /** AD7.4 · Contraseña temporal entregada en persona; puede desbloquear la cuenta. */
   asignarTemporal(usuario: string, temporal: string, desbloquear: boolean): void {
-    // También se borran sus preguntas de seguridad: al entrar elegirá nuevas (sirve si olvidó las respuestas).
-    this.actualizar(usuario, { contrasena: temporal, temporal: true, preguntas: undefined });
+    // También se borra su pregunta de seguridad: al entrar elegirá otra (sirve si olvidó la respuesta).
+    this.actualizar(usuario, { contrasena: temporal, temporal: true, pregunta: undefined });
     if (desbloquear) this.reiniciarIntentos(usuario);
     this.solicitudes.update((lista) => lista.filter((s) => s.usuario !== usuario));
   }
@@ -386,7 +384,7 @@ export class AuthService {
   desbloquear(contrasena: string): Observable<ResultadoInicioSesion> {
     const sesion = this.sesionActual();
     if (!sesion) return of<ResultadoInicioSesion>({ ok: false, mensaje: 'Tu sesión terminó. Vuelve a iniciar sesión.' });
-    // Desbloquear pide solo la contraseña: las preguntas ya se contestaron al entrar.
+    // Desbloquear pide solo la contraseña: la pregunta ya se contestó al entrar.
     const r = this.comprobar(sesion.usuario, contrasena);
     if (!r.ok) return of<ResultadoInicioSesion>(r).pipe(delay(500));
     this.reiniciarIntentos(sesion.usuario);
@@ -437,7 +435,7 @@ function contrasenaTemporal(): string {
   return Array.from(crypto.getRandomValues(new Uint32Array(10)), (n) => letras[n % letras.length]).join('');
 }
 
-function enmascararCorreo(correo: string): string {
+export function enmascararCorreo(correo: string): string {
   const [nombre, dominio] = correo.split('@');
   return `${nombre.slice(0, 2)}${'•'.repeat(Math.max(nombre.length - 2, 3))}@${dominio}`;
 }

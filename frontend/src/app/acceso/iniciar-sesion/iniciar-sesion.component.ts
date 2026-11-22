@@ -39,7 +39,7 @@ export class IniciarSesionComponent implements OnInit {
 
   ngOnInit(): void {
     const usuario = this.route.snapshot.queryParamMap.get('usuario');
-    // Aviso que deja la pantalla de preguntas (p. ej. la cuenta se bloqueó).
+    // Aviso que deja la pantalla de la pregunta (p. ej. la cuenta se bloqueó).
     const aviso = (history.state as { aviso?: string } | null)?.aviso;
     if (aviso) setTimeout(() => this.error.set(aviso));
     if (usuario) this.formulario.controls.usuario.setValue(usuario);
@@ -69,7 +69,7 @@ export class IniciarSesionComponent implements OnInit {
         this.error.set(resultado.mensaje);
         return;
       }
-      // Con preguntas de seguridad, primero las contesta; si no, /inicio decide (crear contraseña, elegir preguntas o su inicio).
+      // Con pregunta de seguridad, primero la contesta; si no, /inicio decide (crear contraseña, elegir pregunta o su inicio).
       this.router.navigateByUrl('verificar' in resultado ? '/verificar' : '/inicio');
     });
   }

@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
-import { ElegirPreguntasComponent } from '../../acceso/elegir-preguntas/elegir-preguntas.component';
+import { ElegirPreguntaComponent } from '../../acceso/elegir-pregunta/elegir-pregunta.component';
 import { REQUISITOS } from '../../acceso/contrasena';
 import { formatearFechaCorta, formatearHora } from '../../compartido/formato';
 import { CajaService } from '../../cajera/caja.service';
@@ -20,7 +20,7 @@ const NIVELES = [
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [ElegirPreguntasComponent],
+  imports: [ElegirPreguntaComponent],
   templateUrl: './perfil.component.html',
   styleUrl: './perfil.component.css',
 })
@@ -32,15 +32,15 @@ export class PerfilComponent implements AfterViewInit {
   private readonly aCambiar = inject(Router).url.endsWith('/cambiar-contrasena');
 
   protected readonly sesion = this.auth.sesion;
-  /** Preguntas de seguridad (solo los textos; las respuestas nunca se muestran). */
-  protected readonly preguntas = signal(this.auth.preguntasDeSesion());
-  protected readonly cambiandoPreguntas = signal(false);
-  protected readonly avisoPreguntas = signal(false);
+  /** Pregunta de seguridad (solo el texto; la respuesta nunca se muestra). */
+  protected readonly pregunta = signal(this.auth.preguntaDeSesion());
+  protected readonly cambiandoPregunta = signal(false);
+  protected readonly avisoPregunta = signal(false);
 
-  protected preguntasGuardadas(): void {
-    this.preguntas.set(this.auth.preguntasDeSesion());
-    this.cambiandoPreguntas.set(false);
-    this.avisoPreguntas.set(true);
+  protected preguntaGuardada(): void {
+    this.pregunta.set(this.auth.preguntaDeSesion());
+    this.cambiandoPregunta.set(false);
+    this.avisoPregunta.set(true);
   }
   protected readonly perfil = this.auth.perfil();
   protected readonly iniciales = computed(() =>

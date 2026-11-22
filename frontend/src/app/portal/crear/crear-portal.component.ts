@@ -65,7 +65,8 @@ export class CrearPortalComponent {
     this.enviando.set(true);
     this.portal.crearContrasena(this.formulario.getRawValue().nueva).subscribe(() => {
       this.enviando.set(false);
-      this.router.navigateByUrl('/portal/mis-equipos');
+      // Sin pregunta de seguridad, se le ofrece elegirla (la usa “¿Olvidaste tu contraseña?”).
+      this.router.navigateByUrl(this.portal.preguntaDelCliente() ? '/portal/mis-equipos' : '/portal/pregunta-seguridad?primera=1');
     });
   }
 

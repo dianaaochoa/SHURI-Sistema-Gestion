@@ -25,7 +25,7 @@
     <label class="casilla"><input type="checkbox" [checked]="cerrarSesiones()" (change)="cerrarSesiones.set($any($event.target).checked)" />Cerrar las sesiones abiertas de {{ primerNombre() }} en otros equipos</label>
     <label class="casilla"><input type="checkbox" [checked]="desbloquear()" (change)="desbloquear.set($any($event.target).checked)" />Desbloquear la cuenta si estaba bloqueada</label>
 
-    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/pdv/info.svg)"></span>Entrégasela en persona. Cuando {{ primerNombre() }} entre con ella, el sistema le pedirá crear su contraseña nueva (A.5) y elegir de nuevo sus preguntas de seguridad (las anteriores se borran). La contraseña anterior deja de funcionar y queda registro en la bitácora.</p>
+    <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/pdv/info.svg)"></span>Entrégasela en persona. Cuando {{ primerNombre() }} entre con ella, el sistema le pedirá crear su contraseña nueva (A.5) y elegir de nuevo su pregunta de seguridad (la anterior se borra). La contraseña anterior deja de funcionar y queda registro en la bitácora.</p>
     <div class="modal__acciones">
       <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
       <button type="submit" class="boton boton--primario boton--44"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Asignar contraseña</button>
