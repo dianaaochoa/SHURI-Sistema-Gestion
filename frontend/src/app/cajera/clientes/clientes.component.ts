@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { formatearDinero } from '../../compartido/formato';
 import { NuevoClienteComponent } from '../ordenes/nuevo-cliente/nuevo-cliente.component';
@@ -90,21 +90,48 @@ export class ClientesComponent {
   protected readonly modal = signal<'nuevo' | 'editar' | 'historial' | 'temporal' | null>(null);
   protected readonly temporal = signal('');
 
+  /** Error de la API al guardar o al generar la contraseña temporal. */
+  protected readonly error = signal<string | null>(null);
+
   protected guardado(cliente: Cliente): void {
     const nuevo = this.modal() === 'nuevo';
-    this.servicio.guardar(cliente);
-    this.modal.set(null);
-    this.busqueda.set('');
-    this.filtro.set('todos');
-    this.elegidoId.set(cliente.id);
-    this.aviso.set(nuevo ? `${cliente.nombre} quedó registrado. Ya lo encuentras en Punto de venta y en Nueva orden.` : `Se guardaron los cambios de ${cliente.nombre}.`);
+    this.error.set(null);
+    this.servicio.guardar(cliente).subscribe((r) => {
+      if (!r.ok) {
+        // Teléfono o correo ya registrados, por ejemplo: el modal sigue abierto con el aviso
+        this.error.set(Object.values(r.errores)[0] ?? r.mensaje);
+        return;
+      }
+      this.modal.set(null);
+      this.busqueda.set('');
+      this.filtro.set('todos');
+      this.elegidoId.set(r.cliente.id);
+      this.aviso.set(nuevo ? `${r.cliente.nombre} quedó registrado. Ya lo encuentras en Punto de venta y en Nueva orden.` : `Se guardaron los cambios de ${r.cliente.nombre}.`);
+    });
   }
 
   protected generarTemporal(): void {
     const c = this.elegido()?.cliente;
     if (!c) return;
-    this.temporal.set(this.servicio.generarTemporal(c));
-    this.modal.set('temporal');
+    this.error.set(null);
+    this.servicio.generarTemporal(c).subscribe((r) => {
+      if (!r.ok) {
+        this.error.set(r.mensaje);
+        return;
+      }
+      this.temporal.set(r.temporal);
+      this.modal.set('temporal');
+    });
+  }
+
+  constructor() {
+    // El historial del cliente elegido se trae de la API al abrir su ficha
+    effect(() => {
+      const id = this.elegido()?.cliente.id;
+      untracked(() => {
+        if (id) this.servicio.cargarHistorial(id);
+      });
+    });
   }
 
   protected nuevaOrden(): void {

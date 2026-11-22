@@ -146,6 +146,10 @@ export function formatearTelefono(texto: string): string {
           <textarea id="cliente-comentarios" class="cliente__area" rows="2" [(ngModel)]="comentarios"></textarea>
         </div>
 
+        @if (errorServidor(); as e) {
+          <p class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ e }}</p>
+        }
+
         <footer class="cliente__pie">
           <p class="cliente__ayuda">Enter para guardar · Esc para cancelar</p>
           <div class="modal__acciones">
@@ -185,6 +189,8 @@ export class NuevoClienteComponent implements OnInit, AfterViewInit {
   readonly desdeClientes = input(false);
   /** Se abrió desde “Crear cliente nuevo” del punto de venta (C2.5). */
   readonly desdeVenta = input(false);
+  /** Error del servidor al guardar (por ejemplo, el teléfono ya está registrado). */
+  readonly errorServidor = input<string | null>(null);
   readonly cerrar = output<void>();
   readonly guardado = output<Cliente>();
 
