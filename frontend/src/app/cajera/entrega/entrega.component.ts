@@ -67,12 +67,17 @@ export class EntregaComponent {
 
   // ---------- Búsqueda ----------
   buscarFolio(texto = this.busqueda()): void {
-    const numero = texto.replace(/[^0-9]/g, '');
+    const limpio = texto.trim().replace('#', '').toUpperCase();
+    // Consecutivo final: "12", "00012" u "OS-2026-00012" encuentran la misma orden
+    const numero = /(\d+)$/.exec(limpio)?.[1];
     if (!numero) return;
-    const folio = `#${numero.padStart(4, '0')}`;
+    const lista = this.ordenes.ordenes();
+    const orden =
+      lista.find((o) => o.folio.replace('#', '').toUpperCase() === limpio) ??
+      lista.find((o) => Number(/(\d+)$/.exec(o.folio)?.[1]) === Number(numero));
+    const folio = orden?.folio ?? `#${limpio}`;
     this.busqueda.set(folio);
     this.aviso.set(null);
-    const orden = this.ordenes.ordenes().find((o) => o.folio === folio);
     if (!orden) {
       this.error.set(`No existe el folio ${folio}. Revisa el número del ticket o búscalo en Órdenes de servicio.`);
     } else if (!ENTREGABLES.includes(orden.estado)) {

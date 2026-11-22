@@ -59,15 +59,9 @@ export interface RecepcionGarantia {
             </div>
           </div>
           <div class="campo">
-            <label class="campo__etiqueta" for="tecnico">Técnico asignado</label>
-            <div class="campo__control campo__control--40">
-              <select id="tecnico" class="campo__input campo__select" [(ngModel)]="tecnico">
-                @for (t of tecnicos; track t.iniciales) {
-                  <option [value]="t.iniciales">{{ t.nombre }} ({{ t.iniciales }}){{ t.iniciales === orden().tecnico.iniciales ? ' · el mismo' : '' }}</option>
-                }
-              </select>
-              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
-            </div>
+            <span class="campo__etiqueta">Técnico que lo revisa</span>
+            <!-- La API deja la asignación al jefe de taller (J4); se sugiere el que hizo la reparación -->
+            <p class="garantia__nota">El jefe de taller la asigna a revisión · sugerido: {{ orden().tecnico.nombre }}</p>
           </div>
         </div>
 
@@ -92,6 +86,7 @@ export interface RecepcionGarantia {
     .vigencia { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: var(--color-primario-suave); }
     .vigencia__titulo { font-size: 13px; font-weight: 600; color: var(--color-marino); }
     .vigencia__texto { margin-top: 2px; font-size: 12px; color: var(--color-texto-tenue); }
+    .garantia__nota { font-size: 13px; color: var(--color-texto-tenue); padding-top: 10px; }
     .garantia__fila { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .campo__area { min-height: 64px; padding: 10px 12px; border: 1px solid var(--color-borde); border-radius: 8px; font: 14px var(--fuente); color: var(--color-marino); resize: vertical; }
     .campo__area:focus { outline: none; border: 1.5px solid var(--color-primario); }

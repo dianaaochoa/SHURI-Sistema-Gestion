@@ -1,5 +1,12 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Observable, catchError, forkJoin, map, of, shareReplay, switchMap, tap } from 'rxjs';
+
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../../acceso/auth.service';
+import { mensajeDeError } from '../../api/errores-api';
 import { CorreosService } from '../../compartido/correos.service';
+import { ExtrasLocales, OrdenApi, folioParaApi, ordenDeApi } from './ordenes.api';
 import type { CORREOS } from '../../compartido/correos';
 import type { FotoOrden } from '../../compartido/fotos-orden/fotos-orden.component';
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
@@ -23,6 +30,8 @@ export type EstadoOrden =
 export type Filtro = 'todas' | 'por-cotizar' | 'por-aprobar' | 'adicional' | 'en-taller' | 'listas' | 'garantia' | 'bodega';
 
 export interface Tecnico {
+  /** Id del usuario en la API (las órdenes reales lo traen). */
+  id?: number;
   iniciales: string;
   nombre: string;
   /** Para recomendar a quién asignar (J2.2). */
@@ -101,10 +110,14 @@ export function evidenciasDe(o: Pick<Orden, 'evidencias'>, ...etapas: EtapaFoto[
 }
 
 export interface Orden {
+  /** Id en la API (las de prueba no lo tienen). */
+  id?: number;
   folio: string;
   /** ISO */
   recibido: string;
   cliente: { nombre: string; telefono: string; correo?: string };
+  /** Id del cliente en la API. */
+  clienteId?: number;
   equipo: string;
   imei: string;
   tecnico: Tecnico;
@@ -210,6 +223,8 @@ export const POR_ASIGNAR: Tecnico = { iniciales: '—', nombre: 'Por asignar (je
 /** Datos que captura la recepción de taller (C5.1). */
 export interface NuevaOrden {
   cliente: { nombre: string; telefono: string; correo?: string };
+  /** Id del cliente ya registrado en la API (C8). */
+  clienteId?: string;
   tipo: string;
   marca: string;
   modelo: string;
@@ -824,14 +839,98 @@ function ordenesDemo(): Orden[] {
 
 const ahoraIso = () => new Date().toISOString();
 
+/** Resultado de una acción que va a la API. */
+export type ResultadoOrden = { ok: true; orden?: Orden; mensaje: string } | { ok: false; mensaje: string };
+
+/** Permisos con los que la API deja ver las órdenes (GET /service-orders). */
+const PERMISOS_ORDENES = ['orders.receive', 'orders.deliver', 'orders.assign', 'orders.quote'];
+const METODO_API: Record<string, 'cash' | 'card' | 'transfer'> = { efectivo: 'cash', tarjeta: 'card', transferencia: 'transfer' };
+
 /**
- * Órdenes de servicio (C4). Simulado: datos de prueba en memoria.
- * Al conectar la API, las respuestas, garantías y envíos a bodega irán al servidor y al portal del cliente.
+ * Órdenes de servicio (C4, J2, T2). Con una sesión del personal que puede verlas, la lista sale
+ * de la API (GET /service-orders) y la recepción, la respuesta del cliente en mostrador, la
+ * garantía y el envío a bodega van al servidor. Las acciones del jefe y del técnico siguen en
+ * memoria hasta conectar sus módulos; sin esa sesión (portal) se usan los datos de prueba.
  */
 @Injectable({ providedIn: 'root' })
 export class OrdenesService {
   readonly ordenes = signal<Orden[]>(ordenesDemo());
+  readonly cargando = signal(false);
+  readonly error = signal<string | null>(null);
   private readonly correos = inject(CorreosService);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly api = environment.apiUrl;
+  /** Datos que aún no tienen endpoint (fotos, estante de bodega, avisos): sobreviven a cada recarga. */
+  private readonly extras = new Map<string, ExtrasLocales>();
+  /** true cuando la lista viene de la API. */
+  private readonly desdeApi = signal(false);
+
+  constructor() {
+    effect(() => {
+      const sesion = this.auth.sesion();
+      untracked(() => {
+        if ((sesion?.permisos ?? []).some((p) => PERMISOS_ORDENES.includes(p))) {
+          this.cargar();
+        } else if (this.desdeApi()) {
+          // Al cerrar sesión no se quedan órdenes reales en memoria
+          this.desdeApi.set(false);
+          this.extras.clear();
+          this.ordenes.set(ordenesDemo());
+        }
+      });
+    });
+  }
+
+  /** Recarga todas las órdenes desde la API, conservando lo que solo vive en el navegador. */
+  cargar(): void {
+    this.cargando.set(true);
+    this.http.get<{ data: OrdenApi[] }>(`${this.api}/service-orders`, { params: { per_page: 500 } }).subscribe({
+      next: (r) => {
+        this.guardarExtras();
+        this.ordenes.set(r.data.map((o) => ordenDeApi(o, this.extras.get(`#${o.folio}`))));
+        this.desdeApi.set(true);
+        this.error.set(null);
+        this.cargando.set(false);
+      },
+      error: (e) => {
+        this.error.set(mensajeDeError(e));
+        this.cargando.set(false);
+      },
+    });
+  }
+
+  /** Recarga una sola orden (después de una acción). */
+  private recargar(folio: string): Observable<Orden | undefined> {
+    return this.http.get<{ data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}`).pipe(
+      map((r) => this.reemplazar(r.data)),
+      catchError(() => of(undefined)),
+    );
+  }
+
+  private reemplazar(api: OrdenApi): Orden {
+    this.guardarExtras();
+    const orden = ordenDeApi(api, this.extras.get(`#${api.folio}`));
+    this.ordenes.update((lista) => (lista.some((o) => o.folio === orden.folio) ? lista.map((o) => (o.folio === orden.folio ? orden : o)) : [orden, ...lista]));
+    return orden;
+  }
+
+  private guardarExtras(): void {
+    if (!this.desdeApi()) return;
+    for (const o of this.ordenes()) {
+      this.extras.set(o.folio, { fotos: o.fotos, evidencias: o.evidencias, bodega: o.bodega, contactos: o.contactos, metodoAnticipo: o.metodoAnticipo, contrasena: o.ficha?.contrasena });
+    }
+  }
+
+  /** Dispara la petición aunque nadie se suscriba y comparte el resultado. */
+  private enviar(peticion: Observable<ResultadoOrden>): Observable<ResultadoOrden> {
+    const resultado = peticion.pipe(
+      catchError((e) => of<ResultadoOrden>({ ok: false, mensaje: mensajeDeError(e) })),
+      shareReplay(1),
+    );
+    resultado.subscribe();
+    return resultado;
+  }
 
   /** P6 · Correo al cliente con la orden ya actualizada. */
   private correo(folio: string, armar: (o: Orden, plantillas: typeof CORREOS) => Parameters<CorreosService['enviar']>[0] | null): void {
@@ -850,6 +949,15 @@ export class OrdenesService {
 
   /** Folio que tendrá la siguiente orden (C5.1 "Nueva orden #1044"). */
   readonly siguienteFolio = computed(() => {
+    if (this.desdeApi()) {
+      // Folios de la API: OS-2026-00012. El definitivo lo asigna el servidor al registrar.
+      const anio = new Date().getFullYear();
+      const mayor = this.ordenes().reduce((max, o) => {
+        const m = /^#OS-(\d{4})-(\d+)$/.exec(o.folio);
+        return m && Number(m[1]) === anio ? Math.max(max, Number(m[2])) : max;
+      }, 0);
+      return `#OS-${anio}-${String(mayor + 1).padStart(5, '0')}`;
+    }
     const mayor = this.ordenes().reduce((max, o) => Math.max(max, Number(o.folio.replace(/[^0-9]/g, ''))), 0);
     return `#${String(mayor + 1).padStart(4, '0')}`;
   });
@@ -857,7 +965,51 @@ export class OrdenesService {
   /** Listas que ya pasaron 30 días sin recoger y siguen en el mostrador (C4.7). */
   readonly vencidas = computed(() => this.ordenes().filter((o) => o.estado === 'vencida'));
 
-  /** C5.1: registra la orden recibida en mostrador. Queda "Por cotizar" hasta que el jefe de taller la asigne. */
+  /**
+   * C5.1: registra en la API la orden recibida en mostrador (POST /service-orders). Si hay anticipo
+   * entra al turno de la cajera. La contraseña temporal del portal la genera el servidor y solo
+   * viene la primera vez que el cliente deja un equipo.
+   */
+  registrar(datos: NuevaOrden): Observable<ResultadoOrden & { contrasena?: string; correoEnviado?: boolean }> {
+    const clienteId = datos.clienteId && /^\d+$/.test(datos.clienteId) ? Number(datos.clienteId) : null;
+    const metodo = METODO_API[datos.metodoAnticipo.toLowerCase()] ?? 'cash';
+    const cuerpo = {
+      ...(clienteId
+        ? { customer_id: clienteId }
+        : { customer: { name: datos.cliente.nombre, phone: datos.cliente.telefono, email: datos.cliente.correo } }),
+      device: { type: datos.tipo, brand: datos.marca, model: datos.modelo || null, serial_number: datos.imei.replace(/ /g, '') || null, color: datos.color || null },
+      reported_issue: datos.falla.trim(),
+      received_accessories: datos.accesorios || null,
+      physical_condition: datos.condicion.trim() || null,
+      device_pin: datos.pin?.trim() || null,
+      deposit: datos.anticipo > 0 ? datos.anticipo : null,
+      deposit_method: datos.anticipo > 0 ? metodo : null,
+    };
+    type Respuesta = { message: string; data: OrdenApi; portal_access: { temporary_password: string } | null; email_sent: boolean };
+
+    const resultado = this.http.post<Respuesta>(`${this.api}/service-orders`, cuerpo).pipe(
+      map((r) => {
+        const folio = `#${r.data.folio}`;
+        const ahora = ahoraIso();
+        // Lo que todavía no tiene endpoint se queda en el navegador con la orden
+        this.extras.set(folio, {
+          fotos: datos.fotos?.length ? datos.fotos.slice(0, 6).map((f, i) => ({ ...f, id: `${folio}-${i}`, fecha: ahora, por: r.data.received_by ?? '' })) : undefined,
+          metodoAnticipo: datos.anticipo > 0 ? datos.metodoAnticipo.toLowerCase() : undefined,
+          contrasena: r.portal_access?.temporary_password,
+          contactos: r.email_sent ? [{ fecha: ahora, texto: 'Acceso al portal enviado por correo' }] : [],
+        });
+        const orden = ordenDeApi(r.data, this.extras.get(folio));
+        this.ordenes.update((lista) => [orden, ...lista.filter((o) => o.folio !== folio)]);
+        return { ok: true as const, orden, mensaje: r.message, contrasena: r.portal_access?.temporary_password, correoEnviado: r.email_sent };
+      }),
+      catchError((e) => of({ ok: false as const, mensaje: mensajeDeError(e) })),
+      shareReplay(1),
+    );
+    resultado.subscribe();
+    return resultado;
+  }
+
+  /** C5.1 (datos de prueba): registra la orden solo en memoria. */
   crear(datos: NuevaOrden, cajera: string, contrasena?: string): Orden {
     const ahora = ahoraIso();
     const historial: Evento[] = [{ fecha: ahora, texto: `Recibido por ${cajera}` }];
@@ -883,7 +1035,25 @@ export class OrdenesService {
     return orden;
   }
 
-  /** C4.2 / C4.8: respuesta del cliente registrada en mostrador. */
+  /**
+   * C4.2 / C4.8: respuesta del cliente al presupuesto (o al adicional) dada en mostrador o por
+   * teléfono → POST /service-orders/{folio}/quote-response. Si la nota menciona una llamada,
+   * queda registrada como respuesta por teléfono.
+   */
+  responderEnMostrador(folio: string, aprobo: boolean, nota: string): Observable<ResultadoOrden> {
+    if (!this.desdeApi()) {
+      this.registrarRespuesta(folio, aprobo, nota, this.auth.sesion()?.nombre ?? '');
+      return of({ ok: true, mensaje: '' });
+    }
+    const canal = /tel[eé]fono|llam[oóa]|whats/i.test(nota) ? 'phone' : 'counter';
+    return this.enviar(
+      this.http
+        .post<{ message: string; data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}/quote-response`, { approved: aprobo, channel: canal, comment: nota.trim() || null })
+        .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: r.message }))),
+    );
+  }
+
+  /** C4.2 / C4.8 (datos de prueba y portal): respuesta del cliente en memoria. */
   registrarRespuesta(folio: string, aprobo: boolean, nota: string, cajera: string, desdePortal = false): void {
     const donde = desdePortal ? 'en el portal' : `en sucursal por ${cajera}`;
     this.actualizar(folio, (o) => {
@@ -910,7 +1080,20 @@ export class OrdenesService {
     });
   }
 
-  /** C4.5: el equipo vuelve al taller con el mismo folio. */
+  /**
+   * C4.5: el equipo vuelve al taller con el mismo folio → POST /service-orders/{folio}/warranties.
+   * La condición física y los accesorios quedan en la falla reportada; el técnico lo asigna el jefe (J4).
+   */
+  registrarGarantia(folio: string, datos: { falla: string; condicion: string; accesorios: string }): Observable<ResultadoOrden> {
+    const partes = [datos.falla.trim(), datos.condicion.trim() && `Condición al reingresar: ${datos.condicion.trim()}`, datos.accesorios.trim() && `Accesorios: ${datos.accesorios.trim()}`];
+    return this.enviar(
+      this.http.post<{ message: string }>(`${this.api}/service-orders/${folioParaApi(folio)}/warranties`, { reason: partes.filter(Boolean).join(' · ') }).pipe(
+        switchMap((r) => this.recargar(folio).pipe(map((orden) => ({ ok: true as const, orden, mensaje: r.message })))),
+      ),
+    );
+  }
+
+  /** C4.5 (datos de prueba): el equipo vuelve al taller con el mismo folio. */
   recibirGarantia(folio: string, falla: string, tecnicoAsignado: Tecnico, cajera: string, condicion = ''): void {
     this.actualizar(folio, (o) => ({
       ...o,
@@ -1002,7 +1185,44 @@ export class OrdenesService {
     );
   }
 
-  /** C4.7 */
+  /**
+   * C4.7: manda los equipos a bodega → POST /service-orders/{folio}/send-to-storage por cada uno.
+   * La ubicación y el estante todavía se guardan solo en el navegador.
+   */
+  mandarABodega(folios: string[], ubicacion: string, estante: string, avisar: boolean, cajera: string): Observable<ResultadoOrden> {
+    if (!this.desdeApi()) {
+      this.enviarABodega(folios, ubicacion, estante, avisar, cajera);
+      return of({ ok: true, mensaje: '' });
+    }
+    const ahora = ahoraIso();
+    const peticiones = folios.map((folio) =>
+      this.http.post(`${this.api}/service-orders/${folioParaApi(folio)}/send-to-storage`, {}).pipe(
+        map(() => true),
+        catchError((e) => of(`${folio}: ${mensajeDeError(e)}`)),
+      ),
+    );
+    return this.enviar(
+      forkJoin(peticiones).pipe(
+        tap(() => {
+          // Estante y aviso de cada equipo (sin endpoint todavía)
+          this.ordenes.update((lista) =>
+            lista.map((o) =>
+              folios.includes(o.folio)
+                ? { ...o, bodega: { ubicacion, estante, enviado: ahora, por: cajera }, contactos: avisar ? [...o.contactos, { fecha: ahora, texto: 'Aviso de envío a bodega' }] : o.contactos }
+                : o,
+            ),
+          );
+          this.cargar();
+        }),
+        map((resultados): ResultadoOrden => {
+          const errores = resultados.filter((r): r is string => r !== true);
+          return errores.length ? { ok: false, mensaje: errores.join(' · ') } : { ok: true, mensaje: '' };
+        }),
+      ),
+    );
+  }
+
+  /** C4.7 (datos de prueba) */
   enviarABodega(folios: string[], ubicacion: string, estante: string, avisar: boolean, cajera: string): void {
     const ahora = ahoraIso();
     this.ordenes.update((lista) =>

@@ -54,8 +54,13 @@ export class NuevaOrdenComponent implements AfterViewInit {
   /** C8 "Nueva orden para este cliente": teléfono del cliente para buscarlo de una vez. */
   readonly clienteInicial = input('');
   private readonly clientes = inject(ClientesService);
+  /** Error de la API al registrar la orden (lo pasa C4). */
+  readonly errorRegistro = input<string | null>(null);
+  /** Mientras la API registra la orden, el botón queda deshabilitado. */
+  readonly enviando = input(false);
   readonly cerrar = output<void>();
   readonly registrar = output<OrdenCapturada>();
+  protected readonly errorCliente = signal<string | null>(null);
 
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly tipos = TIPOS;
@@ -140,10 +145,16 @@ export class NuevaOrdenComponent implements AfterViewInit {
   }
 
   protected clienteGuardado(cliente: Cliente): void {
-    // Queda en el registro de Clientes (C8) y en la lista que usan Punto de venta y esta búsqueda.
-    this.clientes.guardar(cliente);
-    this.modalCliente.set(null);
-    this.elegirCliente(cliente);
+    // Se guarda en la API (C8) y se elige ya con su id real, para registrar la orden a su nombre.
+    this.errorCliente.set(null);
+    this.clientes.guardar(cliente).subscribe((r) => {
+      if (!r.ok) {
+        this.errorCliente.set(r.mensaje);
+        return;
+      }
+      this.modalCliente.set(null);
+      this.elegirCliente(r.cliente);
+    });
   }
 
   private errores(): Record<Campo, boolean> {
@@ -178,6 +189,7 @@ export class NuevaOrdenComponent implements AfterViewInit {
       contrasena: this.contrasena(),
       datos: {
         cliente: { nombre: c.nombre, telefono: c.telefono ?? '', correo: c.correo },
+        clienteId: c.id,
         tipo: this.tipo.trim(),
         marca: this.marca.trim(),
         modelo: this.modelo.trim(),

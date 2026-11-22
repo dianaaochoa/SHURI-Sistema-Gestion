@@ -26,7 +26,7 @@ function diagnosticoEstimado(iso: string): string {
           <p class="datos__fila"><span>Técnico asignado</span><strong>{{ orden().tecnico.nombre }}</strong></p>
           <p class="datos__fila"><span>Diagnóstico estimado</span><strong>{{ estimado() }}</strong></p>
           <p class="datos__fila"><span>Usuario del portal</span><strong>{{ orden().cliente.correo || orden().cliente.telefono }}</strong></p>
-          <p class="datos__fila"><span>Contraseña temporal</span><strong>{{ contrasena() }}</strong></p>
+          <p class="datos__fila"><span>Contraseña temporal</span><strong>{{ contrasena() || 'Ya tiene acceso al portal' }}</strong></p>
         </div>
 
         <div class="impresion">

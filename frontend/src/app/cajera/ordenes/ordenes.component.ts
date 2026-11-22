@@ -209,30 +209,37 @@ export class OrdenesComponent {
 
   guardarRespuesta(orden: Orden, respuesta: { aprobo: boolean; nota: string }): void {
     const adicional = orden.estado === 'adicional';
-    this.servicio.registrarRespuesta(orden.folio, respuesta.aprobo, respuesta.nota, this.cajera);
-    this.aviso.set(
-      `${adicional ? 'Adicional' : 'Presupuesto'} de ${orden.folio} ${respuesta.aprobo ? 'aprobado' : 'rechazado'} · ` +
-        (respuesta.aprobo || adicional ? 'el técnico ya recibió el aviso' : 'queda listo para que el cliente lo recoja'),
-    );
-    this.modal.set(null);
+    this.servicio.responderEnMostrador(orden.folio, respuesta.aprobo, respuesta.nota).subscribe((r) => {
+      this.modal.set(null);
+      if (!r.ok) {
+        this.aviso.set(`No se guardó la respuesta de ${orden.folio}: ${r.mensaje}`);
+        return;
+      }
+      this.aviso.set(
+        `${adicional ? 'Adicional' : 'Presupuesto'} de ${orden.folio} ${respuesta.aprobo ? 'aprobado' : 'rechazado'} · ` +
+          (respuesta.aprobo || adicional ? 'el técnico ya recibió el aviso' : 'queda listo para que el cliente lo recoja'),
+      );
+    });
   }
 
   registrarGarantia(orden: Orden, recepcion: RecepcionGarantia): void {
-    this.servicio.recibirGarantia(orden.folio, recepcion.falla, recepcion.tecnico, this.cajera, recepcion.condicion);
-    const impreso = this.documentos.orden(orden.folio, 'garantia');
-    this.aviso.set(
-      `Garantía de ${orden.folio} recibida · asignada a ${recepcion.tecnico.nombre}` +
-        (recepcion.avisar ? ' · aviso enviado al portal' : '') +
-        (impreso ? '' : ' · no se pudo imprimir el comprobante'),
-    );
-    this.modal.set(null);
+    this.servicio.registrarGarantia(orden.folio, recepcion).subscribe((r) => {
+      this.modal.set(null);
+      if (!r.ok) {
+        this.aviso.set(`No se registró la garantía de ${orden.folio}: ${r.mensaje}`);
+        return;
+      }
+      const impreso = this.documentos.orden(orden.folio, 'garantia');
+      this.aviso.set(`Garantía de ${orden.folio} recibida · el jefe de taller la asigna a revisión` + (impreso ? '' : ' · no se pudo imprimir el comprobante'));
+    });
   }
 
   enviarABodega(envio: EnvioBodega): void {
-    this.servicio.enviarABodega(envio.folios, envio.ubicacion, envio.estante, envio.avisar, this.cajera);
-    const n = envio.folios.length;
-    this.aviso.set(`${n} ${n === 1 ? 'equipo enviado' : 'equipos enviados'} a ${envio.ubicacion} · ${envio.estante}`);
-    this.modal.set(null);
+    this.servicio.mandarABodega(envio.folios, envio.ubicacion, envio.estante, envio.avisar, this.cajera).subscribe((r) => {
+      this.modal.set(null);
+      const n = envio.folios.length;
+      this.aviso.set(r.ok ? `${n} ${n === 1 ? 'equipo enviado' : 'equipos enviados'} a ${envio.ubicacion} · ${envio.estante}` : `No se pudieron enviar a bodega: ${r.mensaje}`);
+    });
   }
 
   limpiarBusqueda(): void {
@@ -262,14 +269,28 @@ export class OrdenesComponent {
     if (folio) this.folioElegido.set(`#${folio}`);
   }
 
+  /** Mientras la API registra la orden (C5.1) y el error que devolvió. */
+  protected readonly registrando = signal(false);
+  protected readonly errorRegistro = signal<string | null>(null);
+
   registrarOrden(captura: OrdenCapturada): void {
-    const orden = this.servicio.crear(captura.datos, this.cajera, captura.contrasena);
-    const impreso = this.documentos.orden(orden.folio);
-    this.registrada.set({ orden, contrasena: captura.contrasena, metodo: captura.datos.metodoAnticipo, impreso });
-    this.filtro.set('todas');
-    this.busqueda.set('');
-    this.folioElegido.set(orden.folio);
-    this.modal.set('registrada');
+    this.registrando.set(true);
+    this.errorRegistro.set(null);
+    this.servicio.registrar(captura.datos).subscribe((r) => {
+      this.registrando.set(false);
+      if (!r.ok || !r.orden) {
+        this.errorRegistro.set(r.mensaje);
+        return;
+      }
+      const orden = r.orden;
+      const impreso = this.documentos.orden(orden.folio);
+      // Sin contraseña nueva: el cliente ya tiene su acceso al portal
+      this.registrada.set({ orden, contrasena: r.contrasena ?? '', metodo: captura.datos.metodoAnticipo, impreso });
+      this.filtro.set('todas');
+      this.busqueda.set('');
+      this.folioElegido.set(orden.folio);
+      this.modal.set('registrada');
+    });
   }
 
   cerrarNueva(): void {

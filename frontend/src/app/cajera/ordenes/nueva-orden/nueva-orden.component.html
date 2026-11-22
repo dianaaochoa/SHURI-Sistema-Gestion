@@ -189,21 +189,22 @@
           <span class="campo__etiqueta">Contraseña temporal del portal (se imprime y se envía por correo)</span>
           <div class="nueva__contrasena">
             <div class="campo__control campo__control--40 campo__control--fijo">
-              <span class="campo__input" aria-live="polite">{{ contrasena() }}</span>
+              <span class="campo__input" aria-live="polite">Se genera al registrar</span>
             </div>
-            <button type="button" class="enlace" (click)="contrasena.set(generarContrasena())">
-              <img src="assets/ordenes/lapiz-primario.svg" width="14" height="14" alt="" />Regenerar
-            </button>
           </div>
         </div>
       </div>
     </section>
 
+    @if (errorRegistro()) {
+      <p class="campo__error" role="alert">{{ errorRegistro() }}</p>
+    }
+
     <footer class="nueva__pie">
       <p class="nueva__ayuda">Se imprime la orden de servicio (carta) y el ticket térmico con estos mismos datos.</p>
       <div class="modal__acciones">
         <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
-        <button type="button" class="boton boton--primario boton--44" (click)="guardar()">
+        <button type="button" class="boton boton--primario boton--44" [disabled]="enviando()" (click)="guardar()">
           <img src="assets/pdv/printer.svg" width="16" height="16" alt="" />Registrar e imprimir orden
         </button>
       </div>
@@ -215,7 +216,8 @@
   <app-nuevo-cliente
     [inicial]="modalCliente() === 'editar' ? cliente() : null"
     [busqueda]="modalCliente() === 'nuevo' ? buscado() : ''"
-    (cerrar)="modalCliente.set(null)"
+    [errorServidor]="errorCliente()"
+    (cerrar)="modalCliente.set(null); errorCliente.set(null)"
     (guardado)="clienteGuardado($event)"
   />
 }
