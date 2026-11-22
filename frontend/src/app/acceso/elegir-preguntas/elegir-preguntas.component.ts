@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService, PREGUNTAS_SEGURIDAD } from '../auth.service';
+import { AuthService, ClavePregunta, PREGUNTAS_SEGURIDAD } from '../auth.service';
 
 /**
  * Elegir las 2 preguntas de seguridad. Como pantalla (primer acceso o cuenta sin preguntas) entra al terminar;
@@ -15,7 +15,7 @@ import { AuthService, PREGUNTAS_SEGURIDAD } from '../auth.service';
         <span class="tarjeta__icono"><img src="assets/iconos/key-lg.svg" width="26" height="26" alt="" /></span>
         <div class="tarjeta__encabezado">
           <h1 class="tarjeta__titulo">Elige tus preguntas de seguridad</h1>
-          <p class="tarjeta__descripcion">Cada vez que inicies sesión te pediremos contestarlas, después de tu contraseña. Elige 2 preguntas distintas cuyas respuestas solo tú sepas.</p>
+          <p class="tarjeta__descripcion">Cada vez que inicies sesión te pediremos contestarlas, después de tu contraseña. Elige 2 preguntas distintas cuyas respuestas solo tú sepas. La pregunta 1 también te la pediremos si olvidas tu contraseña.</p>
         </div>
       }
 
@@ -29,8 +29,8 @@ import { AuthService, PREGUNTAS_SEGURIDAD } from '../auth.service';
             <label class="campo__etiqueta" [attr.for]="'pregunta-' + n">Pregunta {{ n + 1 }} *</label>
             <div class="campo__control campo__control--40">
               <select class="campo__input campo__select" [id]="'pregunta-' + n" (change)="elegir(n, $any($event.target).value)">
-                @for (p of opciones; track p) {
-                  <option [value]="p" [selected]="p === elegidas()[n]" [disabled]="p === elegidas()[n === 0 ? 1 : 0]">{{ p }}</option>
+                @for (p of opciones; track p.clave) {
+                  <option [value]="p.clave" [selected]="p.clave === elegidas()[n]" [disabled]="p.clave === elegidas()[n === 0 ? 1 : 0]">{{ p.texto }}</option>
                 }
               </select>
               <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
@@ -86,7 +86,7 @@ export class ElegirPreguntasComponent {
   readonly cancelado = output<void>();
 
   protected readonly opciones = PREGUNTAS_SEGURIDAD;
-  protected readonly elegidas = signal([PREGUNTAS_SEGURIDAD[0], PREGUNTAS_SEGURIDAD[1]]);
+  protected readonly elegidas = signal<ClavePregunta[]>([PREGUNTAS_SEGURIDAD[0].clave, PREGUNTAS_SEGURIDAD[3].clave]);
   protected readonly respuestas = signal(['', '']);
   protected readonly actual = signal('');
   protected readonly intentado = signal(false);
@@ -98,8 +98,8 @@ export class ElegirPreguntasComponent {
     return this.respuestas()[n].trim().length < 2;
   }
 
-  protected elegir(n: number, pregunta: string): void {
-    this.elegidas.update((l) => l.map((p, k) => (k === n ? pregunta : p)));
+  protected elegir(n: number, clave: ClavePregunta): void {
+    this.elegidas.update((l) => l.map((p, k) => (k === n ? clave : p)));
   }
 
   protected escribir(n: number, valor: string): void {
@@ -111,7 +111,7 @@ export class ElegirPreguntasComponent {
     this.intentado.set(true);
     if (!this.listas() || (this.enPerfil() && !this.actual()) || this.enviando()) return;
     this.enviando.set(true);
-    const lista = this.elegidas().map((pregunta, i) => ({ pregunta, respuesta: this.respuestas()[i] }));
+    const lista = this.elegidas().map((clave, i) => ({ clave, respuesta: this.respuestas()[i] }));
     this.auth.guardarPreguntas(lista, this.enPerfil() ? this.actual() : undefined).subscribe((r) => {
       this.enviando.set(false);
       if (!r.ok) {

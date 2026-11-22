@@ -32,18 +32,25 @@ export type ResultadoInicioSesion =
   | { ok: true; verificar: true }
   | { ok: false; mensaje: string };
 
-/** Preguntas de seguridad que se pueden elegir (se contestan al iniciar sesión). */
+/**
+ * Catálogo fijo de preguntas de seguridad, igual al del backend (`App\Support\SecurityQuestions`,
+ * `GET /security-questions`): se guarda la clave y se muestra el texto.
+ */
 export const PREGUNTAS_SEGURIDAD = [
-  '¿Cuál es el nombre de tu perro?',
-  '¿Cuál es el nombre de tu mejor amig@?',
-  '¿En qué ciudad naciste?',
-  '¿Cuál fue el nombre de tu primera escuela?',
-  '¿Cómo se llama tu abuela materna?',
-  '¿Cuál es tu comida favorita?',
-];
+  { clave: 'first_pet', texto: '¿Cómo se llamaba tu primera mascota?' },
+  { clave: 'birth_city', texto: '¿En qué ciudad naciste?' },
+  { clave: 'first_school', texto: '¿Cómo se llamaba tu escuela primaria?' },
+  { clave: 'childhood_friend', texto: '¿Cómo se llama tu mejor amigo(a) de la infancia?' },
+  { clave: 'favorite_teacher', texto: '¿Cuál es el apellido de tu maestro(a) favorito(a)?' },
+  { clave: 'first_job', texto: '¿En qué empresa fue tu primer trabajo?' },
+] as const;
+
+export type ClavePregunta = (typeof PREGUNTAS_SEGURIDAD)[number]['clave'];
+
+export const textoPregunta = (clave: string) => PREGUNTAS_SEGURIDAD.find((p) => p.clave === clave)?.texto ?? clave;
 
 export interface PreguntaSeguridad {
-  pregunta: string;
+  clave: ClavePregunta;
   /** Guardada sin acentos, en minúsculas y sin espacios de más (así “Firulais ” = “firulais”). */
   respuesta: string;
 }
@@ -90,10 +97,10 @@ interface Registro extends CuentaUsuario {
   preguntas?: PreguntaSeguridad[];
 }
 
-/** Respuestas de prueba de los usuarios demo: perro “Firulais”, mejor amig@ “Pepe”. */
+/** Respuestas de prueba de los usuarios demo: primera mascota “Firulais”, mejor amigo(a) de la infancia “Pepe”. */
 const PREGUNTAS_DEMO: PreguntaSeguridad[] = [
-  { pregunta: PREGUNTAS_SEGURIDAD[0], respuesta: 'firulais' },
-  { pregunta: PREGUNTAS_SEGURIDAD[1], respuesta: 'pepe' },
+  { clave: 'first_pet', respuesta: 'firulais' },
+  { clave: 'childhood_friend', respuesta: 'pepe' },
 ];
 
 const CLAVE_SESION = 'shuri.sesion';
@@ -166,7 +173,7 @@ export class AuthService {
   readonly verificacion = computed(() => {
     const p = this.porVerificar();
     const r = p ? this.registros()[p.usuario] : undefined;
-    return r?.preguntas ? { nombre: r.nombre, preguntas: r.preguntas.map((q) => q.pregunta) } : null;
+    return r?.preguntas ? { nombre: r.nombre, preguntas: r.preguntas.map((q) => textoPregunta(q.clave)) } : null;
   });
 
   /** Revisa bloqueo, contraseña y que la cuenta esté activa; los fallos cuentan para el bloqueo. */
@@ -249,32 +256,71 @@ export class AuthService {
   /** Preguntas que tiene la cuenta con sesión (para Mi perfil; sin respuestas). */
   preguntasDeSesion(): string[] {
     const s = this.sesionActual();
-    return (s && this.registros()[s.usuario]?.preguntas?.map((q) => q.pregunta)) || [];
+    return (s && this.registros()[s.usuario]?.preguntas?.map((q) => textoPregunta(q.clave))) || [];
   }
 
   /**
    * Guarda 2 preguntas distintas con su respuesta. Al elegirlas por primera vez no pide contraseña
    * (acaba de escribirla); para cambiarlas desde Mi perfil pide la actual.
    */
-  guardarPreguntas(lista: { pregunta: string; respuesta: string }[], actual?: string): Observable<{ ok: boolean; mensaje?: string }> {
+  guardarPreguntas(lista: { clave: ClavePregunta; respuesta: string }[], actual?: string): Observable<{ ok: boolean; mensaje?: string }> {
     const sesion = this.sesionActual();
     const registro = sesion ? this.registros()[sesion.usuario] : undefined;
     if (!sesion || !registro) return of({ ok: false, mensaje: 'Vuelve a iniciar sesión.' });
     if (!sesion.requierePreguntas && registro.contrasena !== actual) return of({ ok: false, mensaje: 'La contraseña actual no es correcta.' }).pipe(delay(400));
-    if (lista.length !== 2 || lista[0].pregunta === lista[1].pregunta || lista.some((q) => normalizarRespuesta(q.respuesta).length < 2))
+    if (lista.length !== 2 || lista[0].clave === lista[1].clave || lista.some((q) => normalizarRespuesta(q.respuesta).length < 2))
       return of({ ok: false, mensaje: 'Elige 2 preguntas distintas y contesta las dos.' });
-    this.actualizar(registro.usuario, { preguntas: lista.map((q) => ({ pregunta: q.pregunta, respuesta: normalizarRespuesta(q.respuesta) })) });
+    this.actualizar(registro.usuario, { preguntas: lista.map((q) => ({ clave: q.clave, respuesta: normalizarRespuesta(q.respuesta) })) });
     if (sesion.requierePreguntas) this.guardarSesion({ ...sesion, requierePreguntas: false }, this.estaRecordada());
     return of({ ok: true }).pipe(delay(400));
   }
 
   /** Envía una contraseña temporal al correo del usuario y devuelve el correo enmascarado; el administrador ve el pedido (AD7). */
-  solicitarContrasenaTemporal(usuario: string): Observable<string> {
-    const clave = usuario.trim().toLowerCase();
-    const registro = this.registros()[clave];
-    if (registro) this.solicitudes.update((lista) => [{ usuario: clave, fecha: new Date().toISOString() }, ...lista.filter((s) => s.usuario !== clave)]);
-    const correo = registro?.correo ?? `${usuario.trim()}@shuri.mx`;
-    return of(enmascararCorreo(correo)).pipe(delay(500));
+  /** Recuperación en curso (A.3): a quién se le preguntó y cuántas respuestas mal lleva (como `password_reset_tokens`). */
+  private readonly recuperando = signal<{ usuario: string; intentos: number } | null>(null);
+
+  /**
+   * A.3 paso 1, como `POST /auth/password/forgot`: con usuario o correo devuelve su pregunta de seguridad
+   * (la primera de las suyas). Si la cuenta no existe, está inactiva o no tiene preguntas, el mismo aviso
+   * para todos (así nadie averigua qué cuentas hay) y el pedido le llega al administrador.
+   */
+  iniciarRecuperacion(login: string): Observable<{ pregunta: string } | { mensaje: string }> {
+    const texto = login.trim().toLowerCase();
+    const registro = Object.values(this.registros()).find((r) => r.usuario === texto || r.correo.toLowerCase() === texto);
+    if (!registro?.activo || !registro.preguntas?.length) {
+      this.recuperando.set(null);
+      if (registro) this.solicitudes.update((lista) => [{ usuario: registro.usuario, fecha: new Date().toISOString() }, ...lista.filter((s) => s.usuario !== registro.usuario)]);
+      return of({ mensaje: 'No podemos recuperar esta cuenta en línea. Pide una contraseña temporal al administrador.' }).pipe(delay(500));
+    }
+    this.recuperando.set({ usuario: registro.usuario, intentos: 0 });
+    return of({ pregunta: textoPregunta(registro.preguntas[0].clave) }).pipe(delay(500));
+  }
+
+  /**
+   * A.3 paso 2, como `POST /auth/password/answer`: respuesta correcta → contraseña temporal nueva al correo
+   * (al entrar con ella crea la suya, A.5) y la cuenta se desbloquea. A la 3.ª respuesta mal se anula.
+   */
+  responderRecuperacion(respuesta: string): Observable<{ ok: true; correo: string; usuario: string } | { ok: false; mensaje: string; anulada: boolean }> {
+    const p = this.recuperando();
+    const registro = p ? this.registros()[p.usuario] : undefined;
+    if (!p || !registro?.preguntas?.length) return of({ ok: false as const, mensaje: 'Vuelve a escribir tu usuario.', anulada: true });
+    if (registro.preguntas[0].respuesta !== normalizarRespuesta(respuesta)) {
+      const intentos = p.intentos + 1;
+      if (intentos >= INTENTOS_PERMITIDOS) {
+        this.recuperando.set(null);
+        return of({ ok: false as const, mensaje: 'Demasiadas respuestas incorrectas. Pide una contraseña temporal al administrador.', anulada: true }).pipe(delay(400));
+      }
+      this.recuperando.set({ ...p, intentos });
+      const quedan = INTENTOS_PERMITIDOS - intentos;
+      return of({ ok: false as const, mensaje: `La respuesta no es correcta. Te ${quedan === 1 ? 'queda 1 intento' : `quedan ${quedan} intentos`}.`, anulada: false }).pipe(delay(400));
+    }
+    const temporal = contrasenaTemporal();
+    this.recuperando.set(null);
+    this.actualizar(registro.usuario, { contrasena: temporal, temporal: true });
+    this.reiniciarIntentos(registro.usuario);
+    // Sin backend no sale el correo: la temporal se muestra en la consola para poder probar.
+    console.info(`[demo] Contraseña temporal de ${registro.usuario}: ${temporal}`);
+    return of({ ok: true as const, correo: enmascararCorreo(registro.correo), usuario: registro.usuario }).pipe(delay(500));
   }
 
   crearContrasena(nueva: string): Observable<void> {
@@ -385,6 +431,12 @@ export class AuthService {
 }
 
 /** am••••••@shuri.mx */
+/** 10 letras y números fáciles de copiar del correo, como `Str::password(10, symbols: false)` del backend. */
+function contrasenaTemporal(): string {
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  return Array.from(crypto.getRandomValues(new Uint32Array(10)), (n) => letras[n % letras.length]).join('');
+}
+
 function enmascararCorreo(correo: string): string {
   const [nombre, dominio] = correo.split('@');
   return `${nombre.slice(0, 2)}${'•'.repeat(Math.max(nombre.length - 2, 3))}@${dominio}`;

@@ -13,7 +13,7 @@
     <a
       class="boton boton--primario boton--bloque"
       routerLink="/iniciar-sesion"
-      [queryParams]="{ usuario: formulario.getRawValue().usuario }"
+      [queryParams]="{ usuario: usuarioRecuperado() }"
     >
       <img src="assets/iconos/key-btn.svg" width="16" height="16" alt="" />
       Entrar con mi contraseña temporal
@@ -23,6 +23,42 @@
       Volver a iniciar sesión
     </a>
   </section>
+} @else if (pregunta()) {
+  <form class="tarjeta" (submit)="$event.preventDefault(); responder()" novalidate>
+    <span class="tarjeta__icono">
+      <img src="assets/iconos/key-lg.svg" width="26" height="26" alt="" />
+    </span>
+    <div class="tarjeta__encabezado">
+      <h1 class="tarjeta__titulo">Contesta tu pregunta de seguridad</h1>
+      <p class="tarjeta__descripcion">
+        Si la respuesta es correcta, te enviaremos una contraseña temporal a tu correo. No importan mayúsculas ni acentos.
+      </p>
+    </div>
+
+    @if (error(); as mensaje) {
+      <div class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="16" height="16" alt="" /><span>{{ mensaje }}</span></div>
+    }
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="respuesta">{{ pregunta() }}</label>
+      <div class="campo__control" [class.campo__control--error]="respuestaIntentada() && !respuesta().trim()">
+        <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+        <input id="respuesta" class="campo__input" autocomplete="off" maxlength="60" [value]="respuesta()" (input)="escribir($any($event.target).value)" />
+      </div>
+      @if (respuestaIntentada() && !respuesta().trim()) {
+        <span class="campo__error">Escribe tu respuesta.</span>
+      }
+    </div>
+
+    <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">
+      <img src="assets/iconos/send.svg" width="16" height="16" alt="" />
+      {{ enviando() ? 'Revisando…' : 'Enviar contraseña temporal' }}
+    </button>
+    <button type="button" class="enlace" (click)="cambiarUsuario()">
+      <img src="assets/iconos/undo.svg" width="14" height="14" alt="" />
+      No es mi usuario
+    </button>
+  </form>
 } @else {
   <form class="tarjeta" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
     <span class="tarjeta__icono">
@@ -31,13 +67,17 @@
     <div class="tarjeta__encabezado">
       <h1 class="tarjeta__titulo">¿Olvidaste tu contraseña?</h1>
       <p class="tarjeta__descripcion">
-        Escribe tu usuario y te enviaremos una contraseña temporal a tu correo. Al entrar con ella te pediremos
-        crear una nueva.
+        Escribe tu usuario o tu correo. Te haremos tu pregunta de seguridad y, si la contestas bien, te enviaremos una
+        contraseña temporal a tu correo. Al entrar con ella te pediremos crear una nueva.
       </p>
     </div>
 
+    @if (sinRecuperacion(); as mensaje) {
+      <div class="aviso aviso--advertencia" role="alert"><img src="assets/iconos/alert.svg" width="16" height="16" alt="" /><span>{{ mensaje }}</span></div>
+    }
+
     <div class="campo">
-      <label class="campo__etiqueta" for="usuario">Usuario</label>
+      <label class="campo__etiqueta" for="usuario">Usuario o correo</label>
       <div class="campo__control" [class.campo__control--error]="usuarioInvalido">
         <img src="assets/iconos/user.svg" width="16" height="16" alt="" />
         <input
@@ -50,13 +90,13 @@
         />
       </div>
       @if (usuarioInvalido) {
-        <span class="campo__error">Escribe tu usuario.</span>
+        <span class="campo__error">Escribe tu usuario o tu correo.</span>
       }
     </div>
 
     <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">
       <img src="assets/iconos/send.svg" width="16" height="16" alt="" />
-      {{ enviando() ? 'Enviando…' : 'Enviar contraseña temporal' }}
+      {{ enviando() ? 'Buscando…' : 'Continuar' }}
     </button>
     <a class="enlace" routerLink="/iniciar-sesion">
       <img src="assets/iconos/undo.svg" width="14" height="14" alt="" />

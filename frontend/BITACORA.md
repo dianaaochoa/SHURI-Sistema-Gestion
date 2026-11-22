@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 22 nov 2026 (preguntas de seguridad al iniciar sesión, “Ver todas las notificaciones”, impresos de entradas e historial, QR reales y nombre y logo fijos de SHURI)
+- **Última actualización:** 22 nov 2026 (preguntas de seguridad iguales al backend y “¿Olvidaste tu contraseña?” con pregunta de seguridad, como la API)
 
 ---
 
@@ -23,7 +23,7 @@ flowchart LR
   subgraph ACC["01 · Acceso del personal"]
     A1["A.1 Iniciar sesión"]:::hecho
     A2["A.2 Datos incorrectos"]:::hecho
-    A3["A.3 ¿Olvidaste tu contraseña?"]:::hecho
+    A3["A.3 ¿Olvidaste tu contraseña?<br/>+ pregunta de seguridad"]:::hecho
     A4["A.4 Correo enviado"]:::hecho
     A5["A.5 Crea tu contraseña"]:::hecho
     A6["A.6 Cambiar contraseña<br/>(en Mi perfil, C1.6)"]:::hecho
@@ -157,6 +157,7 @@ flowchart TD
   G1{{"conContrasenaTemporal"}}:::guarda
 
   LOGIN -->|"¿Olvidaste tu contraseña?"| OLV
+  OLV -->|"usuario o correo → pregunta 1 → temporal al correo"| OLV
   OLV -->|"Volver / Entrar con temporal"| LOGIN
   LOGIN -->|"entra con contraseña temporal"| G1 --> CREAR
   LOGIN -->|"entra con su contraseña"| INICIO
@@ -572,7 +573,9 @@ npm run build      # compilación de producción
 | `rsanchez` | `Shuri2026!` | Inactivo: “Tu usuario está desactivado” |
 | cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
 
-**Preguntas de seguridad:** después de usuario y contraseña se piden 2 preguntas (“Confirma que eres tú”). Los usuarios de prueba tienen “¿Cuál es el nombre de tu perro?” → `Firulais` y “¿Cuál es el nombre de tu mejor amig@?” → `Pepe` (no importan mayúsculas ni acentos). Las respuestas mal cuentan para el bloqueo (3 intentos). `lortega`, después de crear su contraseña, elige sus preguntas. En Mi perfil se cambian (pide la contraseña actual). Si alguien olvida sus respuestas, el administrador le asigna una contraseña temporal (AD7.4): eso también borra sus preguntas y al entrar elige nuevas. La pantalla bloqueada (30 min) solo pide la contraseña.
+**Preguntas de seguridad:** después de usuario y contraseña se piden 2 preguntas (“Confirma que eres tú”). Se eligen del mismo catálogo de 6 que el backend (`first_pet`, `birth_city`, `first_school`, `childhood_friend`, `favorite_teacher`, `first_job`). Los usuarios de prueba tienen “¿Cómo se llamaba tu primera mascota?” → `Firulais` y “¿Cómo se llama tu mejor amigo(a) de la infancia?” → `Pepe` (no importan mayúsculas ni acentos). Las respuestas mal cuentan para el bloqueo (3 intentos). `lortega`, después de crear su contraseña, elige sus preguntas. En Mi perfil se cambian (pide la contraseña actual). Si alguien olvida sus respuestas, el administrador le asigna una contraseña temporal (AD7.4): eso también borra sus preguntas y al entrar elige nuevas. La pantalla bloqueada (30 min) solo pide la contraseña.
+
+**¿Olvidaste tu contraseña? (A.3):** como la API, pide usuario o correo, hace la pregunta 1 de la cuenta y, si la respuesta es correcta, “envía” una contraseña temporal de 10 letras y números y desbloquea la cuenta. Sin backend no sale el correo: la temporal aparece en la consola del navegador (`[demo] Contraseña temporal de …`). Con 3 respuestas mal se anula. Una cuenta sin preguntas (`lortega`) recibe “No podemos recuperar esta cuenta en línea…” y su pedido le llega al administrador (AD7).
 
 Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
 
@@ -1260,6 +1263,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
 | Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
 | Formas de pago (AD9) y nombre y logo fijos | Al guardar, `ConfiguracionService` pone las formas de pago y la cuenta en `FORMAS_PAGO_CAJA` (`compartido/ajustes-documentos.ts`); cobro y pago mixto filtran las formas apagadas y la CLABE del cobro sale de AD9.2. **El nombre comercial y el logo son siempre los de SHURI** (pedido del usuario, 21 nov): se quitó “Marca del negocio” y “Nombre comercial” de AD9.1 | La CLABE de C2.12 (Figma) cambia a la de AD9.2. La comisión de tarjeta todavía no se suma. Los mensajes automáticos (AD9.6) no se conectaron: sus valores de Figma apagan el correo de la contraseña temporal, el presupuesto y el recordatorio de bodega, que P6 sí manda; falta decidir cuál manda. |
+| Preguntas de seguridad iguales al backend (pedido del usuario, 22 nov) | `PREGUNTAS_SEGURIDAD` es `{ clave, texto }` con las 6 de `App\Support\SecurityQuestions` (`GET /security-questions`); se guarda la clave, como `users.security_question`. A.3 sigue `POST /auth/password/forgot` y `/answer`: usuario o correo, la pregunta 1, 3 intentos y temporal al correo con la cuenta desbloqueada | Así el frontend manda al backend claves que conoce. La pregunta 1 es la que la API guarda para recuperar; la 2 solo existe en el frontend hasta que Diana agregue la segunda. |
 | Preguntas de seguridad (pedido del usuario, 21 nov) | Después de usuario y contraseña, “Confirma que eres tú” pide 2 preguntas (`AuthService.porVerificar`, `responderPreguntas`); sin preguntas (primer acceso o tras una temporal) la sesión trae `requierePreguntas` y las guardas mandan a elegirlas. Respuestas guardadas sin acentos ni mayúsculas, nunca salen del servicio; los fallos suman al mismo bloqueo de 3 intentos. La pantalla bloqueada solo pide la contraseña | No están en Figma: se usaron los estilos de A.1/A.5. **La API de Diana usa una sola pregunta y solo para “¿Olvidaste tu contraseña?”**: para pedir 2 al iniciar sesión hay que ajustar el backend. |
 | Ver todas las notificaciones | Pantalla `/<rol>/notificaciones` con filtros por tipo y “Abrir”; cada aviso trae su `ruta`. El panel de la campana tiene el pie de Figma que lleva ahí | Figma dibuja el enlace pero no la pantalla: se armó con los estilos del panel y de las listas. |
 | Impresos nuevos y QR | Comprobante de entrada de mercancía en ticket (C7) e historial del cliente en hoja carta (C8.3). QR con generador propio (`compartido/qr`, modo byte, nivel M, versiones 1–10) en ticket de venta, orden (ticket y carta) y nota de crédito. El papel de la vista de impresión se carga con `@defer` | Figma no tiene esos dos formatos. Instalar una librería de QR fue bloqueado por el sistema de permisos; el propio se probó leyendo con OpenCV 6 códigos (v1 a v10, con acentos) y el QR de la orden en pantalla. Con `@defer` el paquete inicial bajó de 542 a 500 kB. |
@@ -1278,7 +1282,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 
 ## 9. Pendientes conocidos
 
-- [ ] Preguntas de seguridad: la API (PR #10) tiene una sola pregunta y solo para recuperar la contraseña; para pedir 2 al iniciar sesión hay que ajustar el backend (hablar con Diana). Las respuestas viven en memoria.
+- [ ] Preguntas de seguridad: el catálogo y la recuperación ya son iguales a la API (PR #10), pero la API guarda una sola pregunta y no la pide al iniciar sesión; para las 2 al iniciar sesión hay que ajustar el backend (hablar con Diana). Las respuestas viven en memoria. El portal del cliente aún no tiene dónde elegir su pregunta (la API sí la tiene: `PUT /portal/security-question`).
 - [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
 - [ ] El texto de resumen bajo la marca ya se calcula para los 4 roles (caja, órdenes abiertas, equipos asignados, estado de la caja); con la API vendrá del servidor.
 - [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
@@ -2077,3 +2081,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - `lortega`: temporal → crea contraseña → “Elige tus preguntas de seguridad” (ir a `/tecnico/inicio` lo regresa ahí) → al guardar entra a su Inicio
   - Verónica Castillo (con sus preguntas): Configuración › Negocio y marca sin subir logo ni nombre (“El nombre y el logo son siempre los de SHURI.”)
   - `ng build` sin errores (paquete inicial 499.9 kB); sin errores en consola
+
+### 22 nov 2026 · Preguntas de seguridad iguales al backend
+- Pedido del usuario: que el frontend coincida con el backend en las preguntas de seguridad.
+- `AuthService`: `PREGUNTAS_SEGURIDAD` con las 6 claves y textos de `App\Support\SecurityQuestions`, `ClavePregunta`, `textoPregunta`; las cuentas guardan la clave. `iniciarRecuperacion` y `responderRecuperacion` (como `/auth/password/forgot` y `/answer`) reemplazan a `solicitarContrasenaTemporal`.
+- `ElegirPreguntas`: el select usa las claves; aviso de que la pregunta 1 sirve para recuperar la contraseña.
+- `OlvideContrasena`: paso nuevo “Contesta tu pregunta de seguridad”; acepta usuario o correo; “Entrar con mi contraseña temporal” llena el usuario aunque se haya escrito el correo.
+- Verificado:
+  - `amartinez@shuri.mx` → “¿Cómo se llamaba tu primera mascota?”; “Max” → “La respuesta no es correcta. Te quedan 2 intentos.”; “FIRULÁIS” → “Te enviamos una contraseña temporal a am•••••••@shuri.mx”; con la temporal de la consola entra a A.5
+  - `lortega` → “No podemos recuperar esta cuenta en línea. Pide una contraseña temporal al administrador.”
+  - Verónica Castillo: “Confirma que eres tú” muestra la pregunta de la mascota y la del mejor amigo(a); “firulais/Pepe” entra; Mi perfil › Cambiar preguntas lista las 6 del backend
+  - `ng build` sin errores (paquete inicial 504.3 kB); sin errores en consola
