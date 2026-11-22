@@ -118,7 +118,8 @@ export interface Orden {
   /** ISO: cuándo se avisó "Listo". */
   listaDesde?: string;
   /** `pagado` es lo que costó en total; `cobrado` y `metodo`, lo que entró a la caja al entregar (C10). */
-  entrega?: { fecha: string; por: string; pagado: number; recogio?: string; cobrado?: number; metodo?: string };
+  /** `cartaPoder`: foto de la carta poder cuando recoge otra persona (data URL; con la API, su URL). */
+  entrega?: { fecha: string; por: string; pagado: number; recogio?: string; cobrado?: number; metodo?: string; cartaPoder?: string };
   /** Accesorios que dejó el cliente al recibir (se devuelven en C6). */
   accesorios?: string;
   /** Lo que hizo el técnico (C6 "Trabajo realizado"). */
@@ -1024,7 +1025,7 @@ export class OrdenesService {
    * C6: entrega el equipo. Normal → "Terminado" con garantía desde hoy; sin reparar → "Entregado sin reparar";
    * tras garantía → vuelve a "Terminado" sin reiniciar la garantía original.
    */
-  entregar(folio: string, entrega: { recoge: string; pagado: number; metodo: string; cajera: string }): Orden | undefined {
+  entregar(folio: string, entrega: { recoge: string; pagado: number; metodo: string; cajera: string; cartaPoder?: string }): Orden | undefined {
     const ahora = ahoraIso();
     const por = `${entrega.cajera} · Caja 01`;
     this.actualizar(folio, (o): Orden => {
@@ -1043,7 +1044,7 @@ export class OrdenesService {
         return {
           ...o,
           estado: 'sin-reparar-entregada',
-          entrega: { fecha: ahora, por, pagado: Math.min(revision, o.anticipo) + Math.max(0, cobrado), recogio: entrega.recoge, cobrado, metodo: devuelto ? 'efectivo' : entrega.pagado > 0 ? entrega.metodo : undefined },
+          entrega: { fecha: ahora, por, pagado: Math.min(revision, o.anticipo) + Math.max(0, cobrado), recogio: entrega.recoge, cobrado, metodo: devuelto ? 'efectivo' : entrega.pagado > 0 ? entrega.metodo : undefined, cartaPoder: entrega.cartaPoder },
           historial: evento(`Entregado sin reparar a ${entrega.recoge}${nota}`),
           contactos,
         };
@@ -1053,7 +1054,7 @@ export class OrdenesService {
         ...o,
         estado: 'terminada',
         bodega: undefined,
-        entrega: { fecha: ahora, por, pagado: o.presupuesto?.total ?? o.anticipo + entrega.pagado, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.metodo },
+        entrega: { fecha: ahora, por, pagado: o.presupuesto?.total ?? o.anticipo + entrega.pagado, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.metodo, cartaPoder: entrega.cartaPoder },
         historial: evento(`${desdeBodega} a ${entrega.recoge}${pago}`),
         contactos,
       };

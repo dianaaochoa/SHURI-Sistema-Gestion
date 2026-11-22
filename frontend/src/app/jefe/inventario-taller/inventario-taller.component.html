@@ -68,7 +68,7 @@
         <thead>
           <tr>
             <th>SKU</th><th>Refacción</th><th class="t-tiempo">Stock</th><th class="t-original">Apartadas</th><th>Disponible</th>
-            <th class="t-tiempo">Mínimo</th><th class="t-equipo">Costo</th><th class="t-tecnico">Precio venta</th><th>Estado</th><th>Acción</th>
+            <th class="t-tiempo">Mínimo</th>@if (verCostos()) { <th class="t-equipo">Costo</th> }<th class="t-tecnico">Precio venta</th><th>Estado</th><th>Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -80,13 +80,13 @@
               <td class="t-original" [class.apartada]="f.apartadas">{{ f.apartadoTexto || '—' }}</td>
               <td class="disponible" [class.disponible--cero]="!f.disponible">{{ f.disponible }}</td>
               <td class="t-tiempo">{{ f.producto.minimo }}</td>
-              <td class="t-equipo">{{ dinero(f.producto.costo) }}</td>
+              @if (verCostos()) { <td class="t-equipo">{{ dinero(f.producto.costo) }}</td> }
               <td class="t-tecnico">{{ dinero(f.producto.precio) }}</td>
               <td><span class="estado estado--{{ f.estado.tono }}">{{ f.estado.texto }}</span></td>
               <td><button type="button" class="enlace-accion" (click)="accion(f.producto, f.estado)">{{ f.estado.accion }}</button></td>
             </tr>
           } @empty {
-            <tr><td class="vacio" colspan="10">Sin coincidencias con la búsqueda y los filtros.</td></tr>
+            <tr><td class="vacio" [attr.colspan]="verCostos() ? 10 : 9">Sin coincidencias con la búsqueda y los filtros.</td></tr>
           }
         </tbody>
       </table>

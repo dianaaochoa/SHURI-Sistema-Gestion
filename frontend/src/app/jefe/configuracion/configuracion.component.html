@@ -155,7 +155,27 @@
 
       <section class="panel" id="respuestas-rapidas" aria-labelledby="titulo-rapidas">
         <h2 class="panel__titulo" id="titulo-rapidas"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span>Respuestas rápidas del chat</h2>
-        <p class="nota">Las usas en Mensajes (J11). Se guardan al escribir.</p>
+        <div class="dos">
+          <label class="campo">
+            <span class="campo__etiqueta">El chat abre (lunes a sábado)</span>
+            <span class="campo__control campo__control--40">
+              <select class="campo__input campo__select" (change)="regla('chatAbre', +$any($event.target).value)">
+                @for (h of horas; track h) { <option [value]="h" [selected]="h === reglas().chatAbre">{{ h }}:00</option> }
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </span>
+          </label>
+          <label class="campo">
+            <span class="campo__etiqueta">El chat cierra</span>
+            <span class="campo__control campo__control--40" [class.campo__control--error]="reglas().chatAbre >= reglas().chatCierra">
+              <select class="campo__input campo__select" (change)="regla('chatCierra', +$any($event.target).value)">
+                @for (h of horas; track h) { <option [value]="h" [selected]="h === reglas().chatCierra">{{ h }}:00</option> }
+              </select>
+              <img src="assets/cajera/chev-d.svg" width="16" height="16" alt="" />
+            </span>
+          </label>
+        </div>
+        <p class="nota">El horario lo ve el cliente en el chat del portal (P5); fuera de él, su mensaje queda guardado. El horario se guarda con “Guardar cambios”. Las respuestas rápidas las usas en Mensajes (J11) y se guardan al escribir.</p>
         @for (r of mensajes.rapidas(); track i; let i = $index) {
           <div class="rapida">
             <input class="entrada" type="text" [attr.aria-label]="'Título de la respuesta ' + (i + 1)" [value]="r.titulo" (input)="mensajes.cambiarRapida(i, 'titulo', $any($event.target).value)" />

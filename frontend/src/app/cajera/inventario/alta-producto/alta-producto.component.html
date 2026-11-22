@@ -3,7 +3,7 @@
     <header class="modal__encabezado">
       <div>
         <h2 class="modal__titulo" id="titulo-alta">{{ edicion ? 'Editar producto' : 'Alta de producto' }}</h2>
-        <p class="modal__subtitulo">{{ edicion ? 'Los cambios de precio se reflejan en Punto de venta al guardar' : 'Se agrega al catálogo y queda disponible en Punto de venta' }}</p>
+        <p class="modal__subtitulo">{{ edicion ? (editarPrecios() ? 'Los cambios de precio se reflejan en Punto de venta al guardar' : 'Los cambios se reflejan en Punto de venta al guardar') : 'Se agrega al catálogo y queda disponible en Punto de venta' }}</p>
       </div>
       <button type="button" class="modal__cerrar" aria-label="Cerrar" (click)="cerrar.emit()">
         <img src="assets/inventario/x.svg" width="20" height="20" alt="" />
@@ -83,6 +83,7 @@
         </div>
       </div>
 
+      @if (verCostos() || !edicion) {
       <div class="campo">
         <label class="campo__etiqueta" for="alta-costo">Costo unitario (sin IVA) *</label>
         <div class="campo__control campo__control--40" [class.campo__control--error]="error('costo')">
@@ -91,14 +92,17 @@
         </div>
         @if (error('costo'); as e) { <p class="campo__error">{{ e }}</p> }
       </div>
+      }
       <div class="campo">
         <label class="campo__etiqueta" for="alta-precio">Precio de venta (IVA incl.) *</label>
-        <div class="campo__control campo__control--40" [class.campo__control--error]="error('precio')">
+        <div class="campo__control campo__control--40" [class.campo__control--fijo]="edicion && !editarPrecios()" [class.campo__control--error]="error('precio')">
           <span class="moneda">$</span>
-          <input id="alta-precio" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" [ngModel]="precio()" (ngModelChange)="precio.set($event)" />
+          <input id="alta-precio" class="campo__input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" [disabled]="edicion && !editarPrecios()" [ngModel]="precio()" (ngModelChange)="precio.set($event)" />
         </div>
         @if (error('precio'); as e) { <p class="campo__error">{{ e }}</p> }
+        @else if (edicion && !editarPrecios()) { <p class="campo__nota">Tu rol no puede cambiar precios. Pídelo al administrador.</p> }
       </div>
+      @if (verCostos()) {
       <div class="campo">
         <span class="campo__etiqueta">Margen</span>
         @if (margen(); as m) {
@@ -107,6 +111,7 @@
           <p class="margen margen--vacio">Escribe costo y precio</p>
         }
       </div>
+      }
 
       <div class="campo">
         <label class="campo__etiqueta" for="alta-stock">{{ edicion ? 'Stock actual' : 'Stock inicial *' }}</label>

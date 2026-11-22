@@ -15,6 +15,9 @@ export interface Jornada {
   pausa: number;
 }
 
+/** Clave del cronómetro de la garantía de una orden. */
+export const claveGarantia = (folio: string) => `${folio}·garantia`;
+
 const haceMin = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 const minuscula = (t: string) => (t.charAt(0).toLowerCase() + t.slice(1)).replace(/\.$/, '');
 
@@ -71,55 +74,79 @@ export class BancoService {
     this.pasos.set(pasos);
   }
 
+  /**
+   * Clave del cronómetro y de los pasos: mientras la orden está en garantía se mide aparte (`#1024·garantia`),
+   * así el tiempo de la reparación original no cambia y el de la garantía se ve por separado.
+   */
+  private clave(folio: string): string {
+    return this.ordenes().find((o) => o.folio === folio)?.estado === 'en-garantia' ? claveGarantia(folio) : folio;
+  }
+
   /** Milisegundos trabajados en la orden (lee el reloj, así los cronómetros avanzan solos). */
   tiempo(folio: string): number {
-    const c = this.tiempos()[folio];
+    return this.medir(this.clave(folio));
+  }
+
+  /** Tiempo de la reparación original, aunque la orden esté en garantía. */
+  tiempoReparacion(folio: string): number {
+    return this.medir(folio);
+  }
+
+  /** Tiempo trabajado en la garantía (0 si no ha tenido). */
+  tiempoGarantia(folio: string): number {
+    return this.medir(claveGarantia(folio));
+  }
+
+  private medir(clave: string): number {
+    const c = this.tiempos()[clave];
     if (!c) return 0;
     return c.acumulado + (c.desde ? Math.max(0, this.ahora() - new Date(c.desde).getTime()) : 0);
   }
 
   corriendo(folio: string): boolean {
-    return !!this.tiempos()[folio]?.desde;
+    return !!this.tiempos()[this.clave(folio)]?.desde;
   }
 
   /** Arranca la orden; si el técnico traía otra, esa se detiene (T3.11). */
   iniciar(iniciales: string, folio: string): void {
     const anterior = this.enCurso()[iniciales];
     if (anterior && anterior !== folio) this.detener(anterior);
-    this.tiempos.update((t) => ({ ...t, [folio]: { acumulado: t[folio]?.acumulado ?? 0, desde: new Date().toISOString() } }));
+    const clave = this.clave(folio);
+    this.tiempos.update((t) => ({ ...t, [clave]: { acumulado: t[clave]?.acumulado ?? 0, desde: new Date().toISOString() } }));
     this.enCurso.update((e) => ({ ...e, [iniciales]: folio }));
   }
 
   /** Detiene el cronómetro (pausa, diagnóstico enviado o equipo listo). La orden deja de estar en curso. */
   detener(folio: string): void {
-    const c = this.tiempos()[folio];
+    const clave = this.clave(folio);
+    const c = this.tiempos()[clave];
     if (c?.desde) {
       // Lo que corrió en este tramo se suma a "Mi día" del técnico que la traía (T1.1).
       const minutos = Math.floor(this.segmento(folio) / 60_000);
       const tecnico = Object.entries(this.enCurso()).find(([, f]) => f === folio)?.[0];
       if (tecnico) this.jornada.update((j) => ({ ...j, [tecnico]: { ...j[tecnico], trabajado: (j[tecnico]?.trabajado ?? 0) + minutos } }));
-      this.tiempos.update((t) => ({ ...t, [folio]: { acumulado: this.tiempo(folio) } }));
+      this.tiempos.update((t) => ({ ...t, [clave]: { acumulado: this.medir(clave) } }));
     }
     this.enCurso.update((e) => Object.fromEntries(Object.entries(e).filter(([, f]) => f !== folio)));
   }
 
   /** Lo que lleva corriendo desde la última vez que se inició. */
   segmento(folio: string): number {
-    const desde = this.tiempos()[folio]?.desde;
+    const desde = this.tiempos()[this.clave(folio)]?.desde;
     return desde ? Math.max(0, this.ahora() - new Date(desde).getTime()) : 0;
   }
 
   /** Pasos marcados de la orden (todos sin marcar si nunca se abrió). */
   marcados(o: Orden): boolean[] {
     const total = pasosDe(o).length;
-    const guardados = this.pasos()[o.folio] ?? [];
+    const guardados = this.pasos()[this.clave(o.folio)] ?? [];
     return Array.from({ length: total }, (_, i) => !!guardados[i]);
   }
 
   marcar(o: Orden, i: number, hecho: boolean): void {
     const lista = this.marcados(o);
     lista[i] = hecho;
-    this.pasos.update((p) => ({ ...p, [o.folio]: lista }));
+    this.pasos.update((p) => ({ ...p, [this.clave(o.folio)]: lista }));
   }
 
   avance(o: Orden): { hechos: number; total: number } {

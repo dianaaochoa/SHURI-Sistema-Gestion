@@ -212,7 +212,7 @@ export class EntregaComponent {
     const cobrado = saldo(o);
     const totalFactura = this.dineroSaldo(o);
     const recoge = this.recoge();
-    const entregada = this.ordenes.entregar(o.folio, { recoge: recoge?.nombre || o.cliente.nombre, pagado: cobrado, metodo: this.metodo(), cajera: this.cajera });
+    const entregada = this.ordenes.entregar(o.folio, { recoge: recoge?.nombre || o.cliente.nombre, pagado: cobrado, metodo: this.metodo(), cajera: this.cajera, cartaPoder: recoge?.tipo === 'otra' ? recoge.fotoCarta : undefined });
     const impreso = this.documentos.orden(o.folio, 'entrega');
     const partes = [`${o.folio} · ${o.equipo} entregado a ${recoge?.nombre || o.cliente.nombre}`];
     if (cobrado > 0) partes.push(`cobrados ${formatearDinero(cobrado)} ${METODO_TEXTO[this.metodo()]}`);

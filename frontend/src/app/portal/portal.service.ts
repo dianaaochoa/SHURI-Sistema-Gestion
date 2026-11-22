@@ -219,7 +219,10 @@ export class PortalService {
   }
 
   /** P2.11 · Calificación del servicio (una por folio). */
-  readonly calificaciones = signal<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>({});
+  readonly calificaciones = signal<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>({
+    '#1002': { estrellas: 5, gusto: ['Rapidez', 'Trato', 'Avisos en el portal'], comentario: 'Quedó como nuevo y me avisaron por el portal.', fecha: new Date(Date.now() - 12 * 86_400_000).toISOString() },
+    '#1006': { estrellas: 4, gusto: ['Precio'], comentario: '', fecha: new Date(Date.now() - 15 * 86_400_000).toISOString() },
+  });
 
   calificar(folio: string, estrellas: number, gusto: string[], comentario: string): void {
     if (!this.ordenDe(folio)) return;

@@ -115,6 +115,11 @@ const FORMAS: { id: FormaReembolso; etiqueta: string; icono: string }[] = [
             </button>
           }
         </div>
+        @if (forma() === 'nota') {
+          <p class="nota-forma">Se genera una nota de crédito a nombre del cliente, válida 90 días; se usa al cobrar en Punto de venta.</p>
+        } @else if (forma() === 'cambio') {
+          <p class="nota-forma">Al confirmar se abre Punto de venta con el cliente y su saldo para cobrar lo que se lleva.</p>
+        }
 
         <div class="resumen">
           <p class="resumen__fila"><span>Artículos a devolver</span><strong>{{ piezas() }}</strong></p>
@@ -137,6 +142,7 @@ const FORMAS: { id: FormaReembolso; etiqueta: string; icono: string }[] = [
     </div>
   `,
   styles: `
+    .nota-forma { margin: -4px 0 0; font-size: 12px; color: var(--color-texto-secundario); }
     .devolucion { gap: 12px; max-width: 720px; }
     .articulos { overflow: hidden; border: 1px solid var(--color-borde); border-radius: 8px; }
     .articulos__fila { display: grid; grid-template-columns: 28px minmax(0, 1fr) 150px 90px; gap: 8px; align-items: center; min-height: 46px; padding: 0 16px; border-top: 1px solid var(--color-borde); font-size: 12px; color: var(--color-marino); }

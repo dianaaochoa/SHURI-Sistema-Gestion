@@ -39,6 +39,12 @@
             <p class="t-renglon"><span>IVA 16 %</span><strong>{{ dinero(d.venta.iva) }}</strong></p>
           }
           <p class="t-renglon t-total"><span>TOTAL MXN</span><strong>{{ dinero(d.venta.total) }}</strong></p>
+          @if (d.venta.nota) {
+            <p class="t-renglon"><span>Pagado con nota {{ d.venta.nota.folio }}</span><strong>{{ dinero(d.venta.nota.monto) }}</strong></p>
+          }
+          @if (d.venta.comision) {
+            <p class="t-renglon"><span>Comisión por pago con tarjeta</span><strong>{{ dinero(d.venta.comision) }}</strong></p>
+          }
           @switch (d.venta.metodo) {
             @case ('efectivo') {
               <p class="t-renglon"><span>Pago en efectivo</span><strong>{{ dinero(d.venta.recibido) }}</strong></p>
@@ -53,7 +59,9 @@
               }
             }
             @default {
-              <p class="t-renglon"><span>Pago con {{ metodos[d.venta.metodo].toLowerCase() }}</span><strong>{{ dinero(d.venta.total) }}</strong></p>
+              @if (d.venta.total - (d.venta.nota?.monto ?? 0) > 0) {
+                <p class="t-renglon"><span>Pago con {{ metodos[d.venta.metodo].toLowerCase() }}</span><strong>{{ dinero(d.venta.total - (d.venta.nota?.monto ?? 0) + (d.venta.comision ?? 0)) }}</strong></p>
+              }
               @if (d.venta.referencia) {
                 <p class="t-renglon"><span>{{ d.venta.metodo === 'tarjeta' ? 'Autorización' : 'Referencia' }}</span><strong>{{ d.venta.referencia }}</strong></p>
               }

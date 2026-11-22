@@ -1,11 +1,14 @@
 import { Component, ElementRef, HostListener, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { formatearDinero } from '../../compartido/formato';
 import { CajaService } from '../caja.service';
 import { DispositivosService } from '../punto-de-venta/dispositivos.service';
 import { DetalleVentaComponent, fechaVenta } from './detalle-venta/detalle-venta.component';
 import { DevolucionComponent } from './devolucion/devolucion.component';
 import { DocumentosService } from '../documentos/documentos.service';
+import { OrdenesService } from '../ordenes/ordenes.service';
+import { IVA, MetodoPago, redondear } from '../punto-de-venta/venta.service';
 import {
   Devolucion,
   ESTADOS,
@@ -58,6 +61,8 @@ export class VentasComponent {
   private readonly caja = inject(CajaService);
   private readonly dispositivos = inject(DispositivosService);
   private readonly documentos = inject(DocumentosService);
+  private readonly router = inject(Router);
+  private readonly ordenes = inject(OrdenesService);
   private readonly tabla = viewChild<ElementRef<HTMLElement>>('tabla');
 
   protected readonly periodos = PERIODOS;
@@ -130,10 +135,41 @@ export class VentasComponent {
   /** Cambia con cada filtro de select para recalcular (los selects usan ngModel). */
   private readonly filtros = signal(0);
 
+  /**
+   * Cobros de la entrega de reparaciones (C6): entran a la caja y al corte, y aquí se ven junto a las ventas.
+   * Son de solo lectura: se ajustan desde la orden.
+   */
+  private readonly cobrosDeEntrega = computed<VentaRegistrada[]>(() =>
+    this.ordenes
+      .ordenes()
+      // Las entregas de prueba solo traen lo pagado en total: lo cobrado al entregar es eso menos el anticipo.
+      .map((o) => ({ o, total: o.entrega ? (o.entrega.cobrado ?? redondear(o.entrega.pagado - o.anticipo)) : 0 }))
+      .filter(({ total }) => total > 0)
+      .map(({ o, total }) => {
+        const subtotal = redondear(total / (1 + IVA));
+        return {
+          folio: o.folio,
+          fecha: o.entrega!.fecha,
+          cliente: { id: `orden-${o.folio}`, nombre: o.cliente.nombre, telefono: o.cliente.telefono, correo: o.cliente.correo },
+          cajera: o.entrega!.por.split(' · ')[0],
+          lineas: [{ sku: o.folio, nombre: `Reparación · ${o.equipo}`, precio: subtotal, cantidad: 1, descuento: 0, disponibles: null }],
+          descuento: null,
+          subtotal,
+          iva: redondear(total - subtotal),
+          total,
+          metodo: ((o.entrega!.metodo ?? 'efectivo').toLowerCase() as MetodoPago),
+          recibido: total,
+          cambio: 0,
+          estado: 'pagada' as const,
+          devoluciones: [],
+          orden: o.folio,
+        };
+      }),
+  );
+
   private readonly enPeriodo = computed(() => {
     const { desde, hasta } = this.rango();
-    return this.historial
-      .ventas()
+    return [...this.historial.ventas(), ...this.cobrosDeEntrega()]
       .filter((v) => {
         const fecha = new Date(v.fecha);
         return fecha >= desde && fecha <= hasta;
@@ -225,7 +261,7 @@ export class VentasComponent {
 
   reimprimir(venta: VentaRegistrada): void {
     this.aviso.set(
-      this.documentos.venta(venta.folio)
+      (venta.orden ? this.documentos.orden(venta.orden, 'entrega') : this.documentos.venta(venta.folio))
         ? `Ticket ${venta.folio} reimpreso`
         : 'La impresora no responde: revisa que esté encendida, con papel y conectada',
     );
@@ -255,6 +291,14 @@ export class VentasComponent {
     if (!venta) return;
     this.historial.devolver(venta.folio, devolucion);
     const impreso = this.documentos.devolucion(venta.folio);
+    // “Cambio por otro”: la devolución deja una nota y se sigue en Punto de venta con lo que se lleva.
+    if (devolucion.forma === 'cambio') {
+      const actualizada = this.historial.ventas().find((v) => v.folio === venta.folio)!;
+      const nota = this.historial.folioNota(actualizada, actualizada.devoluciones.length - 1);
+      this.modal.set(null);
+      this.router.navigate(['/cajera/punto-de-venta'], { queryParams: { cliente: venta.cliente.id, nota } });
+      return;
+    }
     this.aviso.set(
       `Devolución de ${venta.folio} registrada · ${formatearDinero(devolucion.monto)} ${FORMAS_REEMBOLSO[devolucion.forma]}` +
         (impreso ? '' : ' · no se pudo imprimir el comprobante'),

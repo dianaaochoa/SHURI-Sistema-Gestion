@@ -47,7 +47,7 @@
       <div class="vacio">
         <span class="vacio__icono"><span class="icono" style="--icono: url(assets/menu/msg.svg)"></span></span>
         <h1>Escríbele al jefe de técnicos</h1>
-        <p>Resuelve tus dudas sobre la reparación de tu equipo. Horario: lunes a sábado de 9:00 a 19:00. Normalmente responde en menos de 15 minutos.</p>
+        <p>Resuelve tus dudas sobre la reparación de tu equipo. Horario: lunes a sábado de {{ horas }}. Normalmente responde en menos de 15 minutos.</p>
         @for (q of preguntas; track q) {
           <button type="button" class="pregunta" (click)="enviar(q)">{{ q }}</button>
         }

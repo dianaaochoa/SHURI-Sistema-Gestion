@@ -106,8 +106,6 @@ export class DocumentosService {
 
   /** NC-0007: consecutivo de las notas de crédito. */
   folioNota(venta: VentaRegistrada, indice: number): string {
-    const fecha = venta.devoluciones[indice].fecha;
-    const antes = this.ventas.ventas().flatMap((v) => v.devoluciones).filter((d) => d.forma === 'nota' && d.fecha < fecha).length;
-    return `NC-${String(6 + antes + 1).padStart(4, '0')}`;
+    return this.ventas.folioNota(venta, indice);
   }
 }

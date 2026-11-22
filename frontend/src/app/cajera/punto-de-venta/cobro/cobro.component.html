@@ -15,6 +15,25 @@
       <strong>{{ dinero(total()) }}</strong>
     </div>
 
+    @if (nota(); as n) {
+      <div class="nota-aplicada" role="status">
+        <span class="icono" style="--icono: url(assets/ventas/ticket.svg)"></span>
+        <span>Nota {{ n.folio }} · −{{ dinero(n.monto) }}<small>{{ aPagar() > 0 ? 'Resta por cobrar ' + dinero(aPagar()) : 'La nota cubre todo el total' }}</small></span>
+        <button type="button" class="enlace" (click)="quitarNota()">Quitar</button>
+      </div>
+    } @else {
+      <div class="nota-credito">
+        @for (n of notas(); track n.folio) {
+          <button type="button" class="boton boton--contorno boton--40" (click)="aplicarNota(n)">Usar {{ n.folio }} · saldo {{ dinero(n.saldo) }}</button>
+        }
+        <div class="campo__control campo__control--40 nota-credito__folio" [class.campo__control--error]="errorNota()">
+          <input class="campo__input" aria-label="Folio de nota de crédito" placeholder="Folio de nota (NC-0007)" autocomplete="off" [value]="folioNota()" (input)="folioNota.set($any($event.target).value); errorNota.set(null)" (keydown.enter)="$event.preventDefault(); $event.stopPropagation(); buscarYAplicar()" />
+          <button type="button" class="enlace" (click)="buscarYAplicar()">Aplicar</button>
+        </div>
+        @if (errorNota(); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+    }
+
     <p class="campo__etiqueta" id="metodo-pago" [class.oculto]="rechazo()">Método de pago</p>
     <div class="selector" role="radiogroup" aria-labelledby="metodo-pago">
       @for (opcion of metodos; track opcion.id) {
@@ -58,7 +77,7 @@
           </div>
         </div>
         <div class="montos">
-          <button type="button" class="boton boton--contorno montos__boton" (click)="recibido.set(total())">Exacto</button>
+          <button type="button" class="boton boton--contorno montos__boton" (click)="recibido.set(aPagar())">Exacto</button>
           @for (monto of montos(); track monto) {
             <button type="button" class="boton boton--contorno montos__boton" (click)="recibido.set(monto)">
               {{ dinero(monto, true) }}
@@ -121,13 +140,16 @@
         </div>
         <p class="aviso aviso--info">
           <img src="assets/pdv/card-info.svg" width="16" height="16" alt="" />
-          Cobra {{ dinero(total()) }} en la terminal y captura el número de autorización del voucher.
+          Cobra {{ dinero(aPagar() + comision()) }} en la terminal{{ comision() ? ' (incluye ' + porcentajeComision + ' % de comisión, ' + dinero(comision()) + ')' : '' }} y captura el número de autorización del voucher.
         </p>
         }
       }
 
       @case ('mixto') {
-        <app-pago-mixto [total]="total()" [enLinea]="enLinea()" [(partes)]="partes" />
+        <app-pago-mixto [total]="aPagar()" [enLinea]="enLinea()" [(partes)]="partes" />
+        @if (comision()) {
+          <p class="comision-mixto">Comisión de la terminal ({{ porcentajeComision }} %): cobra {{ dinero(comision()) }} más junto con la parte con tarjeta.</p>
+        }
       }
 
       @case ('transferencia') {
@@ -160,7 +182,7 @@
                 class="campo__input"
                 inputmode="decimal"
                 autocomplete="off"
-                [campoDinero]="montoTransferencia() ?? total()"
+                [campoDinero]="montoTransferencia() ?? aPagar()"
                 (campoDineroChange)="montoTransferencia.set($event)"
               />
             </div>

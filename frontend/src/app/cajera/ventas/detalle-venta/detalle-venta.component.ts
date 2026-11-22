@@ -56,7 +56,11 @@ export function fechaVenta(iso: string): string {
 
     <p class="aviso detalle__aviso">
       <img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />
-      Las devoluciones se aceptan hasta {{ dias }} días después de la compra, con el ticket y el empaque original.
+      @if (v.orden) {
+        Cobro de la entrega de la orden {{ v.orden }}. Las garantías y ajustes se hacen desde la orden (Órdenes de servicio).
+      } @else {
+        Las devoluciones se aceptan hasta {{ dias }} días después de la compra, con el ticket y el empaque original.
+      }
     </p>
     <div class="detalle__acciones">
       <button type="button" class="boton boton--contorno boton--40" (click)="reimprimir.emit()">
@@ -72,6 +76,7 @@ export function fechaVenta(iso: string): string {
         <img src="assets/pdv/send-primario.svg" width="16" height="16" alt="" />Enviar
       </button>
     </div>
+    @if (!v.orden) {
     <div class="detalle__acciones">
       <button
         type="button"
@@ -86,6 +91,7 @@ export function fechaVenta(iso: string): string {
         <img src="assets/ventas/undo-blanco.svg" width="16" height="16" alt="" />Devolución
       </button>
     </div>
+    }
     }
   `,
   styles: `

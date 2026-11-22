@@ -5,6 +5,7 @@ import { EstadisticasService } from '../../cajera/estadisticas/estadisticas.serv
 import { OrdenesService, TECNICOS } from '../../cajera/ordenes/ordenes.service';
 import { EN_TALLER } from '../../jefe/tecnicos/carga';
 import { BancoService } from '../../tecnico/banco.service';
+import { PortalService } from '../../portal/portal.service';
 import { duracionCorta, terminado } from '../../tecnico/historial/historial';
 import { META_GARANTIAS } from '../negocio';
 import { Mes, dentro, exportarCsv, ultimosMeses } from '../reportes';
@@ -24,6 +25,21 @@ export class TallerReporteComponent {
   private readonly ordenes = inject(OrdenesService).ordenes;
   private readonly estadisticas = inject(EstadisticasService);
   private readonly banco = inject(BancoService);
+  private readonly portal = inject(PortalService);
+
+  /** P2.11 · Calificaciones que dejan los clientes en el portal al recibir su equipo (del mes elegido). */
+  protected readonly calificaciones = computed(() => {
+    const lista = Object.entries(this.portal.calificaciones())
+      .filter(([, c]) => this.en(c.fecha))
+      .map(([folio, c]) => {
+        const o = this.ordenes().find((x) => x.folio === folio);
+        return { folio, ...c, cliente: o?.cliente.nombre ?? '', equipo: o?.equipo ?? '', tecnico: o?.tecnico?.nombre ?? '' };
+      })
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const promedio = lista.length ? lista.reduce((s, c) => s + c.estrellas, 0) / lista.length : 0;
+    return { lista, promedio: Math.round(promedio * 10) / 10 };
+  });
+  protected readonly estrellasDe = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
 
   protected readonly meses = ultimosMeses();
   protected readonly mesId = signal(this.meses[0].id);
@@ -61,7 +77,7 @@ export class TallerReporteComponent {
     TECNICOS.map((t) => {
       const suyas = this.ordenes().filter((o) => o.tecnico.iniciales === t.iniciales);
       const terminadas = suyas.filter((o) => this.en(o.listaDesde) && !o.trabajo.startsWith('Sin reparación'));
-      const tiempos = terminadas.map((o) => this.banco.tiempo(o.folio)).filter(Boolean);
+      const tiempos = terminadas.map((o) => this.banco.tiempoReparacion(o.folio)).filter(Boolean);
       const garantias = suyas.filter((o) => this.en(o.garantia?.recibida)).length;
       // Sobre todo lo que ha terminado (las garantías del mes son de reparaciones de meses anteriores).
       const historico = suyas.filter(terminado).length;
