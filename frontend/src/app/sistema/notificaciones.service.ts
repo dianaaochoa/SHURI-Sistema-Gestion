@@ -12,6 +12,8 @@ export interface Notificacion {
   /** Ruta del SVG dentro de assets/ (se pinta con el color del tono). */
   icono: string;
   tono: TonoNotificacion;
+  /** Pantalla relacionada, relativa al rol (“inventario?vista=entradas”); la abre “Ver todas las notificaciones”. */
+  ruta?: string;
 }
 
 /**
@@ -21,30 +23,30 @@ export interface Notificacion {
 const DEMO: Record<Rol, Omit<Notificacion, 'id'>[]> = {
   // Figma AD1.2
   administrador: [
-    { titulo: 'Ana Martínez pidió restablecer su contraseña', detalle: 'Usuarios y permisos · hace 5 min', leida: false, icono: 'menu/key', tono: 'peligro' },
-    { titulo: 'Corte con faltante sin revisar', detalle: 'Caja 01 matutino · −$30.00 · hace 1 h', leida: false, icono: 'menu/receipt', tono: 'peligro' },
-    { titulo: 'Pago a proveedor vence en 12 días', detalle: 'Distribuidora MovilTec · $4,860.00', leida: false, icono: 'menu/truck', tono: 'advertencia' },
-    { titulo: 'Quedan 436 timbres', detalle: 'Te avisaremos al llegar a 50', leida: true, icono: 'menu/file', tono: 'info' },
+    { titulo: 'Ana Martínez pidió restablecer su contraseña', detalle: 'Usuarios y permisos · hace 5 min', leida: false, icono: 'menu/key', tono: 'peligro', ruta: 'usuarios-y-permisos' },
+    { titulo: 'Corte con faltante sin revisar', detalle: 'Caja 01 matutino · −$30.00 · hace 1 h', leida: false, icono: 'menu/receipt', tono: 'peligro', ruta: 'cortes-de-caja' },
+    { titulo: 'Pago a proveedor vence en 12 días', detalle: 'Distribuidora MovilTec · $4,860.00', leida: false, icono: 'menu/truck', tono: 'advertencia', ruta: 'proveedores' },
+    { titulo: 'Quedan 436 timbres', detalle: 'Te avisaremos al llegar a 50', leida: true, icono: 'menu/file', tono: 'info', ruta: 'facturacion' },
   ],
   cajera: [
-    { titulo: 'PED-0123 llega hoy', detalle: 'Recíbelo en Inventario › Entrada contra pedido', leida: false, icono: 'menu/truck', tono: 'advertencia' },
-    { titulo: '#1026 está listo para entregar', detalle: 'Laura Medina · iPhone 11 · se le avisó en su portal', leida: false, icono: 'menu/package-check', tono: 'exito' },
-    { titulo: 'El técnico necesita un dato', detalle: '#1029 · el PIN no funciona · Jorge ya le escribió por chat', leida: false, icono: 'menu/msg', tono: 'advertencia' },
-    { titulo: 'Cliente aprobó por el portal', detalle: '#1031 · cobra el restante al entregar', leida: true, icono: 'menu/receipt', tono: 'info' },
+    { titulo: 'PED-0123 llega hoy', detalle: 'Recíbelo en Inventario › Entrada contra pedido', leida: false, icono: 'menu/truck', tono: 'advertencia', ruta: 'inventario?vista=entradas' },
+    { titulo: '#1026 está listo para entregar', detalle: 'Laura Medina · iPhone 11 · se le avisó en su portal', leida: false, icono: 'menu/package-check', tono: 'exito', ruta: 'entrega-de-equipo' },
+    { titulo: 'El técnico necesita un dato', detalle: '#1029 · el PIN no funciona · Jorge ya le escribió por chat', leida: false, icono: 'menu/msg', tono: 'advertencia', ruta: 'ordenes-de-servicio?folio=1029' },
+    { titulo: 'Cliente aprobó por el portal', detalle: '#1031 · cobra el restante al entregar', leida: true, icono: 'menu/receipt', tono: 'info', ruta: 'ordenes-de-servicio?folio=1031' },
   ],
   // Figma J1.2
   'jefe-tecnicos': [
-    { titulo: 'Nuevo mensaje de María Hernández', detalle: '#1024 · “¿Tengo que llevar algo?” · hace 3 min', leida: false, icono: 'menu/msg', tono: 'info' },
-    { titulo: 'Diagnóstico listo para cotizar', detalle: '#1043 · iPhone 14 · Carlos Ruiz · hace 25 min', leida: false, icono: 'menu/receipt', tono: 'info' },
-    { titulo: 'Cliente aprobó el adicional', detalle: '#1029 · $530.00 · desde el portal', leida: false, icono: 'iconos/circle-check-sm', tono: 'exito' },
-    { titulo: 'PED-0123 llega hoy', detalle: 'Caja lo recibirá en el mostrador', leida: false, icono: 'menu/truck', tono: 'advertencia' },
-    { titulo: 'Garantía #0986 por dictaminar', detalle: 'Galaxy S22 Ultra · Carlos recomienda que no aplica', leida: true, icono: 'menu/shield', tono: 'neutro' },
+    { titulo: 'Nuevo mensaje de María Hernández', detalle: '#1024 · “¿Tengo que llevar algo?” · hace 3 min', leida: false, icono: 'menu/msg', tono: 'info', ruta: 'mensajes' },
+    { titulo: 'Diagnóstico listo para cotizar', detalle: '#1043 · iPhone 14 · Carlos Ruiz · hace 25 min', leida: false, icono: 'menu/receipt', tono: 'info', ruta: 'por-cotizar?folio=1043' },
+    { titulo: 'Cliente aprobó el adicional', detalle: '#1029 · $530.00 · desde el portal', leida: false, icono: 'iconos/circle-check-sm', tono: 'exito', ruta: 'tablero-de-ordenes?folio=1029' },
+    { titulo: 'PED-0123 llega hoy', detalle: 'Caja lo recibirá en el mostrador', leida: false, icono: 'menu/truck', tono: 'advertencia', ruta: 'refacciones' },
+    { titulo: 'Garantía #0986 por dictaminar', detalle: 'Galaxy S22 Ultra · Carlos recomienda que no aplica', leida: true, icono: 'menu/shield', tono: 'neutro', ruta: 'garantias?folio=0986' },
   ],
   tecnico: [
-    { titulo: 'Refacción entregada', detalle: 'Módulo USB-C S21 para #1029', leida: false, icono: 'menu/package', tono: 'exito' },
-    { titulo: 'Cliente aprobó #1031', detalle: 'Galaxy A54 · ya puedes repararlo', leida: false, icono: 'iconos/circle-check-sm', tono: 'exito' },
-    { titulo: 'Caja respondió tu solicitud', detalle: '#1029 · el PIN correcto es 2580', leida: true, icono: 'menu/msg', tono: 'advertencia' },
-    { titulo: 'Jorge te pidió revisar #1024', detalle: 'Garantía · antes de las 13:00', leida: true, icono: 'menu/shield', tono: 'neutro' },
+    { titulo: 'Refacción entregada', detalle: 'Módulo USB-C S21 para #1029', leida: false, icono: 'menu/package', tono: 'exito', ruta: 'banco-de-trabajo?folio=1029' },
+    { titulo: 'Cliente aprobó #1031', detalle: 'Galaxy A54 · ya puedes repararlo', leida: false, icono: 'iconos/circle-check-sm', tono: 'exito', ruta: 'banco-de-trabajo?folio=1031' },
+    { titulo: 'Caja respondió tu solicitud', detalle: '#1029 · el PIN correcto es 2580', leida: true, icono: 'menu/msg', tono: 'advertencia', ruta: 'banco-de-trabajo?folio=1029' },
+    { titulo: 'Jorge te pidió revisar #1024', detalle: 'Garantía · antes de las 13:00', leida: true, icono: 'menu/shield', tono: 'neutro', ruta: 'garantias' },
   ],
 };
 

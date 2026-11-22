@@ -4,7 +4,6 @@ import { NEGOCIO } from '../../cajera/documentos/documentos.service';
 import { InformacionModalComponent } from '../compartido/informacion-modal.component';
 import { AvisoChatComponent } from '../chat/aviso-chat.component';
 import { PortalService } from '../portal.service';
-import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 /** P1.2 · Mis equipos: los equipos del cliente con su avance en 6 pasos. */
 @Component({
@@ -15,8 +14,6 @@ import { rutaLogo } from '../../compartido/ajustes-documentos';
   styleUrls: ['../portal.css', './mis-equipos.component.css'],
 })
 export class MisEquiposComponent {
-  /** Logo de Configuración (AD9.1). */
-  protected readonly logo = rutaLogo;
   private readonly portal = inject(PortalService);
   private readonly router = inject(Router);
 

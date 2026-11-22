@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NEGOCIO } from '../cajera/documentos/documentos.service';
-import { AJUSTES_TICKET, AVISO_PRIVACIDAD, CLAUSULAS_RECEPCION, Clausula, FORMAS_PAGO_CAJA, LOGO_NEGOCIO } from '../compartido/ajustes-documentos';
+import { AJUSTES_TICKET, AVISO_PRIVACIDAD, CLAUSULAS_RECEPCION, Clausula, FORMAS_PAGO_CAJA } from '../compartido/ajustes-documentos';
 import { ReglasTaller } from '../compartido/reglas-taller';
 import { ConfiguracionTallerService, NivelManoObra } from '../jefe/configuracion/configuracion.service';
 
@@ -26,8 +26,8 @@ export interface MensajeAuto {
 }
 
 export interface Configuracion {
-  /** logo: imagen elegida en AD9.1 (data URL); null = logo de SHURI. */
-  negocio: { nombre: string; razonSocial: string; direccion: string; telefono: string; rfc: string; logo: string | null };
+  /** El nombre comercial y el logo son siempre los de SHURI (no se configuran). */
+  negocio: { nombre: string; razonSocial: string; direccion: string; telefono: string; rfc: string };
   ticket: { encabezado: string; pie: string; logo: boolean; desgloseIva: boolean; quienCobro: boolean };
   cajas: CajaConfig[];
   pagos: { tarjeta: boolean; comisionTarjeta: number; transferencia: boolean; mixto: boolean };
@@ -51,7 +51,7 @@ export const BANCOS = ['BBVA', 'Banorte', 'Santander', 'Banamex', 'HSBC', 'Scoti
 export const VARIABLES_MENSAJE = ['{cliente}', '{equipo}', '{folio}', '{negocio}', '{restante}', '{enlace}'];
 
 const DEMO: Configuracion = {
-  negocio: { nombre: 'SHURI · Reparaciones y Ventas', razonSocial: 'SHURI Reparaciones y Ventas S.A. de C.V.', direccion: 'Av. Juárez 128, Col. Centro, C.P. 06000, Ciudad de México', telefono: '55 1234 0000', rfc: 'SRV250101AB1', logo: null },
+  negocio: { nombre: 'SHURI · Reparaciones y Ventas', razonSocial: 'SHURI Reparaciones y Ventas S.A. de C.V.', direccion: 'Av. Juárez 128, Col. Centro, C.P. 06000, Ciudad de México', telefono: '55 1234 0000', rfc: 'SRV250101AB1' },
   ticket: { ...AJUSTES_TICKET },
   cajas: [{ nombre: 'Caja 01', ubicacion: 'Mostrador principal', fondo: 1000, turnos: 'Matutino · Vespertino', terminal: 'Terminal BBVA ••4821' }],
   pagos: { tarjeta: true, comisionTarjeta: 3.5, transferencia: true, mixto: true },
@@ -105,7 +105,6 @@ export class ConfiguracionService {
   readonly errores = computed(() => {
     const c = this.borrador();
     const e: { pestana: string; texto: string }[] = [];
-    if (!c.negocio.nombre.trim()) e.push({ pestana: 'negocio', texto: 'falta el nombre comercial' });
     if (!/^\d{18}$/.test(c.transferencia.clabe)) e.push({ pestana: 'cajas', texto: 'la CLABE debe tener 18 dígitos' });
     if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(c.fiscal.rfc)) e.push({ pestana: 'facturacion', texto: 'el RFC del emisor no es válido' });
     if (!c.fiscal.razonSocial.trim() || !/^\d{5}$/.test(c.fiscal.cp) || !/^[A-Z]{1,4}$/.test(c.fiscal.serie)) e.push({ pestana: 'facturacion', texto: 'revisa razón social, C.P. y serie' });
@@ -141,7 +140,6 @@ export class ConfiguracionService {
     Object.assign(EMISOR_FISCAL, { rfc: c.fiscal.rfc, razonSocial: c.fiscal.razonSocial, regimen: c.fiscal.regimen, cp: c.fiscal.cp, serie: c.fiscal.serie, autofactura: c.fiscal.autofactura });
     // Lo que leen los documentos impresos (C11).
     Object.assign(AJUSTES_TICKET, c.ticket);
-    LOGO_NEGOCIO.set(c.negocio.logo);
     Object.assign(FORMAS_PAGO_CAJA, { tarjeta: c.pagos.tarjeta, transferencia: c.pagos.transferencia, mixto: c.pagos.mixto, banco: c.transferencia.banco, clabe: c.transferencia.clabe, titular: c.transferencia.titular });
     AVISO_PRIVACIDAD.texto = c.privacidad;
     CLAUSULAS_RECEPCION.splice(0, CLAUSULAS_RECEPCION.length, ...c.clausulas.map((k) => ({ ...k })));

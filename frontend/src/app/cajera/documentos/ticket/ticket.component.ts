@@ -5,14 +5,17 @@ import { calcularTotales, totalLinea } from '../../punto-de-venta/venta.service'
 import { VentaRegistrada, importeDevolucion } from '../../ventas/historial-ventas.service';
 import { Documento, DocumentosService, NEGOCIO } from '../documentos.service';
 import { AJUSTES_TICKET } from '../../../compartido/ajustes-documentos';
+import { QrComponent } from '../../../compartido/qr/qr.component';
+import type { Entrada } from '../../inventario/inventario.datos';
 
 const METODOS: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mixto: 'Mixto' };
 const REEMBOLSO: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'A la tarjeta', nota: 'Nota de crédito', cambio: 'Cambio por otro producto' };
 
-/** C11 · Tickets de 80 mm: venta, orden, entrega, devolución, garantía, corte y retiro. */
+/** C11 · Tickets de 80 mm: venta, orden, entrega, devolución, garantía, corte, retiro y entrada de mercancía. */
 @Component({
   selector: 'app-ticket',
   standalone: true,
+  imports: [QrComponent],
   templateUrl: './ticket.component.html',
   styleUrl: './ticket.component.css',
 })
@@ -26,6 +29,16 @@ export class TicketComponent {
   protected readonly metodos = METODOS;
   protected readonly reembolso = REEMBOLSO;
   protected readonly totalLinea = totalLinea;
+  protected readonly formaPago: Record<string, string> = { efectivo: 'Efectivo de caja', transferencia: 'Transferencia', credito: 'Crédito del proveedor' };
+
+  /** Liga del portal que abre el QR de la orden (P2). */
+  protected seguimiento(folio: string): string {
+    return `https://${NEGOCIO.web}/portal/equipo/${folio.replace('#', '')}`;
+  }
+
+  protected piezasEntrada(e: Entrada): number {
+    return e.lineas.reduce((s, l) => s + l.cantidad, 0);
+  }
 
   protected dinero(importe: number): string {
     const texto = formatearDinero(Math.abs(importe));

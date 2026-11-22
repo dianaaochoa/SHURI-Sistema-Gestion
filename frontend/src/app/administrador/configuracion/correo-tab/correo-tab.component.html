@@ -85,7 +85,7 @@
           <p><strong>Asunto: {{ m.asunto }}</strong></p>
         </div>
         <div class="correo__cuerpo">
-          <p class="correo__marca"><img [src]="c().negocio.logo ?? 'assets/acceso/logo-shuri.png'" width="24" height="24" alt="" /><span><strong>{{ vista().marca }}</strong><small>{{ vista().lema }}</small></span></p>
+          <p class="correo__marca"><img src="assets/acceso/logo-shuri.png" width="24" height="24" alt="" /><span><strong>{{ vista().marca }}</strong><small>{{ vista().lema }}</small></span></p>
           <p class="correo__titulo">{{ m.titulo }}</p>
           <p>{{ m.parrafo }}</p>
           @if (m.destacado; as d) {

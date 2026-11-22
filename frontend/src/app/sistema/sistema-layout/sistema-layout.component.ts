@@ -7,7 +7,6 @@ import { MenuLateralComponent } from '../menu-lateral/menu-lateral.component';
 import { NavegacionMovilComponent } from '../navegacion-movil/navegacion-movil.component';
 import { NotificacionesService } from '../notificaciones.service';
 import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-notificaciones.component';
-import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 /**
  * Estructura de la app del personal: menú lateral + contenido con scroll propio.
@@ -30,7 +29,7 @@ import { rutaLogo } from '../../compartido/ajustes-documentos';
         @if (esJefe()) {
           <header class="barra-movil barra-movil--jefe">
             <button type="button" class="barra-movil__marca" aria-label="Abrir menú completo" (click)="menuMovil.set(true)">
-              <span class="barra-movil__logo"><img [src]="logo()" alt="" /></span>
+              <span class="barra-movil__logo"><img src="assets/acceso/logo-shuri.png" alt="" /></span>
               <span class="barra-movil__texto"><strong>SHURI</strong><span>Jefe de técnicos</span></span>
             </button>
             <button type="button" class="barra-movil__campana" [attr.aria-label]="'Notificaciones: ' + notificaciones.nuevas().length + ' nuevas'" [attr.aria-expanded]="avisos()" (click)="avisos.set(!avisos())">
@@ -42,7 +41,7 @@ import { rutaLogo } from '../../compartido/ajustes-documentos';
           </header>
           @if (avisos()) {
             <div class="sistema__fondo sistema__fondo--claro" (click)="avisos.set(false)"></div>
-            <app-panel-notificaciones class="avisos-movil" />
+            <app-panel-notificaciones class="avisos-movil" (ir)="avisos.set(false)" />
           }
         } @else {
           <header class="barra-movil">
@@ -100,7 +99,6 @@ import { rutaLogo } from '../../compartido/ajustes-documentos';
   `,
 })
 export class SistemaLayoutComponent {
-  protected readonly logo = rutaLogo;
   protected readonly menuMovil = signal(false);
   protected readonly avisos = signal(false);
   protected readonly notificaciones = inject(NotificacionesService);

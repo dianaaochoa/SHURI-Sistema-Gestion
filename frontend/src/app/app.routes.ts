@@ -20,8 +20,15 @@ const aSuInicio: CanActivateFn = () => {
   const sesion = inject(AuthService).sesion();
   const router = inject(Router);
   if (!sesion) return router.parseUrl('/iniciar-sesion');
-  return router.parseUrl(sesion.requiereCambioContrasena ? '/crear-contrasena' : rutaInicio(sesion.rol));
+  if (sesion.requiereCambioContrasena) return router.parseUrl('/crear-contrasena');
+  return router.parseUrl(sesion.requierePreguntas ? '/preguntas-seguridad' : rutaInicio(sesion.rol));
 };
+
+/** “Confirma que eres tú”: solo con usuario y contraseña ya correctos. */
+const conVerificacion: CanActivateFn = () => (inject(AuthService).verificacion() ? true : inject(Router).parseUrl('/iniciar-sesion'));
+
+/** Elegir preguntas: solo si la sesión aún no las tiene. */
+const sinPreguntas: CanActivateFn = () => (inject(AuthService).sesion()?.requierePreguntas ? true : inject(Router).parseUrl('/inicio'));
 
 /** Portal del cliente (P1): sesión aparte de la del personal. */
 const clienteDentro: CanActivateFn = () => {
@@ -47,7 +54,7 @@ const soloRol =
   (rol: Rol): CanActivateFn =>
   () => {
     const sesion = inject(AuthService).sesion();
-    if (sesion?.rol === rol && !sesion.requiereCambioContrasena) return true;
+    if (sesion?.rol === rol && !sesion.requiereCambioContrasena && !sesion.requierePreguntas) return true;
     return inject(Router).parseUrl('/inicio');
   };
 
@@ -100,7 +107,8 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
 
 /** C1.6 Mi perfil (también A.6 Cambiar contraseña): la misma pantalla en todos los roles. */
 const PERFIL = () => import('./sistema/perfil/perfil.component').then((m) => m.PerfilComponent);
-const DE_TODOS: Record<string, () => Promise<Type<unknown>>> = { perfil: PERFIL, 'cambiar-contrasena': PERFIL };
+const NOTIFICACIONES = () => import('./sistema/notificaciones/notificaciones.component').then((m) => m.NotificacionesComponent);
+const DE_TODOS: Record<string, () => Promise<Type<unknown>>> = { perfil: PERFIL, 'cambiar-contrasena': PERFIL, notificaciones: NOTIFICACIONES };
 
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
 function rutasDeRol(rol: Rol): Route {
@@ -109,6 +117,7 @@ function rutasDeRol(rol: Rol): Route {
     ...grupos.flatMap((grupo) => grupo.destinos),
     { etiqueta: 'Mi perfil', ruta: 'perfil', figma: 'C1.6' },
     { etiqueta: 'Cambiar contraseña', ruta: 'cambiar-contrasena', figma: 'C1.6 / A.6' },
+    { etiqueta: 'Notificaciones', ruta: 'notificaciones', figma: 'C1.4 · ver todas' },
   ];
   return {
     path: prefijo,
@@ -140,6 +149,18 @@ export const routes: Routes = [
         component: CrearContrasenaComponent,
         canActivate: [conContrasenaTemporal],
         title: 'Crea tu contraseña · SHURI',
+      },
+      {
+        path: 'verificar',
+        canActivate: [conVerificacion],
+        loadComponent: () => import('./acceso/verificar-preguntas/verificar-preguntas.component').then((m) => m.VerificarPreguntasComponent),
+        title: 'Confirma que eres tú · SHURI',
+      },
+      {
+        path: 'preguntas-seguridad',
+        canActivate: [sinPreguntas],
+        loadComponent: () => import('./acceso/elegir-preguntas/elegir-preguntas.component').then((m) => m.ElegirPreguntasComponent),
+        title: 'Preguntas de seguridad · SHURI',
       },
     ],
   },

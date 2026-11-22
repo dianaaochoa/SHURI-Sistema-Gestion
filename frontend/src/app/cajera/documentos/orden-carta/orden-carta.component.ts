@@ -5,17 +5,19 @@ import { Orden } from '../../ordenes/ordenes.service';
 import { textoDireccion } from '../../punto-de-venta/clientes.datos';
 import { NEGOCIO } from '../documentos.service';
 import { CLAUSULAS_RECEPCION, llenarClausula } from '../../../compartido/ajustes-documentos';
-import { rutaLogo } from '../../../compartido/ajustes-documentos';
+import { QrComponent } from '../../../compartido/qr/qr.component';
 
 /** C11 · Orden de servicio en hoja carta, con cláusulas y firmas. */
 @Component({
   selector: 'app-orden-carta',
   standalone: true,
+  imports: [QrComponent],
   templateUrl: './orden-carta.component.html',
   styleUrl: './orden-carta.component.css',
 })
 export class OrdenCartaComponent {
-  protected readonly logo = rutaLogo;
+  /** Liga del portal que abre el QR (P2). */
+  protected readonly seguimiento = computed(() => `https://${NEGOCIO.web}/portal/equipo/${this.orden().folio.replace('#', '')}`);
   private readonly clientes = inject(ClientesService);
   readonly orden = input.required<Orden>();
   protected readonly negocio = NEGOCIO;

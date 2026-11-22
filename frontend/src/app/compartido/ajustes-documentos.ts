@@ -1,4 +1,3 @@
-import { signal } from '@angular/core';
 import { formatearDinero } from './formato';
 import { REGLAS_TALLER, ReglasTaller } from './reglas-taller';
 
@@ -64,10 +63,6 @@ export function llenarClausula(texto: string, r: ReglasTaller = REGLAS_TALLER): 
     .replace(/\{almacenaje\}/g, formatearDinero(r.almacenajeDia))
     .replace(/\{resguardo\}/g, r.despuesResguardo === 'resguardo' ? `A los ${r.diasResguardo} días el equipo pasa a resguardo.` : r.despuesResguardo === 'cobrar' ? 'Después se sigue cobrando almacenaje.' : 'Después solo se avisa al cliente.');
 }
-
-/** Logo del negocio elegido en Configuración (AD9.1); sin logo, el de SHURI. Lo leen el menú, el acceso, el portal y la hoja carta. */
-export const LOGO_NEGOCIO = signal<string | null>(null);
-export const rutaLogo = (): string => LOGO_NEGOCIO() ?? 'assets/acceso/logo-shuri.png';
 
 /** Formas de pago y cuenta para transferencias (AD9.2): las usa el cobro del punto de venta (C2.10–C2.13). */
 export const FORMAS_PAGO_CAJA = {

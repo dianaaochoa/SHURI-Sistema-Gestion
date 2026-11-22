@@ -12,7 +12,6 @@ import { EN_TALLER } from '../../jefe/tecnicos/carga';
 import { asignadas, tecnicoDe } from '../../tecnico/mi-trabajo';
 import { NotificacionesService } from '../notificaciones.service';
 import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-notificaciones.component';
-import { rutaLogo } from '../../compartido/ajustes-documentos';
 
 const CLAVE_CONTRAIDO = 'shuri.menu.contraido';
 /** Regla de Figma: en 1366 × 768 o menos el menú se compacta a un riel de íconos de 72 px. */
@@ -30,8 +29,6 @@ const PANTALLA_MOVIL = '(max-width: 768px)';
   host: { '[class.riel]': 'contraido()' },
 })
 export class MenuLateralComponent {
-  /** Logo de Configuración (AD9.1). */
-  protected readonly logo = rutaLogo;
   /** Solo en celular: el menú se muestra como cajón. */
   readonly abiertoMovil = input(false);
   readonly cerrar = output<void>();

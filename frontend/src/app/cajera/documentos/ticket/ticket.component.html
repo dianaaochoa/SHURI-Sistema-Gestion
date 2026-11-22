@@ -63,7 +63,7 @@
       }
       <section class="t-pie">
         <p class="t-chico t-centro">{{ ticket().pie }}</p>
-        <div class="t-qr" aria-label="Código QR">QR</div>
+        <app-qr class="t-qr" [texto]="'https://' + negocio.web + '/portal/factura?folio=' + d.venta.folio" />
         <p class="t-chico t-centro">Factura en {{ negocio.web }}/factura con tu folio {{ d.venta.folio }} (mismo mes de compra).</p>
         <p class="t-gracias">{{ ticket().encabezado }}</p>
       </section>
@@ -104,7 +104,7 @@
         <p>{{ negocio.web }}</p>
         <p class="t-renglon"><span>Usuario</span><strong>{{ d.orden.cliente.correo ?? d.orden.cliente.telefono }}</strong></p>
         <p class="t-renglon"><span>Contraseña temporal</span><strong>{{ d.orden.ficha?.contrasena ?? 'La de tu correo' }}</strong></p>
-        <div class="t-qr" aria-label="Código QR">QR</div>
+        <app-qr class="t-qr" [texto]="seguimiento(d.orden.folio)" />
       </section>
       <section class="t-pie">
         <p class="t-chico">Recoge tu equipo dentro de los 30 días posteriores al aviso de “Listo”. Garantía de 30 días. Consulta las cláusulas completas en tu orden carta o en el portal.</p>
@@ -182,7 +182,7 @@
           <p class="t-seccion">NOTA DE CRÉDITO</p>
           <p class="t-folio t-folio--chico">{{ folioNota(d.venta, d.indice) }} · {{ dinero(d.venta.devoluciones[d.indice].monto) }}</p>
           <p class="t-chico">Válida 90 días (hasta el {{ vigenciaNota(d.venta.devoluciones[d.indice].fecha) }}). Úsala en una o varias compras presentando este ticket o el código.</p>
-          <div class="t-qr" aria-label="Código QR">QR</div>
+          <app-qr class="t-qr" [texto]="folioNota(d.venta, d.indice)" />
         </section>
       }
       <section class="t-pie"><p class="t-firma">Firma del cliente</p></section>
@@ -286,6 +286,37 @@
       <section class="t-pie">
         <p class="t-firma">Entrega · {{ d.movimiento.tipo === 'retiro' ? d.cajera : negocio.encargado }}</p>
         <p class="t-firma">Recibe · {{ d.movimiento.tipo === 'retiro' ? negocio.encargado : d.cajera }}</p>
+      </section>
+    }
+
+    @if (d.tipo === 'entrada') {
+      <section class="t-portada">
+        <p class="t-titulo">ENTRADA DE MERCANCÍA</p>
+        <p class="t-folio">{{ d.entrada.folio }}</p>
+        <p class="t-dato">{{ fechaHora(d.entrada.fecha) }} · Recibió {{ d.entrada.recibio }}</p>
+        <p class="t-dato">{{ d.entrada.proveedor }}</p>
+        <p class="t-dato">Factura / remisión {{ d.entrada.documento }}{{ d.entrada.pedido ? ' · Pedido ' + d.entrada.pedido : '' }}</p>
+      </section>
+      <section class="t-bloque">
+        @for (l of d.entrada.lineas; track $index) {
+          <div class="t-articulo">
+            <p class="t-renglon"><span>{{ l.cantidad }} × {{ l.nombre }}</span><strong>{{ dinero(l.cantidad * l.costo) }}</strong></p>
+            <p class="t-chico">{{ l.sku }} · {{ dinero(l.costo) }} c/u{{ l.orden ? ' · apartado para ' + l.orden : '' }}</p>
+          </div>
+        }
+      </section>
+      <section class="t-bloque">
+        <p class="t-renglon"><span>Piezas</span><strong>{{ piezasEntrada(d.entrada) }}</strong></p>
+        <p class="t-renglon"><span>Subtotal</span><strong>{{ dinero(d.entrada.subtotal) }}</strong></p>
+        <p class="t-renglon"><span>IVA 16 %</span><strong>{{ dinero(d.entrada.iva) }}</strong></p>
+        <p class="t-renglon t-total"><span>TOTAL MXN</span><strong>{{ dinero(d.entrada.total) }}</strong></p>
+        <p class="t-renglon"><span>Forma de pago</span><strong>{{ formaPago[d.entrada.pago] }}</strong></p>
+        @if (d.entrada.faltan) { <p class="t-tenue">Faltaron {{ d.entrada.faltan }} piezas del pedido.</p> }
+        @if (d.entrada.nota) { <p class="t-tenue">{{ d.entrada.nota }}</p> }
+      </section>
+      <section class="t-pie">
+        <p class="t-firma">Recibió · {{ d.entrada.recibio }}</p>
+        <p class="t-firma">Entregó · {{ d.entrada.proveedor }}</p>
       </section>
     }
   }

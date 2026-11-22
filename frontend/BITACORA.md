@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 19 nov 2026 (el logo y las formas de pago de Configuración ya se usan en el menú, el acceso, el portal y el cobro)
+- **Última actualización:** 22 nov 2026 (preguntas de seguridad al iniciar sesión, “Ver todas las notificaciones”, impresos de entradas e historial, QR reales y nombre y logo fijos de SHURI)
 
 ---
 
@@ -27,6 +27,8 @@ flowchart LR
     A4["A.4 Correo enviado"]:::hecho
     A5["A.5 Crea tu contraseña"]:::hecho
     A6["A.6 Cambiar contraseña<br/>(en Mi perfil, C1.6)"]:::hecho
+    A7["Confirma que eres tú<br/>2 preguntas de seguridad"]:::hecho
+    A8["Elegir preguntas de seguridad<br/>(primer acceso y Mi perfil)"]:::hecho
   end
 
   subgraph SHELL["Estructura de la app"]
@@ -34,6 +36,7 @@ flowchart LR
     MOV["Jefe en celular (J10)<br/>barra superior + barra inferior"]:::hecho
     USR["Menú de usuario"]:::hecho
     NOT["Panel de notificaciones"]:::hecho
+    NOT2["Ver todas las notificaciones"]:::hecho
     BLQ1["Bloqueo tras 30 min sin uso"]:::hecho
   end
 
@@ -187,6 +190,8 @@ flowchart LR
     IS["IniciarSesion"]:::comp
     OC["OlvideContrasena"]:::comp
     CC["CrearContrasena"]:::comp
+    VPR["VerificarPreguntas<br/>2 preguntas al entrar"]:::comp
+    EPR["ElegirPreguntas<br/>primer acceso y Mi perfil"]:::comp
   end
 
   subgraph SISTEMA["sistema/"]
@@ -195,6 +200,7 @@ flowchart LR
     ML["MenuLateral<br/>184 / 72 / cajón"]:::comp
     MU["MenuUsuario"]:::comp
     PN["PanelNotificaciones"]:::comp
+    NTF["Notificaciones<br/>ver todas · filtros · Abrir"]:::comp
     PP["PaginaPendiente<br/>lugar de cada pantalla"]:::comp
     PF["Perfil<br/>C1.6 · A.6 · todos los roles"]:::comp
     BLQ["BloqueoSesion<br/>30 min sin uso · pide la contraseña"]:::comp
@@ -338,8 +344,9 @@ flowchart LR
     end
     subgraph DOCG["documentos/"]
       VI["VistaImpresion<br/>en el layout · Imprimir"]:::comp
-      TK["Ticket<br/>80 mm · 7 documentos"]:::comp
-      OC["OrdenCarta<br/>hoja carta"]:::comp
+      TK["Ticket<br/>80 mm · 8 documentos"]:::comp
+      OCA["OrdenCarta<br/>hoja carta"]:::comp
+      HCA["HistorialCarta<br/>historial del cliente en hoja carta"]:::comp
     end
   end
   VS["VentaService<br/>venta en curso, cliente,<br/>descuento y pausadas (simulado)"]:::serv
@@ -373,10 +380,14 @@ flowchart LR
   GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
 
   APP --> RUT
-  RUT --> LAY --> IS & OC & CC
+  RUT --> LAY --> IS & OC & CC & VPR & EPR
+  VPR & EPR --> AUTH
+  PF --> EPR
   RUT --> SL --> ML --> MU & PN
   SL --> NM & PN
   SL --> BLQ --> AUTH
+  PN --> NTF
+  NTF --> NOTS
   SC --> NC & CLSV
   CAJA --> AUTH
   COS --> VS
@@ -424,7 +435,7 @@ flowchart LR
   SL --> VI
   VI --> TK & OC
   VI --> DOS
-  OC --> CLSV
+  OCA --> CLSV
   PDV & VEN & ORD & ENT & TA & HCO & ME & TC --> DOS
   DOS --> DIS & HV & OS
   IC --> AT
@@ -464,7 +475,11 @@ flowchart LR
   CB & PM & ML & PTA --> ADO
   CFA --> CRS
   PTA --> ADO & FCS & MS
-  TK & OC --> ADO
+  TK & OCA --> ADO
+  QRC["compartido/qr<br/>generador de QR propio"]:::comp
+  TK & OCA --> QRC
+  VI --> TK & OCA & HCA
+  HC --> HCA
   PN --> NOTS --> AUTH
   IC & AT & ST & ML & MU & PP --> CAJA
   IC & AT & ST --> FMT
@@ -557,14 +572,20 @@ npm run build      # compilación de producción
 | `rsanchez` | `Shuri2026!` | Inactivo: “Tu usuario está desactivado” |
 | cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
 
+**Preguntas de seguridad:** después de usuario y contraseña se piden 2 preguntas (“Confirma que eres tú”). Los usuarios de prueba tienen “¿Cuál es el nombre de tu perro?” → `Firulais` y “¿Cuál es el nombre de tu mejor amig@?” → `Pepe` (no importan mayúsculas ni acentos). Las respuestas mal cuentan para el bloqueo (3 intentos). `lortega`, después de crear su contraseña, elige sus preguntas. En Mi perfil se cambian (pide la contraseña actual). Si alguien olvida sus respuestas, el administrador le asigna una contraseña temporal (AD7.4): eso también borra sus preguntas y al entrar elige nuevas. La pantalla bloqueada (30 min) solo pide la contraseña.
+
 Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
+
+**Notificaciones:** el pie del panel de la campana, “Ver todas las notificaciones”, abre `/<rol>/notificaciones`: todos los avisos del rol con filtros (Todas, Sin leer y por tipo), “Marcar como leída”, “Marcar todo como leído” y “Abrir”, que lleva a la pantalla del aviso y lo marca como leído.
+
+**QR:** el ticket de venta (factura), la orden de servicio en ticket y en carta (seguimiento en el portal) y la nota de crédito llevan un QR real, hecho por `compartido/qr` (sin librerías).
 
 **Pantalla bloqueada (30 min sin uso):** sin tocar el mouse, el teclado ni la pantalla por 30 minutos, se cubre todo con “Pantalla bloqueada” y se pide la contraseña; al escribirla se sigue donde se quedó (una venta a medias sigue ahí). Los fallos cuentan para el bloqueo de la cuenta (3 intentos). “Entrar con otro usuario” cierra la sesión. Para probarlo sin esperar: en la consola, `localStorage.setItem('shuri.actividad', Date.now() - 31 * 60000)` y luego mover el mouse.
 
 **Configuración (`/administrador/configuracion`):** siete pestañas que se guardan juntas con “Guardar cambios” (un punto marca las que tienen cambios; “Descartar” los quita). Si falta algo obligatorio no se guarda y se abre la pestaña a corregir.
-- Negocio y marca: logo (PNG o SVG), datos del negocio y ticket (encabezado, pie, logo, desglose de IVA y quién cobró) con vista previa. El ticket impreso (C11) los usa al guardar.
+- Negocio y marca: el nombre (SHURI · Reparaciones y Ventas) y el logo son fijos de SHURI y no se pueden cambiar; se editan razón social, dirección y teléfono, y el ticket (encabezado, pie, logo, desglose de IVA y quién cobró) con vista previa. El ticket impreso (C11) los usa al guardar.
 - Cajas y pagos: fondo, ubicación y terminal de cada caja (el fondo pasa a la apertura de turno), formas de pago y CLABE (se ve tapada; “Cambiar” pide los 18 dígitos). Al guardar, el cobro del punto de venta solo ofrece las formas activas (el efectivo siempre) y muestra la cuenta y CLABE de aquí.
-- El logo que se sube en Negocio y marca aparece, al guardar, en el menú, la barra del jefe en celular, el inicio de sesión, el portal del cliente y la hoja carta de la orden.
+
 - Documentos: cláusulas que se imprimen en la hoja de recepción; llevan variables como `{garantia}` que se llenan con lo del taller. Aviso de privacidad y vista previa.
 - Taller: el mismo tabulador y reglas de J9; lo que cambia queda también en el historial de J9.
 - Facturación: RFC, razón social, régimen, C.P., CSD (solo guarda el nombre del archivo), serie y timbres. Las facturas nuevas usan la serie y el emisor guardados.
@@ -648,6 +669,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - Hay que marcar toda la verificación (y, si recoge otra persona, nombre completo, carta poder y copia de la identificación del titular) para habilitar “Cobrar y entregar”.
 
 **Inventario (`/cajera/inventario`; la pestaña va en `?vista=entradas|historial|ajustes`):**
+- Al registrar una entrada pagada desde caja, y con “Reimprimir comprobante” en el historial de entradas, sale el comprobante de 80 mm “ENTRADA DE MERCANCÍA” (productos, costos, IVA, total, forma de pago y firmas de quien recibió y del proveedor).
 - Catálogo con 19 productos de prueba (los 12 de Figma y los del punto de venta). “Stock bajo” y “Sin existencias” filtran; la búsqueda acepta nombre, SKU o código de barras (`7501000000465`).
 - “Añadir Producto” abre C7.1; el lápiz edita y el reloj muestra los movimientos del producto (con “Ajustar stock”).
 - Importar: cualquier `.xlsx` muestra la vista previa de Figma (la lectura real de Excel llega con la API); un `.csv` con las columnas de la plantilla se lee de verdad. Exportar baja un CSV que abre Excel.
@@ -655,6 +677,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - Con “Crédito del proveedor” se ve el crédito disponible (Distribuidora MovilTec: $9,241.00 de $20,000.00). Una factura que lo rebasa no se registra; un proveedor de contado (Refacciones Móviles del Centro, Importadora Celular GDL) cambia solo a transferencia y no acepta crédito.
 
 **Clientes (`/cajera/clientes`):**
+- “Imprimir historial” (C8.3) sale en hoja carta con los datos del cliente, el total pagado y los movimientos del periodo y pestaña elegidos.
 - La lista junta los clientes de Punto de venta, los de las órdenes y los de las ventas (se reconocen por teléfono o nombre). “Equipos activos”, “Última visita” y “Total gastado” se calculan con Órdenes y Ventas.
 - María Hernández tiene el historial de Figma C8.3 (su equipo #1024 en taller y compras viejas de archivo).
 - “Generar contraseña temporal” abre C8.4 y cambia la ficha a “Temporal · enviada hoy…”. “Nueva orden para este cliente” abre la recepción con el cliente ya buscado (`/cajera/nueva-orden?cliente=55 1234 5678`).
@@ -819,7 +842,8 @@ frontend/src/
     │   ├── formato.ts         # dinero, fechas, horas, duración, saludo
     │   ├── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
     │   ├── fotos-orden/       # fotos del equipo al recibirlo: miniaturas, agregar, quitar y visor
-    │   └── campo-dinero.directive.ts  # campos de dinero: 1000 al escribir, $1,000.00 fuera del campo
+    │   ├── campo-dinero.directive.ts  # campos de dinero: 1000 al escribir, $1,000.00 fuera del campo
+    │   └── qr/                # generador de códigos QR propio y <app-qr> en SVG
     ├── jefe/                  # 04 · Jefe de técnicos
     │   ├── jefe.datos.ts      # preguntas de los técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
@@ -957,8 +981,9 @@ frontend/src/
     │   │   └── turno-cerrado/              # C10.5
     │   ├── documentos/        # C11
     │   │   ├── documentos.service.ts       # documento en la vista, folios DEV- y NC-, datos del negocio
-    │   │   ├── ticket/                     # 7 tickets de 80 mm
+    │   │   ├── ticket/                     # 8 tickets de 80 mm (con la entrada de mercancía)
     │   │   ├── orden-carta/                # orden de servicio en hoja carta
+    │   │   ├── historial-carta/            # historial del cliente en hoja carta
     │   │   └── vista-impresion/            # vista previa e Imprimir (marco oculto)
     │   ├── ventas/            # C3
     │   │   ├── historial-ventas.service.ts # ventas registradas, cancelar y devolver (simulado)
@@ -988,6 +1013,8 @@ frontend/src/
     │   ├── auth.service.ts    # sesión, intentos, contraseña temporal (simulado)
     │   ├── acceso-layout/     # marco común A.1–A.5
     │   ├── iniciar-sesion/    # A.1 · A.2
+    │   ├── verificar-preguntas/ # “Confirma que eres tú”: 2 preguntas de seguridad
+    │   ├── elegir-preguntas/  # elegir las 2 preguntas (primer acceso y Mi perfil)
     │   ├── olvide-contrasena/ # A.3 · A.4
     │   └── crear-contrasena/  # A.5 + indicador de seguridad
     └── sistema/
@@ -999,7 +1026,8 @@ frontend/src/
         ├── menu-usuario/            # desplegable del avatar
         ├── panel-notificaciones/    # panel de la campana
         ├── pagina-pendiente/        # lugar temporal de cada pantalla por construir
-        ├── perfil/                  # C1.6 Mi perfil y cambiar contraseña (todos los roles)
+        ├── perfil/                  # C1.6 Mi perfil, cambiar contraseña y preguntas de seguridad (todos los roles)
+        ├── notificaciones/          # “Ver todas las notificaciones” (todos los roles)
         └── bloqueo-sesion/          # pantalla bloqueada tras 30 min sin uso
 ```
 
@@ -1231,7 +1259,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Editar un cliente | `ClientesService.guardar` busca cómo estaba el cliente y llama a `OrdenesService.actualizarCliente` con sus órdenes (mismo id, teléfono o nombre): toman nombre, teléfono y correo nuevos. Las ventas ya cobradas conservan los datos de su ticket | Órdenes de servicio, sus documentos y los correos de aviso (cotización, listo) usan los datos guardados en la orden; un ticket de venta es un comprobante que no cambia. |
 | Ventas en espera al hacer el corte | `CorteService.cerrar` llama a `VentaService.descartarAlCerrarTurno`: se borran las ventas en espera y la venta sin cobrar. El cierre (C10.4) avisa cuántas se pierden | Lo dice el aviso de C2.9 (“se descartan solas al cerrar el turno”). Así no pasan al turno ni a la cajera siguientes; no apartaban inventario, así que no hay nada que regresar. |
 | Turno de caja de una cajera | `Turno` guarda `usuario` y `cajera`. `CajaService.turno`/`abierta` son solo el turno de quien tiene la sesión (punto de venta, Inicio, entregas, pagos en efectivo); `turnoDeCaja` es el de la caja, sea de quien sea (administrador y corte); `ajeno` es el que otra cajera dejó abierto. No se abre un segundo turno sobre uno abierto | Una caja, un turno. Si la cajera sale sin corte (C1.7), la siguiente hace ese corte contando el efectivo: queda a nombre de quien abrió y con `cerradoPor` (en el ticket “Contó y cerró”, en AD3.2 “Cerrado por”). Figma no tiene esta pantalla: se usaron los modales de C1.3 y los avisos de C10. Los turnos guardados antes del cambio no traen cajera y valen para cualquiera. |
-| Logo y formas de pago (AD9) | Al guardar, `ConfiguracionService` pone el logo en `LOGO_NEGOCIO` (signal) y las formas de pago y la cuenta en `FORMAS_PAGO_CAJA` (`compartido/ajustes-documentos.ts`, objetos simples para no cargar la configuración completa al inicio). Cobro y pago mixto filtran las formas apagadas; la CLABE del cobro sale de AD9.2 | La CLABE de C2.12 (Figma) cambia a la de AD9.2, que es la que el administrador edita. La comisión de tarjeta todavía no se suma. Los mensajes automáticos (AD9.6) no se conectaron: sus valores de Figma apagan el correo de la contraseña temporal, el presupuesto y el recordatorio de bodega, que P6 sí manda; falta decidir cuál manda. |
+| Formas de pago (AD9) y nombre y logo fijos | Al guardar, `ConfiguracionService` pone las formas de pago y la cuenta en `FORMAS_PAGO_CAJA` (`compartido/ajustes-documentos.ts`); cobro y pago mixto filtran las formas apagadas y la CLABE del cobro sale de AD9.2. **El nombre comercial y el logo son siempre los de SHURI** (pedido del usuario, 21 nov): se quitó “Marca del negocio” y “Nombre comercial” de AD9.1 | La CLABE de C2.12 (Figma) cambia a la de AD9.2. La comisión de tarjeta todavía no se suma. Los mensajes automáticos (AD9.6) no se conectaron: sus valores de Figma apagan el correo de la contraseña temporal, el presupuesto y el recordatorio de bodega, que P6 sí manda; falta decidir cuál manda. |
+| Preguntas de seguridad (pedido del usuario, 21 nov) | Después de usuario y contraseña, “Confirma que eres tú” pide 2 preguntas (`AuthService.porVerificar`, `responderPreguntas`); sin preguntas (primer acceso o tras una temporal) la sesión trae `requierePreguntas` y las guardas mandan a elegirlas. Respuestas guardadas sin acentos ni mayúsculas, nunca salen del servicio; los fallos suman al mismo bloqueo de 3 intentos. La pantalla bloqueada solo pide la contraseña | No están en Figma: se usaron los estilos de A.1/A.5. **La API de Diana usa una sola pregunta y solo para “¿Olvidaste tu contraseña?”**: para pedir 2 al iniciar sesión hay que ajustar el backend. |
+| Ver todas las notificaciones | Pantalla `/<rol>/notificaciones` con filtros por tipo y “Abrir”; cada aviso trae su `ruta`. El panel de la campana tiene el pie de Figma que lleva ahí | Figma dibuja el enlace pero no la pantalla: se armó con los estilos del panel y de las listas. |
+| Impresos nuevos y QR | Comprobante de entrada de mercancía en ticket (C7) e historial del cliente en hoja carta (C8.3). QR con generador propio (`compartido/qr`, modo byte, nivel M, versiones 1–10) en ticket de venta, orden (ticket y carta) y nota de crédito. El papel de la vista de impresión se carga con `@defer` | Figma no tiene esos dos formatos. Instalar una librería de QR fue bloqueado por el sistema de permisos; el propio se probó leyendo con OpenCV 6 códigos (v1 a v10, con acentos) y el QR de la orden en pantalla. Con `@defer` el paquete inicial bajó de 542 a 500 kB. |
 | Abrir y cerrar turno sin denominaciones | C1.3 pide solo “Efectivo con el que abres la caja” y C10.4 solo “Efectivo que hay en el cajón” y “Efectivo que se queda como fondo”, con `campoDinero` | **Lo pidió el usuario (17 nov):** anotar la cantidad que hay o la que se deja, no billete por billete. Figma C1.3 y C10.4 traen la tabla por denominación; se conservan el total, la diferencia con el fondo asignado o el esperado, el comentario y lo que se entrega a gerencia. |
 | Bloqueo tras 30 min sin uso | `BloqueoSesionComponent` en `SistemaLayout` (solo personal; el portal del cliente no). Cuenta como uso mover el mouse, teclear, tocar o desplazar; el último uso (`shuri.actividad`) y el bloqueo (`shuri.bloqueada`) van en `localStorage`, así que valen para todas las pestañas y siguen al recargar. Bloquea en vez de cerrar la sesión: atrás queda todo igual, con `inert` y sin que las teclas lleguen a la página (los atajos del punto de venta y Esc no hacen nada). `AuthService.desbloquear` usa el mismo login, así que los fallos cuentan para bloquear la cuenta | Figma solo da la regla general, sin pantalla: se usaron los estilos del login (A.1). Cerrar la sesión haría perder una venta a medias. Con la API, el servidor también debe vencer el token. Sube 6 kB el paquete inicial (va con el menú). |
 | Campos de dinero | Directiva `campoDinero` (`compartido/campo-dinero.directive.ts`) en el cobro (efectivo, transferencia, mixto) y el anticipo de Nueva orden: con el cursor dentro se ve el número sin formato y se selecciona para reemplazarlo; al salir, o si el monto llega de un botón, se ve con `formatearDinero`. Acepta “$1,2a50” y lo lee como 1250; más de 2 decimales se cortan | Dar formato mientras se escribe mueve el cursor. Los campos `type="number"` (corte, entradas, alta de producto) no pueden mostrar “$” y se quedaron igual. |
@@ -1247,12 +1278,12 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 
 ## 9. Pendientes conocidos
 
+- [ ] Preguntas de seguridad: la API (PR #10) tiene una sola pregunta y solo para recuperar la contraseña; para pedir 2 al iniciar sesión hay que ajustar el backend (hablar con Diana). Las respuestas viven en memoria.
 - [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
 - [ ] El texto de resumen bajo la marca ya se calcula para los 4 roles (caja, órdenes abiertas, equipos asignados, estado de la caja); con la API vendrá del servidor.
 - [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
 - [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
 - [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
-- [ ] “Ver todas las notificaciones” (pie del panel en Figma) cuando exista su pantalla.
 - [x] Todas las pantallas de Figma: cajera (C1–C11 y C1.6), jefe de técnicos (J1–J11), técnico (T1–T7), administrador (AD1–AD9) y portal del cliente (P1–P6).
 - [ ] Correos (P6): el envío real y los interruptores de “Correo” por mensaje de AD9.6 los aplicará la API; hoy se arma el correo cada vez que el cliente tiene correo.
 - [ ] Chat (P5): el aviso de respuesta solo aparece con el portal abierto (notificaciones push y correo le tocan a la API); el horario está fijo en el código.
@@ -1267,7 +1298,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: separar el cronómetro de la garantía del de la reparación original y traer los tiempos reales de la API.
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó 24 kB del aviso de 500 kB (estilos compartidos, la lógica del técnico que usa el menú y el bloqueo por inactividad); revisar si conviene cargar `mi-trabajo` aparte.
+- [ ] El paquete inicial quedó justo en el aviso de 500 kB (499.9 kB): revisar si conviene cargar `mi-trabajo` o el bloqueo por inactividad aparte.
 - [ ] Mensajes (J11 y chat P5): las conversaciones viven en memoria; falta guardarlas en la API.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1276,7 +1307,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Por cotizar: el aviso a caja y al portal solo se anota en el historial; las piezas sin stock no generan pedido solo (se pedirán desde Refacciones, J5).
 - [ ] Tablero: tiempo trabajado sin pausas (llega con el registro de tiempos del técnico). La prioridad y las asignaciones viven en memoria.
 - [ ] Cambiar la contraseña en Mi perfil solo cambia la del usuario de prueba en memoria (al recargar vuelve a `Shuri2026!`); cerrar las sesiones en otros equipos le toca a la API.
-- [ ] Documentos: generar el QR real, imprimir el comprobante de las entradas de mercancía (C7) y el historial del cliente (C8) con su propio formato, y conectar una impresora térmica de verdad.
+- [ ] Documentos: conectar una impresora térmica de verdad (hoy se imprime desde el navegador).
 - [ ] Estadísticas usa un historial de prueba generado; la API de reportes debe dar las cifras por periodo (y sus ventas reales por hora para “Hoy”).
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
@@ -2027,3 +2058,22 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - el inicio de sesión y el portal (`/portal`) muestran el logo nuevo
   - Ana Martínez abre turno y cobra: métodos “Efectivo, Transferencia, Mixto” (sin tarjeta); transferencia “Cuenta SHURI · BBVA · CLABE 012 180 0012 3456 4821”; mixto arranca con Efectivo y Transferencia y “Agregar otro método” solo ofrece esos dos
   - `ng build` sin errores; sin errores en consola
+
+### 22 nov 2026 · Preguntas de seguridad, notificaciones, impresos y QR, nombre y logo fijos
+- Pedido del usuario: quitar de Configuración el logo y el nombre del negocio (solo los de SHURI); hacer lo que no tenía pantalla en Figma (“Ver todas las notificaciones”, impresos de entradas e historial y QR reales); y 2 preguntas de seguridad al iniciar sesión con sus vistas.
+- **Configuración (AD9.1):** sin “Marca del negocio” ni “Nombre comercial”; se quitaron `LOGO_NEGOCIO`/`rutaLogo` y `negocio.logo` (el menú, el acceso, el portal y la hoja carta vuelven al logo fijo).
+- **Notificaciones:** `NotificacionesComponent` en `sistema/notificaciones/`, ruta `notificaciones` para los 4 roles, `Notificacion.ruta` y el pie del panel.
+- **Impresos:** tipos `entrada` e `historial` en `DocumentosService`; ticket de entrada; `HistorialCartaComponent`; `compartido/qr` (`generarQr` y `<app-qr>`); el papel de la vista de impresión con `@defer`.
+- **Preguntas de seguridad:** `PREGUNTAS_SEGURIDAD`, `normalizarRespuesta`, `responderPreguntas`, `guardarPreguntas`, `preguntasDeSesion` en `AuthService`; pantallas `verificar` y `preguntas-seguridad`; sección en Mi perfil; la temporal de AD7.4 borra las preguntas; desbloquear solo pide la contraseña.
+- Grafo 3: `OC` se usaba para OlvideContrasena y OrdenCarta; la hoja carta ahora es `OCA`.
+- Verificado:
+  - Ana Martínez: tras la contraseña sale “Confirma que eres tú” con sus 2 preguntas; “Max/Pepe” → “Alguna respuesta no coincide. Te quedan 2 intentos…”; “FIRULÁIS/pepe” → entra a su Inicio
+  - campana → “Ver todas las notificaciones” → 4 avisos (3 sin leer) con filtros Todas, Sin leer, Pendientes, Listos e Informativos; “Abrir” en PED-0123 lleva a Inventario › Entradas y quedan 2 sin leer
+  - ENT-0055 › Reimprimir comprobante → “ENTRADA DE MERCANCÍA · ENT-0055”, 5 productos, 108 piezas, total $10,759.00, crédito del proveedor
+  - María Hernández › Historial › Imprimir → hoja carta con 8 movimientos y total pagado $2,738.00
+  - QR: 6 códigos de prueba (v1 a v10, con ñ y acentos) leídos con OpenCV; el QR de la orden #1024 en pantalla se lee como `https://shuri.mx/portal/equipo/1024`; el ticket de V-00862 lleva el de la factura
+  - Mi perfil: cambiar a “¿En qué ciudad naciste?” con contraseña mal → “La contraseña actual no es correcta.”; con la buena → “Preguntas guardadas…”
+  - pantalla bloqueada: se desbloquea solo con la contraseña
+  - `lortega`: temporal → crea contraseña → “Elige tus preguntas de seguridad” (ir a `/tecnico/inicio` lo regresa ahí) → al guardar entra a su Inicio
+  - Verónica Castillo (con sus preguntas): Configuración › Negocio y marca sin subir logo ni nombre (“El nombre y el logo son siempre los de SHURI.”)
+  - `ng build` sin errores (paquete inicial 499.9 kB); sin errores en consola
