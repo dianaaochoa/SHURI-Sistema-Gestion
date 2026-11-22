@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
 use App\Http\Resources\AdminUserResource;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Admin\UserService;
 use Illuminate\Http\JsonResponse;
@@ -91,24 +93,52 @@ class UserController extends Controller
         ]);
     }
 
-    /** GET /roles — AD7.3 matriz de permisos por rol */
+    /** GET /roles — AD7.3 matriz de permisos por rol, con el catálogo completo de permisos */
     public function roles(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->users->roles($request->user())->map(fn ($role) => [
-                'id' => $role->id,
-                'slug' => $role->slug,
-                'name' => $role->name,
-                'description' => $role->description,
-                'active_users' => $role->users_count,
-                'permissions' => $role->permissions->map(fn ($p) => [
-                    'code' => $p->code,
-                    'name' => $p->name,
-                    'module' => $p->module,
-                    'limit_pct' => $p->pivot->limit_pct !== null ? (float) $p->pivot->limit_pct : null,
-                    'scope' => $p->pivot->scope,
-                ])->values(),
-            ]),
+            'data' => $this->users->roles($request->user())->map(fn (Role $role) => $this->roleRow($role)),
+            // Todos los permisos (filas de la matriz), aunque ningún rol los tenga
+            'permissions' => Permission::orderBy('module')->orderBy('id')->get(['code', 'name', 'module']),
         ]);
+    }
+
+    /**
+     * PUT /roles/{role} — AD7.3 guardar los permisos de un rol.
+     * Body: { "permissions": ["pos.sell", …], "discount_limit_pct": 10 }
+     */
+    public function updateRole(Request $request, Role $role): JsonResponse
+    {
+        $data = $request->validate([
+            'permissions' => ['present', 'array'],
+            'permissions.*' => ['string', 'distinct', 'exists:permissions,code'],
+            'discount_limit_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ], [], ['permissions' => 'permisos', 'discount_limit_pct' => 'descuento máximo']);
+
+        $role = $this->users->updateRolePermissions($role, $data['permissions'], $data['discount_limit_pct'] ?? null, $request->user());
+
+        return response()->json([
+            'message' => "Permisos de {$role->name} guardados. Aplican desde la siguiente acción de cada usuario.",
+            'data' => $this->roleRow($role),
+        ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function roleRow(Role $role): array
+    {
+        return [
+            'id' => $role->id,
+            'slug' => $role->slug,
+            'name' => $role->name,
+            'description' => $role->description,
+            'active_users' => $role->users_count,
+            'permissions' => $role->permissions->map(fn ($p) => [
+                'code' => $p->code,
+                'name' => $p->name,
+                'module' => $p->module,
+                'limit_pct' => $p->pivot->limit_pct !== null ? (float) $p->pivot->limit_pct : null,
+                'scope' => $p->pivot->scope,
+            ])->values(),
+        ];
     }
 }

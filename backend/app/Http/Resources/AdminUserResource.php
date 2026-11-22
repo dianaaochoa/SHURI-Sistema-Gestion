@@ -37,6 +37,9 @@ class AdminUserResource extends JsonResource
             'is_active' => (bool) $this->is_active,
             'is_locked' => (bool) $this->locked_until?->isFuture(),
             'must_change_password' => (bool) $this->must_change_password,
+            // Pidió ayuda porque no pudo recuperar su contraseña en línea (aviso en AD7)
+            'password_help_requested_at' => $this->password_reset_requested_at?->toIso8601String(),
+            'has_security_question' => $this->security_answer_hash !== null,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Mail\StaffAccessMail;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditService;
@@ -10,6 +11,7 @@ use App\Services\MailService;
 use App\Services\SettingsService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -143,6 +145,8 @@ class UserService
                 'must_change_password' => true,
                 'failed_attempts' => 0,
                 'locked_until' => null,
+                // Ya se atendió su pedido de "¿Olvidaste tu contraseña?"
+                'password_reset_requested_at' => null,
             ])->save();
             $user->tokens()->delete();
         });
@@ -167,6 +171,54 @@ class UserService
             ->when(! $actor?->isSuperUser(), fn ($q) => $q->where('slug', '<>', Role::SUPER_ADMIN))
             ->orderBy('id')
             ->get();
+    }
+
+    /**
+     * AD7.3 Guarda los permisos de un rol. Conserva el límite y el alcance de los que ya tenía
+     * (ej. la cajera recibe mercancía "contra pedido") y registra en la auditoría qué cambió.
+     *
+     * @param  array<int, string>  $codes
+     */
+    public function updateRolePermissions(Role $role, array $codes, ?float $discountLimit, User $actor): Role
+    {
+        if ($role->slug === Role::SUPER_ADMIN) {
+            // Un administrador ni siquiera sabe que existe; el super usuario siempre tiene todos los permisos
+            if (! $actor->isSuperUser()) {
+                throw (new ModelNotFoundException)->setModel(Role::class, [$role->id]);
+            }
+            throw ValidationException::withMessages(['permissions' => 'El Super usuario siempre tiene todos los permisos.']);
+        }
+
+        if ($role->slug === 'admin' && ! in_array('users.manage', $codes, true)) {
+            throw ValidationException::withMessages(['permissions' => 'El administrador no puede perder la administración de usuarios: nadie podría devolvérsela.']);
+        }
+
+        $cap = (float) $this->settings->get('max_discount_cap_pct', 20);
+        if ($discountLimit !== null && $role->slug !== 'admin' && $discountLimit > $cap) {
+            throw ValidationException::withMessages(['discount_limit_pct' => "El descuento máximo no puede pasar del {$cap}%."]);
+        }
+
+        DB::transaction(function () use ($role, $codes, $discountLimit, $actor) {
+            $before = $role->permissions()->pluck('code')->all();
+            $ids = Permission::whereIn('code', $codes)->pluck('id', 'code');
+
+            // sync sin detach de los que se quedan: así conservan limit_pct y scope
+            $role->permissions()->sync($ids->values()->all());
+
+            if ($discountLimit !== null && isset($ids['pos.discount'])) {
+                $role->permissions()->updateExistingPivot($ids['pos.discount'], ['limit_pct' => $discountLimit]);
+            }
+
+            $added = array_values(array_diff($codes, $before));
+            $removed = array_values(array_diff($before, $codes));
+
+            if ($added || $removed || $discountLimit !== null) {
+                $this->audit->log('users', 'role_permissions_updated', "Permisos de {$role->name} actualizados",
+                    $actor->id, 'roles', $role->id, ['removed' => $removed], ['added' => $added, 'discount_limit_pct' => $discountLimit]);
+            }
+        });
+
+        return $role->load('permissions')->loadCount(['users' => fn ($q) => $q->where('is_active', true)]);
     }
 
     /**

@@ -74,6 +74,7 @@ Route::prefix('v1')->group(function () {
 
                 // AD7 Usuarios y permisos (RF-01, RF-14)
                 Route::get('roles', [UserController::class, 'roles']);
+                Route::put('roles/{role}', [UserController::class, 'updateRole'])->whereNumber('role');
                 Route::get('users', [UserController::class, 'index']);
                 Route::post('users', [UserController::class, 'store']);
                 Route::get('users/{user}', [UserController::class, 'show'])->whereNumber('user');

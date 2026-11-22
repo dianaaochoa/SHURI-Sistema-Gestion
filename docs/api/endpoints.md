@@ -970,6 +970,13 @@ P4 Información de la sucursal:
 
 Requisitos: RF-01, RF-14. Todas las rutas piden el permiso **`users.manage`** (administrador).
 
+**Super usuario** (`role.slug: "super_admin"`): está por encima del administrador y tiene **todos** los permisos. En el frontend usa las pantallas del administrador (`super_admin` → `administrador`); el menú muestra "Super usuario".
+
+- Solo existe una cuenta y se crea en el servidor con `php artisan shuri:create-superuser <usuario> <correo> "<nombre>"`. Desde estas rutas **nadie** puede asignar ese rol (`422` en `role_id`).
+- Un administrador **no ve** al super usuario en `GET /users` ni su rol en `GET /roles`, y cualquier acción sobre su cuenta (ver, editar, dar de baja, contraseña temporal, desbloquear, sesiones) responde `404`.
+- Tras 3 intentos fallidos su cuenta se bloquea **15 minutos** (no "hasta que el administrador la desbloquee", porque nadie más puede hacerlo).
+- Si olvida su contraseña: `php artisan shuri:reset-superuser` en el servidor la regresa a su primer ingreso (contraseña temporal nueva, sin pregunta secreta y sin sesiones).
+
 ### `GET /users`
 
 Lista de empleados (AD7.1).
@@ -1109,9 +1116,29 @@ Matriz de permisos (AD7.3): qué puede hacer cada rol y con qué límite.
         { "code": "pos.discount", "name": "Aplicar descuentos", "module": "cash", "limit_pct": 10, "scope": null }
       ]
     }
+  ],
+  "permissions": [
+    { "code": "pos.sell", "name": "Cobrar en punto de venta", "module": "cash" }
   ]
 }
 ```
+
+`permissions` es el catálogo completo (las filas de la matriz), aunque ningún rol tenga alguno.
+
+### `PUT /roles/{id}`
+
+AD7.3 Guardar los permisos de un rol. Se manda la lista **completa** de códigos que debe tener:
+
+```json
+{ "permissions": ["pos.sell", "pos.discount", "cash.shift"], "discount_limit_pct": 15 }
+```
+
+- `discount_limit_pct` (opcional): descuento máximo del permiso `pos.discount` para ese rol (hasta 20 % si no es administrador).
+- Los permisos que se quedan conservan su límite y su alcance (por ejemplo, la cajera recibe mercancía "contra pedido").
+- **Errores `422`:** el administrador no puede perder `users.manage` · descuento arriba del tope · código que no existe. El rol del super usuario no se edita (`404` para el administrador).
+- Cada cambio queda en la auditoría. Aplica desde la siguiente petición de cada usuario.
+
+**Campos extra de cada empleado** (`GET /users`): `has_security_question` y `password_help_requested_at`. Este último es la fecha en que el empleado **no pudo recuperar su contraseña en línea** (no tiene pregunta secreta o la falló 3 veces) y necesita que el administrador le asigne una temporal. Se limpia al asignársela.
 
 ---
 

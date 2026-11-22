@@ -49,6 +49,12 @@ class PasswordRecoveryService
         $account = $this->findAccount($actor, $login);
 
         if (! $account || ! $account->is_active || ! $account->security_answer_hash) {
+            // Empleado sin pregunta: no puede recuperarla en línea, así que el administrador
+            // lo ve en AD7 ("pidió restablecer su contraseña") para asignarle una temporal
+            if ($account instanceof User && $account->is_active) {
+                $this->askAdmin($account, 'Pidió restablecer su contraseña (no tiene pregunta secreta)');
+            }
+
             return null;
         }
 
@@ -136,6 +142,16 @@ class PasswordRecoveryService
             : Customer::where('email', $login)->first();
     }
 
+    /**
+     * El empleado no pudo recuperar su contraseña en línea: queda marcado para que el
+     * administrador le asigne una temporal (se limpia en UserService::resetPassword).
+     */
+    private function askAdmin(User $account, string $description): void
+    {
+        $account->forceFill(['password_reset_requested_at' => now()])->save();
+        $this->log($account, 'password_help_requested', $description);
+    }
+
     private function storeRecovery(User|Customer $account, string $hash): void
     {
         if ($account instanceof User) {
@@ -144,7 +160,6 @@ class PasswordRecoveryService
                 ['email' => $account->email],
                 ['token' => $hash, 'question_attempts' => 0, 'created_at' => now()],
             );
-            $account->forceFill(['password_reset_requested_at' => now()])->save();
 
             return;
         }
@@ -195,6 +210,10 @@ class PasswordRecoveryService
         if ($attempts >= self::MAX_ANSWER_ATTEMPTS) {
             $this->consume($account, $record);
             $this->log($account, 'password_recovery_blocked', 'Recuperación anulada por respuestas incorrectas');
+
+            if ($account instanceof User) {
+                $this->askAdmin($account, 'Pidió restablecer su contraseña (falló la pregunta secreta)');
+            }
 
             throw ValidationException::withMessages([
                 'recovery_id' => 'Demasiadas respuestas incorrectas. Pide una contraseña temporal al administrador.',
