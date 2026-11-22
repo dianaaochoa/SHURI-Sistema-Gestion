@@ -71,7 +71,10 @@
               <textarea class="campo__area" rows="2" placeholder="Qué se va a revisar" [class.campo__area--error]="intentado() && !nota().trim()" [value]="nota()" (input)="nota.set($any($event.target).value)"></textarea>
             </label>
           }
-          <button type="button" class="boton boton--primario grande" (click)="marcar()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Marcar corte como revisado</button>
+          @if (errorRevision(); as e) {
+            <p class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ e }}</p>
+          }
+          <button type="button" class="boton boton--primario grande" [disabled]="guardando()" (click)="marcar()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>{{ guardando() ? 'Guardando…' : 'Marcar corte como revisado' }}</button>
         }
       } @else {
         <p class="aviso aviso--info revisado"><span class="icono" style="--icono: url(assets/cajera/clock.svg)"></span>El turno sigue abierto: el visto bueno se da cuando la cajera hace su corte.</p>

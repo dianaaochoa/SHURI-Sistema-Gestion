@@ -1,9 +1,12 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
+
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../acceso/auth.service';
-import { CajaService, NombreTurno } from '../caja.service';
-import { OrdenesService } from '../ordenes/ordenes.service';
+import { mensajeDeError } from '../../api/errores-api';
+import { CajaService, MovimientoCaja, NombreTurno, ResumenTurnoApi, TURNO_DE_API, TurnoApi, movimientoDesdeApi } from '../caja.service';
 import { MetodoSimple, VentaService, redondear } from '../punto-de-venta/venta.service';
-import { HistorialVentasService, VentaRegistrada } from '../ventas/historial-ventas.service';
 
 export type MetodoCorte = MetodoSimple | 'mixto';
 
@@ -17,6 +20,8 @@ export interface MovimientoTurno {
 }
 
 export interface Corte {
+  /** Id del turno en la API. */
+  id?: number;
   folio: string;
   caja: string;
   turno: NombreTurno;
@@ -27,7 +32,7 @@ export interface Corte {
   ventas: number;
   numVentas: number;
   reparaciones: number;
-  /** Retiros, pagos a proveedor y devoluciones en efectivo (negativo) más ingresos. */
+  /** Retiros y pagos a proveedor en efectivo (negativo) más ingresos. */
   retiros: number;
   esperado: number;
   contado: number;
@@ -36,7 +41,7 @@ export interface Corte {
   /** Efectivo que se queda en la caja para el siguiente turno. */
   fondoQueQueda: number;
   comentario: string;
-  /** Renglones del corte impreso (C11). Los cortes de prueba no lo traen. */
+  /** Renglones del corte impreso (C11). */
   desglose?: Desglose;
   /** Visto bueno del administrador cuando hubo diferencia (AD3.2). */
   revision?: RevisionCorte;
@@ -86,210 +91,268 @@ export function estadoCorte(c: Pick<Corte, 'contado' | 'esperado'>): { texto: st
   return d === 0 ? { texto: 'Cuadrado', tono: 'exito' } : d < 0 ? { texto: 'Faltante', tono: 'advertencia' } : { texto: 'Sobrante', tono: 'info' };
 }
 
-/** Cortes de prueba: los de Figma C10.2 en los días anteriores (2 turnos por día, ~40 días). */
-function cortesDemo(): Corte[] {
-  const lista: Corte[] = [];
-  const hoy = new Date();
-  // Diferencias de Figma: la mayoría cuadran; de vez en cuando un faltante o un sobrante.
-  const diferencias = [0, -30, 20, 0, -35, 0, 0, 0, 0, 0, 0, -15, 0, 0, 10, 0, 0, 0, -20, 0];
-  let folio = 411;
-  for (let d = 1; d <= 40; d++) {
-    for (const turno of ['Vespertino', 'Matutino'] as NombreTurno[]) {
-      const dia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - d);
-      if (dia.getDay() === 0 && turno === 'Vespertino') continue;
-      const i = lista.length;
-      const semilla = (dia.getDate() * 7 + (turno === 'Matutino' ? 3 : 5)) % 17;
-      const ventas = 4200 + semilla * 210;
-      const reparaciones = 2100 + ((semilla * 137) % 1900);
-      const tarjeta = Math.round(ventas * 0.3);
-      const transferencias = Math.round(ventas * 0.14);
-      const retiros = semilla % 3 === 0 ? -1000 : -500;
-      const esperado = 1000 + ventas + reparaciones - tarjeta - transferencias + retiros;
-      const dif = diferencias[i % diferencias.length];
-      const [h1, h2] = turno === 'Matutino' ? [9, 15] : [15, 21];
-      lista.push({
-        folio: `C-${String(folio--).padStart(4, '0')}`,
-        caja: 'Caja 01',
-        turno,
-        cajera: turno === 'Matutino' ? 'Ana Martínez' : 'Luis Peña',
-        desde: new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), h1).toISOString(),
-        hasta: new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), h2, 2).toISOString(),
-        fondo: 1000,
-        ventas,
-        numVentas: 14 + (semilla % 11),
-        reparaciones,
-        retiros,
-        esperado,
-        contado: esperado + dif,
-        tarjeta,
-        transferencias,
-        fondoQueQueda: 1000,
-        comentario: dif < 0 ? 'Faltante por cambio mal entregado, se reportó a gerencia.' : dif > 0 ? 'Sobrante: un cliente no esperó su cambio.' : '',
-        // Los cortes con diferencia de hace más de 3 días ya los revisó la administradora (AD3).
-        revision:
-          dif !== 0 && d > 3
-            ? { decision: dif < 0 && i % 2 === 0 ? 'descontar' : 'absorber', fecha: new Date(dia.getFullYear(), dia.getMonth(), dia.getDate() + 1, 10).toISOString(), por: 'Verónica Castillo' }
-            : undefined,
-      });
-    }
-  }
-  return lista;
+/** Venta del turno como la responde la API (GET /sales?cash_shift_id=). */
+interface VentaApi {
+  folio: string;
+  status: string;
+  total: number;
+  items: { type: string; description: string; quantity: number }[];
+  payments: { method: string; amount: number }[];
+  paid_at: string | null;
+  created_at: string;
 }
 
-/** C10 · Corte de caja: lo que entró y salió en el turno abierto, arqueo y cortes anteriores. Simulado. */
+const METODO_DE_API: Record<string, MetodoSimple> = { cash: 'efectivo', card: 'tarjeta', transfer: 'transferencia' };
+const DECISION_DE_API: Record<string, DecisionCorte> = { deduct: 'descontar', absorb: 'absorber', investigate: 'investigar' };
+const DECISION_A_API: Record<DecisionCorte, string> = { descontar: 'deduct', absorber: 'absorb', investigar: 'investigate' };
+const REPARACION = ['service_order', 'additional_charge', 'storage_fee', 'deposit'];
+
+/** "5 artículos", "Cargador USB-C 20W" o "Mica + funda" (Figma C10.1). */
+function resumenVenta(items: VentaApi['items']): string {
+  const piezas = items.reduce((s, l) => s + l.quantity, 0);
+  if (items.length === 1 && piezas === 1) return items[0].description;
+  if (items.length === 2 && piezas === 2) return items.map((l, i) => (i ? l.description.split(' ')[0].toLowerCase() : l.description.split(' ')[0])).join(' + ');
+  return `${piezas} artículos`;
+}
+
+/** Una venta como renglón del turno: método de pago (o mixto) y qué se cobró. */
+function movimientoDeVenta(v: VentaApi): MovimientoTurno {
+  const metodos = new Set(v.payments.map((p) => METODO_DE_API[p.method]).filter(Boolean));
+  const metodo: MetodoCorte = metodos.size > 1 ? 'mixto' : ([...metodos][0] ?? 'efectivo');
+  const entrega = v.items.find((i) => REPARACION.includes(i.type));
+  const concepto = entrega ? `Entrega ${v.folio} · ${entrega.description}` : `Venta ${v.folio} · ${resumenVenta(v.items)}`;
+  return { fecha: v.paid_at ?? v.created_at, concepto, metodo, monto: Number(v.total) };
+}
+
+/** Todo lo que movió dinero en un turno, del más reciente al más antiguo. */
+function armarMovimientos(desde: string, fondo: number, ventas: VentaApi[], caja: MovimientoCaja[]): MovimientoTurno[] {
+  const lista: MovimientoTurno[] = [{ fecha: desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: fondo }];
+  for (const v of ventas) {
+    if (v.status !== 'cancelled') lista.push(movimientoDeVenta(v));
+  }
+  for (const m of caja) {
+    lista.push({ fecha: m.fecha, concepto: m.tipo === 'retiro' ? `Retiro ${m.folio} · ${m.motivo}` : `Ingreso · ${m.motivo}`, metodo: 'efectivo', monto: m.tipo === 'retiro' ? -m.monto : m.monto });
+  }
+  return lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+
+function desgloseDe(s: ResumenTurnoApi): Desglose {
+  return {
+    entregas: s.repairs_total,
+    numEntregas: s.repairs_count,
+    anticipos: 0,
+    numAnticipos: 0,
+    devoluciones: s.cash_refunds,
+    numDevoluciones: 0,
+    retiros: s.cash_out,
+    numRetiros: s.cash_out_count,
+    pagos: s.cash_supplier_payments,
+    numPagos: 0,
+    ingresos: s.cash_in,
+    numIngresos: s.cash_in_count,
+  };
+}
+
+/** Retiros a gerencia y pagos a proveedor (salen) más ingresos (entran). */
+const netoRetiros = (s: ResumenTurnoApi) => redondear(-s.cash_out - s.cash_supplier_payments + s.cash_in);
+
+function corteDesdeApi(t: TurnoApi): Corte {
+  const s = t.summary;
+  const cajera = t.cashier?.name ?? '';
+  return {
+    id: t.id,
+    folio: t.folio ?? '',
+    caja: t.cash_register?.name ?? 'Caja 01',
+    turno: TURNO_DE_API[t.shift] ?? 'Matutino',
+    cajera,
+    cerradoPor: t.closed_by && t.closed_by !== cajera ? t.closed_by : undefined,
+    desde: t.opened_at,
+    hasta: t.closed_at ?? t.opened_at,
+    fondo: Number(t.opening_amount),
+    ventas: s?.products_total ?? 0,
+    numVentas: s?.products_count ?? 0,
+    reparaciones: s?.repairs_total ?? 0,
+    retiros: s ? netoRetiros(s) : 0,
+    esperado: Number(t.expected_cash ?? 0),
+    contado: Number(t.counted_cash ?? 0),
+    tarjeta: Number(t.card_total ?? 0),
+    transferencias: Number(t.transfer_total ?? 0),
+    fondoQueQueda: Number(t.cash_left ?? 0),
+    comentario: t.closing_notes ?? '',
+    desglose: s ? desgloseDe(s) : undefined,
+    revision: t.reviewed_at
+      ? {
+          decision: DECISION_DE_API[t.review_decision ?? ''] ?? 'absorber',
+          fecha: t.reviewed_at,
+          por: t.reviewed_by ?? '',
+          nota: t.review_comment ?? undefined,
+        }
+      : undefined,
+  };
+}
+
+/** Lo que se ve del turno cuando no hay datos (caja cerrada). */
+const RESUMEN_VACIO: ResumenTurnoApi = {
+  opening_amount: 0, cash_sales: 0, card_sales: 0, transfer_sales: 0, cash_in: 0, cash_out: 0, cash_refunds: 0,
+  cash_supplier_payments: 0, expected_cash: 0, sales_count: 0, products_total: 0, products_count: 0,
+  repairs_total: 0, repairs_count: 0, cash_out_count: 0, cash_in_count: 0,
+};
+
+/**
+ * C10 · Corte de caja conectado a la API: lo que entró y salió en el turno abierto,
+ * el corte (C10.4), los cortes anteriores (C10.2) y la revisión del administrador (AD3).
+ */
 @Injectable({ providedIn: 'root' })
 export class CorteService {
+  private readonly http = inject(HttpClient);
+  private readonly api = environment.apiUrl;
   private readonly caja = inject(CajaService);
-  private readonly ventas = inject(HistorialVentasService);
-  private readonly ordenes = inject(OrdenesService);
   private readonly auth = inject(AuthService);
   private readonly venta = inject(VentaService);
 
-  readonly cortes = signal<Corte[]>(cortesDemo());
+  readonly cortes = signal<Corte[]>([]);
+  /** Ventas de mi turno abierto. */
+  private readonly ventasTurno = signal<VentaApi[]>([]);
+  /** Movimientos y resumen de otros turnos (cortes cerrados o el turno abierto de otra cajera). */
+  private readonly detalles = signal<Record<number, { movimientos: MovimientoTurno[]; resumen: ResumenTurnoApi }>>({});
+
+  constructor() {
+    effect(() => {
+      const sesion = this.auth.sesion();
+      untracked(() => (sesion ? this.cargarCortes() : this.cortes.set([])));
+    });
+    // Al cambiar mi turno (abrir, vender, cerrar) se recargan sus ventas
+    effect(() => {
+      const id = this.caja.turno()?.id;
+      this.caja.resumenApi();
+      untracked(() => (id ? this.cargarVentas(id) : this.ventasTurno.set([])));
+    });
+    // El administrador ve en vivo el turno que tenga abierto la cajera
+    effect(() => {
+      const ajeno = this.caja.ajeno();
+      untracked(() => {
+        if (ajeno?.id) this.cargarDetalle(ajeno.id);
+      });
+    });
+  }
 
   /** Todo lo que movió dinero desde que se abrió el turno, del más reciente al más antiguo. */
   readonly movimientos = computed<MovimientoTurno[]>(() => {
-    const turno = this.caja.turnoDeCaja();
-    return turno ? this.movimientosEntre(turno.desde, '9999', turno.fondo) : [];
+    const propio = this.caja.turno();
+    if (propio) return armarMovimientos(propio.desde, propio.fondo, this.ventasTurno(), this.caja.movimientos());
+    const ajeno = this.caja.ajeno();
+    return ajeno?.id ? (this.detalles()[ajeno.id]?.movimientos ?? []) : [];
   });
 
-  /** Movimientos de un tramo (turno abierto o un corte cerrado, AD3.2). */
-  movimientosEntre(desde: string, hasta: string, fondo: number): MovimientoTurno[] {
-    const en = (iso: string) => iso >= desde && iso <= hasta;
-    const lista: MovimientoTurno[] = [{ fecha: desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: fondo }];
+  /** Movimientos de un tramo (turno abierto o un corte cerrado, AD3.2). Se cargan con `cargarDetalle`. */
+  movimientosEntre(desde: string, _hasta: string, fondo: number): MovimientoTurno[] {
+    const propio = this.caja.turno();
+    if (propio && propio.desde === desde) return this.movimientos();
+    const ajeno = this.caja.ajeno();
+    const id = ajeno && ajeno.desde === desde ? ajeno.id : this.cortes().find((c) => c.desde === desde)?.id;
+    return (id && this.detalles()[id]?.movimientos) || [{ fecha: desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: fondo }];
+  }
 
-    for (const v of this.ventas.ventas()) {
-      if (en(v.fecha) && v.estado !== 'cancelada') lista.push({ fecha: v.fecha, concepto: `Venta ${v.folio} · ${resumenVenta(v)}`, metodo: v.metodo, monto: v.total });
-      for (const d of v.devoluciones) {
-        if (!en(d.fecha) || d.forma === 'nota' || d.forma === 'cambio') continue;
-        lista.push({ fecha: d.fecha, concepto: `Devolución ${v.folio}`, metodo: d.forma as MetodoSimple, monto: -d.monto });
-      }
-    }
-    for (const o of this.ordenes.ordenes()) {
-      if (o.anticipo > 0 && en(o.recibido) && o.metodoAnticipo) {
-        lista.push({ fecha: o.recibido, concepto: `Anticipo orden ${o.folio} · ${o.cliente.nombre} · ${o.equipo}`, metodo: o.metodoAnticipo as MetodoSimple, monto: o.anticipo });
-      }
-      if (o.entrega && en(o.entrega.fecha) && o.entrega.cobrado) {
-        const concepto = o.entrega.cobrado < 0 ? `Devolución de anticipo ${o.folio} · ${o.cliente.nombre}` : `Entrega ${o.folio} · ${o.equipo}`;
-        lista.push({ fecha: o.entrega.fecha, concepto, metodo: (o.entrega.metodo ?? 'efectivo') as MetodoSimple, monto: o.entrega.cobrado });
-      }
-    }
-    for (const p of this.caja.pagosAProveedor()) {
-      if (en(p.fecha)) lista.push({ fecha: p.fecha, concepto: `Pago a proveedor${p.pedido ? ` ${p.pedido}` : ''} · ${p.documento}`, metodo: 'efectivo', monto: -p.monto });
-    }
-    for (const m of this.caja.movimientos()) {
-      if (en(m.fecha)) lista.push({ fecha: m.fecha, concepto: m.tipo === 'retiro' ? `Retiro · ${m.motivo}` : `Ingreso · ${m.motivo}`, metodo: 'efectivo', monto: m.tipo === 'retiro' ? -m.monto : m.monto });
-    }
-    return lista.sort((a, b) => b.fecha.localeCompare(a.fecha));
+  /** Carga las ventas y movimientos de un corte (o del turno abierto en la caja si no se indica). */
+  cargarDetalle(id?: number | null): void {
+    const turnoId = id ?? this.caja.turnoDeCaja()?.id;
+    if (!turnoId) return;
+    forkJoin({
+      turno: this.http.get<{ data: TurnoApi; summary: ResumenTurnoApi }>(`${this.api}/cash-shifts/${turnoId}`),
+      ventas: this.http.get<{ data: VentaApi[] }>(`${this.api}/sales`, { params: { cash_shift_id: turnoId, per_page: 100 } }).pipe(catchError(() => of({ data: [] as VentaApi[] }))),
+    }).subscribe({
+      next: ({ turno, ventas }) => {
+        const t = turno.data;
+        const caja = (t.movements ?? []).map((m) => movimientoDesdeApi(m, t.cashier?.name));
+        this.detalles.update((d) => ({ ...d, [turnoId]: { movimientos: armarMovimientos(t.opened_at, Number(t.opening_amount), ventas.data, caja), resumen: turno.summary } }));
+      },
+      error: () => undefined,
+    });
   }
 
   /** AD3.2 · Visto bueno del administrador: la diferencia se descuenta, se absorbe o se investiga. */
-  revisar(folio: string, decision: DecisionCorte, nota: string, por: string): void {
-    this.cortes.update((lista) => lista.map((c) => (c.folio === folio ? { ...c, revision: { decision, fecha: new Date().toISOString(), por, nota: nota.trim() || undefined } } : c)));
+  revisar(corte: Corte, decision: DecisionCorte, nota: string): Observable<{ ok: boolean; mensaje: string }> {
+    if (!corte.id) return of({ ok: false, mensaje: 'Este corte no existe en el servidor.' });
+    return this.http
+      .post<{ message: string; data: TurnoApi; summary: ResumenTurnoApi }>(`${this.api}/cash-shifts/${corte.id}/review`, {
+        decision: DECISION_A_API[decision],
+        comment: nota.trim() || null,
+      })
+      .pipe(
+        tap((r) => this.cortes.update((lista) => lista.map((c) => (c.id === corte.id ? corteDesdeApi({ ...r.data, summary: r.summary }) : c)))),
+        map((r) => ({ ok: true, mensaje: r.message })),
+        catchError((e) => of({ ok: false, mensaje: mensajeDeError(e) })),
+      );
   }
 
-  /** Cifras del turno abierto (C10.1). */
+  /** Cifras del turno abierto (C10.1): el mío o, para el administrador, el de la cajera. */
   readonly resumen = computed(() => {
     const turno = this.caja.turnoDeCaja();
-    const desde = turno?.desde ?? '9999';
-    const ventas = this.ventas.ventas().filter((v) => v.fecha >= desde && v.estado !== 'cancelada');
-    // Incluye los anticipos devueltos al entregar sin reparar (cobrado negativo).
-    const entregas = this.ordenes.ordenes().filter((o) => o.entrega && o.entrega.fecha >= desde && (o.entrega.cobrado ?? 0) !== 0);
-    const anticipos = this.ordenes.ordenes().filter((o) => o.anticipo > 0 && o.recibido >= desde && o.metodoAnticipo);
-    const retiros = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'retiro');
-    const ingresos = this.caja.movimientos().filter((m) => m.fecha >= desde && m.tipo === 'ingreso');
-    const pagos = this.caja.pagosAProveedor().filter((p) => p.fecha >= desde);
-    const devoluciones = this.ventas
-      .ventas()
-      .flatMap((v) => v.devoluciones)
-      .filter((d) => d.fecha >= desde && (d.forma === 'efectivo' || d.forma === 'tarjeta'));
-    const suma = (lista: { monto: number }[]) => redondear(lista.reduce((s, x) => s + x.monto, 0));
-    const desglose: Desglose = {
-      entregas: redondear(entregas.reduce((s, o) => s + (o.entrega!.cobrado ?? 0), 0)),
-      numEntregas: entregas.length,
-      anticipos: redondear(anticipos.reduce((s, o) => s + o.anticipo, 0)),
-      numAnticipos: anticipos.length,
-      devoluciones: suma(devoluciones),
-      numDevoluciones: devoluciones.length,
-      retiros: suma(retiros),
-      numRetiros: retiros.length,
-      pagos: suma(pagos),
-      numPagos: pagos.length,
-      ingresos: suma(ingresos),
-      numIngresos: ingresos.length,
-    };
-
-    // Efectivo, tarjeta y transferencia: los cobros mixtos se reparten por sus partes.
-    const porMetodo: Record<MetodoSimple, number> = { efectivo: 0, tarjeta: 0, transferencia: 0 };
-    for (const m of this.movimientos()) {
-      if (m.metodo !== 'mixto') porMetodo[m.metodo] += m.monto;
-    }
-    for (const v of ventas.filter((x) => x.metodo === 'mixto')) {
-      for (const p of v.partes ?? []) porMetodo[p.metodo] += p.monto ?? 0;
-    }
-
+    const ajeno = this.caja.ajeno();
+    const s = this.caja.resumenApi() ?? (ajeno?.id ? this.detalles()[ajeno.id]?.resumen : null) ?? RESUMEN_VACIO;
     return {
-      fondo: turno?.fondo ?? 0,
-      ventas: redondear(ventas.reduce((s, v) => s + v.total, 0)),
-      numVentas: ventas.length,
-      reparaciones: redondear(entregas.reduce((s, o) => s + (o.entrega!.cobrado ?? 0), 0) + anticipos.reduce((s, o) => s + o.anticipo, 0)),
-      numEntregas: entregas.length,
-      numAnticipos: anticipos.length,
-      retiros: redondear(-retiros.reduce((s, m) => s + m.monto, 0) - pagos.reduce((s, p) => s + p.monto, 0) + ingresos.reduce((s, m) => s + m.monto, 0)),
-      numRetiros: retiros.length,
-      numPagos: pagos.length,
-      numIngresos: ingresos.length,
-      esperado: redondear(porMetodo.efectivo),
-      tarjeta: redondear(porMetodo.tarjeta),
-      transferencias: redondear(porMetodo.transferencia),
-      desglose,
+      fondo: turno?.fondo ?? s.opening_amount,
+      ventas: s.products_total,
+      numVentas: s.products_count,
+      reparaciones: s.repairs_total,
+      numEntregas: s.repairs_count,
+      numAnticipos: 0,
+      retiros: netoRetiros(s),
+      numRetiros: s.cash_out_count,
+      numPagos: 0,
+      numIngresos: s.cash_in_count,
+      esperado: redondear(s.expected_cash),
+      tarjeta: redondear(s.card_sales),
+      transferencias: redondear(s.transfer_sales),
+      desglose: desgloseDe(s),
     };
   });
 
   /** Efectivo que debería haber en el cajón (para retiros y pagos a proveedor). 0 con la caja cerrada. */
   readonly efectivoEnCaja = computed(() => (this.caja.turnoDeCaja() ? this.resumen().esperado : 0));
 
-  siguienteFolio(): string {
-    const max = Math.max(0, ...this.cortes().map((c) => Number(c.folio.slice(2))));
-    return `C-${String(max + 1).padStart(4, '0')}`;
+  /** C10.4: hace el corte en la API, cierra el turno y devuelve el corte para C10.5. */
+  cerrar(contado: number, comentario: string, fondoQueQueda: number): Observable<{ ok: true; corte: Corte; mensaje: string } | { ok: false; mensaje: string }> {
+    const turno = this.caja.turnoDeCaja();
+    if (!turno?.id) return of({ ok: false as const, mensaje: 'No hay un turno abierto en la caja.' });
+
+    return this.http
+      .post<{ message: string; data: TurnoApi; summary: ResumenTurnoApi }>(`${this.api}/cash-shifts/${turno.id}/close`, {
+        counted_cash: redondear(contado),
+        cash_left: redondear(fondoQueQueda),
+        closing_notes: comentario.trim() || null,
+      })
+      .pipe(
+        map((r) => {
+          const corte = corteDesdeApi({ ...r.data, summary: r.summary });
+          this.cortes.update((lista) => [corte, ...lista.filter((c) => c.id !== corte.id)]);
+          this.venta.descartarAlCerrarTurno();
+          this.caja.cerrarTurno();
+          return { ok: true as const, corte, mensaje: r.message };
+        }),
+        catchError((e) => of({ ok: false as const, mensaje: mensajeDeError(e) })),
+      );
   }
 
-  /** C10.4: guarda el corte, cierra el turno y devuelve el corte para C10.5. */
-  cerrar(contado: number, comentario: string, fondoQueQueda: number): Corte {
-    const turno = this.caja.turnoDeCaja()!;
-    const r = this.resumen();
-    const corte: Corte = {
-      folio: this.siguienteFolio(),
-      caja: turno.caja,
-      turno: turno.turno,
-      cajera: turno.cajera ?? this.auth.sesion()?.nombre ?? '',
-      cerradoPor: turno.cajera && turno.cajera !== this.auth.sesion()?.nombre ? this.auth.sesion()?.nombre : undefined,
-      desde: turno.desde,
-      hasta: new Date().toISOString(),
-      fondo: r.fondo,
-      ventas: r.ventas,
-      numVentas: r.numVentas,
-      reparaciones: r.reparaciones,
-      retiros: r.retiros,
-      esperado: r.esperado,
-      contado: redondear(contado),
-      tarjeta: r.tarjeta,
-      transferencias: r.transferencias,
-      fondoQueQueda: redondear(fondoQueQueda),
-      comentario,
-      desglose: r.desglose,
-    };
-    this.cortes.update((lista) => [corte, ...lista]);
-    this.venta.descartarAlCerrarTurno();
-    this.caja.cerrarTurno();
-    return corte;
+  /** Vuelve a leer mis ventas del turno y los cortes (después de cobrar). */
+  refrescar(): void {
+    this.caja.refrescar();
+    this.cargarCortes();
   }
-}
 
-/** "5 artículos", "Cargador USB-C 20W" o "Mica + funda" (Figma C10.1). */
-function resumenVenta(v: VentaRegistrada): string {
-  const piezas = v.lineas.reduce((s, l) => s + l.cantidad, 0);
-  if (v.lineas.length === 1 && piezas === 1) return v.lineas[0].nombre;
-  if (v.lineas.length === 2 && piezas === 2) return v.lineas.map((l, i) => (i ? l.nombre.split(' ')[0].toLowerCase() : l.nombre.split(' ')[0])).join(' + ');
-  return `${piezas} artículos`;
+  private cargarVentas(turnoId: number): void {
+    this.http.get<{ data: VentaApi[] }>(`${this.api}/sales`, { params: { cash_shift_id: turnoId, per_page: 100 } }).subscribe({
+      next: (r) => this.ventasTurno.set(r.data),
+      error: () => this.ventasTurno.set([]),
+    });
+  }
+
+  private cargarCortes(): void {
+    const permisos = this.auth.sesion()?.permisos ?? [];
+    if (!permisos.some((p) => ['cash.shift', 'cash.review_closing'].includes(p))) return;
+    this.http.get<{ data: TurnoApi[] }>(`${this.api}/cash-shifts`, { params: { per_page: 100 } }).subscribe({
+      next: (r) => this.cortes.set(r.data.filter((t) => t.status !== 'open').map(corteDesdeApi)),
+      error: () => undefined,
+    });
+  }
 }

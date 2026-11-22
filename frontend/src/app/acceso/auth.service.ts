@@ -9,6 +9,8 @@ import { borrarToken, guardarToken, leerToken } from '../api/token-api';
 export type Rol = 'administrador' | 'cajera' | 'jefe-tecnicos' | 'tecnico';
 
 export interface Sesion {
+  /** Id en la API (para saber, por ejemplo, si un turno de caja es de quien tiene la sesión). */
+  id?: number;
   usuario: string;
   nombre: string;
   rol: Rol;
@@ -231,6 +233,7 @@ function sesionDesdeApi(u: UsuarioApi, desde = new Date().toISOString()): Sesion
     rol === 'cajera' ? `${u.role.name} · ${u.cash_register?.name ?? 'Sin caja'}` : rol === 'tecnico' ? `${u.role.name} · Taller` : u.role.name;
 
   return {
+    id: u.id,
     usuario: u.username,
     nombre: u.name,
     rol,

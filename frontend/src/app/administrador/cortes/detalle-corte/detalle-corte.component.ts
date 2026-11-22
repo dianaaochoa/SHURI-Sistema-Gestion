@@ -1,5 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
-import { AuthService } from '../../../acceso/auth.service';
+import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { formatearDinero } from '../../../compartido/formato';
 import { CajaService } from '../../../cajera/caja.service';
 import { Corte, CorteService, DecisionCorte, METODO_TEXTO, diferencia } from '../../../cajera/corte/corte.service';
@@ -22,15 +21,19 @@ const DECISIONES: { id: DecisionCorte; texto: string; detalle: string }[] = [
   templateUrl: './detalle-corte.component.html',
   styleUrl: './detalle-corte.component.css',
 })
-export class DetalleCorteComponent {
+export class DetalleCorteComponent implements OnInit {
   private readonly servicio = inject(CorteService);
   private readonly caja = inject(CajaService);
   private readonly ventas = inject(HistorialVentasService).ventas;
-  private readonly nombre = inject(AuthService).sesion()?.nombre ?? '';
 
   /** null = turno abierto. */
   readonly corte = input<Corte | null>(null);
   readonly volver = output<string>();
+
+  /** Trae de la API las ventas y movimientos de ese corte (o del turno abierto). */
+  ngOnInit(): void {
+    this.servicio.cargarDetalle(this.corte()?.id ?? null);
+  }
 
   protected readonly decisiones = DECISIONES;
   protected readonly decision = signal<DecisionCorte>('absorber');
@@ -130,12 +133,24 @@ export class DetalleCorteComponent {
     return `${dia(iso)} ${hora(iso)}`;
   }
 
+  protected readonly guardando = signal(false);
+  protected readonly errorRevision = signal<string | null>(null);
+
   protected marcar(): void {
     const c = this.corte();
-    if (!c) return;
+    if (!c || this.guardando()) return;
     this.intentado.set(true);
     if (this.decision() === 'investigar' && !this.nota().trim()) return;
-    this.servicio.revisar(c.folio, this.decision(), this.nota(), this.nombre);
-    this.volver.emit(`${this.titulo()} revisado: ${this.textoDecision(this.decision()).toLowerCase()}.`);
+    const decision = this.decision();
+    this.guardando.set(true);
+    this.errorRevision.set(null);
+    this.servicio.revisar(c, decision, this.nota()).subscribe((r) => {
+      this.guardando.set(false);
+      if (!r.ok) {
+        this.errorRevision.set(r.mensaje);
+        return;
+      }
+      this.volver.emit(`${this.titulo()} revisado: ${this.textoDecision(decision).toLowerCase()}.`);
+    });
   }
 }

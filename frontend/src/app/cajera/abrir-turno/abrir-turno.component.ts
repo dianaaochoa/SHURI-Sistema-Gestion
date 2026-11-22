@@ -44,10 +44,19 @@ export class AbrirTurnoComponent implements AfterViewInit {
     this.elemento.nativeElement.querySelector<HTMLInputElement>('#fondo-inicial')?.focus();
   }
 
+  protected readonly abriendo = signal(false);
+  /** Error de la API (por ejemplo, la caja ya la abrió otra cajera). */
+  protected readonly error = signal<string | null>(null);
+
   abrir(): void {
-    if (!this.total()) return;
-    this.caja.abrirTurno({ caja: this.cajaElegida, turno: this.turnoElegido, fondo: this.total() });
-    this.cerrar.emit();
+    if (!this.total() || this.abriendo()) return;
+    this.abriendo.set(true);
+    this.error.set(null);
+    this.caja.abrirTurno({ caja: this.cajaElegida, turno: this.turnoElegido, fondo: this.total() }).subscribe((r) => {
+      this.abriendo.set(false);
+      if (r.ok) this.cerrar.emit();
+      else this.error.set(r.mensaje);
+    });
   }
 
   protected irACorte(): void {

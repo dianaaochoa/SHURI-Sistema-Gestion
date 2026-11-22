@@ -100,11 +100,15 @@
         <p class="total__importe">{{ dinero(total()) }}</p>
       </div>
 
+      @if (error(); as e) {
+        <p class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ e }}</p>
+      }
+
       <div class="modal__acciones">
         <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Salir</button>
-        <button type="button" class="boton boton--primario boton--44" [disabled]="!total()" (click)="abrir()">
+        <button type="button" class="boton boton--primario boton--44" [disabled]="!total() || abriendo()" (click)="abrir()">
           <img src="assets/cajera/unlock-blanco.svg" width="16" height="16" alt="" />
-          Abrir caja y empezar a vender
+          {{ abriendo() ? 'Abriendo…' : 'Abrir caja y empezar a vender' }}
         </button>
       </div>
     </section>

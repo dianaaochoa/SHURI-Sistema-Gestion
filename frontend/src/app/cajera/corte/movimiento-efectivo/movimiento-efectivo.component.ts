@@ -66,6 +66,10 @@ const MOTIVOS: Record<Tipo, string[]> = {
           @if (error('comentario'); as e) { <p class="campo__error">{{ e }}</p> }
         </div>
 
+        @if (errorApi(); as e) {
+          <p class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />{{ e }}</p>
+        }
+
         <div class="cuadro">
           <p><span>Efectivo en caja antes</span><strong>{{ dinero(antes()) }}</strong></p>
           <p><span>{{ tipo() === 'retiro' ? 'Retiro' : 'Ingreso' }}</span><strong [class.menos]="tipo() === 'retiro'">{{ tipo() === 'retiro' ? '− ' : '+ ' }}{{ dinero(monto() ?? 0) }}</strong></p>
@@ -76,8 +80,8 @@ const MOTIVOS: Record<Tipo, string[]> = {
 
         <div class="modal__acciones">
           <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
-          <button type="button" class="boton boton--primario boton--44" (click)="registrar()">
-            <span class="icono" style="--icono: url(assets/pdv/printer.svg)"></span>Registrar e imprimir
+          <button type="button" class="boton boton--primario boton--44" [disabled]="guardando()" (click)="registrar()">
+            <span class="icono" style="--icono: url(assets/pdv/printer.svg)"></span>{{ guardando() ? 'Registrando…' : 'Registrar e imprimir' }}
           </button>
         </div>
       </section>
@@ -148,18 +152,32 @@ export class MovimientoEfectivoComponent implements OnInit {
     this.motivo.set(MOTIVOS[tipo][0]);
   }
 
+  protected readonly guardando = signal(false);
+  /** Error de la API (por ejemplo, el retiro es mayor al efectivo en caja). */
+  protected readonly errorApi = signal<string | null>(null);
+
   protected registrar(): void {
     this.intentado.set(true);
-    if (Object.keys(this.errores()).length) return;
+    if (Object.keys(this.errores()).length || this.guardando()) return;
     const monto = Math.round(this.monto()! * 100) / 100;
     // Se lee antes de registrar: después, "antes" ya incluye este movimiento.
     const despues = this.despues();
     const antes = this.antes();
-    const movimiento = this.caja.registrarMovimiento({ tipo: this.tipo(), monto, motivo: this.motivo(), comentario: this.comentario().trim() });
-    const turno = this.caja.turno();
-    const impreso = this.documentos.imprimir({ tipo: 'movimiento', movimiento, antes, despues, cajera: this.cajera, caja: turno?.caja ?? 'Caja 01' });
-    const texto = `${this.tipo() === 'retiro' ? 'Retiro' : 'Ingreso'} de ${formatearDinero(monto)} (${this.motivo().toLowerCase()}) registrado · quedan ${formatearDinero(despues)} en caja`;
-    this.registrado.emit(impreso ? `${texto} · comprobante impreso` : `${texto} · no se pudo imprimir el comprobante`);
+    const tipo = this.tipo();
+    const motivo = this.motivo();
+    this.guardando.set(true);
+    this.errorApi.set(null);
+    this.caja.registrarMovimiento({ tipo, monto, motivo, comentario: this.comentario().trim() }).subscribe((r) => {
+      this.guardando.set(false);
+      if (!r.ok) {
+        this.errorApi.set(r.mensaje);
+        return;
+      }
+      const turno = this.caja.turno();
+      const impreso = this.documentos.imprimir({ tipo: 'movimiento', movimiento: r.movimiento, antes, despues, cajera: this.cajera, caja: turno?.caja ?? 'Caja 01' });
+      const texto = `${tipo === 'retiro' ? `Retiro ${r.movimiento.folio}` : 'Ingreso'} de ${formatearDinero(monto)} (${motivo.toLowerCase()}) registrado · quedan ${formatearDinero(despues)} en caja`;
+      this.registrado.emit(impreso ? `${texto} · comprobante impreso` : `${texto} · no se pudo imprimir el comprobante`);
+    });
   }
 
   @HostListener('document:keydown.escape')

@@ -40,11 +40,19 @@ export class TurnoActualComponent {
   protected readonly comentario = signal('');
   protected readonly diferencia = computed(() => (this.contado() === null ? null : Math.round((this.contado()! - this.r().esperado) * 100) / 100));
   protected readonly modal = signal(false);
+  /** Error de la API al hacer el corte (se muestra en la pantalla del turno). */
+  protected readonly errorCorte = signal<string | null>(null);
 
   protected cerrar(cierre: CierreTurno): void {
-    const corte = this.servicio.cerrar(cierre.contado, cierre.comentario, cierre.fondo);
-    this.documentos.imprimir({ tipo: 'corte', corte });
-    this.modal.set(false);
-    this.cerrado.emit(corte);
+    this.errorCorte.set(null);
+    this.servicio.cerrar(cierre.contado, cierre.comentario, cierre.fondo).subscribe((r) => {
+      this.modal.set(false);
+      if (!r.ok) {
+        this.errorCorte.set(r.mensaje);
+        return;
+      }
+      this.documentos.imprimir({ tipo: 'corte', corte: r.corte });
+      this.cerrado.emit(r.corte);
+    });
   }
 }
