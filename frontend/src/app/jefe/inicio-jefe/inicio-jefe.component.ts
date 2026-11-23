@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { saludoDelDia } from '../../compartido/formato';
-import { OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
+import { OrdenesService, POR_ASIGNAR } from '../../cajera/ordenes/ordenes.service';
 import { etapaGarantia, recomendacion } from '../garantias/garantia';
 import { slaDiagnostico, atrasada, etapaDe, horasDesde } from '../etapas';
 import { PREGUNTAS_TECNICOS } from '../jefe.datos';
@@ -43,19 +43,22 @@ const esHoy = (iso?: string) => !!iso && new Date(iso).toDateString() === new Da
   styleUrl: './inicio-jefe.component.css',
 })
 export class InicioJefeComponent {
-  private readonly ordenes = inject(OrdenesService).ordenes;
+  private readonly servicio = inject(OrdenesService);
+  private readonly ordenes = this.servicio.ordenes;
+  /** Técnicos activos de la API (o los de prueba). */
+  private readonly tecnicos = this.servicio.tecnicos;
   private readonly refacciones = inject(RefaccionesService);
   private readonly mensajes = inject(MensajesService);
   private readonly nombre = (inject(AuthService).sesion()?.nombre ?? '').split(' ')[0];
 
   protected readonly saludo = `${saludoDelDia(new Date())}, ${this.nombre}`;
   /** "Viernes 16 de octubre · Taller SHURI · 3 técnicos en turno" */
-  protected readonly subtitulo = (() => {
+  protected readonly subtitulo = computed(() => {
     const hoy = new Date();
     const dia = hoy.toLocaleDateString('es-MX', { weekday: 'long' });
     const mes = hoy.toLocaleDateString('es-MX', { month: 'long' });
-    return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${hoy.getDate()} de ${mes} · Taller SHURI · ${TECNICOS.length} técnicos en turno`;
-  })();
+    return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${hoy.getDate()} de ${mes} · Taller SHURI · ${this.tecnicos().length} técnicos en turno`;
+  });
 
   private readonly enTaller = computed(() => this.ordenes().filter((o) => EN_TALLER.includes(o.estado)));
   /** Con diagnóstico, esperando que el jefe cotice (columna "Por cotizar" de J2). */
@@ -66,7 +69,7 @@ export class InicioJefeComponent {
   private readonly sinTecnico = computed(() => this.ordenes().filter((o) => o.tecnico === POR_ASIGNAR && EN_TALLER.includes(o.estado)));
 
   /** Figma J10: en celular el total de órdenes va en el subtítulo. */
-  protected readonly subtituloMovil = computed(() => `${this.enTaller().length} órdenes abiertas · ${TECNICOS.length} técnicos en turno`);
+  protected readonly subtituloMovil = computed(() => `${this.enTaller().length} órdenes abiertas · ${this.tecnicos().length} técnicos en turno`);
 
   protected readonly indicadores = computed(() => [
     { valor: this.enTaller().length, tono: '', titulo: 'Órdenes abiertas', detalle: 'En el taller', ruta: 'tablero-de-ordenes' },
@@ -134,7 +137,7 @@ export class InicioJefeComponent {
 
   /** Carga por técnico: órdenes en el taller de cada uno, la que trae en curso o en pausa. */
   protected readonly carga = computed(() =>
-    TECNICOS.map((t) => {
+    this.tecnicos().map((t) => {
       const { suyas, enCurso, enPausa, estado } = cargaTecnico(t, this.ordenes());
       const detalle = [`${suyas.length} ${suyas.length === 1 ? 'orden' : 'órdenes'}`, enCurso ? `en curso ${enCurso.folio}` : enPausa ? `en pausa ${enPausa.folio}` : 'sin orden en curso'].join(' · ');
       return { ...t, detalle, estado, avance: Math.min(100, (suyas.length / 6) * 100) };

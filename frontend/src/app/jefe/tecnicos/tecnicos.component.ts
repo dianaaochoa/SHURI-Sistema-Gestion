@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
-import { Orden, OrdenesService, POR_ASIGNAR, TECNICOS } from '../../cajera/ordenes/ordenes.service';
+import { Orden, OrdenesService, POR_ASIGNAR } from '../../cajera/ordenes/ordenes.service';
 import { formatearHora } from '../../compartido/formato';
 import { ETAPAS, atrasada, etapaDe, horasDesde, inicioEtapa, tiempoEn } from '../etapas';
 import { diaMes } from '../por-cotizar/existencia';
@@ -33,8 +33,11 @@ export class TecnicosComponent {
   protected readonly aviso = signal<string | null>(null);
   protected readonly reasignando = signal<Orden | null>(null);
 
+  /** Técnicos activos de la API (o los de prueba). */
+  private readonly tecnicos = this.servicio.tecnicos;
+
   protected readonly tarjetas = computed(() =>
-    TECNICOS.map((t) => {
+    this.tecnicos().map((t) => {
       const { suyas, enCurso, enPausa, estado } = cargaTecnico(t, this.servicio.ordenes());
       const d = desempeno(t.iniciales, this.mes(), this.servicio.ordenes());
       const actual = enCurso
@@ -61,7 +64,10 @@ export class TecnicosComponent {
       .ordenes()
       .filter((o) => o.tecnico !== POR_ASIGNAR && etapaDe(o) && etapaDe(o) !== 'listo')
       .filter((o) => !this.filtro() || o.tecnico.iniciales === this.filtro())
-      .sort((a, b) => TECNICOS.indexOf(TECNICOS.find((t) => t.iniciales === a.tecnico.iniciales)!) - TECNICOS.indexOf(TECNICOS.find((t) => t.iniciales === b.tecnico.iniciales)!) || a.folio.localeCompare(b.folio))
+      .sort((a, b) => {
+        const orden = this.tecnicos().map((t) => t.iniciales);
+        return orden.indexOf(a.tecnico.iniciales) - orden.indexOf(b.tecnico.iniciales) || a.folio.localeCompare(b.folio);
+      })
       .map((o) => {
         const etapa = etapaDe(o)!;
         const pausa = o.estado === 'esperando-refaccion';
@@ -90,8 +96,9 @@ export class TecnicosComponent {
   protected reasignado(a: Asignacion): void {
     const o = this.reasignando();
     if (!o) return;
-    this.servicio.asignar(o.folio, { ...a, por: this.jefe });
-    this.reasignando.set(null);
-    this.aviso.set(`${o.folio} reasignada a ${a.tecnico.nombre} · ya le llegó el aviso en su Inicio`);
+    this.servicio.asignar(o.folio, { ...a, por: this.jefe }).subscribe((r) => {
+      this.reasignando.set(null);
+      this.aviso.set(r.ok ? `${o.folio} reasignada a ${a.tecnico.nombre} · ya le llegó el aviso en su Inicio` : `No se reasignó ${o.folio}: ${r.mensaje}`);
+    });
   }
 }

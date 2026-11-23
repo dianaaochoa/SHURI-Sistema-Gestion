@@ -89,9 +89,16 @@ export class OrdenJefeComponent {
     this.cambiandoPrioridad.set(true);
   }
 
+  /** Error de la API al cambiar la prioridad o guardar una nota. */
+  protected readonly errorAccion = signal<string | null>(null);
+
   protected guardarPrioridad(): void {
-    if (this.prioridadNueva() !== (this.orden().prioridad ?? 'normal')) this.servicio.cambiarPrioridad(this.orden().folio, this.prioridadNueva(), this.jefe);
     this.cambiandoPrioridad.set(false);
+    if (this.prioridadNueva() === (this.orden().prioridad ?? 'normal')) return;
+    this.errorAccion.set(null);
+    this.servicio.cambiarPrioridad(this.orden().folio, this.prioridadNueva(), this.jefe).subscribe((r) => {
+      if (!r.ok) this.errorAccion.set(`No se cambió la prioridad: ${r.mensaje}`);
+    });
   }
 
   // ---------- Nota interna ----------
@@ -105,9 +112,16 @@ export class OrdenJefeComponent {
 
   protected guardarNota(): void {
     if (!this.nota().trim()) return;
-    this.servicio.agregarNota(this.orden().folio, this.nota(), this.jefe);
-    this.nota.set('');
-    this.escribiendo.set(false);
+    this.errorAccion.set(null);
+    this.servicio.agregarNota(this.orden().folio, this.nota(), this.jefe).subscribe((r) => {
+      if (!r.ok) {
+        // La nota se queda escrita para reintentar
+        this.errorAccion.set(`No se guardó la nota: ${r.mensaje}`);
+        return;
+      }
+      this.nota.set('');
+      this.escribiendo.set(false);
+    });
   }
 }
 

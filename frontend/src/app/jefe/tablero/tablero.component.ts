@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
-import { Orden, OrdenesService, POR_ASIGNAR, PRIORIDADES, Prioridad, TECNICOS } from '../../cajera/ordenes/ordenes.service';
+import { Orden, OrdenesService, POR_ASIGNAR, PRIORIDADES, Prioridad } from '../../cajera/ordenes/ordenes.service';
 import { DispositivosService } from '../../cajera/punto-de-venta/dispositivos.service';
 import { ETAPAS, slaDiagnostico, atrasada, etapaDe, inicioEtapa, pendienteDeCotizar, tiempoEn } from '../etapas';
 import { etapaGarantia } from '../garantias/garantia';
@@ -26,12 +26,13 @@ export class TableroComponent implements OnInit {
   protected readonly dispositivos = inject(DispositivosService);
 
   protected readonly etapas = ETAPAS;
-  protected readonly tecnicos = TECNICOS;
+  protected readonly tecnicos = this.servicio.tecnicos;
   protected readonly prioridades = Object.entries(PRIORIDADES) as [Prioridad, (typeof PRIORIDADES)[Prioridad]][];
   protected readonly sla = slaDiagnostico();
 
-  /** J2.4: la primera carga (la API tardará; aquí se simula un instante). */
-  protected readonly cargando = signal(true);
+  /** J2.4: mientras llegan las órdenes de la API. J2.5: si no se pudieron cargar. */
+  protected readonly cargando = this.servicio.cargando;
+  protected readonly errorCarga = this.servicio.error;
   protected readonly aviso = signal<string | null>(null);
 
   // ---------- Filtros ----------
@@ -121,7 +122,6 @@ export class TableroComponent implements OnInit {
   protected readonly asignando = signal<Orden | null>(null);
 
   ngOnInit(): void {
-    setTimeout(() => this.cargando.set(false), 350);
     // Desde Inicio (J1): ?folio=1041 abre la orden; si no tiene técnico, de una vez la asignación.
     this.ruta.queryParamMap.subscribe((q) => {
       const folio = q.get('folio');
@@ -146,6 +146,10 @@ export class TableroComponent implements OnInit {
     else this.router.navigate([], { queryParams: { folio: o.folio.replace('#', '') } });
   }
 
+  protected recargar(): void {
+    this.servicio.cargar();
+  }
+
   protected volver(): void {
     this.router.navigate([], { queryParams: {} });
   }
@@ -167,8 +171,9 @@ export class TableroComponent implements OnInit {
     const o = this.asignando();
     if (!o) return;
     const reasigna = o.tecnico !== POR_ASIGNAR;
-    this.servicio.asignar(o.folio, { ...a, por: this.jefe });
-    this.cerrarAsignacion();
-    this.aviso.set(`${o.folio} ${reasigna ? 'reasignada' : 'asignada'} a ${a.tecnico.nombre} · ya le llegó el aviso en su Inicio`);
+    this.servicio.asignar(o.folio, { ...a, por: this.jefe }).subscribe((r) => {
+      this.cerrarAsignacion();
+      this.aviso.set(r.ok ? `${o.folio} ${reasigna ? 'reasignada' : 'asignada'} a ${a.tecnico.nombre} · ya le llegó el aviso en su Inicio` : `No se asignó ${o.folio}: ${r.mensaje}`);
+    });
   }
 }

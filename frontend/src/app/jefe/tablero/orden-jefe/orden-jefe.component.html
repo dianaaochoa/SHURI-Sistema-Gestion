@@ -19,6 +19,9 @@
   @if (aviso(); as mensaje) {
     <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
   }
+  @if (errorAccion(); as mensaje) {
+    <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="14" height="14" alt="" />{{ mensaje }}</p>
+  }
 
   <section class="panel seguimiento" aria-label="Seguimiento">
     <app-seguimiento-orden [paso]="paso()" />

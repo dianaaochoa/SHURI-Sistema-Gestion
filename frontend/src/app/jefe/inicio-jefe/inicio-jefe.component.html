@@ -2,7 +2,7 @@
   <header class="encabezado-pagina">
     <div>
       <h1 class="encabezado-pagina__titulo">{{ saludo }}</h1>
-      <p class="encabezado-pagina__subtitulo solo-escritorio">{{ subtitulo }}</p>
+      <p class="encabezado-pagina__subtitulo solo-escritorio">{{ subtitulo() }}</p>
       <p class="encabezado-pagina__subtitulo solo-movil">{{ subtituloMovil() }}</p>
     </div>
     <a class="boton boton--contorno boton--40 solo-escritorio" routerLink="/jefe/tablero-de-ordenes">

@@ -1,5 +1,5 @@
 import { Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
-import { Orden, OrdenesService, POR_ASIGNAR, PRIORIDADES, Prioridad, TECNICOS, Tecnico } from '../../../cajera/ordenes/ordenes.service';
+import { Orden, OrdenesService, POR_ASIGNAR, PRIORIDADES, Prioridad, Tecnico } from '../../../cajera/ordenes/ordenes.service';
 import { etapaDe } from '../../etapas';
 
 export interface Asignacion {
@@ -21,7 +21,10 @@ const CARGA_ALTA = 5;
   styleUrl: './asignar-tecnico.component.css',
 })
 export class AsignarTecnicoComponent {
-  private readonly ordenes = inject(OrdenesService).ordenes;
+  private readonly servicio = inject(OrdenesService);
+  private readonly ordenes = this.servicio.ordenes;
+  /** Técnicos activos de la API (o los de prueba). */
+  private readonly tecnicos = this.servicio.tecnicos;
 
   readonly orden = input.required<Orden>();
   readonly cerrar = output<void>();
@@ -33,7 +36,7 @@ export class AsignarTecnicoComponent {
   /** Órdenes de cada técnico que siguen en el taller (sin contar las listas para entregar). */
   protected readonly opciones = computed(() => {
     const equipo = this.orden().equipo.toLowerCase();
-    const lista = TECNICOS.map((t) => {
+    const lista = this.tecnicos().map((t) => {
       const suyas = this.ordenes().filter((o) => o.tecnico.iniciales === t.iniciales && o.folio !== this.orden().folio);
       const activas = suyas.filter((o) => {
         const e = etapaDe(o);
@@ -62,7 +65,7 @@ export class AsignarTecnicoComponent {
 
   protected readonly elegido = signal<string | null>(null);
   protected readonly tecnico = computed(() => this.elegido() ?? this.opciones()[0]?.tecnico.iniciales ?? '');
-  protected readonly nombre = computed(() => TECNICOS.find((t) => t.iniciales === this.tecnico())?.nombre ?? '');
+  protected readonly nombre = computed(() => this.tecnicos().find((t) => t.iniciales === this.tecnico())?.nombre ?? '');
 
   protected readonly prioridad = signal<Prioridad | null>(null);
   protected readonly prioridadElegida = computed(() => this.prioridad() ?? this.orden().prioridad ?? 'normal');
@@ -80,7 +83,7 @@ export class AsignarTecnicoComponent {
   protected readonly valido = computed(() => !!this.tecnico() && !!this.prometidaElegida() && !this.opciones().find((o) => o.tecnico.iniciales === this.tecnico())?.actual);
 
   protected confirmar(): void {
-    const tecnico = TECNICOS.find((t) => t.iniciales === this.tecnico());
+    const tecnico = this.tecnicos().find((t) => t.iniciales === this.tecnico());
     if (!tecnico || !this.valido()) return;
     this.asignar.emit({ tecnico, prioridad: this.prioridadElegida(), prometida: new Date(this.prometidaElegida()).toISOString(), nota: this.nota() });
   }

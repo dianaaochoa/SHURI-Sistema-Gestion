@@ -10,6 +10,17 @@
     </div>
   }
 
+  @if (dispositivos.enLinea() && errorCarga()) {
+    <!-- J2.5 · La API no respondió al cargar las órdenes -->
+    <div class="aviso aviso--error sin-conexion" role="alert">
+      <img src="assets/pdv/alert-peligro.svg" width="16" height="16" alt="" />
+      <span class="sin-conexion__texto">No se pudieron cargar las órdenes: {{ errorCarga() }}</span>
+      <button type="button" class="sin-conexion__boton" (click)="recargar()">
+        <span class="icono" style="--icono: url(assets/pdv/refresh-primario.svg)"></span>Reintentar ahora
+      </button>
+    </div>
+  }
+
   @if (orden(); as o) {
     <app-orden-jefe [orden]="o" [aviso]="aviso()" (volver)="volver()" (reasignar)="asignando.set(o)" />
   } @else {
@@ -31,7 +42,7 @@
       <label class="campo__control campo__control--40 herramientas__filtro">
         <select class="campo__input campo__select" aria-label="Técnico" (change)="tecnico.set($any($event.target).value)">
           <option value="" [selected]="!tecnico()">Todos los técnicos</option>
-          @for (t of tecnicos; track t.iniciales) {
+          @for (t of tecnicos(); track t.iniciales) {
             <option [value]="t.iniciales" [selected]="t.iniciales === tecnico()">{{ t.nombre }}</option>
           }
           <option value="sin" [selected]="tecnico() === 'sin'">Sin asignar</option>
