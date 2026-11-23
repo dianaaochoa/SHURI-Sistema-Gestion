@@ -1,13 +1,22 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, delay, of } from 'rxjs';
-import { ClientesService } from '../cajera/clientes/clientes.service';
-import { Orden, OrdenesService, EstadoOrden } from '../cajera/ordenes/ordenes.service';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Observable, catchError, map, of, shareReplay, switchMap, tap } from 'rxjs';
+
+import { environment } from '../../environments/environment';
+import { mensajeDeError } from '../api/errores-api';
+import { borrarToken, guardarToken } from '../api/token-api';
+import { OrdenApi, ordenDeApi, telefonoLegible } from '../cajera/ordenes/ordenes.api';
+import { EstadoOrden, Orden } from '../cajera/ordenes/ordenes.service';
 import { Cliente } from '../cajera/punto-de-venta/clientes.datos';
 import { PortalSesion, SesionPortal } from './portal-sesion';
 
 export type { SesionPortal } from './portal-sesion';
 
 export type ResultadoPortal = { ok: true; sesion: SesionPortal } | { ok: false; mensaje: string };
+export type ResultadoAccion = { ok: true; mensaje: string } | { ok: false; mensaje: string };
+
+/** P1.3 paso 1: la pregunta secreta del cliente (o un aviso si no tiene). */
+export type InicioRecuperacionPortal = { ok: true; recuperacionId: string; pregunta: string } | { ok: false; mensaje: string };
 
 /** Cómo ve el cliente cada estado (Figma P1.2): texto, color, avance de 6 pasos y si espera su respuesta. */
 export const ESTADO_PORTAL: Record<EstadoOrden, { texto: string; tono: string; pasos: number; responder?: boolean }> = {
@@ -33,14 +42,22 @@ export interface EquipoPortal {
   estado: { texto: string; tono: string };
   pasos: number;
   responder: boolean;
-  /** Orden activa que se puede abrir (P2). */
+  /** Orden que se puede abrir (P2). */
   orden?: Orden;
 }
 
-const INTENTOS = 5;
-const BLOQUEO_MIN = 15;
-/** Contraseña de prueba de los clientes que ya crearon la suya (mientras no exista la API). */
-const CONTRASENA_DEMO = 'Shuri2026!';
+/** Cliente como lo responde GET /portal/me (CustomerResource). */
+interface ClienteApi {
+  id: number;
+  name: string;
+  last_name: string | null;
+  email: string | null;
+  phone: string;
+  must_change_password: boolean;
+  has_security_question: boolean;
+}
+
+type OrdenPortalApi = OrdenApi & { rating?: { stars: number; tags: string[]; comment: string | null; rated_at: string } | null };
 
 const diaMes = (iso: string) => {
   const f = new Date(iso);
@@ -48,135 +65,203 @@ const diaMes = (iso: string) => {
 };
 
 /**
- * Portal del cliente (P1–P6). Sesión aparte de la del personal: entra con su correo y la contraseña que creó
- * (o la temporal que le dio caja en C8.4). Simulado en memoria hasta conectar la API.
+ * Portal del cliente (P1–P6) conectado a la API con su propio token (Sanctum, ability "customer"):
+ * acceso, crear contraseña y pregunta secreta, recuperar la contraseña, sus equipos con el
+ * seguimiento completo, aprobar o rechazar el presupuesto, garantía y calificación.
  */
 @Injectable({ providedIn: 'root' })
 export class PortalService {
-  private readonly clientes = inject(ClientesService);
-  private readonly ordenes = inject(OrdenesService);
-
-  /** Contraseñas que el cliente creó en P1.4 (la API las guardará con hash). */
-  private readonly propias = new Map<string, string>();
-  private readonly fallos = new Map<string, { n: number; hasta?: number }>();
+  private readonly http = inject(HttpClient);
+  private readonly api = `${environment.apiUrl}/portal`;
   private readonly sesiones = inject(PortalSesion);
   readonly sesion = this.sesiones.sesion;
-  readonly cliente = computed(() => {
-    const s = this.sesion();
-    return s ? (this.clientes.buscar(s.clienteId) ?? null) : null;
-  });
 
-  private porCorreo(correo: string): Cliente | undefined {
-    const c = correo.trim().toLowerCase();
-    return c ? this.clientes.clientes().find((x) => x.correo?.toLowerCase() === c) : undefined;
+  private readonly datosCliente = signal<ClienteApi | null>(null);
+  private readonly ordenesApi = signal<OrdenPortalApi[]>([]);
+  readonly cargando = signal(false);
+  readonly error = signal<string | null>(null);
+  /** La contraseña con la que entró: la API la pide para guardar la pregunta y la nueva contraseña (P1.4). */
+  private contrasenaTemporal: string | null = null;
+
+  constructor() {
+    // Con sesión del portal (y ya con su contraseña propia) se cargan sus datos
+    effect(() => {
+      const s = this.sesion();
+      untracked(() => {
+        if (s && !s.temporal) this.cargar();
+        if (!s) {
+          this.datosCliente.set(null);
+          this.ordenesApi.set([]);
+        }
+      });
+    });
   }
 
+  /** Datos del cliente con sesión (lo que muestran Mis equipos y Facturación). */
+  readonly cliente = computed<Cliente | null>(() => {
+    const c = this.datosCliente();
+    const s = this.sesion();
+    if (!c) return s ? { id: s.clienteId, nombre: s.nombre } : null;
+    return { id: String(c.id), nombre: [c.name, c.last_name].filter(Boolean).join(' '), telefono: telefonoLegible(c.phone), correo: c.email ?? undefined };
+  });
+
+  /** Sus órdenes en el modelo que usan las pantallas (mismo mapeo que el personal). */
+  private readonly ordenes = computed<Orden[]>(() => this.ordenesApi().map((o) => ordenDeApi(o)));
+
+  /** P2.11 · Calificaciones que ya dio, por folio. */
+  readonly calificaciones = computed<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>(() =>
+    Object.fromEntries(
+      this.ordenesApi()
+        .filter((o) => o.rating)
+        .map((o) => [`#${o.folio}`, { estrellas: o.rating!.stars, gusto: o.rating!.tags, comentario: o.rating!.comment ?? '', fecha: o.rating!.rated_at }]),
+    ),
+  );
+
+  /** GET /portal/me y GET /portal/orders?include=detail */
+  cargar(): void {
+    this.cargando.set(true);
+    this.http.get<{ data: ClienteApi }>(`${this.api}/me`).subscribe({ next: (r) => this.datosCliente.set(r.data), error: () => undefined });
+    this.http.get<{ data: OrdenPortalApi[] }>(`${this.api}/orders`, { params: { include: 'detail' } }).subscribe({
+      next: (r) => {
+        this.ordenesApi.set(r.data);
+        this.error.set(null);
+        this.cargando.set(false);
+      },
+      error: (e) => {
+        this.error.set(mensajeDeError(e));
+        this.cargando.set(false);
+      },
+    });
+  }
+
+  /** P1.1 · POST /portal/login. Con la contraseña temporal, el cliente pasa a crear la suya. */
   iniciarSesion(correo: string, contrasena: string): Observable<ResultadoPortal> {
-    const clave = correo.trim().toLowerCase();
-    const cliente = this.porCorreo(clave);
-    const f = this.fallos.get(clave) ?? { n: 0 };
-    let r: ResultadoPortal;
-    if (f.hasta && f.hasta > Date.now()) {
-      r = { ok: false, mensaje: `Por seguridad bloqueamos el acceso unos minutos. Intenta después de las ${new Date(f.hasta).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} o pide ayuda al taller.` };
-    } else {
-      const temporal = cliente?.portal?.tipo === 'temporal' ? cliente.portal.temporal : undefined;
-      const propia = cliente ? (this.propias.get(cliente.id) ?? (cliente.portal?.tipo === 'personalizada' ? CONTRASENA_DEMO : undefined)) : undefined;
-      const esTemporal = !!temporal && contrasena.trim().toUpperCase() === temporal;
-      if (cliente && (esTemporal || (propia && contrasena === propia))) {
-        this.fallos.delete(clave);
-        const sesion: SesionPortal = { clienteId: cliente.id, nombre: cliente.nombre, temporal: esTemporal };
+    type Respuesta = { token: string; customer: ClienteApi };
+    return this.http.post<Respuesta>(`${environment.apiUrl}/portal/login`, { email: correo.trim().toLowerCase(), password: contrasena, device_name: 'Portal web' }).pipe(
+      map((r): ResultadoPortal => {
+        guardarToken('portal', r.token);
+        this.datosCliente.set(r.customer);
+        const temporal = r.customer.must_change_password;
+        this.contrasenaTemporal = temporal ? contrasena : null;
+        const sesion: SesionPortal = { clienteId: String(r.customer.id), nombre: [r.customer.name, r.customer.last_name].filter(Boolean).join(' '), temporal };
         this.sesiones.guardar(sesion);
-        r = { ok: true, sesion };
-      } else {
-        const n = f.hasta ? 1 : f.n + 1;
-        const bloquear = n >= INTENTOS;
-        this.fallos.set(clave, { n: bloquear ? 0 : n, hasta: bloquear ? Date.now() + BLOQUEO_MIN * 60_000 : undefined });
-        const quedan = INTENTOS - n;
-        r = {
-          ok: false,
-          mensaje: bloquear
-            ? `Correo o contraseña incorrectos. Por seguridad bloqueamos el acceso ${BLOQUEO_MIN} minutos.`
-            : `Correo o contraseña incorrectos. Te ${quedan === 1 ? 'queda 1 intento' : `quedan ${quedan} intentos`}.`,
-        };
-      }
-    }
-    return of(r).pipe(delay(400));
+        return { ok: true, sesion };
+      }),
+      catchError((e) => of<ResultadoPortal>({ ok: false, mensaje: mensajeDeError(e) })),
+    );
+  }
+
+  /** Preguntas secretas para elegir (P1.4). */
+  preguntasSecretas(): Observable<{ clave: string; texto: string }[]> {
+    return this.http.get<{ data: { key: string; text: string }[] }>(`${environment.apiUrl}/security-questions`).pipe(
+      map((r) => r.data.map((p) => ({ clave: p.key, texto: p.text }))),
+      catchError(() => of([])),
+    );
   }
 
   /**
-   * P1.3 · Genera una temporal (como C8.4) y la "envía" al correo registrado. Siempre responde igual, exista o no
-   * el correo, para no revelar quién es cliente.
+   * P1.4 · Elige su pregunta secreta y crea su contraseña. Primero la pregunta (la API pide la
+   * temporal) y después la contraseña: si algo falla, puede reintentar con la misma temporal.
    */
-  solicitarTemporal(correo: string): Observable<void> {
-    const cliente = this.porCorreo(correo);
-    if (cliente) {
-      this.clientes.generarTemporal(cliente);
-      this.propias.delete(cliente.id);
-    }
-    return of(undefined).pipe(delay(500));
+  crearContrasena(nueva: string, secreta: { pregunta: string; respuesta: string }): Observable<ResultadoAccion> {
+    const temporal = this.contrasenaTemporal;
+    if (!temporal) return of({ ok: false, mensaje: 'Por seguridad, vuelve a iniciar sesión con tu contraseña temporal.' });
+
+    return this.http.put(`${this.api}/security-question`, { current_password: temporal, question: secreta.pregunta, answer: secreta.respuesta.trim() }).pipe(
+      switchMap(() => this.http.put<{ message: string }>(`${this.api}/password`, { current_password: temporal, password: nueva, password_confirmation: nueva })),
+      map((r): ResultadoAccion => {
+        this.contrasenaTemporal = null;
+        const s = this.sesion();
+        if (s) this.sesiones.guardar({ ...s, temporal: false });
+        return { ok: true, mensaje: r.message };
+      }),
+      catchError((e) => of<ResultadoAccion>({ ok: false, mensaje: mensajeDeError(e) })),
+    );
   }
 
-  /** P1.4 · La temporal deja de funcionar. */
-  crearContrasena(nueva: string): Observable<void> {
-    const s = this.sesion();
-    const cliente = this.cliente();
-    if (s && cliente) {
-      this.propias.set(cliente.id, nueva);
-      this.clientes.guardar({ ...cliente, portal: { tipo: 'personalizada', fecha: new Date().toISOString() } });
-      this.sesiones.guardar({ ...s, temporal: false });
-    }
-    return of(undefined).pipe(delay(400));
+  /** P1.3 paso 1 · POST /portal/password/forgot: devuelve su pregunta secreta. */
+  iniciarRecuperacion(correo: string): Observable<InicioRecuperacionPortal> {
+    type Respuesta = { requires_answer: true; recovery_id: string; security_question: string } | { requires_answer: false; message: string };
+    return this.http.post<Respuesta>(`${environment.apiUrl}/portal/password/forgot`, { login: correo.trim().toLowerCase() }).pipe(
+      map((r): InicioRecuperacionPortal => (r.requires_answer ? { ok: true, recuperacionId: r.recovery_id, pregunta: r.security_question } : { ok: false, mensaje: r.message })),
+      catchError((e) => of<InicioRecuperacionPortal>({ ok: false, mensaje: mensajeDeError(e) })),
+    );
   }
 
-  /** Orden activa del cliente con sesión (nunca la de otro cliente). */
+  /** P1.3 paso 2 · Respuesta correcta → contraseña temporal a su correo. */
+  responderPregunta(recuperacionId: string, respuesta: string): Observable<{ ok: true; correo: string } | { ok: false; mensaje: string }> {
+    return this.http.post<{ email_hint: string }>(`${environment.apiUrl}/portal/password/answer`, { recovery_id: recuperacionId, answer: respuesta }).pipe(
+      map((r) => ({ ok: true as const, correo: r.email_hint })),
+      catchError((e) => of({ ok: false as const, mensaje: mensajeDeError(e) })),
+    );
+  }
+
+  /** Orden del cliente con sesión (nunca la de otro cliente: la API solo devuelve las suyas). */
   ordenDe(folio: string): Orden | undefined {
-    return this.equipos().find((e) => e.folio.replace('#', '') === folio.replace('#', ''))?.orden;
+    const limpio = folio.replace('#', '');
+    return this.ordenes().find((o) => o.folio.replace('#', '') === limpio);
   }
 
-  /** P2.4 / P2.8 · El cliente aprueba o rechaza el presupuesto o el cargo adicional desde el portal. */
-  responder(folio: string, aprobo: boolean, nota = ''): boolean {
+  /** Reemplaza la orden con la que devolvió la API. */
+  private recargar(): Observable<void> {
+    return this.http.get<{ data: OrdenPortalApi[] }>(`${this.api}/orders`, { params: { include: 'detail' } }).pipe(
+      tap((r) => this.ordenesApi.set(r.data)),
+      map(() => undefined),
+      catchError(() => of(undefined)),
+    );
+  }
+
+  /** Dispara la petición aunque nadie se suscriba, recarga sus órdenes y comparte el resultado. */
+  private accion(peticion: Observable<{ message: string }>): Observable<ResultadoAccion> {
+    const r = peticion.pipe(
+      switchMap((res) => this.recargar().pipe(map((): ResultadoAccion => ({ ok: true, mensaje: res.message })))),
+      catchError((e) => of<ResultadoAccion>({ ok: false, mensaje: mensajeDeError(e) })),
+      shareReplay(1),
+    );
+    r.subscribe();
+    return r;
+  }
+
+  /** P2.4 / P2.8 · Aprueba o rechaza el presupuesto o el cargo adicional (POST /portal/quotes/{folio}/approve|reject). */
+  responder(folio: string, aprobo: boolean, nota = ''): Observable<ResultadoAccion> {
     const o = this.ordenDe(folio);
-    const cliente = this.cliente();
-    if (!o || !cliente || (o.estado !== 'por-aprobar' && o.estado !== 'adicional')) return false;
-    this.ordenes.registrarRespuesta(o.folio, aprobo, nota, cliente.nombre, true);
-    return true;
+    if (!o?.presupuestoFolio || (o.estado !== 'por-aprobar' && o.estado !== 'adicional')) return of({ ok: false, mensaje: 'Este equipo no tiene un presupuesto por responder.' });
+    return this.accion(this.http.post<{ message: string }>(`${this.api}/quotes/${o.presupuestoFolio}/${aprobo ? 'approve' : 'reject'}`, { comment: nota.trim() || null }));
   }
 
-  /** P3.1 · Solo si la orden ya se entregó, sigue en garantía y no se ha usado. */
-  solicitarGarantia(folio: string, falla: string, desde: string, fotos: number): boolean {
+  /** P3.1 · Solicita la garantía (POST /portal/orders/{folio}/warranty). */
+  solicitarGarantia(folio: string, falla: string, desde: string, fotos: number): Observable<ResultadoAccion> {
     const o = this.ordenDe(folio);
-    if (!o || o.estado !== 'terminada' || o.garantia || !o.entrega || !falla.trim()) return false;
-    this.ordenes.solicitarGarantiaPortal(o.folio, falla.trim().slice(0, 300), desde, fotos);
-    return true;
+    if (!o || !falla.trim()) return of({ ok: false, mensaje: 'Describe la falla de tu equipo.' });
+    const detalle = [falla.trim(), desde ? `Desde el ${desde}` : '', fotos ? `${fotos} ${fotos === 1 ? 'foto' : 'fotos'} (las mostrará en sucursal)` : ''].filter(Boolean).join(' · ');
+    return this.accion(this.http.post<{ message: string }>(`${this.api}/orders/${folio.replace('#', '')}/warranty`, { reason: detalle.slice(0, 2000) }));
   }
 
-  /** P3.2 · Acepta o rechaza el costo extra del dictamen de garantía. */
-  responderGarantia(folio: string, acepta: boolean): boolean {
-    const o = this.ordenDe(folio);
-    const d = o?.garantia?.decision;
-    if (!o || !d || d.tipo !== 'con-costo' || d.respuesta) return false;
-    this.ordenes.responderGarantia(o.folio, acepta);
-    return true;
+  /** P3.2 · Acepta o rechaza el costo extra del dictamen (POST /portal/warranties/{folio}/answer). */
+  responderGarantia(folio: string, acepta: boolean): Observable<ResultadoAccion> {
+    const w = this.ordenesApi().find((x) => x.folio === folio.replace('#', ''))?.warranty;
+    if (!w) return of({ ok: false, mensaje: 'Este equipo no tiene una garantía por responder.' });
+    return this.accion(this.http.post<{ message: string }>(`${this.api}/warranties/${w.folio}/answer`, { accept: acepta }));
   }
 
-  /** P2.11 · Calificación del servicio (una por folio). */
-  readonly calificaciones = signal<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>({});
-
-  calificar(folio: string, estrellas: number, gusto: string[], comentario: string): void {
-    if (!this.ordenDe(folio)) return;
-    this.calificaciones.update((c) => ({ ...c, [folio]: { estrellas, gusto, comentario: comentario.trim().slice(0, 300), fecha: new Date().toISOString() } }));
+  /** P2.11 · Calificación del servicio (una por folio, con el equipo ya entregado). */
+  calificar(folio: string, estrellas: number, gusto: string[], comentario: string): Observable<ResultadoAccion> {
+    return this.accion(
+      this.http.post<{ message: string }>(`${this.api}/orders/${folio.replace('#', '')}/rating`, { stars: estrellas, tags: gusto, comment: comentario.trim().slice(0, 300) || null }),
+    );
   }
 
+  /** POST /portal/logout y limpia la sesión local. */
   cerrarSesion(): void {
+    this.http.post(`${this.api}/logout`, {}).subscribe({ error: () => undefined });
+    borrarToken('portal');
+    this.contrasenaTemporal = null;
     this.sesiones.cerrar();
   }
 
   /** P1.2 · Equipos del cliente: los que están en el taller y los que ya se entregaron. */
-  readonly equipos = computed<EquipoPortal[]>(() => {
-    const c = this.cliente();
-    if (!c) return [];
-    this.ordenes.ordenes();
-    const activos = this.clientes.ordenesDe(c).map((o) => {
+  readonly equipos = computed<EquipoPortal[]>(() =>
+    this.ordenes().map((o) => {
       const d = o.garantia?.decision;
       // Figma P1.2: dictamen con costo extra que espera la respuesta del cliente.
       const esperaGarantia = d?.tipo === 'con-costo' && !d.respuesta && o.estado === 'en-garantia';
@@ -184,22 +269,6 @@ export class PortalService {
       const entregado = o.entrega?.fecha ? `Entregado ${diaMes(o.entrega.fecha)}` : '';
       const detalle = d && o.estado === 'en-garantia' ? 'Dictamen de garantía listo' : entregado || o.trabajo || `Recibido ${diaMes(o.recibido)}`;
       return { folio: o.folio, equipo: o.equipo, detalle: `Folio ${o.folio} · ${detalle}`, estado: { texto: e.texto, tono: e.tono }, pasos: e.pasos, responder: !!e.responder, orden: o };
-    });
-    const folios = new Set(activos.map((a) => a.folio));
-    const archivo = this.clientes
-      .historial(c)
-      .filter((h) => h.tipo === 'Equipo' && !folios.has(h.folio))
-      .map((h) => {
-        const sinReparar = h.estado.tono === 'peligro';
-        return {
-          folio: h.folio,
-          equipo: h.descripcion.split(' · ')[0],
-          detalle: `Folio ${h.folio} · Entregado ${diaMes(h.fecha)}`,
-          estado: sinReparar ? { texto: 'Entregado sin reparar', tono: 'neutro' } : { texto: 'Terminado', tono: 'exito' },
-          pasos: 6,
-          responder: false,
-        };
-      });
-    return [...activos, ...archivo];
-  });
+    }),
+  );
 }

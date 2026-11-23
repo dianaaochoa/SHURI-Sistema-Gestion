@@ -108,15 +108,19 @@ export class GarantiaPortalComponent {
   protected responder(): void {
     const accion = this.confirmar();
     if (!accion) return;
-    const ok = this.portal.responderGarantia(this.orden().folio, accion === 'aceptar');
-    this.confirmar.set(null);
-    if (ok) {
-      const o = this.orden();
+    const o = this.orden();
+    this.portal.responderGarantia(o.folio, accion === 'aceptar').subscribe((r) => {
+      this.confirmar.set(null);
       this.ultimoAviso.set({
-        texto: accion === 'aceptar' ? 'Aceptaste el costo extra. El técnico repara tu equipo y te avisamos cuando esté listo.' : 'Rechazaste el costo extra. Tu equipo se devuelve sin reparar.',
-        estado: o.estado + 'r',
+        texto: !r.ok
+          ? `No se guardó tu respuesta: ${r.mensaje}`
+          : accion === 'aceptar'
+            ? 'Aceptaste el costo extra. El técnico repara tu equipo y te avisamos cuando esté listo.'
+            : 'Rechazaste el costo extra. Tu equipo se devuelve sin reparar.',
+        // La orden ya viene recargada: el aviso se muestra mientras siga en ese estado
+        estado: this.orden().estado + (this.orden().garantia?.decision?.respuesta ? 'r' : ''),
       });
-    }
+    });
   }
 
   @HostListener('document:keydown.escape')

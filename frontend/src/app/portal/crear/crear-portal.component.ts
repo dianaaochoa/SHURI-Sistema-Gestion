@@ -34,9 +34,22 @@ export class CrearPortalComponent {
   private readonly router = inject(Router);
 
   protected readonly formulario = inject(NonNullableFormBuilder).group(
-    { nueva: ['', [Validators.required, segura]], repetida: ['', Validators.required] },
+    {
+      nueva: ['', [Validators.required, segura]],
+      repetida: ['', Validators.required],
+      pregunta: ['', Validators.required],
+      respuesta: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+    },
     { validators: iguales },
   );
+  /** Catálogo de preguntas secretas (GET /security-questions). */
+  protected readonly preguntas = toSignal(this.portal.preguntasSecretas(), { initialValue: [] });
+  protected readonly error = signal('');
+
+  protected campoInvalido(nombre: 'pregunta' | 'respuesta'): boolean {
+    const c = this.formulario.controls[nombre];
+    return c.invalid && c.touched;
+  }
   protected readonly verNueva = signal(false);
   protected readonly verRepetida = signal(false);
   protected readonly enviando = signal(false);
@@ -62,10 +75,13 @@ export class CrearPortalComponent {
       this.formulario.markAllAsTouched();
       return;
     }
+    const { nueva, pregunta, respuesta } = this.formulario.getRawValue();
     this.enviando.set(true);
-    this.portal.crearContrasena(this.formulario.getRawValue().nueva).subscribe(() => {
+    this.error.set('');
+    this.portal.crearContrasena(nueva, { pregunta, respuesta }).subscribe((r) => {
       this.enviando.set(false);
-      this.router.navigateByUrl('/portal/mis-equipos');
+      if (r.ok) this.router.navigateByUrl('/portal/mis-equipos');
+      else this.error.set(r.mensaje);
     });
   }
 

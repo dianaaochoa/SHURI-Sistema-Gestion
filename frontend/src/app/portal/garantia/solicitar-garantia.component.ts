@@ -46,12 +46,19 @@ export class SolicitarGarantiaComponent {
     this.fotos.update((l) => l.filter((_, j) => j !== i));
   }
 
+  /** Error de la API al solicitar la garantía. */
+  protected readonly errorEnvio = signal('');
+
   protected enviar(): void {
     this.intentado.set(true);
     if (!this.falla().trim()) return;
     const [a, m, d] = this.desde().split('-').map(Number);
     const desde = this.desde() ? dia(new Date(a, m - 1, d)) : '';
-    if (this.portal.solicitarGarantia(this.orden().folio, this.falla(), desde, this.fotos().length)) this.enviada.emit();
+    this.errorEnvio.set('');
+    this.portal.solicitarGarantia(this.orden().folio, this.falla(), desde, this.fotos().length).subscribe((r) => {
+      if (r.ok) this.enviada.emit();
+      else this.errorEnvio.set(r.mensaje);
+    });
   }
 
   @HostListener('document:keydown.escape')

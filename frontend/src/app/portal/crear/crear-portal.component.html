@@ -55,6 +55,41 @@
       </ul>
     </div>
 
+    <div class="encabezado">
+      <h2 class="pregunta-secreta__titulo">Pregunta secreta</h2>
+      <p class="descripcion">Si algún día olvidas tu contraseña, te la pediremos para enviarte una temporal a tu correo.</p>
+    </div>
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="pregunta">Elige una pregunta *</label>
+      <select id="pregunta" class="campo__input campo__select" formControlName="pregunta" [class.campo__control--error]="campoInvalido('pregunta')">
+        <option value="" disabled>Selecciona una pregunta</option>
+        @for (p of preguntas(); track p.clave) {
+          <option [value]="p.clave">{{ p.texto }}</option>
+        }
+      </select>
+      @if (campoInvalido('pregunta')) {
+        <span class="campo__error">Elige una pregunta.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label class="campo__etiqueta" for="respuesta">Tu respuesta *</label>
+      <div class="campo__control" [class.campo__control--error]="campoInvalido('respuesta')">
+        <img src="assets/iconos/key-btn.svg" width="16" height="16" alt="" />
+        <input id="respuesta" class="campo__input" formControlName="respuesta" autocomplete="off" spellcheck="false" />
+      </div>
+      @if (campoInvalido('respuesta')) {
+        <span class="campo__error">{{ formulario.controls.respuesta.hasError('required') ? 'Escribe tu respuesta.' : 'La respuesta debe tener entre 3 y 100 caracteres.' }}</span>
+      } @else {
+        <span class="pregunta-secreta__ayuda">No importan los acentos ni las mayúsculas.</span>
+      }
+    </div>
+
+    @if (error()) {
+      <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="14" height="14" alt="" />{{ error() }}</p>
+    }
+
     <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">{{ enviando() ? 'Guardando…' : 'Guardar y entrar' }}</button>
     <button type="button" class="enlace enlace-centro" (click)="salir()"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Salir sin guardar</button>
   </form>

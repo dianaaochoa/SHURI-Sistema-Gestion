@@ -34,6 +34,9 @@
     }
 
     <p class="aviso aviso--advertencia"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Lleva tu equipo a SHURI con el folio {{ orden().folio }}. Si el técnico detecta un daño nuevo (golpe, humedad), te cotizaremos un costo extra antes de repararlo.</p>
+    @if (errorEnvio()) {
+      <p class="aviso aviso--error" role="alert"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>{{ errorEnvio() }}</p>
+    }
     <div class="acciones">
       <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
       <button type="submit" class="boton boton--primario boton--44">Enviar solicitud</button>

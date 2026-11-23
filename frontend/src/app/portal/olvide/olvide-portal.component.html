@@ -2,12 +2,34 @@
   <app-portal-marca />
   <div class="encabezado">
     <h1 class="titulo">¿Olvidaste tu contraseña?</h1>
-    <p class="descripcion">Escribe tu correo y te enviaremos una contraseña temporal. Al entrar te pediremos crear una nueva.</p>
+    <p class="descripcion">
+      @if (pregunta() && !enviado()) {
+        Responde tu pregunta secreta y te enviaremos una contraseña temporal a tu correo.
+      } @else {
+        Escribe tu correo. Te pediremos tu pregunta secreta y te enviaremos una contraseña temporal; al entrar te pediremos crear una nueva.
+      }
+    </p>
   </div>
 
   @if (enviado()) {
-    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Si {{ enviado() }} está registrado, en unos minutos te llega la contraseña temporal. Revisa también tu carpeta de correo no deseado.</p>
+    <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Listo: enviamos la contraseña temporal a {{ enviado() }}. Revisa también tu carpeta de correo no deseado.</p>
     <a class="boton boton--primario boton--bloque" routerLink="/portal">Volver a iniciar sesión</a>
+  } @else if (pregunta()) {
+    <form class="formulario" [formGroup]="formularioRespuesta" (ngSubmit)="responder()" novalidate>
+      <div class="campo">
+        <label class="campo__etiqueta" for="respuesta">{{ pregunta()!.texto }} *</label>
+        <div class="campo__control" [class.campo__control--error]="formularioRespuesta.controls.respuesta.invalid && formularioRespuesta.controls.respuesta.touched">
+          <img src="assets/iconos/key-btn.svg" width="16" height="16" alt="" />
+          <input id="respuesta" class="campo__input" formControlName="respuesta" autocomplete="off" spellcheck="false" />
+        </div>
+        <span class="pregunta-secreta__ayuda">No importan los acentos ni las mayúsculas.</span>
+      </div>
+      @if (error()) {
+        <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="14" height="14" alt="" />{{ error() }}</p>
+      }
+      <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">{{ enviando() ? 'Revisando…' : 'Enviar contraseña temporal' }}</button>
+      <button type="button" class="enlace enlace-centro" (click)="volver()"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Usar otro correo</button>
+    </form>
   } @else {
     <form class="formulario" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
       <div class="campo">
@@ -20,9 +42,14 @@
           <span class="campo__error">{{ formulario.controls.correo.hasError('required') ? 'Escribe tu correo.' : 'Revisa que el correo esté bien escrito.' }}</span>
         }
       </div>
-      <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">{{ enviando() ? 'Enviando…' : 'Enviar contraseña temporal' }}</button>
+      @if (error()) {
+        <p class="aviso aviso--advertencia" role="alert"><img src="assets/pdv/alert-peligro.svg" width="14" height="14" alt="" />{{ error() }}</p>
+      }
+      <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">{{ enviando() ? 'Buscando…' : 'Continuar' }}</button>
     </form>
-    <p class="nota">Llega al correo que registraste en SHURI. Si cambiaste de correo, acude al taller con tu folio.</p>
+    <p class="nota">Si no tienes pregunta secreta o cambiaste de correo, acude al taller con tu folio y te damos una contraseña temporal.</p>
+  }
+  @if (!enviado()) {
     <a class="enlace enlace-centro" routerLink="/portal"><img src="assets/iconos/undo.svg" width="14" height="14" alt="" />Volver a iniciar sesión</a>
   }
 

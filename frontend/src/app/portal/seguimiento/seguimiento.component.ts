@@ -196,10 +196,14 @@ export class SeguimientoComponent {
     const o = this.orden();
     if (!accion || !o) return;
     const esAdicional = o.estado === 'adicional';
-    const ok = this.portal.responder(o.folio, accion === 'aprobar', this.nota());
-    this.confirmar.set(null);
-    this.nota.set('');
-    if (ok)
+    this.portal.responder(o.folio, accion === 'aprobar', this.nota()).subscribe((r) => {
+      this.confirmar.set(null);
+      this.nota.set('');
+      if (!r.ok) {
+        this.error.set(r.mensaje);
+        return;
+      }
+      this.error.set('');
       this.avisar(
         accion === 'aprobar'
           ? esAdicional
@@ -209,7 +213,11 @@ export class SeguimientoComponent {
             ? 'Rechazaste el adicional. Se termina solo lo que ya habías autorizado.'
             : 'Rechazaste el presupuesto. Tu equipo se devuelve sin reparar.',
       );
+    });
   }
+
+  /** Error de la API al responder o calificar. */
+  protected readonly error = signal('');
 
   protected alternarGusto(g: string): void {
     this.gusto.update((l) => (l.includes(g) ? l.filter((x) => x !== g) : [...l, g]));
@@ -218,8 +226,10 @@ export class SeguimientoComponent {
   protected calificar(): void {
     const o = this.orden();
     if (!o || !this.estrellas()) return;
-    this.portal.calificar(o.folio, this.estrellas(), this.gusto(), this.comentario());
-    this.avisar('¡Gracias por tu calificación!');
+    this.portal.calificar(o.folio, this.estrellas(), this.gusto(), this.comentario()).subscribe((r) => {
+      this.error.set(r.ok ? '' : r.mensaje);
+      if (r.ok) this.avisar('¡Gracias por tu calificación!');
+    });
   }
 
   protected comprobante(): void {

@@ -21,6 +21,9 @@
     @if (aviso()) {
       <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ aviso() }}</p>
     }
+    @if (error()) {
+      <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="14" height="14" alt="" />{{ error() }}</p>
+    }
 
     @if (v.variante === 'dato') {
       <section class="tarjeta tarjeta--advertencia">
