@@ -21,12 +21,17 @@ class SendQuoteRequest extends FormRequest
         return [
             'items' => ['required', 'array', 'min:1', 'max:30'],
             'items.*.type' => ['required', 'in:part,labor,other'],
-            'items.*.product_id' => ['required_if:items.*.type,part', 'nullable', 'integer'],
+            // Refacción: por id o por SKU del catálogo. Si el SKU no está registrado, se toma
+            // la descripción y el precio que capturó el jefe (pieza fuera de catálogo)
+            'items.*.product_id' => ['nullable', 'integer'],
+            'items.*.sku' => ['nullable', 'string', 'max:40'],
             'items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:99'],
             'items.*.labor_level_id' => ['required_if:items.*.type,labor', 'nullable', 'integer'],
             'items.*.concept' => ['required_if:items.*.type,other', 'nullable', 'string', 'max:150'],
             'items.*.unit_price' => ['required_if:items.*.type,other', 'nullable', 'numeric', 'min:0', 'max:999999.99'],
             'discount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            // J3.2 vigencia elegida por el jefe (si no, la de Configuración)
+            'valid_days' => ['nullable', 'integer', 'min:1', 'max:60'],
             'warranty_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'customer_note' => ['nullable', 'string', 'max:1000'],
             'estimated_delivery_date' => ['nullable', 'date', 'after_or_equal:today'],
@@ -40,6 +45,8 @@ class SendQuoteRequest extends FormRequest
             'items' => 'conceptos',
             'items.*.type' => 'tipo de concepto',
             'items.*.product_id' => 'refacción',
+            'items.*.sku' => 'SKU de la refacción',
+            'valid_days' => 'vigencia',
             'items.*.quantity' => 'cantidad',
             'items.*.labor_level_id' => 'nivel de mano de obra',
             'items.*.concept' => 'concepto',

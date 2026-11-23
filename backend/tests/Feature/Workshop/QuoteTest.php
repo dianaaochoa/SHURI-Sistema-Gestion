@@ -242,6 +242,91 @@ class QuoteTest extends TestCase
         ])->assertStatus(422)->assertJsonPath('code', 'NO_PENDING_QUOTE');
     }
 
+    public function test_approved_additional_is_added_and_a_rejected_one_keeps_the_repair(): void
+    {
+        $cashier = User::factory()->cashier()->create();
+        $folio = $this->diagnose();
+        $this->sendQuote($folio);
+        $this->as($this->customer, 'POST', "/api/v1/portal/quotes/{$folio}/approve")->assertOk();
+
+        // Primer adicional: el cliente lo aprueba por teléfono y se suma a lo aprobado (480 + 820)
+        $this->as($this->technician, 'POST', "/api/v1/my/orders/{$this->order->folio}/additional-damage", ['description' => 'Flex roto'])->assertOk();
+        $extra = Quote::where('type', 'additional')->value('folio');
+        $this->as($this->head, 'POST', "/api/v1/quotes/{$extra}/send", ['items' => [['type' => 'other', 'concept' => 'Flex de pantalla', 'unit_price' => 200]]])->assertOk();
+        $this->as($cashier, 'POST', "/api/v1/service-orders/{$this->order->folio}/quote-response", ['approved' => true, 'channel' => 'phone'])
+            ->assertOk()->assertJsonPath('data.status.code', 'in_repair');
+
+        $this->order->refresh();
+        $this->assertEquals(480, $this->order->labor_cost);
+        $this->assertEquals(1020, $this->order->parts_cost);
+
+        // Segundo adicional rechazado: la orden sigue en reparación con lo ya autorizado
+        $this->as($this->technician, 'POST', "/api/v1/my/orders/{$this->order->folio}/additional-damage", ['description' => 'Bocina'])->assertOk();
+        $otro = Quote::where('type', 'additional')->where('status', 'to_quote')->value('folio');
+        $this->as($this->head, 'POST', "/api/v1/quotes/{$otro}/send", ['items' => [['type' => 'other', 'concept' => 'Bocina', 'unit_price' => 150]]])->assertOk();
+        $this->as($cashier, 'POST', "/api/v1/service-orders/{$this->order->folio}/quote-response", ['approved' => false, 'channel' => 'counter'])
+            ->assertOk()->assertJsonPath('data.status.code', 'in_repair');
+
+        $this->assertEquals(1020, $this->order->fresh()->parts_cost);
+    }
+
+    public function test_part_by_sku_uses_the_catalog_and_an_unknown_sku_keeps_the_captured_price(): void
+    {
+        $folio = $this->diagnose();
+
+        $this->as($this->head, 'POST', "/api/v1/quotes/{$folio}/send", [
+            'items' => [
+                ['type' => 'part', 'sku' => 'PAN-A54', 'concept' => 'Pantalla', 'unit_price' => 1, 'quantity' => 1],
+                ['type' => 'part', 'sku' => 'NO-EXISTE', 'concept' => 'Flex de carga', 'unit_price' => 250, 'quantity' => 2],
+            ],
+            'valid_days' => 3,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.parts_amount', 1220) // 720 del catálogo + 2 × 250
+            ->assertJsonPath('data.items.1.out_of_stock', true)
+            ->assertJsonPath('data.valid_until', now()->addDays(3)->toDateString());
+    }
+
+    public function test_head_confirms_no_repair_without_charging_the_inspection(): void
+    {
+        $this->as($this->technician, 'POST', "/api/v1/my/orders/{$this->order->folio}/diagnosis", [
+            'outcome' => 'not_repairable', 'diagnosis' => 'Placa en corto.', 'no_repair_reason' => 'Sin refacción',
+        ])->assertOk();
+
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$this->order->folio}/confirm-no-repair", ['charge_inspection' => false, 'message' => 'No hay placa disponible.'])
+            ->assertOk()
+            ->assertJsonPath('data.balance.inspection_fee', 0);
+
+        Mail::assertSent(OrderUpdateMail::class, fn ($m) => $m->title === 'Tu equipo no tiene reparación');
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$this->order->folio}/confirm-no-repair", ['charge_inspection' => true])
+            ->assertStatus(422);
+        // Ya confirmada, ya no se puede regresar al técnico
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$this->order->folio}/return-to-technician", ['reason' => 'Revisa otra vez'])
+            ->assertStatus(422);
+    }
+
+    public function test_head_returns_a_no_repair_report_to_the_technician(): void
+    {
+        $this->as($this->technician, 'POST', "/api/v1/my/orders/{$this->order->folio}/diagnosis", [
+            'outcome' => 'not_repairable', 'diagnosis' => 'Placa en corto.', 'no_repair_reason' => 'Sin refacción',
+        ])->assertOk();
+
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$this->order->folio}/return-to-technician", ['reason' => '¿Probaste con otra batería?'])
+            ->assertOk()
+            ->assertJsonPath('data.status.code', 'diagnosing')
+            ->assertJsonPath('data.no_repair_reason', null);
+    }
+
+    public function test_return_to_technician_by_order_uses_the_pending_quote(): void
+    {
+        $this->diagnose();
+
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$this->order->folio}/return-to-technician", ['reason' => 'Revisa el flex'])
+            ->assertOk()
+            ->assertJsonPath('data.status.code', 'diagnosing')
+            ->assertJsonPath('data.quote.status', 'returned_to_technician');
+    }
+
     public function test_order_detail_includes_quote_items_and_log(): void
     {
         $cashier = User::factory()->cashier()->create();

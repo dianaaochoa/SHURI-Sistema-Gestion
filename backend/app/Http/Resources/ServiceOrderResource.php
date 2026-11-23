@@ -95,6 +95,9 @@ class ServiceOrderResource extends JsonResource
                 'folio' => $q->folio,
                 'type' => $q->type,
                 'status' => $q->status,
+                'diagnosis' => $q->diagnosis,
+                'is_urgent' => (bool) $q->is_urgent,
+                'created_at' => $q->created_at?->toIso8601String(),
                 'labor_amount' => (float) $q->labor_amount,
                 'parts_amount' => (float) $q->parts_amount,
                 'discount' => (float) $q->discount,
@@ -124,6 +127,16 @@ class ServiceOrderResource extends JsonResource
                 'ruled_at' => $w->ruled_at?->toIso8601String(),
                 'finished_at' => $w->finished_at?->toIso8601String(),
             ] : null),
+            // Cronómetro del banco (T3): minutos trabajados y, si corre, desde cuándo
+            'timer' => $this->whenLoaded('orderTimeLogs', function () {
+                $running = $this->orderTimeLogs->firstWhere('ends_at', null);
+
+                return [
+                    'running' => $running !== null,
+                    'started_at' => $running?->starts_at?->toIso8601String(),
+                    'worked_minutes' => (int) $this->orderTimeLogs->whereNotNull('ends_at')->sum('minutes'),
+                ];
+            }),
             // Bitácora: lo que vio el cliente y las notas internas, en orden
             'logs' => $this->whenLoaded('orderLogs', fn () => $this->orderLogs->sortBy('id')->map(fn ($l) => [
                 'type' => $l->type,

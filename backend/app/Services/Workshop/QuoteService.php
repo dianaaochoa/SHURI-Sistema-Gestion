@@ -118,7 +118,7 @@ class QuoteService
                 'parts_amount' => $parts,
                 'discount' => $discount,
                 'warranty_days' => $data['warranty_days'] ?? $this->settings->int('default_warranty_days', 30),
-                'valid_until' => now()->addDays($this->settings->int('quote_valid_days', 7))->toDateString(),
+                'valid_until' => now()->addDays((int) ($data['valid_days'] ?? $this->settings->int('quote_valid_days', 7)))->toDateString(),
                 'customer_note' => $data['customer_note'] ?? null,
                 'estimated_delivery_date' => $data['estimated_delivery_date'] ?? null,
                 'status' => 'pending',
@@ -130,7 +130,10 @@ class QuoteService
             $total = round($labor + $parts - $discount, 2);
 
             $order->forceFill([
-                'estimated_cost' => $total,
+                // Con un adicional, el costo estimado es lo ya aprobado más el adicional
+                'estimated_cost' => $quote->type === 'additional'
+                    ? round((float) $order->labor_cost + (float) $order->parts_cost + $total, 2)
+                    : $total,
                 'status_id' => OrderStatus::idFor(OrderStatus::QUOTE_PENDING),
                 'updated_by' => $head->id,
             ])->save();
@@ -190,7 +193,9 @@ class QuoteService
                 throw ValidationException::withMessages(['status' => 'Este presupuesto ya fue respondido.']);
             }
 
-            $target = $approved ? OrderStatus::IN_REPAIR : OrderStatus::QUOTE_REJECTED;
+            // Un adicional rechazado no cancela lo ya autorizado: el técnico termina eso (J3.4, C4.8)
+            $additional = $quote->type === 'additional';
+            $target = $approved || $additional ? OrderStatus::IN_REPAIR : OrderStatus::QUOTE_REJECTED;
             OrderStatusFlow::assert($order->status->code, $target, $order->status->name);
 
             $quote->forceFill([
@@ -208,11 +213,16 @@ class QuoteService
                 // El costo aprobado es lo que la cajera cobra al entregar (OrderBalance)
                 $total = (float) $quote->fresh()->total;
                 $parts = min((float) $quote->parts_amount, $total);
+                // El adicional se suma a lo que ya estaba aprobado
+                $baseLabor = $additional ? (float) $order->labor_cost : 0.0;
+                $baseParts = $additional ? (float) $order->parts_cost : 0.0;
                 $orderData += [
-                    'labor_cost' => round($total - $parts, 2),
-                    'parts_cost' => round($parts, 2),
-                    'warranty_days' => $quote->warranty_days,
+                    'labor_cost' => round($baseLabor + $total - $parts, 2),
+                    'parts_cost' => round($baseParts + $parts, 2),
                 ];
+                if (! $additional) {
+                    $orderData['warranty_days'] = $quote->warranty_days;
+                }
             }
 
             $order->forceFill($orderData)->save();
@@ -227,6 +237,93 @@ class QuoteService
         });
 
         return $quote->fresh('quoteItems');
+    }
+
+    /** Texto con el que queda marcada la confirmación del jefe en la bitácora (lo lee el front). */
+    public const NO_REPAIR_CONFIRMED = 'Sin reparación confirmada por el jefe de taller';
+
+    /**
+     * J3.3 El jefe confirma que el equipo no tiene reparación: decide si se cobra la revisión
+     * y el cliente recibe el aviso para recogerlo (C6.2).
+     */
+    public function confirmNoRepair(ServiceOrder $order, User $head, bool $chargeInspection, ?string $message): ServiceOrder
+    {
+        if ($order->status->code !== OrderStatus::NOT_REPAIRABLE) {
+            throw ValidationException::withMessages(['status' => "La orden está «{$order->status->name}»: solo se confirma una orden sin reparación."]);
+        }
+        if (OrderLog::where('service_order_id', $order->id)->where('description', 'like', self::NO_REPAIR_CONFIRMED.'%')->exists()) {
+            throw ValidationException::withMessages(['status' => 'La orden ya se confirmó sin reparación.']);
+        }
+
+        DB::transaction(function () use ($order, $head, $chargeInspection, $message) {
+            $order->forceFill(['charge_inspection' => $chargeInspection, 'updated_by' => $head->id])->save();
+            $fee = '$'.number_format((float) $this->settings->get('inspection_fee', 300), 2);
+            OrderLog::create([
+                'service_order_id' => $order->id,
+                'user_id' => $head->id,
+                'type' => 'note',
+                'description' => self::NO_REPAIR_CONFIRMED.($chargeInspection ? " · revisión de {$fee}" : ' · sin cobro de revisión')
+                    .(filled($message) ? '. '.trim($message) : '.'),
+                'visible_to_customer' => true,
+            ]);
+        });
+
+        $order = $order->fresh(['status', 'customer', 'device']);
+
+        $this->mailer->send(new OrderUpdateMail(
+            subjectLine: "Tu equipo está listo para recoger · Folio {$order->folio}",
+            customerName: $order->customer->name,
+            folio: $order->folio,
+            title: 'Tu equipo no tiene reparación',
+            body: filled($message) ? trim($message) : 'Revisamos tu equipo y no fue posible repararlo. Ya puedes pasar a recogerlo.',
+            details: [
+                'Equipo' => ServiceOrderService::deviceLabel($order->device),
+                'Costo de revisión' => $chargeInspection ? '$'.number_format((float) $this->settings->get('inspection_fee', 300), 2) : 'Sin costo',
+                'Horario' => (string) $this->settings->get('business_hours'),
+            ],
+            buttonText: 'Ver mi equipo',
+            portalUrl: config('app.portal_url'),
+        ), $order->customer, 'ready_for_pickup');
+
+        return $order;
+    }
+
+    /**
+     * J3.2 / J3.3 Regresar al técnico con una pregunta: el presupuesto por cotizar (inicial)
+     * o el reporte de sin reparación que el jefe todavía no confirma.
+     */
+    public function returnOrderToTechnician(ServiceOrder $order, User $head, string $reason): ServiceOrder
+    {
+        $draft = Quote::where('service_order_id', $order->id)->where('status', 'to_quote')->where('type', 'initial')->latest('id')->first();
+
+        if ($draft) {
+            $this->returnToTechnician($draft, $head, $reason);
+
+            return $order->fresh();
+        }
+
+        if ($order->status->code !== OrderStatus::NOT_REPAIRABLE
+            || OrderLog::where('service_order_id', $order->id)->where('description', 'like', self::NO_REPAIR_CONFIRMED.'%')->exists()) {
+            throw ValidationException::withMessages(['status' => 'La orden no tiene un diagnóstico por revisar.']);
+        }
+
+        DB::transaction(function () use ($order, $head, $reason) {
+            OrderStatusFlow::assert($order->status->code, OrderStatus::DIAGNOSING, $order->status->name);
+            $order->forceFill([
+                'status_id' => OrderStatus::idFor(OrderStatus::DIAGNOSING),
+                'no_repair_reason' => null,
+                'updated_by' => $head->id,
+            ])->save();
+            OrderLog::create([
+                'service_order_id' => $order->id,
+                'user_id' => $head->id,
+                'type' => 'note',
+                'description' => "Reporte de sin reparación regresado al técnico: {$reason}",
+                'visible_to_customer' => false,
+            ]);
+        });
+
+        return $order->fresh();
     }
 
     /** Paso 4 (J8): el jefe libera el equipo terminado → Listo para recoger + correo. */
@@ -313,7 +410,22 @@ class QuoteService
     /** @return array<string, mixed> */
     private function partRow(array $item, int $quantity, int $i): array
     {
-        $product = Product::where('is_active', true)->where('usable_in_workshop', true)->find($item['product_id'] ?? 0);
+        $query = Product::where('is_active', true)->where('usable_in_workshop', true);
+        $product = ! empty($item['product_id'])
+            ? $query->find($item['product_id'])
+            : (! empty($item['sku']) ? $query->where('sku', $item['sku'])->first() : null);
+
+        // Pieza que no está en el catálogo: se cotiza con lo que capturó el jefe
+        if (! $product && empty($item['product_id']) && filled($item['concept'] ?? null) && isset($item['unit_price'])) {
+            return [
+                'product_id' => null,
+                'labor_level_id' => null,
+                'concept' => $item['concept'],
+                'unit_cost' => null,
+                'unit_price' => round((float) $item['unit_price'], 2),
+                'out_of_stock' => true,
+            ];
+        }
 
         if (! $product) {
             throw ValidationException::withMessages(["items.{$i}.product_id" => 'La refacción no existe o no se usa en el taller.']);

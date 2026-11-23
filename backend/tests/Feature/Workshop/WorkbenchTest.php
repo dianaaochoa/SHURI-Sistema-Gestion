@@ -9,6 +9,7 @@ use App\Models\ServiceOrder;
 use App\Models\User;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -70,6 +71,57 @@ class WorkbenchTest extends TestCase
             'labor_level_id' => 3,
             'estimated_minutes' => 60,
         ];
+    }
+
+    public function test_technician_finishes_the_repair_and_the_order_is_ready(): void
+    {
+        Mail::fake();
+        $order = $this->order(OrderStatus::IN_REPAIR, attributes: ['customer_id' => Customer::factory()->create(['email' => 'ana@correo.com'])->id]);
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/start")->assertOk();
+
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/finish", ['work_done' => 'Cambio de puerto de carga', 'notes' => 'Tornillo extra'])
+            ->assertOk()
+            ->assertJsonPath('data.status.code', 'ready_for_pickup')
+            ->assertJsonPath('data.location', 'counter')
+            ->assertJsonPath('timer.running', false);
+
+        $this->assertDatabaseHas('order_logs', ['service_order_id' => $order->id, 'description' => 'Trabajo realizado: Cambio de puerto de carga', 'visible_to_customer' => true]);
+        $this->assertDatabaseHas('order_logs', ['service_order_id' => $order->id, 'description' => 'Tornillo extra', 'visible_to_customer' => false]);
+    }
+
+    public function test_only_orders_in_repair_can_be_finished(): void
+    {
+        $order = $this->order(OrderStatus::DIAGNOSING);
+
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/finish", ['work_done' => 'Listo'])
+            ->assertStatus(422)->assertJsonValidationErrors('status');
+    }
+
+    public function test_additional_damage_leaves_an_additional_quote_and_blocks_finishing(): void
+    {
+        $order = $this->order(OrderStatus::IN_REPAIR);
+
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/additional-damage", ['description' => 'Flex de pantalla roto', 'urgent' => true])
+            ->assertOk();
+
+        $this->assertDatabaseHas('quotes', ['service_order_id' => $order->id, 'type' => 'additional', 'status' => 'to_quote', 'is_urgent' => true]);
+
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/additional-damage", ['description' => 'Otro'])
+            ->assertStatus(422);
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/finish", ['work_done' => 'Listo'])
+            ->assertStatus(422)->assertJsonValidationErrors('status');
+    }
+
+    public function test_rejected_quote_device_is_returned_to_the_counter(): void
+    {
+        $order = $this->order(OrderStatus::QUOTE_REJECTED);
+
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/return-to-counter", ['notes' => 'Armado como llegó'])
+            ->assertOk()
+            ->assertJsonPath('data.location', 'counter');
+
+        $this->as($this->carlos, 'POST', "/api/v1/my/orders/{$order->folio}/return-to-counter")
+            ->assertStatus(422)->assertJsonValidationErrors('location');
     }
 
     public function test_technician_sees_only_his_own_orders(): void

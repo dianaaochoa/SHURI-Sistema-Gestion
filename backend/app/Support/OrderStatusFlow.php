@@ -22,7 +22,8 @@ final class OrderStatusFlow
         S::QUOTE_PENDING => [S::IN_REPAIR, S::QUOTE_REJECTED],
         S::IN_REPAIR => [S::QUOTE_PENDING, S::READY_FOR_PICKUP],
         S::QUOTE_REJECTED => [S::DELIVERED, S::ABANDONED],
-        S::NOT_REPAIRABLE => [S::DELIVERED, S::ABANDONED],
+        // El jefe puede regresar al técnico un "sin reparación" antes de confirmarlo (J3.3)
+        S::NOT_REPAIRABLE => [S::DELIVERED, S::ABANDONED, S::DIAGNOSING],
         S::READY_FOR_PICKUP => [S::DELIVERED, S::ABANDONED],
         S::ABANDONED => [S::DELIVERED, S::DISPOSED],
         S::DELIVERED => [],

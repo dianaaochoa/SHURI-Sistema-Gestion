@@ -3,11 +3,14 @@
 namespace App\Services\Workshop;
 
 use App\Models\LaborLevel;
+use App\Models\OrderLog;
 use App\Models\OrderStatus;
 use App\Models\OrderTimeLog;
+use App\Models\Quote;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use App\Repositories\Contracts\OrderRepositoryInterface;
+use App\Services\FolioService;
 use App\Support\OrderStatusFlow;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +26,7 @@ class WorkbenchService
     public function __construct(
         private readonly OrderRepositoryInterface $orders,
         private readonly QuoteService $quotes,
+        private readonly FolioService $folios,
     ) {}
 
     /** @param  array<string, mixed>  $filters */
@@ -143,6 +147,104 @@ class WorkbenchService
     }
 
     /**
+     * T3.4 Equipo reparado: el técnico registra el trabajo realizado y la orden pasa a
+     * Listo para recoger (el cliente recibe el correo y caja lo entrega en C6).
+     */
+    public function finish(ServiceOrder $order, User $technician, string $workDone, ?string $notes): ServiceOrder
+    {
+        if ($order->status->code !== OrderStatus::IN_REPAIR) {
+            throw ValidationException::withMessages(['status' => "La orden está «{$order->status->name}»: solo se marca lista una orden en reparación."]);
+        }
+        if ($order->is_paused) {
+            throw ValidationException::withMessages(['status' => 'La orden está en pausa. Reanúdala antes de marcarla lista.']);
+        }
+        if (Quote::where('service_order_id', $order->id)->whereIn('status', ['to_quote', 'pending'])->exists()) {
+            throw ValidationException::withMessages(['status' => 'Hay un presupuesto adicional sin resolver: espera la respuesta del cliente.']);
+        }
+
+        DB::transaction(function () use ($order, $technician, $workDone, $notes) {
+            $this->log($order, $technician, 'Trabajo realizado: '.trim($workDone), true);
+            if (filled($notes)) {
+                $this->log($order, $technician, trim($notes), false);
+            }
+            $order->forceFill(['location' => 'counter'])->save();
+            // release() cierra el cronómetro, cambia el estado y avisa al cliente por correo
+            $this->quotes->release($order, $technician);
+        });
+
+        return $this->orders->findByFolio($order->folio);
+    }
+
+    /**
+     * T3.5 Daño encontrado durante la reparación: deja un presupuesto adicional por cotizar
+     * para el jefe (J3.4). Lo ya autorizado se puede seguir trabajando.
+     */
+    public function reportAdditional(ServiceOrder $order, User $technician, string $description, bool $urgent): ServiceOrder
+    {
+        if ($order->status->code !== OrderStatus::IN_REPAIR) {
+            throw ValidationException::withMessages(['status' => 'Solo se reporta un daño adicional durante la reparación.']);
+        }
+        if (Quote::where('service_order_id', $order->id)->whereIn('status', ['to_quote', 'pending'])->exists()) {
+            throw ValidationException::withMessages(['status' => 'Ya hay un presupuesto adicional en curso para esta orden.']);
+        }
+
+        DB::transaction(function () use ($order, $technician, $description, $urgent) {
+            Quote::create([
+                'folio' => $this->folios->next('quote'),
+                'service_order_id' => $order->id,
+                'customer_id' => $order->customer_id,
+                'type' => 'additional',
+                'technician_id' => $technician->id,
+                'diagnosis' => trim($description),
+                'technician_notes' => trim($description),
+                'is_urgent' => $urgent,
+                'status' => 'to_quote',
+                'created_by' => $technician->id,
+            ]);
+            $this->log($order, $technician, 'Daño adicional reportado'.($urgent ? ' (urgente)' : '').': '.trim($description), false);
+        });
+
+        return $this->orders->findByFolio($order->folio);
+    }
+
+    /**
+     * T3.9 Presupuesto rechazado o sin reparación: el técnico arma el equipo como llegó
+     * y lo deja en mostrador para que caja lo entregue.
+     */
+    public function returnToCounter(ServiceOrder $order, User $technician, ?string $notes): ServiceOrder
+    {
+        if (! in_array($order->status->code, [OrderStatus::QUOTE_REJECTED, OrderStatus::NOT_REPAIRABLE], true)) {
+            throw ValidationException::withMessages(['status' => 'Solo se devuelve a caja un equipo sin reparación o con el presupuesto rechazado.']);
+        }
+        if ($order->location === 'counter') {
+            throw ValidationException::withMessages(['location' => 'El equipo ya está en mostrador.']);
+        }
+
+        DB::transaction(function () use ($order, $technician, $notes) {
+            $this->stopTimer($order);
+            $order->forceFill(['location' => 'counter', 'is_paused' => false, 'pause_reason' => null, 'updated_by' => $technician->id])->save();
+            $this->log($order, $technician, 'Equipo armado y devuelto a caja sin reparar.', true);
+            if (filled($notes)) {
+                $this->log($order, $technician, trim($notes), false);
+            }
+        });
+
+        return $this->orders->findByFolio($order->folio);
+    }
+
+    /** Renglón de la bitácora escrito por el técnico. */
+    private function log(ServiceOrder $order, User $technician, string $description, bool $visible): void
+    {
+        OrderLog::create([
+            'service_order_id' => $order->id,
+            'user_id' => $technician->id,
+            'type' => 'note',
+            'description' => $description,
+            'visible_to_customer' => $visible,
+        ]);
+    }
+
+    /**
      * Cronómetro de la orden para la respuesta (T3).
      *
      * @return array{running: bool, started_at: ?string, worked_minutes: int}
@@ -173,7 +275,7 @@ class WorkbenchService
             $action(ServiceOrder::with('status')->lockForUpdate()->findOrFail($order->id));
         });
 
-        return $order->fresh(['status', 'customer', 'device', 'technician', 'receivedBy']);
+        return $this->orders->findByFolio($order->folio);
     }
 
     /** Un técnico no trabaja dos órdenes a la vez (README §15.2, UNIQUE active_technician_id). */

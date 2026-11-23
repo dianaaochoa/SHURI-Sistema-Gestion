@@ -107,6 +107,46 @@ class QuoteController extends Controller
         ]);
     }
 
+    /** POST /service-orders/{folio}/confirm-no-repair — J3.3 confirmar sin reparación y si se cobra la revisión */
+    public function confirmNoRepair(Request $request, string $folio): JsonResponse
+    {
+        $data = $request->validate([
+            'charge_inspection' => ['required', 'boolean'],
+            'message' => ['nullable', 'string', 'max:1000'],
+        ], [], ['charge_inspection' => 'cobro de revisión', 'message' => 'mensaje para el cliente']);
+
+        $order = $this->orders->findByFolio($folio);
+
+        if (! $order) {
+            return response()->json(['message' => "No existe la orden {$folio}.", 'code' => 'NOT_FOUND'], 404);
+        }
+
+        $this->quotes->confirmNoRepair($order, $request->user(), (bool) $data['charge_inspection'], $data['message'] ?? null);
+
+        return response()->json([
+            'message' => "Orden {$folio} confirmada sin reparación. Se avisó al cliente.",
+            'data' => new ServiceOrderResource($this->orders->findByFolio($folio)),
+        ]);
+    }
+
+    /** POST /service-orders/{folio}/return-to-technician — J3.2 / J3.3 regresar con una pregunta */
+    public function returnOrder(Request $request, string $folio): JsonResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'max:255']], [], ['reason' => 'motivo']);
+        $order = $this->orders->findByFolio($folio);
+
+        if (! $order) {
+            return response()->json(['message' => "No existe la orden {$folio}.", 'code' => 'NOT_FOUND'], 404);
+        }
+
+        $this->quotes->returnOrderToTechnician($order, $request->user(), $data['reason']);
+
+        return response()->json([
+            'message' => 'Orden regresada al técnico.',
+            'data' => new ServiceOrderResource($this->orders->findByFolio($folio)),
+        ]);
+    }
+
     /** POST /service-orders/{folio}/release — J8 equipo terminado → Listo para recoger */
     public function release(Request $request, string $folio): JsonResponse
     {

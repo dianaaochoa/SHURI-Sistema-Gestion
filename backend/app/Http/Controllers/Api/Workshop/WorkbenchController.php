@@ -28,7 +28,7 @@ class WorkbenchController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'string', 'exists:order_statuses,code'],
             'active' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:500'],
         ]);
 
         return ServiceOrderResource::collection($this->workbench->myOrders($request->user(), $filters));
@@ -64,6 +64,36 @@ class WorkbenchController extends Controller
     public function diagnosis(DiagnosisRequest $request, string $folio): JsonResponse
     {
         return $this->withOrder($request, $folio, fn (ServiceOrder $order) => $this->workbench->diagnose($order, $request->user(), $request->validated()));
+    }
+
+    /** POST /my/orders/{folio}/finish — T3.4 equipo reparado → Listo para recoger */
+    public function finish(Request $request, string $folio): JsonResponse
+    {
+        $data = $request->validate([
+            'work_done' => ['required', 'string', 'max:1000'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ], [], ['work_done' => 'trabajo realizado', 'notes' => 'nota interna']);
+
+        return $this->withOrder($request, $folio, fn (ServiceOrder $order) => $this->workbench->finish($order, $request->user(), $data['work_done'], $data['notes'] ?? null));
+    }
+
+    /** POST /my/orders/{folio}/additional-damage — T3.5 daño encontrado al reparar */
+    public function additionalDamage(Request $request, string $folio): JsonResponse
+    {
+        $data = $request->validate([
+            'description' => ['required', 'string', 'max:1000'],
+            'urgent' => ['nullable', 'boolean'],
+        ], [], ['description' => 'descripción del daño', 'urgent' => 'urgente']);
+
+        return $this->withOrder($request, $folio, fn (ServiceOrder $order) => $this->workbench->reportAdditional($order, $request->user(), $data['description'], (bool) ($data['urgent'] ?? false)));
+    }
+
+    /** POST /my/orders/{folio}/return-to-counter — T3.9 armado y devuelto a caja sin reparar */
+    public function returnToCounter(Request $request, string $folio): JsonResponse
+    {
+        $data = $request->validate(['notes' => ['nullable', 'string', 'max:500']], [], ['notes' => 'nota']);
+
+        return $this->withOrder($request, $folio, fn (ServiceOrder $order) => $this->workbench->returnToCounter($order, $request->user(), $data['notes'] ?? null));
     }
 
     /** GET /labor-levels — catálogo para el diagnóstico y la cotización */
