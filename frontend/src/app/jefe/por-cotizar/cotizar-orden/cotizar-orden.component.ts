@@ -92,20 +92,33 @@ export class CotizarOrdenComponent implements OnInit {
     });
   }
 
+  /** Error de la API al enviar el presupuesto. */
+  protected readonly error = signal<string | null>(null);
+  protected readonly enviando = signal(false);
+
   protected enviar(datos: DatosEnvio): void {
     const o = this.orden();
     const conceptos = this.conceptos().map((c) => ({ ...c, descripcion: c.descripcion.trim() }));
-    let apartadas = 0;
-    for (const r of this.renglones()) {
-      if (r.existencia?.enStock && r.sku) {
-        this.inventario.apartar(r.sku, r.cantidad, o.folio);
-        apartadas += r.cantidad;
+    this.error.set(null);
+    this.enviando.set(true);
+    this.servicio.enviarPresupuesto(o.folio, { conceptos, ...datos, por: this.jefe }).subscribe((r) => {
+      this.enviando.set(false);
+      if (!r.ok) {
+        this.error.set(r.mensaje);
+        return;
       }
-    }
-    this.servicio.enviarPresupuesto(o.folio, { conceptos, ...datos, por: this.jefe });
-    const total = this.servicio.ordenes().find((x) => x.folio === o.folio)?.presupuesto?.total ?? 0;
-    const partes = [`Presupuesto de ${o.folio} por ${formatearDinero(total)} enviado al portal de ${o.cliente.nombre.split(' ')[0]}`, 'caja recibe el aviso'];
-    if (apartadas) partes.push(`${apartadas} ${apartadas === 1 ? 'pieza apartada' : 'piezas apartadas'}`);
-    this.enviado.emit(partes.join(' · '));
+      // Las piezas en existencia se apartan para esta orden (inventario local hasta el módulo de Inventario)
+      let apartadas = 0;
+      for (const ren of this.renglones()) {
+        if (ren.existencia?.enStock && ren.sku) {
+          this.inventario.apartar(ren.sku, ren.cantidad, o.folio);
+          apartadas += ren.cantidad;
+        }
+      }
+      const total = this.servicio.ordenes().find((x) => x.folio === o.folio)?.presupuesto?.total ?? 0;
+      const partes = [`Presupuesto de ${o.folio} por ${formatearDinero(total)} enviado al portal de ${o.cliente.nombre.split(' ')[0]}`, 'caja recibe el aviso'];
+      if (apartadas) partes.push(`${apartadas} ${apartadas === 1 ? 'pieza apartada' : 'piezas apartadas'}`);
+      this.enviado.emit(partes.join(' · '));
+    });
   }
 }

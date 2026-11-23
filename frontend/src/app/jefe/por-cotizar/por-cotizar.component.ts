@@ -171,9 +171,10 @@ export class PorCotizarComponent implements OnInit {
   protected regresar(pregunta: string): void {
     const o = this.regresando();
     if (!o) return;
-    this.servicio.regresarAlTecnico(o.folio, pregunta, this.jefe);
-    this.regresando.set(null);
-    this.cerrar(`${o.folio} regresó a ${o.tecnico.nombre} con tu pregunta · vuelve a “Diagnóstico” en el tablero`);
+    this.servicio.regresarAlTecnico(o.folio, pregunta, this.jefe).subscribe((r) => {
+      this.regresando.set(null);
+      this.cerrar(r.ok ? `${o.folio} regresó a ${o.tecnico.nombre} con tu pregunta · vuelve a “Diagnóstico” en el tablero` : `No se regresó ${o.folio}: ${r.mensaje}`);
+    });
   }
 }
 

@@ -43,7 +43,11 @@ export class PoliticaBodegaComponent {
 
   protected readonly dias = computed(() => diasDesde(this.orden().listaDesde ?? this.orden().recibido));
   protected readonly diasCobro = computed(() => Math.max(0, this.dias() - this.limite));
-  protected readonly monto = computed(() => this.diasCobro() * this.porDia);
+  /** El almacenaje que calcula el servidor (saldo de la orden) o, con datos de prueba, días × cuota. */
+  protected readonly monto = computed(() => {
+    const a = this.orden().almacenaje;
+    return a && !a.perdonado && a.monto > 0 ? a.monto : this.diasCobro() * this.porDia;
+  });
   protected readonly avisos = computed(() => avisosDe(this.orden()));
   protected readonly ultimo = computed(() => {
     const a = this.avisos().at(-1);
@@ -76,8 +80,9 @@ export class PoliticaBodegaComponent {
         break;
       default:
         // Se manda el monto para que quede cuánto se perdonó (bitácora AD8); caja no cobra nada.
-        this.servicio.aplicarAlmacenaje(o.folio, { dias: this.diasCobro(), monto: this.monto(), perdonar: true, por: this.jefe });
-        this.aplicada.emit(`${o.folio}: almacenaje perdonado; queda registrado a tu nombre`);
+        this.servicio.aplicarAlmacenaje(o.folio, { dias: this.diasCobro(), monto: this.monto(), perdonar: true, por: this.jefe }).subscribe((r) =>
+          this.aplicada.emit(r.ok ? `${o.folio}: almacenaje perdonado; queda registrado a tu nombre` : `${o.folio}: no se perdonó el almacenaje · ${r.mensaje}`),
+        );
     }
   }
 }

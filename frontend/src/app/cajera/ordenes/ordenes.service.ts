@@ -6,7 +6,7 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from '../../acceso/auth.service';
 import { mensajeDeError } from '../../api/errores-api';
 import { CorreosService } from '../../compartido/correos.service';
-import { ExtrasLocales, OrdenApi, folioParaApi, ordenDeApi } from './ordenes.api';
+import { ExtrasLocales, NIVELES_MANO_OBRA, OrdenApi, POR_ASIGNAR, folioParaApi, ordenDeApi, tecnicoDeApi } from './ordenes.api';
 import type { CORREOS } from '../../compartido/correos';
 import type { FotoOrden } from '../../compartido/fotos-orden/fotos-orden.component';
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
@@ -139,7 +139,7 @@ export interface Orden {
   /** ISO: cuándo rechazó el presupuesto (C6.2). */
   rechazo?: string;
   /** Reingreso en garantía (C4.5 → J4 → C6.3). Sin `recibio` = la pidió el cliente desde el portal. */
-  garantia?: { recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string; reporte?: ReporteGarantia; decision?: DecisionGarantia };
+  garantia?: { folio?: string; estadoApi?: string; recibida: string; falla: string; dictamen: string; resolucion: string; condicion?: string; recibio?: string; reporte?: ReporteGarantia; decision?: DecisionGarantia };
   /** Lo que se capturó en la recepción (C5.1); lo usan la orden impresa y sus comprobantes (C11). */
   ficha?: FichaRecepcion;
   /** Fotos del equipo al recibirlo (C5.1 / C4); las ven el técnico, el jefe y el cliente (P2.1). */
@@ -167,6 +167,12 @@ export interface Orden {
   bodega?: { ubicacion: string; estante: string; enviado: string; por: string };
   /** ISO: el técnico armó el equipo con presupuesto rechazado y lo devolvió a caja (T3.9). */
   devueltoACaja?: string;
+  /** Folio del último presupuesto en la API (COT-2026-00012): lo usa el jefe para cotizar (J3). */
+  presupuestoFolio?: string;
+  /** Lo que la API cobrará al entregar (balance.amount_due, con almacenaje y menos el anticipo). */
+  porCobrar?: number;
+  /** Cronómetro del banco que lleva la API (T3): minutos cerrados y, si corre, desde cuándo. */
+  cronometro?: { corriendo: boolean; desde?: string; minutos: number };
   historial: Evento[];
   /** Avisos y recordatorios al cliente (C4.6 "Intentos de contacto"). */
   contactos: Evento[];
@@ -217,8 +223,8 @@ export interface FichaRecepcion {
   pin?: string;
 }
 
-/** Técnico de una orden recién recibida: la asigna el jefe de taller (C5.3). */
-export const POR_ASIGNAR: Tecnico = { iniciales: '—', nombre: 'Por asignar (jefe de taller)' };
+/** Técnico de una orden recién recibida: la asigna el jefe de taller (C5.3). Vive en ordenes.api para que las órdenes de la API usen el mismo objeto. */
+export { POR_ASIGNAR };
 
 /** Datos que captura la recepción de taller (C5.1). */
 export interface NuevaOrden {
@@ -299,6 +305,8 @@ export function etiquetaEstado(orden: Orden): string {
 
 /** Lo que falta por cobrar al entregar: presupuesto (y adicional aprobado) menos anticipo. */
 export function saldo(orden: Orden): number {
+  // Con la API, el saldo es el que calcula el servidor (el mismo que cobra al entregar)
+  if (orden.porCobrar !== undefined) return orden.porCobrar;
   // Almacenaje de la política de bodega (J8.2): se suma a lo que falta cobrar al entregar.
   const almacenaje = ENTREGABLES.includes(orden.estado) ? (orden.almacenaje?.monto ?? 0) : 0;
   if (orden.estado === 'sin-reparacion' && orden.revision?.cobrar) return redondear(Math.max(0, orden.revision.monto - orden.anticipo) + almacenaje);
@@ -839,12 +847,49 @@ function ordenesDemo(): Orden[] {
 
 const ahoraIso = () => new Date().toISOString();
 
+/**
+ * Conceptos del jefe (J3.2, J3.4) → renglones de POST /quotes/{folio}/send.
+ * Refacción: por SKU (si no está en el catálogo, con la descripción y el precio capturados).
+ * Mano de obra: el nivel del tabulador ("nivel medio"); la adicional va como concepto con su precio.
+ */
+function itemsDeConceptos(conceptos: Concepto[]): object[] {
+  const niveles = Object.fromEntries(Object.entries(NIVELES_MANO_OBRA).map(([id, nombre]) => [nombre, Number(id)]));
+  return conceptos.map((c) => {
+    const concepto = c.descripcion.trim().slice(0, 150);
+    if (c.tipo === 'refaccion' && c.sku) return { type: 'part', sku: c.sku, concept: concepto, unit_price: c.precio, quantity: c.cantidad };
+    if (c.tipo === 'mano-obra') {
+      const nivel = /nivel (\p{L}+)/u.exec(`${c.descripcion} ${c.detalle ?? ''}`.toLowerCase())?.[1];
+      if (nivel && niveles[nivel]) return { type: 'labor', labor_level_id: niveles[nivel] };
+    }
+    return { type: 'other', concept: concepto || 'Concepto', unit_price: c.precio, quantity: c.cantidad };
+  });
+}
+
+/** "1 h 30 min" → 90, "45 min" → 45, "2 h" → 120 (lo que captura el técnico en T3.1). */
+function minutosDe(texto: string): number {
+  const h = /(\d+)\s*h/.exec(texto)?.[1];
+  const m = /(\d+)\s*min/.exec(texto)?.[1];
+  const total = Number(h ?? 0) * 60 + Number(m ?? 0);
+  return total || 60;
+}
+
 /** Resultado de una acción que va a la API. */
 export type ResultadoOrden = { ok: true; orden?: Orden; mensaje: string } | { ok: false; mensaje: string };
 
 /** Permisos con los que la API deja ver las órdenes (GET /service-orders). */
 const PERMISOS_ORDENES = ['orders.receive', 'orders.deliver', 'orders.assign', 'orders.quote'];
 const METODO_API: Record<string, 'cash' | 'card' | 'transfer'> = { efectivo: 'cash', tarjeta: 'card', transferencia: 'transfer' };
+const PRIORIDAD_API: Record<Prioridad, 'normal' | 'high' | 'urgent'> = { normal: 'normal', alta: 'high', urgente: 'urgent' };
+/** Técnicos de prueba (copia: TECNICOS se reemplaza por los de la API al iniciar sesión el jefe). */
+const TECNICOS_DEMO: Tecnico[] = [...TECNICOS];
+
+/** Técnico como lo responde GET /technicians (el menos ocupado primero). */
+interface TecnicoApi {
+  id: number;
+  name: string;
+  specialty: string | null;
+  active_orders: number;
+}
 
 /**
  * Órdenes de servicio (C4, J2, T2). Con una sesión del personal que puede verlas, la lista sale
@@ -865,27 +910,57 @@ export class OrdenesService {
   private readonly extras = new Map<string, ExtrasLocales>();
   /** true cuando la lista viene de la API. */
   private readonly desdeApi = signal(false);
+  /** La lee el banco del técnico para usar el cronómetro del servidor. */
+  readonly conApi = this.desdeApi.asReadonly();
+  /** De dónde salen las órdenes: todas (mostrador y jefe) o solo las del técnico. */
+  private fuente: 'service-orders' | 'my/orders' = 'service-orders';
+
+  /** Técnicos activos (J2.2, J7): los de la API para el jefe; los de prueba si no hay sesión. */
+  readonly tecnicos = signal<Tecnico[]>(TECNICOS_DEMO);
 
   constructor() {
     effect(() => {
       const sesion = this.auth.sesion();
       untracked(() => {
-        if ((sesion?.permisos ?? []).some((p) => PERMISOS_ORDENES.includes(p))) {
+        const permisos = sesion?.permisos ?? [];
+        if (permisos.some((p) => PERMISOS_ORDENES.includes(p))) {
+          this.fuente = 'service-orders';
+          this.cargar();
+          if (permisos.includes('orders.assign')) this.cargarTecnicos();
+        } else if (permisos.includes('orders.repair') && sesion) {
+          // El técnico solo ve sus órdenes asignadas (GET /my/orders)
+          this.fuente = 'my/orders';
+          this.ponerTecnicos([{ id: Number(sesion.id), ...tecnicoDeApi({ id: Number(sesion.id), name: sesion.nombre }) }]);
           this.cargar();
         } else if (this.desdeApi()) {
           // Al cerrar sesión no se quedan órdenes reales en memoria
           this.desdeApi.set(false);
           this.extras.clear();
           this.ordenes.set(ordenesDemo());
+          this.ponerTecnicos(TECNICOS_DEMO);
         }
       });
     });
   }
 
+  /** GET /technicians: el menos ocupado primero, con su especialidad. */
+  cargarTecnicos(): void {
+    this.http.get<{ data: TecnicoApi[] }>(`${this.api}/technicians`).subscribe({
+      next: (r) => this.ponerTecnicos(r.data.map((t) => ({ ...tecnicoDeApi(t), especialidad: t.specialty ?? undefined }))),
+      error: () => undefined,
+    });
+  }
+
+  /** También actualiza TECNICOS, que leen las pantallas que todavía no son reactivas. */
+  private ponerTecnicos(lista: Tecnico[]): void {
+    TECNICOS.splice(0, TECNICOS.length, ...lista);
+    this.tecnicos.set([...lista]);
+  }
+
   /** Recarga todas las órdenes desde la API, conservando lo que solo vive en el navegador. */
   cargar(): void {
     this.cargando.set(true);
-    this.http.get<{ data: OrdenApi[] }>(`${this.api}/service-orders`, { params: { per_page: 500 } }).subscribe({
+    this.http.get<{ data: OrdenApi[] }>(`${this.api}/${this.fuente}`, { params: { per_page: 500 } }).subscribe({
       next: (r) => {
         this.guardarExtras();
         this.ordenes.set(r.data.map((o) => ordenDeApi(o, this.extras.get(`#${o.folio}`))));
@@ -902,7 +977,7 @@ export class OrdenesService {
 
   /** Recarga una sola orden (después de una acción). */
   private recargar(folio: string): Observable<Orden | undefined> {
-    return this.http.get<{ data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}`).pipe(
+    return this.http.get<{ data: OrdenApi }>(`${this.api}/${this.fuente}/${folioParaApi(folio)}`).pipe(
       map((r) => this.reemplazar(r.data)),
       catchError(() => of(undefined)),
     );
@@ -923,9 +998,9 @@ export class OrdenesService {
   }
 
   /** Dispara la petición aunque nadie se suscriba y comparte el resultado. */
-  private enviar(peticion: Observable<ResultadoOrden>): Observable<ResultadoOrden> {
+  private enviar<T extends ResultadoOrden>(peticion: Observable<T>): Observable<T | { ok: false; mensaje: string }> {
     const resultado = peticion.pipe(
-      catchError((e) => of<ResultadoOrden>({ ok: false, mensaje: mensajeDeError(e) })),
+      catchError((e) => of({ ok: false as const, mensaje: mensajeDeError(e) })),
       shareReplay(1),
     );
     resultado.subscribe();
@@ -1241,6 +1316,45 @@ export class OrdenesService {
   }
 
   /**
+   * C6 con la API. Una orden lista o sin reparación se cobra y entrega con POST /sales
+   * (renglón service_order; el servidor cobra su saldo con almacenaje y menos el anticipo).
+   * Una garantía con costo extra aceptado también se cobra ahí (renglón warranty); sin costo,
+   * solo se entrega (POST /warranties/{folio}/deliver). Responde el folio de la venta y lo cobrado.
+   */
+  entregarEnApi(folio: string, datos: { recoge: string; metodo: 'efectivo' | 'tarjeta' | 'transferencia' }): Observable<ResultadoOrden & { venta?: string; cobrado?: number }> {
+    const o = this.ordenes().find((x) => x.folio === folio);
+    if (!o) return of({ ok: false, mensaje: `No existe la orden ${folio}.` });
+    const metodo = { efectivo: 'cash', tarjeta: 'card', transferencia: 'transfer' }[datos.metodo];
+    type Venta = { message: string; data: { folio: string; total: number } };
+
+    let peticion: Observable<{ venta?: string; cobrado: number }>;
+    if (o.estado === 'garantia-lista') {
+      const w = o.garantia;
+      if (!w?.folio) return of({ ok: false, mensaje: 'La orden no tiene una garantía por entregar.' });
+      const conCosto = w.estadoApi === 'finished' && w.decision?.tipo === 'con-costo' && w.decision.respuesta?.acepta && (w.decision.costo ?? 0) > 0;
+      peticion = conCosto
+        ? this.http.post<Venta>(`${this.api}/sales`, { items: [{ type: 'warranty', folio: w.folio }], payments: [{ method: metodo }] }).pipe(map((r) => ({ venta: r.data.folio, cobrado: r.data.total })))
+        : this.http.post(`${this.api}/warranties/${w.folio}/deliver`, {}).pipe(map(() => ({ cobrado: 0 })));
+    } else {
+      const cobrar = saldo(o);
+      peticion = this.http
+        .post<Venta>(`${this.api}/sales`, {
+          customer_id: o.clienteId ?? null,
+          items: [{ type: 'service_order', folio: folioParaApi(folio), picked_up_by_name: datos.recoge.trim().slice(0, 150) || null }],
+          // Sin saldo (cubierto con el anticipo) la venta va sin pagos
+          payments: cobrar > 0 ? [{ method: metodo }] : [],
+        })
+        .pipe(map((r) => ({ venta: r.data.folio, cobrado: r.data.total })));
+    }
+
+    return this.enviar(
+      peticion.pipe(
+        switchMap((r) => this.recargar(folio).pipe(map((orden) => ({ ok: true as const, orden, mensaje: '', venta: r.venta, cobrado: r.cobrado })))),
+      ),
+    );
+  }
+
+  /**
    * C6: entrega el equipo. Normal → "Terminado" con garantía desde hoy; sin reparar → "Entregado sin reparar";
    * tras garantía → vuelve a "Terminado" sin reiniciar la garantía original.
    */
@@ -1292,26 +1406,87 @@ export class OrdenesService {
   }
 
   /** J2.2 · Asignar o reasignar técnico (el técnico recibe el aviso en su Inicio). */
-  asignar(folio: string, datos: { tecnico: Tecnico; prioridad: Prioridad; prometida: string; nota: string; por: string }): void {
-    this.actualizar(folio, (o) => {
-      const reasigna = o.tecnico !== POR_ASIGNAR && o.tecnico.iniciales !== datos.tecnico.iniciales;
-      const texto = `${reasigna ? 'Reasignada' : 'Asignada'} a ${datos.tecnico.nombre} por ${datos.por}`;
-      const notas = datos.nota.trim() ? [...(o.notas ?? []), { fecha: ahoraIso(), texto: `${datos.por}: ${datos.nota.trim()}` }] : o.notas;
-      return { ...o, tecnico: datos.tecnico, prioridad: datos.prioridad, prometida: datos.prometida, notas, historial: [...o.historial, { fecha: ahoraIso(), texto }] };
-    });
+  /**
+   * J2.2 · Asigna (o reasigna) la orden → POST /service-orders/{folio}/assign con prioridad,
+   * fecha prometida y nota interna. Con datos de prueba se hace en memoria.
+   */
+  asignar(folio: string, datos: { tecnico: Tecnico; prioridad: Prioridad; prometida: string; nota: string; por: string }): Observable<ResultadoOrden> {
+    if (!this.desdeApi()) {
+      this.actualizar(folio, (o) => {
+        const reasigna = o.tecnico !== POR_ASIGNAR && o.tecnico.iniciales !== datos.tecnico.iniciales;
+        const texto = `${reasigna ? 'Reasignada' : 'Asignada'} a ${datos.tecnico.nombre} por ${datos.por}`;
+        const notas = datos.nota.trim() ? [...(o.notas ?? []), { fecha: ahoraIso(), texto: `${datos.por}: ${datos.nota.trim()}` }] : o.notas;
+        return { ...o, tecnico: datos.tecnico, prioridad: datos.prioridad, prometida: datos.prometida, notas, historial: [...o.historial, { fecha: ahoraIso(), texto }] };
+      });
+      return of({ ok: true, mensaje: '' });
+    }
+    if (!datos.tecnico.id) return of({ ok: false, mensaje: 'Elige un técnico de la lista.' });
+    const prometida = datos.prometida ? datos.prometida.slice(0, 10) : null;
+    return this.enviar(
+      this.http
+        .post<{ message: string; data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}/assign`, {
+          technician_id: datos.tecnico.id,
+          priority: PRIORIDAD_API[datos.prioridad],
+          // La API no acepta fechas pasadas: la prometida vencida no se manda
+          promised_date: prometida && prometida >= new Date().toISOString().slice(0, 10) ? prometida : null,
+          notes: datos.nota.trim() || null,
+        })
+        .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: r.message }))),
+    );
   }
 
-  cambiarPrioridad(folio: string, prioridad: Prioridad, por: string): void {
-    this.actualizar(folio, (o) => ({ ...o, prioridad, historial: [...o.historial, { fecha: ahoraIso(), texto: `Prioridad ${PRIORIDADES[prioridad].texto.toLowerCase()} (${por})` }] }));
+  /** J2.3 · Cambia la prioridad → POST /service-orders/{folio}/priority. */
+  cambiarPrioridad(folio: string, prioridad: Prioridad, por: string): Observable<ResultadoOrden> {
+    if (!this.desdeApi()) {
+      this.actualizar(folio, (o) => ({ ...o, prioridad, historial: [...o.historial, { fecha: ahoraIso(), texto: `Prioridad ${PRIORIDADES[prioridad].texto.toLowerCase()} (${por})` }] }));
+      return of({ ok: true, mensaje: '' });
+    }
+    return this.enviar(
+      this.http
+        .post<{ message: string; data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}/priority`, { priority: PRIORIDAD_API[prioridad] })
+        .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: r.message }))),
+    );
   }
 
-  /** Nota interna del jefe o del técnico (J2.3). */
-  agregarNota(folio: string, texto: string, por: string): void {
-    this.actualizar(folio, (o) => ({ ...o, notas: [...(o.notas ?? []), { fecha: ahoraIso(), texto: `${por}: ${texto.trim()}` }] }));
+  /** Nota interna del jefe o del técnico (J2.3, T3) → POST /service-orders/{folio}/notes. */
+  agregarNota(folio: string, texto: string, por: string): Observable<ResultadoOrden> {
+    if (!this.desdeApi()) {
+      this.actualizar(folio, (o) => ({ ...o, notas: [...(o.notas ?? []), { fecha: ahoraIso(), texto: `${por}: ${texto.trim()}` }] }));
+      return of({ ok: true, mensaje: '' });
+    }
+    return this.enviar(
+      this.http
+        .post<{ message: string; data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}/notes`, { note: texto.trim() })
+        .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: r.message }))),
+    );
   }
 
-  /** J3.2 · Envía el presupuesto al portal (P2.4); la orden queda "Por aprobar". */
-  enviarPresupuesto(folio: string, datos: { conceptos: Concepto[]; descuento: number; mensaje: string; vigenciaDias: number; entrega: string; por: string }): void {
+  /** POST /quotes/{folio}/send con los conceptos del jefe; responde la orden ya recargada. */
+  private enviarCotizacion(orden: Orden, cuerpo: object): Observable<ResultadoOrden> {
+    if (!orden.presupuestoFolio) return of({ ok: false, mensaje: 'La orden no tiene un presupuesto por cotizar.' });
+    return this.enviar(
+      this.http.post<{ message: string }>(`${this.api}/quotes/${orden.presupuestoFolio}/send`, cuerpo).pipe(
+        switchMap((r) => this.recargar(orden.folio).pipe(map((o) => ({ ok: true as const, orden: o, mensaje: r.message })))),
+      ),
+    );
+  }
+
+  /**
+   * J3.2 · Envía el presupuesto al portal (P2.4); la orden queda "Por aprobar".
+   * En la API → POST /quotes/{folio}/send (el servidor manda el correo al cliente).
+   */
+  enviarPresupuesto(folio: string, datos: { conceptos: Concepto[]; descuento: number; mensaje: string; vigenciaDias: number; entrega: string; por: string }): Observable<ResultadoOrden> {
+    const orden = this.ordenes().find((o) => o.folio === folio);
+    if (this.desdeApi() && orden) {
+      const entrega = datos.entrega ? datos.entrega.slice(0, 10) : null;
+      return this.enviarCotizacion(orden, {
+        items: itemsDeConceptos(datos.conceptos),
+        discount: datos.descuento || 0,
+        customer_note: datos.mensaje.trim() || null,
+        valid_days: datos.vigenciaDias,
+        estimated_delivery_date: entrega && entrega >= new Date().toISOString().slice(0, 10) ? entrega : null,
+      });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => {
       const refaccionesPublico = importeConceptos(datos.conceptos.filter((c) => c.tipo !== 'mano-obra'));
@@ -1339,10 +1514,18 @@ export class OrdenesService {
     this.correo(folio, (o, CORREOS) =>
       CORREOS.cotizacion({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, descripcion: o.presupuesto?.descripcion ?? '', total: o.presupuesto?.total ?? 0, anticipo: o.anticipo }),
     );
+    return of({ ok: true, mensaje: '' });
   }
 
   /** J3.2 / J3.3 · La orden vuelve al técnico con una pregunta: regresa a "Diagnóstico" en el tablero. */
-  regresarAlTecnico(folio: string, pregunta: string, por: string): void {
+  regresarAlTecnico(folio: string, pregunta: string, por: string): Observable<ResultadoOrden> {
+    if (this.desdeApi()) {
+      return this.enviar(
+        this.http
+          .post<{ message: string; data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}/return-to-technician`, { reason: pregunta.trim().slice(0, 255) })
+          .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: r.message }))),
+      );
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
@@ -1351,10 +1534,21 @@ export class OrdenesService {
       notas: [...(o.notas ?? []), { fecha: ahora, texto: `${por}: ${pregunta.trim()}` }],
       historial: [...o.historial, { fecha: ahora, texto: `Regresada a ${o.tecnico.nombre} con dudas (${por})` }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
-  /** J3.3 · Confirma que el equipo no tiene reparación: pasa a entrega sin reparar (C6.2). */
-  confirmarSinReparacion(folio: string, datos: { mensaje: string; cobrar: boolean; monto: number; por: string }): void {
+  /**
+   * J3.3 · Confirma que el equipo no tiene reparación: pasa a entrega sin reparar (C6.2).
+   * En la API → POST /service-orders/{folio}/confirm-no-repair; el monto de la revisión es el de Configuración.
+   */
+  confirmarSinReparacion(folio: string, datos: { mensaje: string; cobrar: boolean; monto: number; por: string }): Observable<ResultadoOrden> {
+    if (this.desdeApi()) {
+      return this.enviar(
+        this.http
+          .post<{ message: string; data: OrdenApi }>(`${this.api}/service-orders/${folioParaApi(folio)}/confirm-no-repair`, { charge_inspection: datos.cobrar, message: datos.mensaje.trim() || null })
+          .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: r.message }))),
+      );
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
@@ -1369,10 +1563,13 @@ export class OrdenesService {
       ],
       contactos: [...o.contactos, { fecha: ahora, texto: 'Aviso para recoger en el portal' }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
-  /** J3.4 · Envía al portal solo lo nuevo; lo autorizado sigue en curso. */
-  enviarRecotizacion(folio: string, conceptos: Concepto[], por: string): void {
+  /** J3.4 · Envía al portal solo lo nuevo; lo autorizado sigue en curso (POST /quotes/{folio}/send del adicional). */
+  enviarRecotizacion(folio: string, conceptos: Concepto[], por: string): Observable<ResultadoOrden> {
+    const orden = this.ordenes().find((o) => o.folio === folio);
+    if (this.desdeApi() && orden) return this.enviarCotizacion(orden, { items: itemsDeConceptos(conceptos) });
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => {
       const monto = importeConceptos(conceptos);
@@ -1385,6 +1582,7 @@ export class OrdenesService {
         contactos: [...o.contactos, { fecha: ahora, texto: 'Re-cotización publicada en el portal' }],
       };
     });
+    return of({ ok: true, mensaje: '' });
   }
 
   /**
@@ -1436,8 +1634,36 @@ export class OrdenesService {
 
   // ---------- Banco de trabajo del técnico (T3) ----------
 
+  /** POST /my/orders/{folio}/{accion}: el técnico solo actúa sobre sus órdenes; responde la orden actualizada. */
+  private accionBanco(folio: string, accion: string, cuerpo: object = {}): Observable<ResultadoOrden> {
+    return this.enviar(
+      this.http
+        .post<{ data: OrdenApi }>(`${this.api}/my/orders/${folioParaApi(folio)}/${accion}`, cuerpo)
+        .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: '' }))),
+    );
+  }
+
+  /** T3 · "Iniciar": la primera vez pasa a diagnóstico; arranca el cronómetro del servidor. */
+  iniciarTrabajo(folio: string): Observable<ResultadoOrden> {
+    return this.accionBanco(folio, 'start');
+  }
+
   /** T3.1 · El técnico envía su diagnóstico y la propuesta: la orden pasa a "Por cotizar" en el tablero del jefe (J3). */
-  enviarDiagnostico(folio: string, d: { texto: string; resumen: string; causa: string; dificultad: string; tiempo: string; nota: string; conceptos: Concepto[]; por: string }): void {
+  enviarDiagnostico(folio: string, d: { texto: string; resumen: string; causa: string; dificultad: string; tiempo: string; nota: string; conceptos: Concepto[]; por: string }): Observable<ResultadoOrden> {
+    if (this.desdeApi()) {
+      // La propuesta de piezas y la nota viajan en el diagnóstico para que el jefe las vea al cotizar
+      const piezas = d.conceptos.filter((c) => c.tipo === 'refaccion').map((c) => `${c.cantidad} × ${c.descripcion}`);
+      const texto = [d.texto.trim(), piezas.length ? `Propuesta: ${piezas.join(', ')}` : '', d.nota.trim() ? `Nota: ${d.nota.trim()}` : ''].filter(Boolean).join('\n');
+      const minutos = minutosDe(d.tiempo);
+      return this.accionBanco(folio, 'diagnosis', {
+        outcome: 'repairable',
+        diagnosis: texto.slice(0, 2000),
+        failure_cause: d.causa ? d.causa.charAt(0).toUpperCase() + d.causa.slice(1, 120) : null,
+        // Niveles del catálogo: 2 Bajo (≤ 1 h), 3 Medio (≤ 1 h 30), 4 Alto
+        labor_level_id: minutos <= 60 ? 2 : minutos <= 90 ? 3 : 4,
+        estimated_minutes: Math.max(5, Math.min(2880, minutos)),
+      });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
@@ -1445,10 +1671,14 @@ export class OrdenesService {
       diagnostico: { fecha: ahora, texto: d.texto.trim(), resumen: d.resumen, causa: d.causa, dificultad: d.dificultad, nota: d.nota.trim() || undefined, conceptos: d.conceptos },
       historial: [...o.historial, { fecha: ahora, texto: `Diagnóstico enviado al jefe por ${d.por} (${d.tiempo})` }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
-  /** T3.7 · El técnico reporta que no tiene reparación; el jefe lo confirma en J3.3. */
-  reportarSinReparacion(folio: string, motivo: string, texto: string, por: string): void {
+  /** T3.7 · El técnico reporta que no tiene reparación (en la API queda "Sin reparación" y lo ve el jefe). */
+  reportarSinReparacion(folio: string, motivo: string, texto: string, por: string): Observable<ResultadoOrden> {
+    if (this.desdeApi()) {
+      return this.accionBanco(folio, 'diagnosis', { outcome: 'not_repairable', diagnosis: (texto.trim() || motivo).slice(0, 2000), no_repair_reason: motivo.slice(0, 255) });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
@@ -1456,20 +1686,29 @@ export class OrdenesService {
       sinReparacion: { fecha: ahora, motivo, texto: texto.trim() },
       historial: [...o.historial, { fecha: ahora, texto: `${por} reportó que no tiene reparación: ${motivo.toLowerCase()}` }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
   /** T3.5 · Daño encontrado al reparar; el jefe lo re-cotiza en J3.4. Lo ya autorizado se puede terminar. */
-  reportarDanoAdicional(folio: string, texto: string, urgente: boolean, conceptos: Concepto[], por: string): void {
+  reportarDanoAdicional(folio: string, texto: string, urgente: boolean, conceptos: Concepto[], por: string): Observable<ResultadoOrden> {
+    if (this.desdeApi()) {
+      const piezas = conceptos.map((c) => `${c.cantidad} × ${c.descripcion}`);
+      return this.accionBanco(folio, 'additional-damage', { description: [texto.trim(), piezas.length ? `Propuesta: ${piezas.join(', ')}` : ''].filter(Boolean).join('\n').slice(0, 1000), urgent: urgente });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
       danoAdicional: { fecha: ahora, texto: texto.trim(), urgente, conceptos },
       historial: [...o.historial, { fecha: ahora, texto: `${por} reportó daño adicional${urgente ? ' (urgente)' : ''}: ${texto.trim()}` }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
   /** T3.6 / T3.8 · Pausa la orden con su motivo; "Esperando refacción" la deja en esa columna del tablero. */
-  pausar(folio: string, motivo: string, detalle: string, por: string): void {
+  pausar(folio: string, motivo: string, detalle: string, por: string): Observable<ResultadoOrden> {
+    if (this.desdeApi()) {
+      return this.accionBanco(folio, 'pause', { reason: `${motivo}${detalle.trim() ? `: ${detalle.trim()}` : ''}`.slice(0, 255) });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
@@ -1477,19 +1716,30 @@ export class OrdenesService {
       pausa: { desde: ahora, motivo, detalle: detalle.trim() },
       historial: [...o.historial, { fecha: ahora, texto: `En pausa (${por}): ${motivo.toLowerCase()}${detalle.trim() ? ` · ${detalle.trim()}` : ''}` }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
-  /** El técnico retoma la orden pausada. */
-  reanudar(folio: string, por: string): void {
+  /** El técnico retoma la orden pausada (en la API también vuelve a correr el cronómetro). */
+  reanudar(folio: string, por: string): Observable<ResultadoOrden> {
+    if (this.desdeApi()) return this.accionBanco(folio, 'resume');
     this.actualizar(folio, (o) =>
       o.pausa || o.estado === 'esperando-refaccion'
         ? { ...o, estado: o.estado === 'esperando-refaccion' ? 'en-taller' : o.estado, pausa: undefined, historial: [...o.historial, { fecha: ahoraIso(), texto: `Reanudada por ${por}` }] }
         : o,
     );
+    return of({ ok: true, mensaje: '' });
   }
 
-  /** T3.4 · Equipo listo: el cliente recibe el aviso en su portal y caja lo entrega (C6). En garantía queda "Garantía lista". */
-  marcarLista(folio: string, d: { realizado: string; notaInterna: string; tiempo: string; por: string }): void {
+  /**
+   * T3.4 · Equipo listo: el cliente recibe el aviso en su portal y caja lo entrega (C6).
+   * En la API → POST /my/orders/{folio}/finish (el servidor manda el correo). Las garantías
+   * siguen en memoria hasta conectar su módulo.
+   */
+  marcarLista(folio: string, d: { realizado: string; notaInterna: string; tiempo: string; por: string }): Observable<ResultadoOrden> {
+    const actual = this.ordenes().find((o) => o.folio === folio);
+    if (this.desdeApi() && actual?.estado !== 'en-garantia') {
+      return this.accionBanco(folio, 'finish', { work_done: d.realizado.trim() || 'Reparación terminada', notes: d.notaInterna.trim() || null });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => {
       const garantia = o.estado === 'en-garantia';
@@ -1507,6 +1757,7 @@ export class OrdenesService {
       };
     });
     this.correo(folio, (o, CORREOS) => CORREOS.listo({ para: o.cliente.correo!, nombre: o.cliente.nombre, folio, equipo: o.equipo, restante: saldo(o), limite: this.limiteRecoger(o) }));
+    return of({ ok: true, mensaje: '' });
   }
 
   /** T4.2 · El técnico revisa la garantía y manda su reporte; el jefe da el dictamen (J4.2). */
@@ -1523,8 +1774,9 @@ export class OrdenesService {
     );
   }
 
-  /** T3.9 · Presupuesto rechazado: el técnico arma el equipo como llegó y lo devuelve a caja. */
-  devolverACaja(folio: string, nota: string, por: string): void {
+  /** T3.9 · Presupuesto rechazado: el técnico arma el equipo como llegó y lo devuelve a caja → POST /my/orders/{folio}/return-to-counter. */
+  devolverACaja(folio: string, nota: string, por: string): Observable<ResultadoOrden> {
+    if (this.desdeApi()) return this.accionBanco(folio, 'return-to-counter', { notes: nota.trim() || null });
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => ({
       ...o,
@@ -1532,10 +1784,21 @@ export class OrdenesService {
       notas: nota.trim() ? [...(o.notas ?? []), { fecha: ahora, texto: `${por}: ${nota.trim()}` }] : o.notas,
       historial: [...o.historial, { fecha: ahora, texto: `Armado y devuelto a caja sin reparar por ${por}` }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
   /** J8.2 · Política de bodega: cobrar almacenaje al entregar o perdonarlo (queda con el nombre del jefe). */
-  aplicarAlmacenaje(folio: string, datos: { dias: number; monto: number; perdonar: boolean; por: string }): void {
+  aplicarAlmacenaje(folio: string, datos: { dias: number; monto: number; perdonar: boolean; por: string; motivo?: string }): Observable<ResultadoOrden> {
+    // Con la API el almacenaje lo calcula el servidor; solo el perdón se guarda (POST waive-storage).
+    // Cobrarlo no cambia nada: ya va en el saldo que caja cobra al entregar.
+    if (this.desdeApi()) {
+      if (!datos.perdonar) return of({ ok: true, mensaje: '' });
+      return this.enviar(
+        this.http
+          .post<{ message: string }>(`${this.api}/service-orders/${folioParaApi(folio)}/waive-storage`, { reason: (datos.motivo?.trim() || `Perdonado por ${datos.por} (política de bodega)`).slice(0, 200) })
+          .pipe(switchMap((r) => this.recargar(folio).pipe(map((orden) => ({ ok: true as const, orden, mensaje: r.message }))))),
+      );
+    }
     const texto = datos.perdonar
       ? `Almacenaje de ${datos.dias} días ($${datos.monto.toFixed(2)}) perdonado por ${datos.por}`
       : `Almacenaje de ${datos.dias} días ($${datos.monto.toFixed(2)}) por cobrar al entregar (${datos.por})`;
@@ -1552,6 +1815,7 @@ export class OrdenesService {
       },
       historial: [...o.historial, { fecha, texto }],
     }));
+    return of({ ok: true, mensaje: '' });
   }
 
   /** "Avisar al cliente" / "Enviar recordatorio por correo". */

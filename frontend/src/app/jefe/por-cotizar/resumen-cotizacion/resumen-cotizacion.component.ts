@@ -27,6 +27,8 @@ export class ResumenCotizacionComponent {
 
   readonly orden = input.required<Orden>();
   readonly conceptos = input.required<Concepto[]>();
+  /** Mientras la API recibe el presupuesto, no se puede volver a enviar. */
+  readonly enviando = input(false);
   readonly enviar = output<DatosEnvio>();
   readonly regresar = output<void>();
 
@@ -89,7 +91,7 @@ export class ResumenCotizacionComponent {
   }
 
   protected confirmar(): void {
-    if (this.falta()) return;
+    if (this.falta() || this.enviando()) return;
     const entrega = this.entregaElegida();
     this.enviar.emit({ descuento: this.descuento(), mensaje: this.mensajeElegido(), vigenciaDias: this.vigencia(), entrega: entrega ? new Date(`${entrega}T18:00`).toISOString() : '' });
   }

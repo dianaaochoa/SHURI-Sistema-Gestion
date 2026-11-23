@@ -35,6 +35,10 @@
       </label>
     </fieldset>
 
+    @if (error(); as mensaje) {
+      <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="16" height="16" alt="" />No se confirmó: {{ mensaje }}</p>
+    }
+
     <div class="modal__acciones">
       <button type="button" class="boton boton--contorno boton--44" (click)="regresar.emit()"><span class="icono" style="--icono: url(assets/iconos/undo.svg)"></span>Regresar al técnico</button>
       <button type="button" class="boton boton--44 confirmar" [disabled]="!mensajeElegido().trim()" (click)="confirmar()"><span class="icono" style="--icono: url(assets/iconos/check.svg)"></span>Confirmar sin reparación</button>

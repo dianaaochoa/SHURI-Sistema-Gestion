@@ -54,10 +54,22 @@ export class RecotizacionComponent implements OnInit {
     this.conceptos.update((lista) => lista.map((c, j) => (j === i ? { ...c, precio: Math.max(0, Number(valor) || 0) } : c)));
   }
 
+  /** Error de la API al enviar la re-cotización. */
+  protected readonly error = signal<string | null>(null);
+
   protected enviar(): void {
     const o = this.orden();
     if (this.adicional() <= 0) return;
-    this.servicio.enviarRecotizacion(o.folio, this.conceptos(), this.jefe);
-    this.enviado.emit(`Re-cotización de ${o.folio} por ${formatearDinero(this.adicional())} enviada al portal de ${o.cliente.nombre.split(' ')[0]} · ${this.tecnico()} sigue con lo autorizado`);
+    this.error.set(null);
+    // Los conceptos sin precio no se mandan
+    const conceptos = this.conceptos().filter((c) => c.precio > 0);
+    const monto = this.adicional();
+    this.servicio.enviarRecotizacion(o.folio, conceptos, this.jefe).subscribe((r) => {
+      if (!r.ok) {
+        this.error.set(r.mensaje);
+        return;
+      }
+      this.enviado.emit(`Re-cotización de ${o.folio} por ${formatearDinero(monto)} enviada al portal de ${o.cliente.nombre.split(' ')[0]} · ${this.tecnico()} sigue con lo autorizado`);
+    });
   }
 }

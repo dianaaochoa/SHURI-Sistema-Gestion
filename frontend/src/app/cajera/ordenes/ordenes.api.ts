@@ -16,6 +16,8 @@ export interface OrdenApi {
   device_pin?: string | null;
   diagnosis: string | null;
   failure_cause: string | null;
+  labor_level_id?: number | null;
+  estimated_minutes?: number | null;
   no_repair_reason: string | null;
   technician?: { id: number; name: string } | null;
   received_by?: string | null;
@@ -43,6 +45,11 @@ export interface OrdenApi {
     folio: string;
     type: 'initial' | 'additional' | 'counter';
     status: string;
+    diagnosis?: string | null;
+    /** Mensaje del jefe para el cliente (J3.2 → P2.4). */
+    customer_note?: string | null;
+    is_urgent?: boolean;
+    created_at?: string | null;
     labor_amount: number;
     parts_amount: number;
     discount: number;
@@ -67,6 +74,8 @@ export interface OrdenApi {
     finished_at: string | null;
   } | null;
   logs?: { type: string; description: string; visible_to_customer: boolean; user: string | null; created_at: string }[];
+  /** Cronómetro del banco: minutos de los tramos cerrados y, si corre, desde cuándo. */
+  timer?: { running: boolean; started_at: string | null; worked_minutes: number };
 }
 
 /** Lo que solo vive en el navegador por ahora (fotos, estante de bodega, avisos): se conserva al recargar. */
@@ -90,6 +99,23 @@ const DICTAMEN: Record<string, string> = {
 const TIPO_DICTAMEN: Record<string, DecisionGarantia['tipo']> = { covered: 'aplica', covered_with_cost: 'con-costo', not_covered: 'sin-reparar' };
 const PRIORIDAD: Record<OrdenApi['priority'], Prioridad> = { low: 'normal', normal: 'normal', high: 'alta', urgent: 'urgente' };
 const TIPO_CONCEPTO: Record<string, Concepto['tipo']> = { part: 'refaccion', labor: 'mano-obra' };
+
+/**
+ * Técnico de una orden recién recibida. Las pantallas lo comparan por referencia
+ * (`o.tecnico === POR_ASIGNAR`), así que todas las órdenes sin técnico usan este mismo objeto.
+ */
+export const POR_ASIGNAR: Tecnico = { iniciales: '—', nombre: 'Por asignar (jefe de taller)' };
+
+/** Nota interna del taller (no la ve el cliente): no se repite en el historial. */
+const esNotaInterna = (l: { type: string; visible_to_customer: boolean }) => l.type === 'note' && !l.visible_to_customer;
+const TRABAJO_REALIZADO = 'Trabajo realizado: ';
+/** Así queda en la bitácora la confirmación del jefe (QuoteService::NO_REPAIR_CONFIRMED). */
+const SIN_REPARACION_CONFIRMADA = 'Sin reparación confirmada por el jefe de taller';
+/** Niveles del tabulador (labor_levels): el front los nombra en el texto "nivel medio". */
+export const NIVELES_MANO_OBRA: Record<number, string> = { 2: 'bajo', 3: 'medio', 4: 'alto' };
+const DEVUELTO_A_CAJA = 'Equipo armado y devuelto a caja sin reparar.';
+/** Hasta que el técnico termina el diagnóstico la orden no está "por cotizar" (J2). */
+const SIN_DIAGNOSTICO = ['received', 'assigned', 'diagnosing'];
 
 /** "OS-2026-00012" → "#OS-2026-00012": las pantallas usan el "#" y lo quitan para las URLs. */
 export const folioDeApi = (folio: string) => `#${folio}`;
@@ -117,6 +143,8 @@ export function estadoDeApi(o: OrdenApi): EstadoOrden {
   }
   if (codigo === 'cancelled') return 'sin-reparar-entregada';
   if (codigo === 'abandoned' || codigo === 'disposed') return 'bodega';
+  // Reportada sin reparación: sigue en el taller hasta que el jefe la confirma (J3.3)
+  if (codigo === 'not_repairable' && !(o.logs ?? []).some((l) => l.description.startsWith(SIN_REPARACION_CONFIRMADA))) return 'por-cotizar';
   if (['ready_for_pickup', 'not_repairable', 'quote_rejected'].includes(codigo)) {
     if (o.location === 'storage') return 'bodega';
     if (codigo !== 'ready_for_pickup') return 'sin-reparacion';
@@ -130,6 +158,23 @@ export function estadoDeApi(o: OrdenApi): EstadoOrden {
 
 function conceptos(items: NonNullable<OrdenApi['quote']>['items']): Concepto[] {
   return items.map((i) => ({ tipo: TIPO_CONCEPTO[i.type] ?? 'otro', descripcion: i.concept, cantidad: i.quantity, costo: 0, precio: i.unit_price }));
+}
+
+/**
+ * Reporte de daño adicional del técnico: "Flex roto\nPropuesta: 1 × Flex de pantalla, 2 × Tornillo".
+ * Devuelve el texto y los conceptos para que el jefe ponga precios (J3.4), más la mano de obra adicional.
+ */
+function propuesta(texto: string): { texto: string; conceptos: Concepto[] } {
+  const [reporte, ...resto] = texto.split('\nPropuesta: ');
+  const piezas = (resto.join('') || '')
+    .split(', ')
+    .map((p) => /^(\d+) × (.+)$/.exec(p.trim()))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m): Concepto => ({ tipo: 'otro', descripcion: m[2], cantidad: Number(m[1]), costo: 0, precio: 0 }));
+  return {
+    texto: reporte.trim(),
+    conceptos: [...(piezas.length ? piezas : [{ tipo: 'otro' as const, descripcion: 'Reparación del daño adicional', cantidad: 1, costo: 0, precio: 0 }]), { tipo: 'mano-obra', descripcion: 'Mano de obra adicional', cantidad: 1, costo: 0, precio: 0 }],
+  };
 }
 
 function ultimoLog(o: OrdenApi, tipo: string): string | undefined {
@@ -149,7 +194,7 @@ export function ordenDeApi(o: OrdenApi, extras: ExtrasLocales = {}): Orden {
     q && q.sent_at && q.type !== 'additional'
       ? {
           enviado: q.sent_at,
-          descripcion: o.diagnosis ?? q.items.map((i) => i.concept).join(', '),
+          descripcion: q.customer_note || o.diagnosis || q.items.map((i) => i.concept).join(', '),
           refacciones: q.parts_amount,
           manoObra: q.labor_amount,
           total: q.total,
@@ -178,8 +223,15 @@ export function ordenDeApi(o: OrdenApi, extras: ExtrasLocales = {}): Orden {
 
   const inspeccion = o.balance?.inspection_fee ?? 0;
   const almacenaje = o.balance?.storage_fee ?? 0;
-  const historial: Evento[] = logs.map((l) => ({ fecha: l.created_at, texto: l.description }));
-  const notas: Evento[] = logs.filter((l) => !l.visible_to_customer).map((l) => ({ fecha: l.created_at, texto: l.user ? `${l.user}: ${l.description}` : l.description }));
+  const historial: Evento[] = logs.filter((l) => !esNotaInterna(l)).map((l) => ({ fecha: l.created_at, texto: l.description }));
+  const notas: Evento[] = logs.filter(esNotaInterna).map((l) => ({ fecha: l.created_at, texto: l.user ? `${l.user}: ${l.description}` : l.description }));
+  const realizado = [...logs].reverse().find((l) => l.description.startsWith(TRABAJO_REALIZADO))?.description.slice(TRABAJO_REALIZADO.length);
+  const devuelto = [...logs].reverse().find((l) => l.description === DEVUELTO_A_CAJA)?.created_at;
+  const confirmada = logs.find((l) => l.description.startsWith(SIN_REPARACION_CONFIRMADA));
+  const nivel = o.labor_level_id ? NIVELES_MANO_OBRA[o.labor_level_id] : undefined;
+  // Daño adicional que el técnico reportó y el jefe todavía no cotiza (J3.4)
+  const danoAdicional: Orden['danoAdicional'] =
+    q?.type === 'additional' && q.status === 'to_quote' ? { fecha: q.created_at ?? o.created_at, urgente: !!q.is_urgent, ...propuesta(q.diagnosis ?? '') } : undefined;
   const avisos: Evento[] = logs.filter((l) => l.type === 'email').map((l) => ({ fecha: l.created_at, texto: l.description }));
   const nombre = [o.customer?.name, o.customer?.last_name].filter(Boolean).join(' ');
 
@@ -191,7 +243,7 @@ export function ordenDeApi(o: OrdenApi, extras: ExtrasLocales = {}): Orden {
     clienteId: o.customer?.id,
     equipo: `${o.device?.brand === 'Apple' ? '' : (o.device?.brand ?? '')} ${o.device?.model ?? ''}`.trim() || (o.device?.type ?? ''),
     imei: o.device?.serial_number ?? '',
-    tecnico: o.technician ? tecnicoDeApi(o.technician) : { iniciales: '—', nombre: 'Por asignar (jefe de taller)' },
+    tecnico: o.technician ? tecnicoDeApi(o.technician) : POR_ASIGNAR,
     estado,
     trabajo: o.reported_issue,
     presupuesto,
@@ -203,9 +255,17 @@ export function ordenDeApi(o: OrdenApi, extras: ExtrasLocales = {}): Orden {
       ? { fecha: o.delivered_at, por: o.delivered_by ?? '', pagado: o.total || trabajo, recogio: o.picked_up_by_name ?? undefined }
       : undefined,
     accesorios: o.received_accessories || 'Ninguno',
+    realizado: realizado ?? (confirmada ? confirmada.description.replace(/^[^.]*\.\s*/, '') || undefined : undefined),
+    presupuestoFolio: q?.folio,
+    porCobrar: o.balance ? o.balance.amount_due : undefined,
+    danoAdicional,
+    devueltoACaja: devuelto,
+    cronometro: o.timer ? { corriendo: o.timer.running, desde: o.timer.started_at ?? undefined, minutos: o.timer.worked_minutes } : undefined,
     rechazo: q?.status === 'rejected' ? (q.answered_at ?? undefined) : undefined,
     garantia: w
       ? {
+          folio: w.folio,
+          estadoApi: w.status,
           recibida: w.received_at ?? w.created_at,
           falla: w.customer_reason,
           dictamen: DICTAMEN[w.status] ?? w.status,
@@ -229,8 +289,19 @@ export function ordenDeApi(o: OrdenApi, extras: ExtrasLocales = {}): Orden {
     evidencias: extras.evidencias,
     prioridad: PRIORIDAD[o.priority] ?? 'normal',
     prometida: o.promised_date ?? undefined,
-    diagnostico: o.diagnosis ? { fecha: ultimoLog(o, 'diagnosis') ?? o.assigned_at ?? o.created_at, texto: o.diagnosis, causa: o.failure_cause ?? undefined } : undefined,
-    sinReparacion: o.status?.code === 'not_repairable' ? { fecha: o.ready_at ?? o.created_at, motivo: o.no_repair_reason ?? '', texto: o.no_repair_reason ?? '' } : undefined,
+    diagnostico:
+      // El "sin reparación" sin confirmar va en su propia lista de J3, no en "Por cotizar"
+      o.diagnosis && !SIN_DIAGNOSTICO.includes(o.status?.code ?? 'received') && !(o.status?.code === 'not_repairable' && !confirmada)
+        ? {
+            fecha: ultimoLog(o, 'diagnosis') ?? o.assigned_at ?? o.created_at,
+            texto: o.diagnosis,
+            causa: o.failure_cause ?? undefined,
+            // El jefe parte de la mano de obra que eligió el técnico (J3.2); el precio sale del tabulador
+            conceptos: nivel ? [{ tipo: 'mano-obra', descripcion: 'Mano de obra', detalle: `${o.estimated_minutes ?? 60} min · nivel ${nivel}`, cantidad: 1, costo: 0, precio: 0 }] : [],
+          }
+        : undefined,
+    // "Sin reparación" espera al jefe (J3.3) hasta que lo confirma
+    sinReparacion: o.status?.code === 'not_repairable' && !confirmada ? { fecha: ultimoLog(o, 'diagnosis') ?? o.created_at, motivo: o.no_repair_reason ?? '', texto: o.diagnosis ?? o.no_repair_reason ?? '' } : undefined,
     almacenaje: o.storage_fee_waived ? { dias: 0, monto: 0, por: 'Jefe de taller', perdonado: true } : almacenaje > 0 ? { dias: 0, monto: almacenaje, por: 'Política de bodega' } : undefined,
     revision: estado === 'sin-reparacion' ? { cobrar: inspeccion > 0, monto: inspeccion } : undefined,
     pausa: o.is_paused ? { desde: ultimoLog(o, 'pause') ?? o.created_at, motivo: o.pause_reason ?? '', detalle: '' } : undefined,

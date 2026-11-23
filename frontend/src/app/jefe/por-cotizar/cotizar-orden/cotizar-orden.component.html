@@ -83,7 +83,12 @@
       </section>
     </div>
 
-    <app-resumen-cotizacion class="lateral" [orden]="orden()" [conceptos]="conceptos()" (enviar)="enviar($event)" (regresar)="regresar.emit()" />
+    <div class="lateral">
+      @if (error(); as mensaje) {
+        <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="14" height="14" alt="" />No se envió el presupuesto: {{ mensaje }}</p>
+      }
+      <app-resumen-cotizacion [orden]="orden()" [conceptos]="conceptos()" [enviando]="enviando()" (enviar)="enviar($event)" (regresar)="regresar.emit()" />
+    </div>
   </div>
 </div>
 

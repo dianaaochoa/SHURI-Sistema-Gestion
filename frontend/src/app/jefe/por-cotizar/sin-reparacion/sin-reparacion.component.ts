@@ -51,11 +51,20 @@ export class SinReparacionComponent {
   });
   protected readonly detalleNoCobrar = computed(() => (this.orden().anticipo ? 'Se devuelve el anticipo en caja' : 'El cliente no paga nada'));
 
+  /** Error de la API al confirmar. */
+  protected readonly error = signal<string | null>(null);
+
   protected confirmar(): void {
     const o = this.orden();
     if (!this.mensajeElegido().trim()) return;
-    this.servicio.confirmarSinReparacion(o.folio, { mensaje: this.mensajeElegido(), cobrar: this.cobrar(), monto: this.cobro, por: this.jefe });
-    const cobro = this.cobrar() ? `revisión de ${formatearDinero(this.cobro)}` : 'sin cobro de revisión';
-    this.confirmado.emit(`${o.folio} confirmada sin reparación · ${cobro} · ${o.cliente.nombre.split(' ')[0]} recibe el aviso para recoger y caja la ve en Entrega`);
+    this.error.set(null);
+    this.servicio.confirmarSinReparacion(o.folio, { mensaje: this.mensajeElegido(), cobrar: this.cobrar(), monto: this.cobro, por: this.jefe }).subscribe((r) => {
+      if (!r.ok) {
+        this.error.set(r.mensaje);
+        return;
+      }
+      const cobro = this.cobrar() ? `revisión de ${formatearDinero(this.cobro)}` : 'sin cobro de revisión';
+      this.confirmado.emit(`${o.folio} confirmada sin reparación · ${cobro} · ${o.cliente.nombre.split(' ')[0]} recibe el aviso para recoger y caja la ve en Entrega`);
+    });
   }
 }

@@ -11,7 +11,7 @@
 /* Figma J3.2: principal de 792 px y total de 400 px */
 .columnas { display: flex; flex: 1; gap: 16px; min-height: 0; }
 .principal { display: flex; flex: 1; flex-direction: column; gap: 16px; min-width: 0; }
-.lateral { flex-shrink: 0; width: 400px; }
+.lateral { flex-shrink: 0; width: 400px; display: flex; flex-direction: column; gap: 12px; }
 .diagnostico { gap: 12px; }
 .diagnostico__texto { font-size: 13px; line-height: 20px; color: var(--color-marino); }
 .diagnostico__pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

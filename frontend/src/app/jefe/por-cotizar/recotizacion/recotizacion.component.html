@@ -32,6 +32,10 @@
 
     <p class="aviso aviso--info"><img src="assets/pdv/alert-primario.svg" width="16" height="16" alt="" />El cliente decide solo sobre lo nuevo. Si lo rechaza, {{ tecnico() }} termina lo ya autorizado y entrega.</p>
 
+    @if (error(); as mensaje) {
+      <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="16" height="16" alt="" />No se envió: {{ mensaje }}</p>
+    }
+
     <div class="modal__acciones">
       <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
       <button type="button" class="boton boton--primario boton--44" [disabled]="adicional() <= 0" (click)="enviar()">
