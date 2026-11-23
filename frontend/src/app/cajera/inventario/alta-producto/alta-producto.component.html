@@ -136,6 +136,10 @@
       Las refacciones dadas de alta aquí también aparecen en el Cotizador del jefe de técnicos.
     </p>
 
+    @if (errorServidor(); as mensaje) {
+      <p class="aviso aviso--error" role="alert"><img src="assets/pdv/alert-peligro.svg" width="16" height="16" alt="" />No se guardó: {{ mensaje }}</p>
+    }
+
     <div class="modal__acciones">
       <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
       @if (!edicion) {

@@ -16,6 +16,8 @@ export interface Apartado {
 }
 
 export interface ProductoInventario {
+  /** Id en la API (los de prueba no lo tienen). */
+  id?: number;
   sku: string;
   nombre: string;
   categoria: string;

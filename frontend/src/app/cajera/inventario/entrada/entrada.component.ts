@@ -230,19 +230,29 @@ export class EntradaComponent implements OnInit {
   /** Con pago en efectivo llega desde el modal C7.6 con lo entregado al repartidor. */
   protected confirmar(entregado: number | null): void {
     const datos = this.datos();
-    const entrada = this.inventario.registrarEntrada(datos);
-    for (const r of datos.lineas.filter((l) => l.orden)) this.ordenes.refaccionRecibida(r.orden!, r.nombre, entrada.folio);
-    const partes = [`${entrada.folio} registrada: ${this.piezas()} ${this.piezas() === 1 ? 'pieza' : 'piezas'} de ${entrada.proveedor} (${formatearDinero(entrada.total)})`];
-    if (entregado !== null) {
-      this.caja.pagarProveedor({ proveedor: entrada.proveedor, documento: entrada.documento, pedido: entrada.pedido, monto: entrada.total });
-      partes.push(`pago en efectivo, cambio ${formatearDinero(redondear(entregado - entrada.total))}`);
-      if (!this.dispositivos.imprimir(entrada.folio)) partes.push('no se pudo imprimir el comprobante');
-    }
-    const apartadas = datos.lineas.filter((l) => l.orden).map((l) => l.orden);
-    if (apartadas.length) partes.push(`apartado para ${apartadas.join(', ')}`);
-    this.pagoAbierto.set(false);
-    this.registrada.emit(partes.join(' · '));
+    this.errorServidor.set(null);
+    this.inventario.registrarEntrada(datos).subscribe((r) => {
+      this.pagoAbierto.set(false);
+      if (!r.ok) {
+        this.errorServidor.set(r.mensaje);
+        return;
+      }
+      const entrada = r.valor;
+      for (const l of datos.lineas.filter((x) => x.orden)) this.ordenes.refaccionRecibida(l.orden!, l.nombre, entrada.folio);
+      const partes = [`${entrada.folio} registrada: ${this.piezas()} ${this.piezas() === 1 ? 'pieza' : 'piezas'} de ${entrada.proveedor} (${formatearDinero(entrada.total)})`];
+      if (entregado !== null) {
+        this.caja.pagarProveedor({ proveedor: entrada.proveedor, documento: entrada.documento, pedido: entrada.pedido, monto: entrada.total });
+        partes.push(`pago en efectivo, cambio ${formatearDinero(redondear(entregado - entrada.total))}`);
+        if (!this.dispositivos.imprimir(entrada.folio)) partes.push('no se pudo imprimir el comprobante');
+      }
+      const apartadas = datos.lineas.filter((l) => l.orden).map((l) => l.orden);
+      if (apartadas.length) partes.push(`apartado para ${apartadas.join(', ')}`);
+      this.registrada.emit(partes.join(' · '));
+    });
   }
+
+  /** Error de la API al registrar la entrada. */
+  protected readonly errorServidor = signal<string | null>(null);
 
   protected guardarBorrador(): void {
     this.inventario.borrador.set(this.datos());

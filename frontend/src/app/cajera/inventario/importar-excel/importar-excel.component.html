@@ -114,8 +114,11 @@
         </button>
       }
       <span class="importar__espacio"></span>
+      @if (errorServidor(); as mensaje) {
+        <p class="aviso aviso--error" role="alert">Se detuvo la importación: {{ mensaje }}</p>
+      }
       <button type="button" class="boton boton--contorno boton--44" (click)="cerrar.emit()">Cancelar</button>
-      <button type="button" class="boton boton--primario boton--44" [disabled]="!aImportar()" (click)="importar()">
+      <button type="button" class="boton boton--primario boton--44" [disabled]="!aImportar() || importando()" (click)="importar()">
         <img src="assets/inventario/upload-blanco.svg" width="16" height="16" alt="" />Importar {{ aImportar() }} {{ aImportar() === 1 ? 'producto' : 'productos' }}
       </button>
     </div>

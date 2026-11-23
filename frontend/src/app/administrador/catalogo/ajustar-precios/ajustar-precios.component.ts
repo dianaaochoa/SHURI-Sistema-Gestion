@@ -69,12 +69,15 @@ export class AjustarPreciosComponent {
     if (this.invalido() || !this.cambios().length) return;
     const motivo = this.modo() === 'porcentaje' ? `Ajuste de ${this.valor() > 0 ? '+' : ''}${this.valor()}%` : this.modo() === 'margen' ? `Margen fijo de ${this.valor()}%` : 'Redondeo de precios';
     const n = this.cambios().length;
-    this.inventario.ajustarPrecios(
-      this.cambios().map((c) => ({ sku: c.p.sku, precio: c.nuevo })),
-      motivo,
-      this.nombre,
-    );
-    this.aplicado.emit(`${motivo}: ${n} ${n === 1 ? 'producto actualizado' : 'productos actualizados'}.`);
+    this.inventario
+      .ajustarPrecios(
+        this.cambios().map((c) => ({ sku: c.p.sku, precio: c.nuevo })),
+        motivo,
+        this.nombre,
+      )
+      .subscribe((r) =>
+        this.aplicado.emit(r.ok ? `${motivo}: ${n} ${n === 1 ? 'producto actualizado' : 'productos actualizados'}.` : `Se detuvo el ajuste de precios: ${r.mensaje}`),
+      );
   }
 
   @HostListener('document:keydown.escape')

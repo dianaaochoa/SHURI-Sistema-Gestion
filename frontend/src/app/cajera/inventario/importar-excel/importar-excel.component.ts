@@ -148,12 +148,25 @@ export class ImportarExcelComponent {
     // Se cuentan antes: al importar, las filas ya existen y se verían "sin cambios".
     const { nuevos, actualiza } = this.conteo();
     const nombre = this.archivo()!.nombre;
-    this.inventario.importar(productos, this.sumarStock());
-    const partes = [];
-    if (nuevos) partes.push(`${nuevos} ${nuevos === 1 ? 'producto nuevo' : 'productos nuevos'}`);
-    if (actualiza) partes.push(`${actualiza} ${actualiza === 1 ? 'actualizado' : 'actualizados'}`);
-    this.importado.emit(`Importación de ${nombre}: ${partes.join(' y ')}`);
+    this.importando.set(true);
+    this.errorServidor.set(null);
+    this.inventario.importar(productos, this.sumarStock()).subscribe((r) => {
+      this.importando.set(false);
+      if (!r.ok) {
+        // Lo que ya se guardó se queda; se avisa en cuál fila se detuvo
+        this.errorServidor.set(r.mensaje);
+        return;
+      }
+      const partes = [];
+      if (nuevos) partes.push(`${nuevos} ${nuevos === 1 ? 'producto nuevo' : 'productos nuevos'}`);
+      if (actualiza) partes.push(`${actualiza} ${actualiza === 1 ? 'actualizado' : 'actualizados'}`);
+      this.importado.emit(`Importación de ${nombre}: ${partes.join(' y ')}`);
+    });
   }
+
+  /** Mientras la API recibe los productos y el error si alguno falla. */
+  protected readonly importando = signal(false);
+  protected readonly errorServidor = signal<string | null>(null);
 
   @HostListener('document:keydown.escape')
   protected alPresionarEsc(): void {

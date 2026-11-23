@@ -52,8 +52,11 @@ export class EditarPrecioComponent {
     this.intentado.set(true);
     if (this.invalido()) return;
     const p = this.producto();
-    this.inventario.cambiarPrecio(p.sku, { precio: this.precioActual(), minimo: this.minimoActual(), proveedor: this.proveedorActual() }, this.nombre);
-    this.guardado.emit(`${p.sku} · ${p.nombre}: precio ${formatearDinero(this.precioActual())} (margen ${this.margen()}%).`);
+    const precio = this.precioActual();
+    const margenFinal = this.margen();
+    this.inventario.cambiarPrecio(p.sku, { precio, minimo: this.minimoActual(), proveedor: this.proveedorActual() }, this.nombre).subscribe((r) =>
+      this.guardado.emit(r.ok ? `${p.sku} · ${p.nombre}: precio ${formatearDinero(precio)} (margen ${margenFinal}%).` : `No se guardó el precio de ${p.sku}: ${r.mensaje}`),
+    );
   }
 
   @HostListener('document:keydown.escape')

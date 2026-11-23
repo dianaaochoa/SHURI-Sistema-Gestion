@@ -125,13 +125,22 @@ export class AltaProductoComponent implements OnInit {
       foto: this.foto,
       usoInterno: original?.usoInterno,
     };
-    this.inventario.guardar(producto, original?.sku ?? null);
-    const texto = original
-      ? `Se guardaron los cambios de ${producto.sku} · ${producto.nombre}`
-      : `${producto.sku} · ${producto.nombre} dado de alta con ${producto.stock} ${producto.stock === 1 ? 'pieza' : 'piezas'}`;
-    this.guardado.emit({ texto, cerrar: !otro });
-    if (otro) this.limpiar(texto);
+    this.errorServidor.set(null);
+    this.inventario.guardar(producto, original?.sku ?? null).subscribe((r) => {
+      if (!r.ok) {
+        this.errorServidor.set(r.mensaje);
+        return;
+      }
+      const texto = original
+        ? `Se guardaron los cambios de ${producto.sku} · ${producto.nombre}`
+        : `${producto.sku} · ${producto.nombre} dado de alta con ${producto.stock} ${producto.stock === 1 ? 'pieza' : 'piezas'}`;
+      this.guardado.emit({ texto, cerrar: !otro });
+      if (otro) this.limpiar(texto);
+    });
   }
+
+  /** Error de la API al guardar (SKU repetido, sin permiso para cambiar precios…). */
+  protected readonly errorServidor = signal<string | null>(null);
 
   /** "Guardar y agregar otro": conserva categoría, proveedor y unidad. */
   private limpiar(texto: string): void {

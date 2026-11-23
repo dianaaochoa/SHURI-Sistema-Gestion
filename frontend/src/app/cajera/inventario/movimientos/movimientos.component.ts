@@ -1,4 +1,4 @@
-import { Component, HostListener, computed, inject, input, output } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, input, output } from '@angular/core';
 import { formatearDinero } from '../../../compartido/formato';
 import { cuando } from '../../ordenes/detalle-orden/detalle-orden.component';
 import { InventarioService, apartadas, disponible } from '../inventario.service';
@@ -74,7 +74,7 @@ import { InventarioService, apartadas, disponible } from '../inventario.service'
     @media (max-width: 560px) { .cifras { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   `,
 })
-export class MovimientosComponent {
+export class MovimientosComponent implements OnInit {
   private readonly inventario = inject(InventarioService);
   readonly sku = input.required<string>();
   readonly cerrar = output<void>();
@@ -90,6 +90,11 @@ export class MovimientosComponent {
   protected readonly producto = computed(() => this.inventario.buscar(this.sku()));
   protected readonly lista = computed(() => this.inventario.movimientos(this.sku()));
   protected readonly textoApartados = computed(() => (this.producto()?.apartados ?? []).map((a) => `${a.folio} (${a.cantidad})`).join(', '));
+
+  /** Con la API, el kardex del producto se pide al abrirlo (C7.6). */
+  ngOnInit(): void {
+    this.inventario.cargarKardex(this.sku());
+  }
 
   @HostListener('document:keydown.escape')
   protected alPresionarEsc(): void {

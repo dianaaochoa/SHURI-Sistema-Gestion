@@ -105,10 +105,20 @@ export class AjusteInventarioComponent implements OnInit {
     if (Object.keys(this.errores()).length) return;
     const p = this.producto()!;
     const dif = this.diferencia()!;
-    const ajuste = this.inventario.aplicarAjuste(p.sku, this.tipo(), dif, this.motivo().trim(), this.cajera);
-    const signo = dif > 0 ? `+${dif}` : `−${-dif}`;
-    this.aplicado.emit(`${ajuste.folio} · ${p.sku}: ${TIPOS_AJUSTE[this.tipo()].texto.toLowerCase()} ${signo} (quedan ${p.stock + dif}) · ${formatearDinero(Math.abs(ajuste.valor))} a costo`);
+    const tipo = this.tipo();
+    this.errorServidor.set(null);
+    this.inventario.aplicarAjuste(p.sku, tipo, dif, this.motivo().trim(), this.cajera).subscribe((r) => {
+      if (!r.ok) {
+        this.errorServidor.set(r.mensaje);
+        return;
+      }
+      const signo = dif > 0 ? `+${dif}` : `−${-dif}`;
+      this.aplicado.emit(`${r.valor.folio} · ${p.sku}: ${TIPOS_AJUSTE[tipo].texto.toLowerCase()} ${signo} (quedan ${p.stock + dif}) · ${formatearDinero(Math.abs(r.valor.valor))} a costo`);
+    });
   }
+
+  /** Error de la API al ajustar. */
+  protected readonly errorServidor = signal<string | null>(null);
 
   @HostListener('document:keydown.escape')
   protected alPresionarEsc(): void {
