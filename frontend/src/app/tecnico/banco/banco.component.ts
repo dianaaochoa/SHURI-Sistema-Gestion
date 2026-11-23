@@ -1,10 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { map } from 'rxjs';
+import { Observable, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../acceso/auth.service';
 import { InventarioService } from '../../cajera/inventario/inventario.service';
-import { Concepto, Orden, OrdenesService } from '../../cajera/ordenes/ordenes.service';
+import { Concepto, Orden, OrdenesService, ResultadoOrden } from '../../cajera/ordenes/ordenes.service';
 import { etapaGarantia } from '../../jefe/garantias/garantia';
 import { etapaDe } from '../../jefe/etapas';
 import { PREGUNTAS_TECNICOS } from '../../jefe/jefe.datos';
@@ -165,22 +165,44 @@ export class BancoComponent {
   protected botonReloj(): void {
     if (this.corriendo()) this.modal.set('pausar');
     else if (this.enCursoOtra() && this.banco.corriendo(this.enCursoOtra()!.folio)) this.modal.set('en-curso');
-    else this.arrancar();
+    else this.arrancar().subscribe();
   }
 
-  private arrancar(): void {
+  /** Reanudar ya arranca el cronómetro en el servidor; si no estaba en pausa, se inicia. */
+  private arrancar(): Observable<ResultadoOrden> {
     const o = this.orden()!;
-    if (this.pausada()) this.servicio.reanudar(o.folio, this.nombre);
-    this.banco.iniciar(this.iniciales, o.folio);
+    const peticion = this.pausada() ? this.servicio.reanudar(o.folio, this.nombre) : of<ResultadoOrden>({ ok: true, mensaje: '' });
+    return peticion.pipe(
+      switchMap((r) => (r.ok && !(this.servicio.conApi() && this.pausadaAntes(o)) ? this.banco.iniciar(this.iniciales, o.folio) : of(r))),
+      tap((r) => !r.ok && this.avisar(`No se pudo iniciar ${o.folio}: ${r.mensaje}`)),
+    );
+  }
+
+  /** Con la API, reanudar ya dejó corriendo el cronómetro: no hace falta "start". */
+  private pausadaAntes(o: Orden): boolean {
+    return !!o.pausa || o.estado === 'esperando-refaccion';
   }
 
   /** T3.11 · Pausa la que iba en curso e inicia esta. */
   protected cambiarOrden(): void {
     const anterior = this.enCursoOtra();
-    if (anterior) this.servicio.pausar(anterior.folio, 'Atender otra orden urgente', `Para iniciar ${this.orden()!.folio}`, this.nombre);
+    const folio = this.orden()!.folio;
     this.modal.set(null);
-    this.arrancar();
-    this.avisar(`${anterior?.folio} quedó en pausa; ${this.orden()!.folio} en curso.`);
+    const pausa = anterior ? this.servicio.pausar(anterior.folio, 'Atender otra orden urgente', `Para iniciar ${folio}`, this.nombre) : of<ResultadoOrden>({ ok: true, mensaje: '' });
+    pausa.pipe(switchMap((r) => (r.ok ? this.arrancar() : of(r)))).subscribe((r) => {
+      if (r.ok) this.avisar(`${anterior?.folio} quedó en pausa; ${folio} en curso.`);
+      else this.avisar(`No se pudo cambiar de orden: ${r.mensaje}`);
+    });
+  }
+
+  /** Muestra el aviso de la acción o el error de la API. */
+  private resultado(r: ResultadoOrden, exito: string, alTerminar?: () => void): void {
+    if (!r.ok) {
+      this.avisar(`No se guardó: ${r.mensaje}`);
+      return;
+    }
+    this.avisar(exito);
+    alTerminar?.();
   }
 
   protected irA(folio: string): void {
@@ -191,60 +213,65 @@ export class BancoComponent {
   // ---------- Acciones ----------
   protected enviarDiagnostico(d: DiagnosticoEnviado): void {
     const folio = this.orden()!.folio;
-    this.servicio.enviarDiagnostico(folio, { ...d, por: this.nombre });
-    this.banco.detener(folio);
-    this.avisar(`Diagnóstico de ${folio} enviado al jefe: la orden pasa a “Por cotizar”.`);
+    this.servicio.enviarDiagnostico(folio, { ...d, por: this.nombre }).subscribe((r) => {
+      this.banco.detener(folio);
+      this.resultado(r, `Diagnóstico de ${folio} enviado al jefe: la orden pasa a “Por cotizar”.`);
+    });
   }
 
   protected pausar(p: { motivo: string; nota: string }): void {
     const folio = this.orden()!.folio;
-    this.servicio.pausar(folio, p.motivo, p.nota, this.nombre);
-    this.banco.detener(folio);
     this.modal.set(null);
-    this.avisar(`${folio} en pausa: ${p.motivo.toLowerCase()}.`);
+    this.servicio.pausar(folio, p.motivo, p.nota, this.nombre).subscribe((r) => {
+      this.banco.detener(folio);
+      this.resultado(r, `${folio} en pausa: ${p.motivo.toLowerCase()}.`);
+    });
   }
 
   protected pedirInfo(p: { tipo: string; mensaje: string }): void {
     const folio = this.orden()!.folio;
-    this.servicio.pausar(folio, 'Esperando respuesta del cliente', `${p.tipo}: ${p.mensaje}`, this.nombre);
-    PREGUNTAS_TECNICOS.update((l) => [{ folio, tecnico: this.nombre.split(' ')[0], asunto: 'necesita un dato del cliente', detalle: `${p.tipo} · orden en pausa`, fecha: new Date().toISOString() }, ...l]);
-    this.banco.detener(folio);
     this.modal.set(null);
-    this.avisar(`Se avisó al jefe: le escribirá al cliente por el chat. ${folio} queda en pausa.`);
+    this.servicio.pausar(folio, 'Esperando respuesta del cliente', `${p.tipo}: ${p.mensaje}`, this.nombre).subscribe((r) => {
+      if (r.ok) PREGUNTAS_TECNICOS.update((l) => [{ folio, tecnico: this.nombre.split(' ')[0], asunto: 'necesita un dato del cliente', detalle: `${p.tipo} · orden en pausa`, fecha: new Date().toISOString() }, ...l]);
+      this.banco.detener(folio);
+      this.resultado(r, `Se avisó al jefe: le escribirá al cliente por el chat. ${folio} queda en pausa.`);
+    });
   }
 
   protected sinReparacion(p: { motivo: string; texto: string }): void {
     const folio = this.orden()!.folio;
-    this.servicio.reportarSinReparacion(folio, p.motivo, p.texto, this.nombre);
-    this.banco.detener(folio);
     this.modal.set(null);
-    this.avisar(`Enviado al jefe: confirmará que ${folio} no tiene reparación.`);
+    this.servicio.reportarSinReparacion(folio, p.motivo, p.texto, this.nombre).subscribe((r) => {
+      this.banco.detener(folio);
+      this.resultado(r, `Enviado al jefe: ${folio} queda sin reparación.`);
+    });
   }
 
   protected danoAdicional(p: { texto: string; urgente: boolean; conceptos: Concepto[] }): void {
     const folio = this.orden()!.folio;
-    this.servicio.reportarDanoAdicional(folio, p.texto, p.urgente, p.conceptos, this.nombre);
     this.modal.set(null);
-    this.avisar('Daño reportado: el jefe lo cotiza y el cliente decide. Puedes terminar lo ya autorizado.');
+    this.servicio.reportarDanoAdicional(folio, p.texto, p.urgente, p.conceptos, this.nombre).subscribe((r) =>
+      this.resultado(r, 'Daño reportado: el jefe lo cotiza y el cliente decide. Puedes terminar lo ya autorizado.'),
+    );
   }
 
   protected marcarListo(p: { realizado: string; notaInterna: string }): void {
     const o = this.orden()!;
     const tiempo = duracion(this.banco.tiempo(o.folio));
-    this.servicio.marcarLista(o.folio, { ...p, tiempo, por: this.nombre });
-    this.banco.detener(o.folio);
     this.modal.set(null);
-    this.avisar(`${o.folio} ${o.estado === 'en-garantia' ? 'garantía lista' : 'listo'}: se avisó al cliente en su portal y a caja.`);
-    this.siguiente();
+    this.servicio.marcarLista(o.folio, { ...p, tiempo, por: this.nombre }).subscribe((r) => {
+      this.banco.detener(o.folio);
+      this.resultado(r, `${o.folio} ${o.estado === 'en-garantia' ? 'garantía lista' : 'listo'}: se avisó al cliente en su portal y a caja.`, () => this.siguiente());
+    });
   }
 
   protected devolver(nota: string): void {
     const folio = this.orden()!.folio;
-    this.servicio.devolverACaja(folio, nota, this.nombre);
-    this.inventario.liberar(folio);
-    this.banco.detener(folio);
-    this.avisar(`${folio} devuelto a caja sin reparar; las piezas apartadas quedaron libres.`);
-    this.siguiente();
+    this.servicio.devolverACaja(folio, nota, this.nombre).subscribe((r) => {
+      if (r.ok) this.inventario.liberar(folio);
+      this.banco.detener(folio);
+      this.resultado(r, `${folio} devuelto a caja sin reparar; las piezas apartadas quedaron libres.`, () => this.siguiente());
+    });
   }
 
   protected tiempoTotal(): string {

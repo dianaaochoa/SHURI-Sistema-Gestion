@@ -1,5 +1,6 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { Orden, OrdenesService, TECNICOS } from '../cajera/ordenes/ordenes.service';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { Orden, OrdenesService, ResultadoOrden, TECNICOS } from '../cajera/ordenes/ordenes.service';
 import { asignadas, trabajable } from './mi-trabajo';
 
 /** Cronómetro de una orden: lo acumulado y, si está corriendo, desde cuándo. */
@@ -26,21 +27,29 @@ export function pasosDe(o: Orden): string[] {
 }
 
 /**
- * Banco de trabajo de los técnicos (T1, T2 y T3). Simulado en memoria mientras no exista la API:
- * - un cronómetro por orden y la orden que cada técnico trae en curso (solo una a la vez, T3.11);
- * - los pasos marcados del trabajo autorizado;
- * - el tiempo del día de cada técnico.
- * Arranca como Figma T1.1: cada técnico con su primer equipo trabajable en curso desde hace 45 min y 3 pasos hechos.
+ * Banco de trabajo de los técnicos (T1, T2 y T3).
+ * - Con la API, el cronómetro de cada orden y la que el técnico trae en curso salen del servidor
+ *   (order_time_logs): "Iniciar" → POST /my/orders/{folio}/start; pausar, diagnosticar o terminar
+ *   lo detienen allá.
+ * - Con datos de prueba, todo se simula en memoria (arranca como Figma T1.1).
+ * Los pasos marcados del trabajo autorizado y "Mi día" siguen en el navegador.
  */
 @Injectable({ providedIn: 'root' })
 export class BancoService {
-  private readonly ordenes = inject(OrdenesService).ordenes;
+  private readonly servicio = inject(OrdenesService);
+  private readonly ordenes = this.servicio.ordenes;
 
   /** Reloj compartido para los cronómetros (avanza cada segundo). */
   readonly ahora = signal(Date.now());
 
-  /** Orden en curso por técnico (iniciales → folio). */
-  readonly enCurso = signal<Record<string, string>>({});
+  /** Orden en curso por técnico con datos de prueba (iniciales → folio). */
+  private readonly enCursoLocal = signal<Record<string, string>>({});
+  /** Orden en curso por técnico (iniciales → folio): la que tiene el cronómetro corriendo en el servidor. */
+  readonly enCurso = computed<Record<string, string>>(() =>
+    this.servicio.conApi()
+      ? Object.fromEntries(this.ordenes().filter((o) => o.cronometro?.corriendo).map((o) => [o.tecnico.iniciales, o.folio]))
+      : this.enCursoLocal(),
+  );
   readonly tiempos = signal<Record<string, Cronometro>>({});
   readonly pasos = signal<Record<string, boolean[]>>({});
   /** Figma T1.1 "Mi día": 3 h 40 min trabajadas (con los 45 min del equipo en curso) y 25 min en pausa. */
@@ -66,32 +75,51 @@ export class BancoService {
       tiempos[o.folio] = { acumulado: 0, desde: haceMin(45) };
       pasos[o.folio] = pasosDe(o).map((_, i) => i < 3);
     }
-    this.enCurso.set(enCurso);
+    this.enCursoLocal.set(enCurso);
     this.tiempos.set(tiempos);
     this.pasos.set(pasos);
   }
 
+  private cronometroApi(folio: string) {
+    return this.servicio.conApi() ? this.ordenes().find((o) => o.folio === folio)?.cronometro : undefined;
+  }
+
   /** Milisegundos trabajados en la orden (lee el reloj, así los cronómetros avanzan solos). */
   tiempo(folio: string): number {
+    if (this.servicio.conApi()) {
+      const api = this.cronometroApi(folio);
+      if (!api) return 0;
+      return api.minutos * 60_000 + (api.corriendo && api.desde ? Math.max(0, this.ahora() - new Date(api.desde).getTime()) : 0);
+    }
     const c = this.tiempos()[folio];
     if (!c) return 0;
     return c.acumulado + (c.desde ? Math.max(0, this.ahora() - new Date(c.desde).getTime()) : 0);
   }
 
   corriendo(folio: string): boolean {
+    if (this.servicio.conApi()) return !!this.cronometroApi(folio)?.corriendo;
     return !!this.tiempos()[folio]?.desde;
   }
 
-  /** Arranca la orden; si el técnico traía otra, esa se detiene (T3.11). */
-  iniciar(iniciales: string, folio: string): void {
+  /**
+   * Arranca la orden; si el técnico traía otra, esa se detiene (T3.11).
+   * Con la API, el servidor arranca el cronómetro (y rechaza si ya corre otra orden).
+   */
+  iniciar(iniciales: string, folio: string): Observable<ResultadoOrden> {
+    if (this.servicio.conApi()) return this.servicio.iniciarTrabajo(folio);
     const anterior = this.enCurso()[iniciales];
     if (anterior && anterior !== folio) this.detener(anterior);
     this.tiempos.update((t) => ({ ...t, [folio]: { acumulado: t[folio]?.acumulado ?? 0, desde: new Date().toISOString() } }));
-    this.enCurso.update((e) => ({ ...e, [iniciales]: folio }));
+    this.enCursoLocal.update((e) => ({ ...e, [iniciales]: folio }));
+    return of({ ok: true, mensaje: '' });
   }
 
-  /** Detiene el cronómetro (pausa, diagnóstico enviado o equipo listo). La orden deja de estar en curso. */
+  /**
+   * Detiene el cronómetro (pausa, diagnóstico enviado o equipo listo). La orden deja de estar en curso.
+   * Con la API no hace nada: cada una de esas acciones ya lo detiene en el servidor.
+   */
   detener(folio: string): void {
+    if (this.servicio.conApi()) return;
     const c = this.tiempos()[folio];
     if (c?.desde) {
       // Lo que corrió en este tramo se suma a "Mi día" del técnico que la traía (T1.1).
@@ -100,12 +128,12 @@ export class BancoService {
       if (tecnico) this.jornada.update((j) => ({ ...j, [tecnico]: { ...j[tecnico], trabajado: (j[tecnico]?.trabajado ?? 0) + minutos } }));
       this.tiempos.update((t) => ({ ...t, [folio]: { acumulado: this.tiempo(folio) } }));
     }
-    this.enCurso.update((e) => Object.fromEntries(Object.entries(e).filter(([, f]) => f !== folio)));
+    this.enCursoLocal.update((e) => Object.fromEntries(Object.entries(e).filter(([, f]) => f !== folio)));
   }
 
   /** Lo que lleva corriendo desde la última vez que se inició. */
   segmento(folio: string): number {
-    const desde = this.tiempos()[folio]?.desde;
+    const desde = this.servicio.conApi() ? (this.cronometroApi(folio)?.corriendo ? this.cronometroApi(folio)?.desde : undefined) : this.tiempos()[folio]?.desde;
     return desde ? Math.max(0, this.ahora() - new Date(desde).getTime()) : 0;
   }
 
