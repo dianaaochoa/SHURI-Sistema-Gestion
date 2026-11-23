@@ -116,6 +116,33 @@ class PosTest extends TestCase
         $this->assertDatabaseHas('inventory_movements', ['product_id' => $product->id, 'type' => 'sale', 'quantity' => -2]);
     }
 
+    public function test_single_payment_without_amount_covers_the_total_and_temporary_products_skip_inventory(): void
+    {
+        $product = $this->product(['sale_price' => 900, 'stock' => 5]);
+
+        $this->sell([
+            'items' => [
+                ['type' => 'product', 'product_id' => $product->id, 'discount_pct' => 5],
+                ['type' => 'custom', 'description' => 'Funda genérica', 'unit_price' => 150, 'quantity' => 2],
+            ],
+            'payments' => [['method' => 'cash', 'amount_received' => 2000]],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.total', 1155)           // 855 + 2 × 150
+            ->assertJsonPath('data.change', 845)
+            ->assertJsonPath('data.items.1.type', 'custom_item')
+            ->assertJsonPath('data.items.1.description', 'Funda genérica');
+
+        $this->assertSame(4, $product->fresh()->stock);
+        $this->assertDatabaseCount('inventory_movements', 1); // solo el producto del catálogo
+
+        // En un pago mixto cada parte lleva su monto
+        $this->sell([
+            'items' => [['type' => 'product', 'product_id' => $product->id]],
+            'payments' => [['method' => 'cash'], ['method' => 'card', 'amount' => 100]],
+        ])->assertStatus(422)->assertJsonValidationErrors('payments.0.amount');
+    }
+
     public function test_the_price_always_comes_from_the_catalog(): void
     {
         $product = $this->product(['sale_price' => 900]);

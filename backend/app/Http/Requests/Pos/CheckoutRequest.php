@@ -22,8 +22,11 @@ class CheckoutRequest extends FormRequest
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
 
             'items' => ['required', 'array', 'min:1', 'max:50'],
-            'items.*.type' => ['required', 'in:product,service_order,warranty'],
+            'items.*.type' => ['required', 'in:product,service_order,warranty,custom'],
             'items.*.product_id' => ['required_if:items.*.type,product', 'nullable', 'integer'],
+            // C2.7 producto temporal: no está en el catálogo, lleva su descripción y precio con IVA
+            'items.*.description' => ['required_if:items.*.type,custom', 'nullable', 'string', 'max:150'],
+            'items.*.unit_price' => ['required_if:items.*.type,custom', 'nullable', 'numeric', 'min:0.01', 'max:999999.99'],
             'items.*.quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
             'items.*.discount_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'items.*.folio' => ['required_if:items.*.type,service_order,warranty', 'nullable', 'string', 'max:20'],
@@ -31,7 +34,8 @@ class CheckoutRequest extends FormRequest
 
             'payments' => ['nullable', 'array', 'max:5'],
             'payments.*.method' => ['required', 'in:cash,card,transfer'],
-            'payments.*.amount' => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
+            // Con un solo pago, el monto puede omitirse: se cobra el total que calcula el servidor
+            'payments.*.amount' => ['nullable', 'numeric', 'min:0.01', 'max:999999.99'],
             'payments.*.amount_received' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'payments.*.reference' => ['nullable', 'string', 'max:80'],
             'payments.*.card_last4' => ['nullable', 'digits:4'],
@@ -52,6 +56,8 @@ class CheckoutRequest extends FormRequest
             'items.*.product_id' => 'producto',
             'items.*.quantity' => 'cantidad',
             'items.*.discount_pct' => 'descuento',
+            'items.*.description' => 'descripción',
+            'items.*.unit_price' => 'precio',
             'items.*.folio' => 'folio de la orden',
             'payments' => 'pagos',
             'payments.*.method' => 'forma de pago',

@@ -531,12 +531,20 @@ Técnicos activos, **el menos ocupado primero** (modal de asignar en J2 y pantal
 ### `POST /service-orders/{folio}/assign`
 
 ```json
-{ "technician_id": 3, "priority": "urgent" }
+{ "technician_id": 3, "priority": "urgent", "promised_date": "2026-11-24", "notes": "Revisar también la bocina" }
 ```
 
-La primera asignación pasa la orden a **Asignado**; reasignar durante el diagnóstico conserva la etapa. No se pueden asignar órdenes listas, entregadas o en abandono.
+La primera asignación pasa la orden a **Asignado**; reasignar durante el diagnóstico conserva la etapa. No se pueden asignar órdenes listas, entregadas o en abandono. `promised_date` (hoy o después) es la fecha prometida al cliente; `notes` queda como **nota interna** en la bitácora (`type: note`, `visible_to_customer: false`). Responde la orden completa (con `logs`).
 
 **Errores `422`:** "Solo puedes asignar la orden a un técnico activo." · "La orden ya está asignada a Carlos Ruiz."
+
+### `POST /service-orders/{folio}/priority`
+
+J2.3 cambiar la prioridad (`orders.assign`): `{ "priority": "high" }` (`low`, `normal`, `high` o `urgent`). Queda una nota interna "Prioridad cambiada de Normal a Alta.". `422` si ya tiene esa prioridad o si la orden ya salió del taller.
+
+### `POST /service-orders/{folio}/notes`
+
+Nota interna en la bitácora (J2.3 jefe, T3 técnico · `orders.assign` u `orders.repair`): `{ "note": "Pieza pedida" }` (hasta 500 caracteres). No la ve el cliente. Un técnico **solo puede anotar en sus propias órdenes** (otra responde `404`). Responde `201` con la orden actualizada.
 
 ---
 
@@ -583,6 +591,24 @@ Sin reparación (pasa a **Sin reparación** y queda lista para devolverse):
 ```json
 { "outcome": "not_repairable", "diagnosis": "Placa con corto en el procesador.", "no_repair_reason": "No hay refacción de la placa." }
 ```
+
+### `POST /my/orders/{folio}/finish`
+
+T3.4 Equipo reparado: `{ "work_done": "Cambio de puerto de carga", "notes": "Tornillo extra" }`. La orden pasa a **Listo para recoger** en mostrador (`location: counter`), se cierra el cronómetro y el cliente recibe el correo. `work_done` queda en la bitácora visible ("Trabajo realizado: …"); `notes`, como nota interna.
+
+**`422`:** la orden no está en reparación, está en pausa, o tiene un presupuesto adicional sin resolver.
+
+### `POST /my/orders/{folio}/additional-damage`
+
+T3.5 Daño encontrado al reparar: `{ "description": "Flex de pantalla roto", "urgent": true }`. Deja un presupuesto **`additional` por cotizar** que el jefe ve en J3 (`GET /quotes/to-quote`, con `type: additional`). La orden sigue en reparación.
+
+Cuando el cliente responde el adicional (portal o `quote-response`): **aprobado** se suma a lo ya autorizado (`labor_cost` y `parts_cost`); **rechazado** la orden sigue en reparación solo con lo autorizado antes.
+
+### `POST /my/orders/{folio}/return-to-counter`
+
+T3.9 Presupuesto rechazado o sin reparación: el técnico arma el equipo y lo deja en mostrador (`location: counter`) para que caja lo entregue. `{ "notes": "Armado como llegó" }` (opcional). `422` si ya está en mostrador.
+
+> Todas las órdenes (`/service-orders` y `/my/orders`) traen `timer`: `{ "running": true, "started_at": "…", "worked_minutes": 42 }` (minutos de los tramos cerrados; si corre, se suma lo que va desde `started_at`). `GET /my/orders` acepta `?per_page=` hasta 500.
 
 ### `GET /labor-levels`
 
@@ -660,13 +686,29 @@ Cotizar y enviar al cliente. Refacciones y mano de obra **toman el precio del ca
 
 `out_of_stock: true` avisa que la refacción no tiene existencias. `unit_cost` solo lo ve quien tiene `catalog.view_costs`.
 
+- **Refacción por SKU:** en lugar de `product_id` se puede mandar `{ "type": "part", "sku": "PAN-A54", "concept": "Pantalla", "unit_price": 720, "quantity": 1 }`. Si el SKU está en el catálogo se usa su precio; si no, se cotiza como **pieza fuera de catálogo** con el `concept` y el `unit_price` capturados (queda con `out_of_stock: true`).
+- `valid_days` (1 a 60): vigencia que elige el jefe; si no viene, la de Configuración.
+- Un presupuesto **`additional`** (daño adicional, J3.4) se envía igual. El costo estimado de la orden queda como lo ya aprobado más el adicional.
+
 #### `POST /quotes/{folio}/return`
 
 Regresar al técnico para que revise el diagnóstico: `{ "reason": "Revisa también el flex de carga" }`. La orden vuelve a **En diagnóstico**; cuando el técnico diagnostica otra vez, se reutiliza el mismo presupuesto.
 
 #### `POST /service-orders/{folio}/release`
 
-J8 Liberar el equipo terminado: de **En reparación** a **Listo para recoger**. El cliente recibe el correo "Tu equipo está listo" y la respuesta trae la orden con su `balance.amount_due`.
+J8 Liberar el equipo terminado: de **En reparación** a **Listo para recoger**. El cliente recibe el correo "Tu equipo está listo" y la respuesta trae la orden con su `balance.amount_due`. (El técnico también lo hace al terminar con `POST /my/orders/{folio}/finish`.)
+
+#### `POST /service-orders/{folio}/return-to-technician`
+
+J3.2 / J3.3 Regresar al técnico con una pregunta, por folio de la orden: `{ "reason": "¿Probaste con otra batería?" }`.
+- Si hay un presupuesto inicial por cotizar, hace lo mismo que `POST /quotes/{folio}/return`.
+- Si la orden está **Sin reparación** y el jefe no la ha confirmado, vuelve a **En diagnóstico** (se borra `no_repair_reason`).
+
+`422` si no hay nada que regresar.
+
+#### `POST /service-orders/{folio}/confirm-no-repair`
+
+J3.3 Confirmar que el equipo no tiene reparación: `{ "charge_inspection": true, "message": "No hay placa disponible." }`. Guarda si se cobra la revisión (`balance.inspection_fee`), deja en la bitácora visible "Sin reparación confirmada por el jefe de taller · …" y manda al cliente el correo para recogerlo. `422` si la orden no está sin reparación o ya se confirmó.
 
 ### Cliente
 
@@ -716,7 +758,7 @@ Ver [sección 12](#12-portal-del-cliente-p1-p2-p4): `GET /portal/orders/{folio}/
 }
 ```
 
-`purchase_price` y `margin` solo aparecen con el permiso `catalog.view_costs`. `GET /products/{id}` trae además `recent_movements` (los últimos 10 del kardex).
+`purchase_price` y `margin` solo aparecen con el permiso `catalog.view_costs`. La lista trae además `supplier` (`{ "id", "name" }` o `null`) e `image_path`, y acepta `?per_page=` hasta 500 (las pantallas cargan el catálogo completo). `GET /products/{id}` trae además `recent_movements` (los últimos 10 del kardex).
 
 ### `POST /products` · `PUT /products/{id}`
 
@@ -732,6 +774,7 @@ Ver [sección 12](#12-portal-del-cliente-p1-p2-p4): `GET /portal/orders/{folio}/
 - El SKU se guarda en mayúsculas. SKU y código de barras son únicos.
 - `initial_stock` solo en el alta: entra al kardex como movimiento de entrada.
 - En `PUT` todo es opcional, **el stock no se edita** (solo con entradas o ajustes), y se puede mandar `price_change_reason`: cada cambio de precio queda en el historial.
+- `PUT` lo pueden usar caja y el jefe (`inventory.stock_in`) para corregir los datos del producto (nombre, código, ubicación, mínimo, proveedor). **`purchase_price` y `sale_price` solo con `catalog.prices`** (administrador); sin ese permiso responde `422` en `sale_price`.
 
 ### `POST /inventory/stock-in`
 
@@ -757,7 +800,7 @@ Las dos responden `201`:
 
 ### `GET /inventory/movements`
 
-C7.6 Kardex. Filtros: `?product_id=` · `?type=sale` · `?from=2026-11-01` · `?to=2026-11-30`
+C7.6 Kardex. Filtros: `?product_id=` · `?type=sale` · `?from=2026-11-01` · `?to=2026-11-30` · `?per_page=` (hasta 500). El historial de ajustes de C7.4 son los movimientos `adjustment` y `shrinkage`; el "uso interno" se registra como ajuste con el motivo `Uso interno: …`.
 
 `type`: `stock_in` (Entrada), `adjustment` (Ajuste), `sale` (Venta), `workshop_use` (Uso en taller), `sale_return`, `workshop_return`, `supplier_return`, `shrinkage` (Merma). Cada movimiento trae `previous_stock` y `new_stock`; las ventas traen `sale_id` y el uso en taller `service_order_folio`.
 
@@ -883,7 +926,9 @@ C2 Cobrar el ticket y C6 Entregar equipos. Un solo endpoint para todo: si algo f
 - **Productos:** el precio sale del catálogo (no se envía). `discount_pct` es opcional.
 - **Órdenes de taller:** se cobra su `balance.amount_due`, que ya incluye el almacenaje si pasaron los días de gracia. La orden queda pagada y pasa a **Entregado**; se calcula su garantía. Solo órdenes que esperan recolección y no están pagadas; una orden **en abandono** solo si `allow_delivery_when_abandoned` está en `1` ([sección 19](#19-resguardo-y-abandono-j9)).
 - **Garantías con costo extra:** `{ "type": "warranty", "folio": "GAR-2026-00001" }` cobra el `extra_cost` de una garantía terminada y la marca como **entregada** ([sección 16](#16-garantías-p3-c4-j4-t4)).
+- **Producto temporal (C2.7):** `{ "type": "custom", "description": "Funda genérica", "unit_price": 150, "quantity": 2, "discount_pct": 0 }`. Algo que no está en el catálogo: `unit_price` con IVA, queda como renglón `custom_item` y **no sale del inventario**.
 - **Pagos:** `cash`, `card` o `transfer`, y se pueden combinar. **Deben sumar exactamente el total.** En efectivo, `amount_received` calcula el cambio.
+- **Un solo pago sin `amount`:** se cobra exactamente el total que calcula el servidor (así el descuento a toda la venta no falla por centavos). En un pago mixto cada parte lleva su monto (`422` en `payments.N.amount`).
 - **Descuento (RF-14):** si supera el máximo del usuario (`user.max_discount_pct`), hay que mandar `authorization` con el usuario y la **clave de autorización** de un superior. Sin ella responde `422` en `errors.authorization`.
 
 **Respuesta `201` (ticket):**
@@ -920,7 +965,7 @@ Los precios incluyen IVA: `subtotal − discount + tax = total`.
 
 ### `GET /sales` · `GET /sales/{folio}`
 
-C3 Ventas y C11 reimprimir ticket. La cajera ve **sus** ventas; con `reports.view` se ven todas. Filtros: `?search=` (folio) · `?from=` · `?to=` · `?cash_shift_id=`
+C3 Ventas y C11 reimprimir ticket. La cajera ve **sus** ventas; con `reports.view` se ven todas. Filtros: `?search=` (folio) · `?from=` · `?to=` · `?cash_shift_id=` · `?per_page=` (hasta 500). Cada venta trae sus renglones (`items`, con `type`: `product`, `service_order`, `additional_charge`, `custom_item`…) y sus pagos.
 
 Para facturar una venta, ver la [sección 20](#20-facturación-simulada-c3-ad6-p42).
 
@@ -963,6 +1008,20 @@ P1 Mis equipos (`?active=1` oculta los entregados):
 ```
 
 `amount_due` es lo que pagará al recoger (0 mientras no esté listo), con el almacenaje incluido. `free_pickup_until` es el último día sin costo y `abandonment_date` la fecha en que pasaría a abandono. Si `has_pending_quote` es `true`, mostrar el aviso de presupuesto por aprobar.
+
+### `GET /portal/orders?include=detail`
+
+Cada orden **completa**, con el mismo formato que `GET /service-orders/{folio}` del personal ([sección 5](#5-recepción-y-clientes-c4-c5-c8)), para que el portal use el mismo modelo. Es lo que usan P1, P2 y P3. Diferencias:
+
+- Sin `device_pin`, `has_device_pin`, `timer`, `labor_level_id`, `estimated_minutes` ni `intake_checklist`.
+- `technician.name`, `received_by` y `delivered_by` llevan **solo el nombre de pila**.
+- `logs` trae solo lo que se le mostró al cliente (`visible_to_customer: true`), sin el nombre de quién lo escribió.
+- `quote` es el último presupuesto que el cliente **ya recibió** (`pending`, `approved`, `rejected` o `expired`), con `customer_note` y sus conceptos sin costos; el borrador del jefe no aparece.
+- `rating`: `{ "stars": 4, "tags": ["Rapidez"], "comment": "…", "rated_at": "…" }` o `null`.
+
+### `POST /portal/orders/{folio}/rating`
+
+P2.11 Calificar el servicio: `{ "stars": 4, "tags": ["Rapidez", "Buen trato"], "comment": "Muy bien" }` (`stars` de 1 a 5, hasta 10 etiquetas, comentario de hasta 300 caracteres). Solo con el equipo **entregado** y **una sola vez** (`422` si no). Responde la orden con su `rating`. Queda en la bitácora como nota interna.
 
 ### `GET /portal/orders/{folio}`
 

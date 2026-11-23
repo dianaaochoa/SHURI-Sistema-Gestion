@@ -37,7 +37,8 @@ class SaleController extends Controller
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
             'cash_shift_id' => ['nullable', 'integer'],
-            'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
+            // Hasta 500: el historial de ventas (C3) se carga completo
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:500'],
         ]);
 
         $user = $request->user();

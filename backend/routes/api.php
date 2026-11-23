@@ -98,7 +98,9 @@ Route::prefix('v1')->group(function () {
                 Route::get('workshop/board', [AssignmentController::class, 'board']);
                 Route::get('technicians', [AssignmentController::class, 'technicians']);
                 Route::post('service-orders/{folio}/assign', [AssignmentController::class, 'assign']);
+                Route::post('service-orders/{folio}/priority', [AssignmentController::class, 'priority']);
             });
+            Route::post('service-orders/{folio}/notes', [AssignmentController::class, 'note'])->middleware('permission:orders.assign,orders.repair');
 
             // ── Taller: banco de trabajo del técnico (T2, T3 · RF-05) ──
             Route::middleware('permission:orders.repair')->prefix('my/orders')->group(function () {
@@ -108,6 +110,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('{folio}/pause', [WorkbenchController::class, 'pause']);
                 Route::post('{folio}/resume', [WorkbenchController::class, 'resume']);
                 Route::post('{folio}/diagnosis', [WorkbenchController::class, 'diagnosis']);
+                Route::post('{folio}/finish', [WorkbenchController::class, 'finish']);
+                Route::post('{folio}/additional-damage', [WorkbenchController::class, 'additionalDamage']);
+                Route::post('{folio}/return-to-counter', [WorkbenchController::class, 'returnToCounter']);
             });
             Route::get('labor-levels', [WorkbenchController::class, 'laborLevels'])->middleware('permission:orders.repair,orders.quote');
 
@@ -166,6 +171,8 @@ Route::prefix('v1')->group(function () {
                 Route::post('quotes/{folio}/send', [QuoteController::class, 'send']);
                 Route::post('quotes/{folio}/return', [QuoteController::class, 'returnToTechnician']);
                 Route::post('service-orders/{folio}/release', [QuoteController::class, 'release']);
+                Route::post('service-orders/{folio}/confirm-no-repair', [QuoteController::class, 'confirmNoRepair']);
+                Route::post('service-orders/{folio}/return-to-technician', [QuoteController::class, 'returnOrder']);
             });
 
             // ── Inventario (C7, J6, AD4 · RF-02) ──
@@ -176,7 +183,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('inventory/movements', [MovementController::class, 'index']);
             });
             Route::post('products', [ProductController::class, 'store'])->middleware('permission:catalog.prices,inventory.stock_in');
-            Route::put('products/{product}', [ProductController::class, 'update'])->whereNumber('product')->middleware('permission:catalog.prices');
+            // Datos del producto: caja y jefe; costo y precio solo con catalog.prices (lo revisa el controlador)
+            Route::put('products/{product}', [ProductController::class, 'update'])->whereNumber('product')->middleware('permission:catalog.prices,inventory.stock_in');
             Route::post('inventory/stock-in', [MovementController::class, 'stockIn'])->middleware('permission:inventory.stock_in');
             Route::post('inventory/adjustments', [MovementController::class, 'adjust'])->middleware('permission:inventory.adjust');
 
@@ -285,6 +293,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('password.changed')->group(function () {
             Route::get('orders', [PortalOrderController::class, 'index']);
             Route::get('orders/{folio}', [PortalOrderController::class, 'show']);
+            Route::post('orders/{folio}/rating', [PortalOrderController::class, 'rate']);
 
             // Presupuesto: ver, aprobar o rechazar (RF-07)
             Route::get('orders/{folio}/quote', [PortalQuoteController::class, 'show']);

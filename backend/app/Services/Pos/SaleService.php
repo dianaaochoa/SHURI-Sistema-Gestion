@@ -106,6 +106,10 @@ class SaleService
                     continue;
                 }
 
+                if ($line['type'] === 'custom_item') {
+                    continue; // el producto temporal no está en el inventario
+                }
+
                 $this->inventory->move($line['product']->id, 'sale', -$line['quantity'], $cashier,
                     "Venta {$sale->folio}", ['sale_id' => $sale->id], $authorizer);
             }
@@ -153,6 +157,25 @@ class SaleService
                     'type' => 'product', 'product' => $product, 'order' => null,
                     'description' => $product->name, 'quantity' => $quantity,
                     'unit_price' => (float) $product->sale_price, 'gross' => $gross,
+                    'discount_pct' => $pct, 'discount_amount' => $discount, 'subtotal' => round($gross - $discount, 2),
+                    'picked_up_by_name' => null,
+                ];
+
+                continue;
+            }
+
+            // C2.7 Producto temporal: no está en el catálogo ni sale del inventario
+            if ($item['type'] === 'custom') {
+                $quantity = (int) ($item['quantity'] ?? 1);
+                $pct = round((float) ($item['discount_pct'] ?? 0), 2);
+                $price = round((float) $item['unit_price'], 2);
+                $gross = round($price * $quantity, 2);
+                $discount = round($gross * $pct / 100, 2);
+
+                $lines[] = [
+                    'type' => 'custom_item', 'product' => null, 'order' => null,
+                    'description' => trim($item['description']), 'quantity' => $quantity,
+                    'unit_price' => $price, 'gross' => $gross,
                     'discount_pct' => $pct, 'discount_amount' => $discount, 'subtotal' => round($gross - $discount, 2),
                     'picked_up_by_name' => null,
                 ];
@@ -319,6 +342,14 @@ class SaleService
             if (($method === 'card' && ! $this->settings->get('card_payments_enabled', true))
                 || ($method === 'transfer' && ! $this->settings->get('transfer_payments_enabled', true))) {
                 throw ValidationException::withMessages(["payments.{$i}.method" => 'Esa forma de pago está desactivada.']);
+            }
+
+            // Un solo pago sin monto cubre el total calculado aquí (C2: "Cobrar" con una sola forma de pago)
+            if (! isset($payment['amount'])) {
+                if (count($payments) > 1) {
+                    throw ValidationException::withMessages(["payments.{$i}.amount" => 'En un pago mixto cada forma de pago lleva su monto.']);
+                }
+                $payment['amount'] = $total;
             }
 
             $amount = round((float) $payment['amount'], 2);
