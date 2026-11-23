@@ -3,6 +3,8 @@
 namespace App\Services\Portal;
 
 use App\Models\Customer;
+use App\Models\OrderLog;
+use App\Models\OrderStatus;
 use App\Models\ServiceOrder;
 use App\Services\SettingsService;
 use App\Services\Workshop\StorageService;
@@ -10,6 +12,7 @@ use App\Support\OrderBalance;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Portal del cliente (RF-06): sus equipos (P1), seguimiento con línea de tiempo (P2)
@@ -73,6 +76,37 @@ class PortalService
                 ])
                 ->values(),
         ];
+    }
+
+    /**
+     * P2.11 El cliente califica el servicio: solo una vez y solo con el equipo ya entregado.
+     *
+     * @param  array<int, string>  $tags
+     */
+    public function rate(ServiceOrder $order, int $stars, array $tags, ?string $comment): void
+    {
+        if ($order->status->code !== OrderStatus::DELIVERED) {
+            throw ValidationException::withMessages(['stars' => 'Podrás calificar el servicio cuando recojas tu equipo.']);
+        }
+        if ($order->rating !== null) {
+            throw ValidationException::withMessages(['stars' => 'Ya calificaste este servicio. ¡Gracias!']);
+        }
+
+        DB::transaction(function () use ($order, $stars, $tags, $comment) {
+            $order->forceFill([
+                'rating' => $stars,
+                'rating_tags' => array_values($tags),
+                'rating_comment' => filled($comment) ? trim($comment) : null,
+                'rated_at' => now(),
+            ])->save();
+
+            OrderLog::create([
+                'service_order_id' => $order->id,
+                'type' => 'rating',
+                'description' => "El cliente calificó el servicio con {$stars} de 5 estrellas.",
+                'visible_to_customer' => false,
+            ]);
+        });
     }
 
     /** @return array<string, mixed> */

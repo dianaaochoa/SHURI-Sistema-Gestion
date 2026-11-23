@@ -107,6 +107,48 @@ class PortalTest extends TestCase
         $this->assertArrayNotHasKey('device_pin', $detail);
     }
 
+    public function test_detailed_orders_hide_what_the_customer_must_not_see(): void
+    {
+        $customer = Customer::factory()->create();
+        $order = $this->order($customer, OrderStatus::QUOTING, ['technician_id' => User::factory()->technician()->create(['name' => 'Carlos Ruiz'])->id]);
+        $order->orderLogs()->create(['type' => 'note', 'description' => 'Nota interna del taller', 'visible_to_customer' => false]);
+        $order->orderLogs()->create(['type' => 'note', 'description' => 'Trabajo realizado: cambio de batería', 'visible_to_customer' => true]);
+        $order->quotes()->create(['folio' => 'COT-TEST-1', 'customer_id' => $customer->id, 'type' => 'initial', 'status' => 'to_quote']);
+        $this->order(Customer::factory()->create()); // de otra persona
+
+        $response = $this->as($customer, 'GET', '/api/v1/portal/orders?include=detail')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.technician.name', 'Carlos')
+            ->assertJsonPath('data.0.quote', null)          // el borrador del jefe no se ve
+            ->assertJsonMissingPath('data.0.device_pin')
+            ->assertJsonMissingPath('data.0.timer');
+
+        $descriptions = collect($response->json('data.0.logs'))->pluck('description');
+        $this->assertContains('Trabajo realizado: cambio de batería', $descriptions);
+        $this->assertNotContains('Nota interna del taller', $descriptions);
+    }
+
+    public function test_customer_rates_a_delivered_order_only_once(): void
+    {
+        $customer = Customer::factory()->create();
+        $pending = $this->order($customer, OrderStatus::IN_REPAIR);
+        $delivered = $this->order($customer, OrderStatus::DELIVERED);
+
+        $this->as($customer, 'POST', "/api/v1/portal/orders/{$pending->folio}/rating", ['stars' => 5])
+            ->assertStatus(422)->assertJsonValidationErrors('stars');
+
+        $this->as($customer, 'POST', "/api/v1/portal/orders/{$delivered->folio}/rating", ['stars' => 4, 'tags' => ['Rapidez'], 'comment' => 'Muy bien'])
+            ->assertOk()
+            ->assertJsonPath('data.rating.stars', 4)
+            ->assertJsonPath('data.rating.tags.0', 'Rapidez');
+
+        $this->as($customer, 'POST', "/api/v1/portal/orders/{$delivered->folio}/rating", ['stars' => 1])
+            ->assertStatus(422);
+        $this->as(Customer::factory()->create(), 'POST', "/api/v1/portal/orders/{$delivered->folio}/rating", ['stars' => 1])
+            ->assertNotFound();
+    }
+
     public function test_customer_sees_only_her_own_orders(): void
     {
         $ana = Customer::factory()->create();

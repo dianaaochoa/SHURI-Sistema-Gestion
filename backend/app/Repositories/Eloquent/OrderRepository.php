@@ -7,6 +7,7 @@ use App\Models\ServiceOrder;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class OrderRepository implements OrderRepositoryInterface
 {
@@ -14,7 +15,7 @@ class OrderRepository implements OrderRepositoryInterface
      * Relaciones que necesita toda pantalla de órdenes (evita consultas N+1): además de los datos
      * básicos, la bitácora, el último presupuesto, la garantía y quién la entregó (C4, C6, J2).
      */
-    private const WITH = ['status', 'customer', 'device', 'technician', 'receivedBy', 'deliveredBy', 'orderLogs.user', 'quotes.quoteItems', 'warranties'];
+    private const WITH = ['status', 'customer', 'device', 'technician', 'receivedBy', 'deliveredBy', 'orderLogs.user', 'quotes.quoteItems', 'warranties', 'orderTimeLogs'];
 
     public function create(array $attributes): ServiceOrder
     {
@@ -38,6 +39,15 @@ class OrderRepository implements OrderRepositoryInterface
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate($perPage);
+    }
+
+    public function forCustomer(int $customerId): Collection
+    {
+        return ServiceOrder::with(self::WITH)
+            ->where('customer_id', $customerId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
     }
 
     private function search(Builder $query, string $search): Builder
