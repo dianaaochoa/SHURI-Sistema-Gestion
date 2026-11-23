@@ -31,6 +31,9 @@ class ProductResource extends JsonResource
             'description' => $this->description,
             'type' => $this->type,
             'category' => $this->whenLoaded('category', fn () => ['id' => $this->category->id, 'name' => $this->category->name]),
+            // Proveedor principal (C7.1, AD4.2)
+            'supplier' => $this->whenLoaded('supplier', fn () => $this->supplier ? ['id' => $this->supplier->id, 'name' => $this->supplier->name] : null),
+            'image_path' => $this->image_path,
             'sellable_at_counter' => (bool) $this->sellable_at_counter,
             'usable_in_workshop' => (bool) $this->usable_in_workshop,
             'sale_price' => (float) $this->sale_price,

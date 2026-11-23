@@ -13,6 +13,7 @@ use App\Services\Inventory\InventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Catálogo de productos: refacciones, accesorios y consumibles (C7, J6, AD4).
@@ -35,7 +36,8 @@ class ProductController extends Controller
             'sellable' => ['nullable', 'boolean'],
             'workshop' => ['nullable', 'boolean'],
             'include_inactive' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
+            // Hasta 500: las pantallas de inventario cargan el catálogo completo
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:500'],
         ]);
 
         return ProductResource::collection($this->inventory->paginateProducts($filters, (int) ($filters['per_page'] ?? 20)));
@@ -66,7 +68,15 @@ class ProductController extends Controller
     /** PUT /products/{product} — AD4 catálogo y precios */
     public function update(ProductRequest $request, Product $product): JsonResponse
     {
-        $product = $this->service->updateProduct($product, $request->validated(), $request->user());
+        $data = $request->validated();
+
+        // C7.1: caja y el jefe corrigen los datos del producto; los precios solo el administrador (AD4)
+        $priceFields = array_intersect(array_keys($data), ['purchase_price', 'sale_price']);
+        if ($priceFields && ! $request->user()->hasPermission('catalog.prices')) {
+            throw ValidationException::withMessages(['sale_price' => 'Solo el administrador puede cambiar el costo o el precio.']);
+        }
+
+        $product = $this->service->updateProduct($product, $data, $request->user());
 
         return response()->json([
             'message' => 'Producto actualizado.',

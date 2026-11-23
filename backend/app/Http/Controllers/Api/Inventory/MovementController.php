@@ -30,7 +30,8 @@ class MovementController extends Controller
             'type' => ['nullable', 'in:stock_in,adjustment,sale,workshop_use,sale_return,workshop_return,supplier_return,shrinkage'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
-            'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
+            // Hasta 500: el kardex de un producto y el historial de ajustes se cargan completos
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:500'],
         ]);
 
         return InventoryMovementResource::collection($this->inventory->paginateMovements($filters, (int) ($filters['per_page'] ?? 30)));

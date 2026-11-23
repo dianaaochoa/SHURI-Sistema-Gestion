@@ -12,7 +12,7 @@ class InventoryRepository implements InventoryRepositoryInterface
 {
     public function paginateProducts(array $filters, int $perPage = 20): LengthAwarePaginator
     {
-        return Product::with('category')
+        return Product::with(['category', 'supplier:id,name'])
             ->when(! ($filters['include_inactive'] ?? false), fn (Builder $q) => $q->where('is_active', true))
             ->when($filters['search'] ?? null, function (Builder $q, string $search) {
                 $like = '%'.addcslashes($search, '%_\\').'%';

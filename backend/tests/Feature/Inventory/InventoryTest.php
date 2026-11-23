@@ -185,11 +185,19 @@ class InventoryTest extends TestCase
         $this->assertSame(10, $product->fresh()->stock);
     }
 
-    public function test_only_users_with_catalog_prices_can_edit_products(): void
+    public function test_cashier_edits_product_data_but_only_catalog_prices_changes_prices(): void
     {
         $product = $this->product();
 
-        $this->as($this->cashier, 'PUT', "/api/v1/products/{$product->id}", ['sale_price' => 1])->assertStatus(403);
+        $this->as($this->cashier, 'PUT', "/api/v1/products/{$product->id}", ['sale_price' => 1])
+            ->assertStatus(422)->assertJsonValidationErrors('sale_price');
+
+        $this->as($this->cashier, 'PUT', "/api/v1/products/{$product->id}", ['location' => 'Vitrina 3', 'min_stock' => 4])
+            ->assertOk()
+            ->assertJsonPath('data.location', 'Vitrina 3');
+
+        // El técnico solo consulta
+        $this->as(User::factory()->technician()->create(), 'PUT', "/api/v1/products/{$product->id}", ['location' => 'X'])->assertStatus(403);
     }
 
     public function test_crossing_the_minimum_stock_notifies_admin_and_head_once(): void
