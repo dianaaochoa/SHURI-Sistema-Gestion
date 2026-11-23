@@ -2,6 +2,7 @@
 
 namespace App\Services\Workshop;
 
+use App\Models\OrderLog;
 use App\Models\OrderStatus;
 use App\Models\ServiceOrder;
 use App\Models\User;
@@ -40,7 +41,11 @@ class AssignmentService
             ]);
     }
 
-    public function assign(ServiceOrder $order, int $technicianId, User $by, ?string $priority = null): ServiceOrder
+    /**
+     * @param  string|null  $promisedDate  fecha prometida al cliente (J2.2)
+     * @param  string|null  $notes  nota interna para el técnico (no la ve el cliente)
+     */
+    public function assign(ServiceOrder $order, int $technicianId, User $by, ?string $priority = null, ?string $promisedDate = null, ?string $notes = null): ServiceOrder
     {
         $technician = User::where('is_active', true)->find($technicianId);
 
@@ -50,7 +55,7 @@ class AssignmentService
             ]);
         }
 
-        DB::transaction(function () use ($order, $technician, $by, $priority) {
+        DB::transaction(function () use ($order, $technician, $by, $priority, $promisedDate, $notes) {
             // Bloquea la fila: dos jefes asignando al mismo tiempo no pueden dejarla a medias
             $order = ServiceOrder::with('status')->lockForUpdate()->findOrFail($order->id);
             $status = $order->status;
@@ -75,15 +80,56 @@ class AssignmentService
                 $order->priority = $priority;
             }
 
+            if ($promisedDate) {
+                $order->promised_date = $promisedDate;
+            }
+
             // La primera asignación la avanza; una reasignación conserva la etapa actual
             if ($status->code === OrderStatus::RECEIVED) {
                 $order->status_id = OrderStatus::idFor(OrderStatus::ASSIGNED);
             }
 
             $order->save(); // ServiceOrderObserver escribe "assignment" y "status_change"
+
+            if (filled($notes)) {
+                $this->note($order, $by, $notes);
+            }
         });
 
         return $order->fresh(['status', 'customer', 'device', 'technician', 'receivedBy']);
+    }
+
+    /** J2.3 Cambiar la prioridad de una orden que sigue en el taller. */
+    public function changePriority(ServiceOrder $order, string $priority, User $by): ServiceOrder
+    {
+        if ($order->status->is_final || in_array($order->status->code, self::CLOSED, true)) {
+            throw ValidationException::withMessages(['priority' => "La orden {$order->folio} ya salió del taller."]);
+        }
+        if ($order->priority === $priority) {
+            throw ValidationException::withMessages(['priority' => 'La orden ya tiene esa prioridad.']);
+        }
+
+        $names = ['low' => 'Baja', 'normal' => 'Normal', 'high' => 'Alta', 'urgent' => 'Urgente'];
+
+        DB::transaction(function () use ($order, $priority, $by, $names) {
+            $previous = $names[$order->priority] ?? $order->priority;
+            $order->forceFill(['priority' => $priority, 'updated_by' => $by->id])->save();
+            $this->note($order, $by, "Prioridad cambiada de {$previous} a {$names[$priority]}.");
+        });
+
+        return $order;
+    }
+
+    /** Nota interna en la bitácora (la ve el taller, no el cliente). */
+    public function note(ServiceOrder $order, User $by, string $text): OrderLog
+    {
+        return OrderLog::create([
+            'service_order_id' => $order->id,
+            'user_id' => $by->id,
+            'type' => 'note',
+            'description' => trim($text),
+            'visible_to_customer' => false,
+        ]);
     }
 
     /**

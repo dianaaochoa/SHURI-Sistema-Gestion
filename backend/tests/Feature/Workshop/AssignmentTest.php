@@ -80,6 +80,48 @@ class AssignmentTest extends TestCase
         $this->assertNotNull($order->assigned_at); // lo llena el trigger de la BD
     }
 
+    public function test_assignment_saves_the_promised_date_and_an_internal_note(): void
+    {
+        $order = $this->order();
+        $promised = now()->addDays(2)->toDateString();
+
+        $logs = $this->as($this->head, 'POST', "/api/v1/service-orders/{$order->folio}/assign", [
+            'technician_id' => $this->carlos->id, 'promised_date' => $promised, 'notes' => 'Revisar también la bocina',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.promised_date', $promised)
+            ->json('data.logs');
+
+        $note = collect($logs)->firstWhere('type', 'note');
+        $this->assertSame('Revisar también la bocina', $note['description']);
+        $this->assertFalse($note['visible_to_customer']);
+    }
+
+    public function test_head_changes_the_priority_and_it_is_logged(): void
+    {
+        $order = $this->order(OrderStatus::DIAGNOSING, ['technician_id' => $this->carlos->id]);
+
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$order->folio}/priority", ['priority' => 'high'])
+            ->assertOk()
+            ->assertJsonPath('data.priority', 'high');
+
+        $this->assertDatabaseHas('order_logs', ['service_order_id' => $order->id, 'type' => 'note', 'description' => 'Prioridad cambiada de Normal a Alta.']);
+
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$order->folio}/priority", ['priority' => 'high'])
+            ->assertStatus(422)->assertJsonValidationErrors('priority');
+    }
+
+    public function test_internal_notes_from_the_head_and_only_the_assigned_technician(): void
+    {
+        $order = $this->order(OrderStatus::DIAGNOSING, ['technician_id' => $this->carlos->id]);
+
+        $this->as($this->head, 'POST', "/api/v1/service-orders/{$order->folio}/notes", ['note' => 'Cliente pide rapidez'])->assertCreated();
+        $this->as($this->carlos, 'POST', "/api/v1/service-orders/{$order->folio}/notes", ['note' => 'Pieza pedida'])->assertCreated();
+        $this->as($this->laura, 'POST', "/api/v1/service-orders/{$order->folio}/notes", ['note' => 'No es mía'])->assertNotFound();
+
+        $this->assertSame(2, $order->orderLogs()->where('type', 'note')->where('visible_to_customer', false)->count());
+    }
+
     public function test_assignment_is_written_to_the_order_log(): void
     {
         $order = $this->order();

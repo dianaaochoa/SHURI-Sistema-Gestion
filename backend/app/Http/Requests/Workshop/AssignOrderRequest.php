@@ -18,6 +18,9 @@ class AssignOrderRequest extends FormRequest
         return [
             'technician_id' => ['required', 'integer'],
             'priority' => ['nullable', 'in:low,normal,high,urgent'],
+            // J2.2: fecha prometida al cliente y nota interna para el técnico
+            'promised_date' => ['nullable', 'date', 'after_or_equal:today'],
+            'notes' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -27,6 +30,8 @@ class AssignOrderRequest extends FormRequest
         return [
             'technician_id' => 'técnico',
             'priority' => 'prioridad',
+            'promised_date' => 'fecha prometida',
+            'notes' => 'nota',
         ];
     }
 }
