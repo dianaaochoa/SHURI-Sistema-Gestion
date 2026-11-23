@@ -1,6 +1,11 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, catchError, map, of } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../acceso/auth.service';
 import { PermisosService } from '../../administrador/permisos.service';
+import { erroresDeCampos, mensajeDeError } from '../../api/errores-api';
+import { InventarioService } from '../inventario/inventario.service';
 import { CATALOGO, Producto } from './catalogo.datos';
 import { CLIENTES, Cliente, DatosFiscales, PUBLICO_GENERAL } from './clientes.datos';
 
@@ -153,6 +158,8 @@ function pausadasDemo(): VentaPausada[] {
 @Injectable({ providedIn: 'root' })
 export class VentaService {
   private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
+  private readonly inventario = inject(InventarioService);
   /** Lo que la cajera con sesión puede descontar (AD7); el administrador no tiene límite. */
   private readonly permisos = inject(PermisosService);
   /** Sin el permiso “Aplicar descuentos” (AD7.3) el máximo es 0. */
@@ -284,6 +291,71 @@ export class VentaService {
 
   descartar(folioPausada: string): void {
     this.pausadas.update((lista) => lista.filter((p) => p.folio !== folioPausada));
+  }
+
+  /**
+   * C2 · Cobra la venta en la API (POST /sales). El servidor pone los precios del catálogo, descuenta
+   * el inventario y la registra en el turno de caja; el folio, el total y el cambio son los suyos.
+   * - El descuento a toda la venta se reparte como % en cada renglón (la API descuenta por renglón).
+   * - Los productos temporales (TMP-…) van como renglón libre con su precio con IVA.
+   * - Con una sola forma de pago no se manda el monto: se cobra exactamente el total del servidor.
+   */
+  cobrarEnApi(pago: Pago, autorizacion?: { usuario: string; clave: string }): Observable<{ ok: true; cobrada: VentaCobrada } | { ok: false; mensaje: string; requiereAutorizacion?: boolean }> {
+    const lineas = this.lineas();
+    const d = this.descuentoVenta();
+    // % extra de toda la venta: en $ se calcula sobre el total con IVA ya con los descuentos por renglón
+    const extra = !d ? 0 : d.modo === '%' ? d.valor : Math.min(100, (d.valor / Math.max(0.01, this.totalSinDescuentoVenta())) * 100);
+    const pct = (linea: number) => redondear(100 - (100 - linea) * (1 - extra / 100));
+
+    const items = lineas.map((l) => {
+      const producto = this.inventario.buscar(l.sku);
+      if (l.disponibles === null || !producto?.id) {
+        return { type: 'custom', description: `${l.nombre}${l.nota ? ` · ${l.nota}` : ''}`.slice(0, 150), unit_price: redondear(l.precio * (1 + IVA)), quantity: l.cantidad, discount_pct: pct(l.descuento) };
+      }
+      return { type: 'product', product_id: producto.id, quantity: l.cantidad, discount_pct: pct(l.descuento) };
+    });
+    const metodoApi = { efectivo: 'cash', tarjeta: 'card', transferencia: 'transfer' } as const;
+    const payments =
+      pago.metodo === 'mixto'
+        ? (pago.partes ?? []).filter((p) => (p.monto ?? 0) > 0).map((p) => ({ method: metodoApi[p.metodo], amount: p.monto, reference: p.referencia || null }))
+        : [{ method: metodoApi[pago.metodo], amount_received: pago.metodo === 'efectivo' ? pago.recibido : null, reference: pago.referencia || null }];
+    const cliente = this.cliente();
+
+    type Respuesta = { data: { folio: string; total: number; subtotal: number; tax: number; change: number } };
+    return this.http
+      .post<Respuesta>(`${environment.apiUrl}/sales`, {
+        customer_id: /^\d+$/.test(cliente.id) ? Number(cliente.id) : null,
+        items,
+        payments,
+        authorization: autorizacion ? { username: autorizacion.usuario, code: autorizacion.clave } : null,
+      })
+      .pipe(
+        map((r) => {
+          const cobrada: VentaCobrada = {
+            folio: r.data.folio,
+            total: r.data.total,
+            metodo: pago.metodo,
+            partes: pago.partes,
+            cambio: r.data.change,
+            cliente,
+            imprimir: pago.imprimir,
+            enviarCorreo: pago.enviarCorreo,
+            facturada: pago.factura !== null,
+            lineas,
+            descuento: d,
+            subtotal: r.data.subtotal,
+            iva: r.data.tax,
+            recibido: pago.recibido,
+            referencia: pago.referencia,
+          };
+          this.cancelar();
+          this.numeroFolio.set(this.siguienteFolio++);
+          // El inventario y el turno cambiaron en el servidor
+          this.inventario.cargar();
+          return { ok: true as const, cobrada };
+        }),
+        catchError((e) => of({ ok: false as const, mensaje: mensajeDeError(e), requiereAutorizacion: !!erroresDeCampos(e)['authorization'] })),
+      );
   }
 
   cobrar(pago: Pago): VentaCobrada {

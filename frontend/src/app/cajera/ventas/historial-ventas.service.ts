@@ -1,4 +1,7 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, effect, inject, signal, untracked } from '@angular/core';
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../../acceso/auth.service';
 import { InventarioService } from '../inventario/inventario.service';
 import { CATALOGO } from '../punto-de-venta/catalogo.datos';
 import { CLIENTES, Cliente, PUBLICO_GENERAL } from '../punto-de-venta/clientes.datos';
@@ -202,9 +205,29 @@ function ventasDemo(): VentaRegistrada[] {
   ];
 }
 
+/** Venta como la responde la API (SaleResource, docs/api/endpoints.md §11). */
+interface VentaApi {
+  folio: string;
+  status: 'paid' | 'cancelled' | 'returned' | 'partially_returned' | string;
+  cashier?: string | null;
+  customer?: { id: number; name: string } | null;
+  subtotal: number;
+  tax: number;
+  total: number;
+  items: { type: string; description: string; product_id: number | null; quantity: number; unit_price: number; discount_pct: number }[];
+  payments: { method: 'cash' | 'card' | 'transfer' | 'credit_note'; amount: number; amount_received: number | null; card_last4: string | null; reference: string | null }[];
+  change: number;
+  paid_at: string | null;
+  created_at: string;
+}
+
+const ESTADO_DE_API: Record<string, EstadoVenta> = { paid: 'pagada', cancelled: 'cancelada', returned: 'devuelta', partially_returned: 'devolucion-parcial' };
+const METODO_DE_API: Record<string, MetodoPago> = { cash: 'efectivo', card: 'tarjeta', transfer: 'transferencia', credit_note: 'efectivo' };
+
 /**
- * Historial de ventas (C3). Simulado: guarda en memoria las ventas de prueba y las que se cobran en el punto de venta.
- * Al conectar la API, las ventas, cancelaciones y devoluciones vendrán del servidor.
+ * Historial de ventas (C3). Con una sesión que puede vender, las ventas salen de la API (GET /sales):
+ * las que cobra el punto de venta y las entregas de equipos. Cancelar y devolver siguen en el
+ * navegador hasta conectar Devoluciones; sin sesión se usan las ventas de prueba.
  */
 @Injectable({ providedIn: 'root' })
 export class HistorialVentasService {
@@ -212,6 +235,79 @@ export class HistorialVentasService {
   /** Cajeras para el filtro (Figma: "Todas las cajeras"). */
   readonly cajeras = ['Ana Martínez', 'Luis Pérez'];
   private readonly inventario = inject(InventarioService);
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly desdeApi = signal(false);
+
+  constructor() {
+    effect(() => {
+      const permisos = this.auth.sesion()?.permisos ?? [];
+      untracked(() => {
+        if (permisos.includes('pos.sell')) this.cargar();
+        else if (this.desdeApi()) {
+          this.desdeApi.set(false);
+          this.ventas.set(ventasDemo());
+        }
+      });
+    });
+  }
+
+  /** GET /sales: la cajera ve las suyas; con reports.view, todas. */
+  cargar(): void {
+    this.http.get<{ data: VentaApi[] }>(`${environment.apiUrl}/sales`, { params: { per_page: 500 } }).subscribe({
+      next: (r) => {
+        // Cancelaciones y devoluciones hechas en el navegador se conservan hasta conectar Devoluciones
+        const locales = new Map(this.ventas().map((v) => [v.folio, v]));
+        this.ventas.set(
+          r.data.map((v) => {
+            const venta = this.ventaDeApi(v);
+            const local = this.desdeApi() ? locales.get(venta.folio) : undefined;
+            return local && local.estado !== 'pagada' ? { ...venta, estado: local.estado, devoluciones: local.devoluciones } : venta;
+          }),
+        );
+        this.desdeApi.set(true);
+      },
+      error: () => undefined,
+    });
+  }
+
+  private ventaDeApi(v: VentaApi): VentaRegistrada {
+    const lineas: Linea[] = v.items.map((i, n) => {
+      const producto = i.product_id ? this.inventario.productos().find((p) => p.id === i.product_id) : undefined;
+      return {
+        // Las entregas de órdenes y los productos temporales no tienen SKU de inventario
+        sku: producto?.sku ?? `${i.type === 'service_order' ? 'ORD' : 'TMP'}-${n + 1}`,
+        nombre: i.description,
+        precio: redondear(i.unit_price / (1 + IVA)),
+        cantidad: i.quantity,
+        descuento: i.discount_pct,
+        disponibles: producto ? producto.stock : null,
+      };
+    });
+    const pagos = v.payments;
+    const metodo: MetodoPago = pagos.length > 1 ? 'mixto' : (METODO_DE_API[pagos[0]?.method ?? 'cash'] ?? 'efectivo');
+    const partes: ParteMixta[] | undefined =
+      pagos.length > 1 ? pagos.map((p) => ({ metodo: (METODO_DE_API[p.method] ?? 'efectivo') as ParteMixta['metodo'], monto: p.amount, referencia: p.reference ?? p.card_last4 ?? '' })) : undefined;
+    const recibido = redondear(pagos.reduce((s, p) => s + (p.amount_received ?? p.amount), 0));
+    return {
+      folio: v.folio,
+      fecha: v.paid_at ?? v.created_at,
+      cliente: v.customer ? { id: String(v.customer.id), nombre: v.customer.name } : PUBLICO_GENERAL,
+      cajera: v.cashier ?? '',
+      lineas,
+      descuento: null,
+      subtotal: v.subtotal,
+      iva: v.tax,
+      total: v.total,
+      metodo,
+      recibido: recibido || v.total,
+      cambio: v.change,
+      referencia: pagos.length === 1 ? (pagos[0].reference ?? pagos[0].card_last4 ?? undefined) : undefined,
+      partes,
+      estado: ESTADO_DE_API[v.status] ?? 'pagada',
+      devoluciones: [],
+    };
+  }
 
   registrar(cobrada: VentaCobrada, cajera: string): void {
     const nueva: VentaRegistrada = {

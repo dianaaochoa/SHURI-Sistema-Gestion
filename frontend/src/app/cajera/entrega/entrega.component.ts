@@ -12,6 +12,8 @@ import { CobroEntregaComponent, TipoEntrega } from './cobro-entrega/cobro-entreg
 import { QuienRecogeComponent, Recoge } from './quien-recoge/quien-recoge.component';
 import { DocumentosService } from '../documentos/documentos.service';
 import { FacturacionService } from '../../administrador/facturacion.service';
+import { CajaService } from '../caja.service';
+import { HistorialVentasService } from '../ventas/historial-ventas.service';
 
 const METODO_TEXTO: Record<MetodoSimple, string> = { efectivo: 'en efectivo', tarjeta: 'con tarjeta', transferencia: 'por transferencia' };
 
@@ -28,6 +30,8 @@ export class EntregaComponent {
   private readonly dispositivos = inject(DispositivosService);
   private readonly documentos = inject(DocumentosService);
   private readonly facturacion = inject(FacturacionService);
+  private readonly caja = inject(CajaService);
+  private readonly historial = inject(HistorialVentasService);
   private readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
   private readonly buscador = viewChild<ElementRef<HTMLInputElement>>('buscador');
 
@@ -212,6 +216,10 @@ export class EntregaComponent {
   entregar(): void {
     const o = this.orden();
     if (!o || this.falta()) return;
+    if (this.ordenes.conApi()) {
+      if (!this.entregando()) this.entregarEnApi(o);
+      return;
+    }
     // Se lee antes de entregar: después, orden() ya es la siguiente de la lista.
     const tipo = this.tipo();
     const cobrado = saldo(o);
@@ -236,6 +244,44 @@ export class EntregaComponent {
     this.folio.set(null);
     this.verificacion.set({});
     this.factura.set(null);
+  }
+
+  /** Mientras la API cobra y entrega. */
+  protected readonly entregando = signal(false);
+
+  /** C6 con la API: cobra el saldo en el turno de caja y marca la orden como entregada. */
+  private entregarEnApi(o: Orden): void {
+    const tipo = this.tipo();
+    const recoge = this.recoge()?.nombre || o.cliente.nombre;
+    const totalFactura = this.dineroSaldo(o);
+    this.entregando.set(true);
+    this.error.set(null);
+    this.ordenes.entregarEnApi(o.folio, { recoge, metodo: this.metodo() }).subscribe((r) => {
+      this.entregando.set(false);
+      if (!r.ok) {
+        this.error.set(`No se entregó ${o.folio}: ${r.mensaje}`);
+        return;
+      }
+      const cobrado = 'cobrado' in r ? (r.cobrado ?? 0) : 0;
+      const impreso = this.documentos.orden(o.folio, 'entrega');
+      const partes = [`${o.folio} · ${o.equipo} entregado a ${recoge}`];
+      if (cobrado > 0) partes.push(`cobrados ${formatearDinero(cobrado)} ${METODO_TEXTO[this.metodo()]}${'venta' in r && r.venta ? ` (venta ${r.venta})` : ''}`);
+      if (tipo === 'normal') partes.push(`garantía hasta el ${diaMes(sumarDias(new Date().toISOString(), diasGarantia()))}`);
+      const datos = this.factura();
+      if (datos) {
+        const folio = this.facturacion.timbrar({ cliente: o.cliente.nombre, rfc: datos.rfc, origen: `Orden ${o.folio}`, total: totalFactura, pidio: 'Caja' });
+        partes.push(`factura ${folio} enviada por correo`);
+      }
+      if (!impreso) partes.push('no se pudo imprimir el comprobante');
+      // El cobro entra al turno y al historial de ventas
+      this.caja.refrescar();
+      this.historial.cargar();
+      this.aviso.set(partes.join(' · '));
+      this.busqueda.set('');
+      this.folio.set(null);
+      this.verificacion.set({});
+      this.factura.set(null);
+    });
   }
 
   imprimirComprobante(): void {

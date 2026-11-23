@@ -20,6 +20,7 @@ import { Pago, ProductoTemporal, VentaCobrada, VentaService } from './venta.serv
 import { VentasEnEsperaComponent } from './ventas-en-espera/ventas-en-espera.component';
 import { DocumentosService } from '../documentos/documentos.service';
 import { FacturacionService } from '../../administrador/facturacion.service';
+import { InventarioService } from '../inventario/inventario.service';
 
 type Modal = 'cobro' | 'cancelar' | 'temporal' | 'cliente' | 'descuento' | 'pausar' | 'espera' | 'impresora' | 'atajos';
 
@@ -71,6 +72,7 @@ export class PuntoDeVentaComponent {
   private readonly documentos = inject(DocumentosService);
   private readonly historial = inject(HistorialVentasService);
   private readonly facturacion = inject(FacturacionService);
+  private readonly inventario = inject(InventarioService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly barra = viewChild.required(BarraBusquedaComponent);
@@ -125,9 +127,36 @@ export class PuntoDeVentaComponent {
     this.cerrarModal();
   }
 
+  /** Error de la API al cobrar (sin turno, sin existencias, pagos que no cubren…). El ticket se queda. */
+  protected readonly errorCobro = signal<string | null>(null);
+  protected readonly cobrando = signal(false);
+
   confirmarCobro(pago: Pago): void {
-    const cobrada = this.venta.cobrar(pago);
+    // Con el catálogo de la API (y conexión) la venta se cobra en el servidor
+    if (this.inventario.conApi() && this.dispositivos.enLinea()) {
+      if (this.cobrando()) return;
+      this.cobrando.set(true);
+      this.errorCobro.set(null);
+      this.venta.cobrarEnApi(pago).subscribe((r) => {
+        this.cobrando.set(false);
+        if (!r.ok) {
+          this.errorCobro.set(r.requiereAutorizacion ? `${r.mensaje} Baja el descuento o pide que lo apruebe un superior.` : r.mensaje);
+          this.cerrarModal();
+          return;
+        }
+        this.caja.refrescar();
+        this.historial.cargar();
+        this.terminarCobro(pago, r.cobrada);
+      });
+      return;
+    }
+    this.terminarCobro(pago, this.venta.cobrar(pago));
+  }
+
+  private terminarCobro(pago: Pago, cobrada: VentaCobrada): void {
+    this.errorCobro.set(null);
     this.dispositivos.registrarVenta(cobrada);
+    // Se agrega al historial para imprimir el ticket de una vez; con la API, la recarga la reemplaza por la del servidor
     this.historial.registrar(cobrada, this.auth.sesion()?.nombre ?? '');
     if (pago.factura) this.facturacion.timbrar({ cliente: cobrada.cliente.nombre, rfc: pago.factura.rfc, origen: `Venta ${cobrada.folio}`, total: cobrada.total, pidio: 'Caja' });
     this.aviso.set(this.mensajeCobro(cobrada));

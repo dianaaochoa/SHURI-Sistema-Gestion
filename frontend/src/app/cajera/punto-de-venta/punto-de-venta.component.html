@@ -5,6 +5,11 @@
     @if (!dispositivos.enLinea()) {
       <app-aviso-sin-conexion />
     }
+    @if (errorCobro(); as mensaje) {
+      <p class="aviso aviso--error" role="alert">
+        <img src="assets/pdv/alert-peligro.svg" width="14" height="14" alt="" />No se cobró: {{ mensaje }}
+      </p>
+    }
     @if (aviso(); as mensaje) {
       <p class="aviso aviso--exito" role="status">
         <img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />{{ mensaje }}
