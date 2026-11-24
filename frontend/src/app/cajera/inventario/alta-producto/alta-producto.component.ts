@@ -2,6 +2,7 @@ import { Component, ElementRef, HostListener, OnInit, computed, inject, input, o
 import { FormsModule } from '@angular/forms';
 import { formatearDinero } from '../../../compartido/formato';
 import { CATEGORIAS_INVENTARIO, PROVEEDORES, ProductoInventario, UNIDADES, redondear } from '../inventario.datos';
+import { PermisosService } from '../../../administrador/permisos.service';
 import { InventarioService, margen } from '../inventario.service';
 
 const PREFIJOS: Record<string, string> = { Accesorios: 'ACC', Refacciones: 'REF', Consumibles: 'CON' };
@@ -16,6 +17,11 @@ const PREFIJOS: Record<string, string> = { Accesorios: 'ACC', Refacciones: 'REF'
 })
 export class AltaProductoComponent implements OnInit {
   private readonly inventario = inject(InventarioService);
+  private readonly permisos = inject(PermisosService);
+  /** AD7.3 “Ver costos y utilidad”: sin él no ve el margen ni el costo de un producto ya dado de alta. */
+  protected readonly verCostos = computed(() => this.permisos.puede('costos'));
+  /** AD7.3 “Editar precios del catálogo”: sin él, el precio de un producto existente queda fijo (al dar de alta sí lo escribe). */
+  protected readonly editarPrecios = computed(() => this.permisos.puede('precios'));
   private readonly campoSku = viewChild<ElementRef<HTMLInputElement>>('campoSku');
 
   /** null = alta; con producto = edición. */

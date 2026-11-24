@@ -1,6 +1,7 @@
 import { Component, OnChanges, input, output, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { reducirImagen } from '../../../compartido/fotos-orden/fotos-orden.component';
 
 export const IDENTIFICACIONES = ['INE', 'Pasaporte', 'Licencia de conducir', 'Cédula profesional'];
 const RELACIONES = ['Hermana / hermano', 'Pareja', 'Madre / padre', 'Hija / hijo', 'Amiga / amigo', 'Compañero de trabajo', 'Otra'];
@@ -13,6 +14,8 @@ export interface Recoge {
   cartaPoder: boolean;
   copiaTitular: boolean;
   foto: boolean;
+  /** Foto de la carta poder (data URL, reducida); la API la subirá a un almacenamiento. */
+  fotoCarta?: string;
   /** Ya se puede entregar a esta persona. */
   completo: boolean;
 }
@@ -66,13 +69,19 @@ export interface Recoge {
       <div class="documentos">
         <label class="casilla"><input type="checkbox" [(ngModel)]="cartaPoder" (ngModelChange)="avisar()" />Carta poder firmada por el titular</label>
         <label class="casilla"><input type="checkbox" [(ngModel)]="copiaTitular" (ngModelChange)="avisar()" />Copia de identificación del titular</label>
-        <button type="button" class="enlace" (click)="foto = !foto; avisar()">
-          @if (foto) {
-            <img src="assets/ordenes/circulo-check-16.svg" width="14" height="14" alt="" />Foto de la carta poder adjunta
-          } @else {
+        <input #camara type="file" accept="image/*" capture="environment" hidden (change)="tomarFoto($any($event.target))" />
+        @if (fotoCarta(); as url) {
+          <span class="foto-carta">
+            <img [src]="url" width="44" height="44" alt="Foto de la carta poder" />
+            <span><img src="assets/ordenes/circulo-check-16.svg" width="14" height="14" alt="" />Foto de la carta poder adjunta</span>
+            <button type="button" class="enlace" (click)="camara.click()">Cambiar</button>
+            <button type="button" class="enlace" (click)="quitarFoto()">Quitar</button>
+          </span>
+        } @else {
+          <button type="button" class="enlace" (click)="camara.click()">
             <img src="assets/pdv/plus-14-primario.svg" width="14" height="14" alt="" />Tomar foto de la carta poder
-          }
-        </button>
+          </button>
+        }
       </div>
     }
 
@@ -101,6 +110,9 @@ export interface Recoge {
     .nota { font-size: 11px; color: var(--color-texto-tenue); }
     .documentos { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
     .enlace { gap: 6px; font-size: 12px; }
+    .foto-carta { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-texto-secundario); }
+    .foto-carta > img { border-radius: 6px; object-fit: cover; border: 1px solid var(--color-borde); }
+    .foto-carta > span { display: inline-flex; align-items: center; gap: 6px; }
     @media (max-width: 640px) {
       .rejilla--2, .rejilla--3 { grid-template-columns: minmax(0, 1fr); }
     }
@@ -120,15 +132,33 @@ export class QuienRecogeComponent implements OnChanges {
   protected cartaPoder = false;
   protected copiaTitular = false;
   protected foto = false;
+  protected readonly fotoCarta = signal<string | null>(null);
 
   /** Al cambiar de orden se vuelve a "El titular". */
   ngOnChanges(): void {
     this.tipo.set('titular');
     this.nombre = '';
     this.cartaPoder = this.copiaTitular = this.foto = false;
+    this.fotoCarta.set(null);
     this.identificacion = IDENTIFICACIONES[0];
     // Se avisa después del ciclo para no cambiar el estado del padre mientras se dibuja.
     queueMicrotask(() => this.avisar());
+  }
+
+  /** Cámara (en celular) o archivo: se guarda reducida, como las fotos de la orden. */
+  protected async tomarFoto(campo: HTMLInputElement): Promise<void> {
+    const archivo = campo.files?.[0];
+    campo.value = '';
+    if (!archivo || !archivo.type.startsWith('image/')) return;
+    this.fotoCarta.set(await reducirImagen(archivo));
+    this.foto = true;
+    this.avisar();
+  }
+
+  protected quitarFoto(): void {
+    this.fotoCarta.set(null);
+    this.foto = false;
+    this.avisar();
   }
 
   protected elegir(tipo: 'titular' | 'otra'): void {
@@ -146,6 +176,7 @@ export class QuienRecogeComponent implements OnChanges {
       cartaPoder: this.cartaPoder,
       copiaTitular: this.copiaTitular,
       foto: this.foto,
+      fotoCarta: this.fotoCarta() ?? undefined,
       completo: !otra || (this.nombre.trim().split(/\s+/).length >= 2 && this.cartaPoder && this.copiaTitular),
     });
   }

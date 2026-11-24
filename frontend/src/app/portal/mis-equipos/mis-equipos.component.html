@@ -2,7 +2,7 @@
 <header class="barra">
   <div class="barra__interior">
     <span class="marca"><img src="assets/acceso/logo-shuri.png" width="32" height="32" alt="" /><span><strong>SHURI</strong><small>Reparación y venta</small></span></span>
-    <span class="usuario"><strong>{{ cliente()?.nombre }}</strong><button type="button" class="texto-enlace" (click)="salir()">Cerrar sesión</button></span>
+    <span class="usuario"><strong>{{ cliente()?.nombre }}</strong><a class="texto-enlace" routerLink="/portal/pregunta-seguridad">Pregunta de seguridad</a><button type="button" class="texto-enlace" (click)="salir()">Cerrar sesión</button></span>
   </div>
 </header>
 

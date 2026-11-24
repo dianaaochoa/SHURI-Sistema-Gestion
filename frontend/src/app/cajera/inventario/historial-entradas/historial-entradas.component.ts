@@ -1,7 +1,7 @@
 import { Component, HostListener, computed, inject, input, signal } from '@angular/core';
 import { formatearDinero } from '../../../compartido/formato';
 import { diaMes } from '../../ordenes/detalle-orden/detalle-orden.component';
-import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
+import { DocumentosService } from '../../documentos/documentos.service';
 import { Entrada, FORMAS_PAGO } from '../inventario.datos';
 import { InventarioService } from '../inventario.service';
 
@@ -34,7 +34,7 @@ function fechaCorta(iso: string): string {
 })
 export class HistorialEntradasComponent {
   private readonly inventario = inject(InventarioService);
-  private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   readonly mes = input.required<string>();
 
   protected readonly dinero = formatearDinero;
@@ -62,7 +62,7 @@ export class HistorialEntradasComponent {
   }
 
   protected reimprimir(e: Entrada): void {
-    this.mensaje.set(this.dispositivos.imprimir(e.folio) ? `Comprobante de ${e.folio} impreso` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
+    this.mensaje.set(this.documentos.imprimir({ tipo: 'entrada', entrada: e }) ? `Comprobante de ${e.folio} impreso` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
   }
 
   @HostListener('document:keydown.escape')

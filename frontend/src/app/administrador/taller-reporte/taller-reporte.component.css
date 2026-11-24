@@ -10,3 +10,7 @@
 @media (max-width: 600px) {
   .t-ingreso, .t-tiempo, .t-estado { display: none; }
 }
+
+.calificacion { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--color-borde); }
+.calificacion__texto { margin: 0; font-size: 12px; color: var(--color-texto-secundario); }
+.estrellas { color: var(--color-advertencia); letter-spacing: 1px; }

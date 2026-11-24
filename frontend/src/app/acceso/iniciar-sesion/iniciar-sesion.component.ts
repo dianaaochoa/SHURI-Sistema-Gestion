@@ -63,6 +63,9 @@ export class IniciarSesionComponent implements OnInit {
 
   ngOnInit(): void {
     const usuario = this.route.snapshot.queryParamMap.get('usuario');
+    // Aviso que deja la pantalla de la pregunta (p. ej. la cuenta se bloqueó).
+    const aviso = (history.state as { aviso?: string } | null)?.aviso;
+    if (aviso) setTimeout(() => this.error.set(aviso));
     if (usuario) this.formulario.controls.usuario.setValue(usuario);
 
     // El aviso de error se quita en cuanto la persona corrige sus datos.

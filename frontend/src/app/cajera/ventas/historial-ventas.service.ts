@@ -1,8 +1,9 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, effect, inject, signal, untracked } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../acceso/auth.service';
 import { InventarioService } from '../inventario/inventario.service';
+import { DispositivosService } from '../punto-de-venta/dispositivos.service';
 import { CATALOGO } from '../punto-de-venta/catalogo.datos';
 import { CLIENTES, Cliente, PUBLICO_GENERAL } from '../punto-de-venta/clientes.datos';
 import {
@@ -10,6 +11,7 @@ import {
   IVA,
   Linea,
   MetodoPago,
+  NotaAplicada,
   ParteMixta,
   VentaCobrada,
   calcularTotales,
@@ -45,8 +47,33 @@ export interface VentaRegistrada {
   cambio: number;
   referencia?: string;
   partes?: ParteMixta[];
+  /** Nota de crédito que pagó parte del total (lo demás, con `metodo`). */
+  nota?: NotaAplicada;
+  /** Comisión de la terminal cobrada al cliente además del total. */
+  comision?: number;
+  /** Cobro de la entrega de una orden de servicio (C3 la muestra; se ajusta desde la orden, no aquí). */
+  orden?: string;
   estado: EstadoVenta;
   devoluciones: Devolucion[];
+}
+
+/** Días que vale una nota de crédito (lo dice el comprobante de la devolución). */
+export const VIGENCIA_NOTA = 90;
+
+/** Nota de crédito (o saldo de un “cambio por otro”) que nace de una devolución. */
+export interface NotaCredito {
+  folio: string;
+  cliente: Cliente;
+  /** Venta de la que salió. */
+  venta: string;
+  forma: 'nota' | 'cambio';
+  /** ISO */
+  fecha: string;
+  /** ISO */
+  vence: string;
+  monto: number;
+  /** Lo que falta por usar. */
+  saldo: number;
 }
 
 /** Días para aceptar una devolución (aviso de Figma C3.1). */
@@ -240,6 +267,15 @@ export class HistorialVentasService {
   private readonly desdeApi = signal(false);
 
   constructor() {
+    // Ventas cobradas sin conexión que siguen guardadas en el equipo (la página se recargó antes de reconectar).
+    const dispositivos = inject(DispositivosService);
+    for (const p of dispositivos.sinConexion()) {
+      if (!this.ventas().some((v) => v.folio === p.venta.folio)) this.registrar(p.venta, p.cajera, p.fecha);
+    }
+    // Si ya hay internet, se suben de una vez (el aviso de Punto de venta dice cuántas).
+    if (dispositivos.porSincronizar() && navigator.onLine) queueMicrotask(() => dispositivos.reintentarConexion());
+
+    // Con una sesión que puede vender, el historial sale de la API
     effect(() => {
       const permisos = this.auth.sesion()?.permisos ?? [];
       untracked(() => {
@@ -309,10 +345,51 @@ export class HistorialVentasService {
     };
   }
 
-  registrar(cobrada: VentaCobrada, cajera: string): void {
+  /**
+   * Notas de crédito: cada devolución “en nota de crédito” o “para cambio por otro” deja un saldo al cliente
+   * (folio NC-0007…) que se usa al cobrar en Punto de venta. El saldo baja con cada venta que la aplica.
+   */
+  readonly notas = computed<NotaCredito[]>(() => {
+    const ventas = this.ventas();
+    const usado = new Map<string, number>();
+    for (const v of ventas) if (v.nota && v.estado !== 'cancelada') usado.set(v.nota.folio, (usado.get(v.nota.folio) ?? 0) + v.nota.monto);
+    const origen = ventas
+      .flatMap((v) => v.devoluciones.map((d) => ({ v, d })))
+      .filter(({ d }) => d.forma === 'nota' || d.forma === 'cambio')
+      .sort((a, b) => a.d.fecha.localeCompare(b.d.fecha));
+    return origen.map(({ v, d }, i) => {
+      const folio = `NC-${String(6 + i + 1).padStart(4, '0')}`;
+      const vence = new Date(d.fecha);
+      vence.setDate(vence.getDate() + VIGENCIA_NOTA);
+      return {
+        folio,
+        cliente: v.cliente,
+        venta: v.folio,
+        forma: d.forma as 'nota' | 'cambio',
+        fecha: d.fecha,
+        vence: vence.toISOString(),
+        monto: d.monto,
+        saldo: redondear(Math.max(0, d.monto - (usado.get(folio) ?? 0))),
+      };
+    });
+  });
+
+  /** Folio de la nota que nació de una devolución (para el comprobante). */
+  folioNota(venta: VentaRegistrada, indice: number): string {
+    const d = venta.devoluciones[indice];
+    return this.notas().find((n) => n.venta === venta.folio && n.fecha === d.fecha)?.folio ?? 'NC-—';
+  }
+
+  /** Notas con saldo y vigentes; de un cliente o, con `folio`, la que se escaneó o escribió. */
+  notasUsables(clienteId: string | null, folio?: string): NotaCredito[] {
+    const hoy = new Date().toISOString();
+    return this.notas().filter((n) => n.saldo > 0 && n.vence >= hoy && (folio ? n.folio === folio.trim().toUpperCase() : n.cliente.id === clienteId));
+  }
+
+  registrar(cobrada: VentaCobrada, cajera: string, fecha = new Date().toISOString()): void {
     const nueva: VentaRegistrada = {
       folio: cobrada.folio,
-      fecha: new Date().toISOString(),
+      fecha,
       cliente: cobrada.cliente,
       cajera,
       lineas: cobrada.lineas,
@@ -325,6 +402,8 @@ export class HistorialVentasService {
       cambio: cobrada.cambio,
       referencia: cobrada.referencia,
       partes: cobrada.partes,
+      nota: cobrada.nota,
+      comision: cobrada.comision,
       estado: 'pagada',
       devoluciones: [],
     };

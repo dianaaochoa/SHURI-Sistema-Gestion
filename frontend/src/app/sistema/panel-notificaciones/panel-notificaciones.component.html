@@ -54,4 +54,5 @@
       <li class="notificaciones__vacio">No tienes notificaciones nuevas.</li>
     }
   </ul>
+  <a class="notificaciones__todas" [routerLink]="'/' + prefijo() + '/notificaciones'" (click)="ir.emit()">Ver todas las notificaciones</a>
 </section>

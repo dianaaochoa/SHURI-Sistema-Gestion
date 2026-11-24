@@ -1,10 +1,12 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
 import { formatearDinero } from '../../compartido/formato';
 import { AbrirTurnoComponent } from '../abrir-turno/abrir-turno.component';
 import { CajaService } from '../caja.service';
 import { HistorialVentasService } from '../ventas/historial-ventas.service';
+import { ClientesService } from '../clientes/clientes.service';
+import { PUBLICO_GENERAL } from './clientes.datos';
 import { AplicarDescuentoComponent } from './aplicar-descuento/aplicar-descuento.component';
 import { AtajosTecladoComponent } from './atajos-teclado/atajos-teclado.component';
 import { AvisoSinConexionComponent } from './aviso-sin-conexion/aviso-sin-conexion.component';
@@ -89,7 +91,22 @@ export class PuntoDeVentaComponent {
   protected readonly ticketFallido = signal<VentaCobrada | null>(null);
   protected readonly intentosImpresion = signal(1);
 
+  /** Notas de crédito con saldo del cliente de la venta (Público en general no tiene a su nombre: se busca por folio). */
+  protected readonly notasCliente = computed(() => {
+    const id = this.venta.cliente().id;
+    return id === PUBLICO_GENERAL.id ? [] : this.historial.notasUsables(id);
+  });
+  protected readonly buscarNota = (folio: string) => this.historial.notasUsables(null, folio)[0];
+
   constructor() {
+    // “Cambio por otro” (C3): Ventas abre Punto de venta con el cliente y su nota; lo que se lleva se cobra con ella.
+    const q = inject(ActivatedRoute).snapshot.queryParamMap;
+    const cliente = q.get('cliente') ? inject(ClientesService).buscar(q.get('cliente')!) : undefined;
+    if (cliente && this.venta.vacia()) {
+      this.venta.cliente.set(cliente);
+      this.aviso.set(`Cambio por otro · ${cliente.nombre} tiene la nota ${q.get('nota') ?? ''} para lo que se lleva; al cobrar elige “Usar ${q.get('nota') ?? 'la nota'}”.`);
+    }
+
     // Al reconectar se suben las ventas guardadas sin conexión (C2.16).
     effect(() => {
       const subidas = this.dispositivos.sincronizadas();
@@ -155,7 +172,7 @@ export class PuntoDeVentaComponent {
 
   private terminarCobro(pago: Pago, cobrada: VentaCobrada): void {
     this.errorCobro.set(null);
-    this.dispositivos.registrarVenta(cobrada);
+    this.dispositivos.registrarVenta(cobrada, this.auth.sesion()?.nombre ?? '');
     // Se agrega al historial para imprimir el ticket de una vez; con la API, la recarga la reemplaza por la del servidor
     this.historial.registrar(cobrada, this.auth.sesion()?.nombre ?? '');
     if (pago.factura) this.facturacion.timbrar({ cliente: cobrada.cliente.nombre, rfc: pago.factura.rfc, origen: `Venta ${cobrada.folio}`, total: cobrada.total, pidio: 'Caja' });

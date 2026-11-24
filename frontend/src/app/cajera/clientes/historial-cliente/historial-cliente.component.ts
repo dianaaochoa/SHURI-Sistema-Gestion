@@ -1,7 +1,7 @@
 import { Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { formatearDinero } from '../../../compartido/formato';
-import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
+import { DocumentosService } from '../../documentos/documentos.service';
 import { ClientesService, ResumenCliente, visita } from '../clientes.service';
 
 type Pestana = 'todo' | 'compras' | 'equipos';
@@ -23,7 +23,7 @@ const PERIODOS: { id: Periodo; texto: string }[] = [
 })
 export class HistorialClienteComponent {
   private readonly servicio = inject(ClientesService);
-  private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   readonly resumen = input.required<ResumenCliente>();
   readonly cerrar = output<void>();
   readonly nuevaOrden = output<void>();
@@ -70,7 +70,9 @@ export class HistorialClienteComponent {
   });
 
   protected imprimir(): void {
-    this.mensaje.set(this.dispositivos.imprimir(this.cliente().id) ? `Historial de ${this.cliente().nombre} impreso` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
+    const periodo = PERIODOS.find((p) => p.id === this.periodo())?.texto ?? 'Todo el historial';
+    const ok = this.documentos.imprimir({ tipo: 'historial', cliente: this.cliente(), movimientos: this.filas(), periodo });
+    this.mensaje.set(ok ? `Historial de ${this.cliente().nombre} impreso` : 'La impresora no responde: revisa que esté encendida, con papel y conectada');
   }
 
   @HostListener('document:keydown.escape')

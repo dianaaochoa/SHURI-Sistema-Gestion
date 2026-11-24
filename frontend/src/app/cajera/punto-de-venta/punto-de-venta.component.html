@@ -139,6 +139,8 @@
       [total]="venta.total()"
       [articulos]="venta.articulos()"
       [cliente]="venta.cliente()"
+      [notas]="notasCliente()"
+      [buscarNota]="buscarNota"
       (cerrar)="cerrarModal()"
       (confirmar)="confirmarCobro($event)"
     />

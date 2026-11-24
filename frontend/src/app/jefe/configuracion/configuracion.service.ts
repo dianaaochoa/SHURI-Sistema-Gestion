@@ -51,6 +51,8 @@ export class ConfiguracionTallerService {
       diasSinCobro: 'Días sin cobro en bodega',
       almacenajeDia: 'Almacenaje por día',
       despuesResguardo: `Después de ${reglas.diasResguardo} días`,
+      chatAbre: 'El chat abre a las (h)',
+      chatCierra: 'El chat cierra a las (h)',
     };
     for (const [clave, texto] of Object.entries(etiquetas) as [keyof ReglasTaller, string][]) {
       if (antes[clave] !== reglas[clave]) cambios.push(`${texto}: ${antes[clave]} → ${reglas[clave]}`);

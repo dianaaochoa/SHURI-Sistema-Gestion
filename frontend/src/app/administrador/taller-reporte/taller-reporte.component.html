@@ -81,4 +81,21 @@
       <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/cajera/alert.svg)"></span>Los motivos se capturan al rechazar en caja o en el portal. Úsalos para ajustar el tabulador de mano de obra.</p>
     </section>
   </div>
+
+  <section class="panel">
+    <h2 class="panel__titulo"><span class="icono" style="--icono: url(assets/menu/users.svg)"></span>Calificaciones del portal</h2>
+    @if (calificaciones().lista.length) {
+      <p class="dato"><span>Promedio de {{ calificaciones().lista.length }} {{ calificaciones().lista.length === 1 ? 'calificación' : 'calificaciones' }}</span><strong>{{ calificaciones().promedio }} de 5</strong></p>
+      @for (c of calificaciones().lista; track c.folio) {
+        <div class="calificacion">
+          <p class="dato"><span>{{ c.folio }} · {{ c.cliente }} · {{ c.equipo }}{{ c.tecnico ? ' · ' + c.tecnico : '' }}</span><strong class="estrellas" [attr.aria-label]="c.estrellas + ' de 5 estrellas'">{{ estrellasDe(c.estrellas) }}</strong></p>
+          @if (c.gusto.length || c.comentario) {
+            <p class="calificacion__texto">{{ c.gusto.join(', ') }}{{ c.gusto.length && c.comentario ? ' · ' : '' }}{{ c.comentario ? '“' + c.comentario + '”' : '' }}</p>
+          }
+        </div>
+      }
+    } @else {
+      <p class="dato"><span>Ningún cliente calificó en {{ mes().texto.toLowerCase() }}.</span></p>
+    }
+  </section>
 </div>

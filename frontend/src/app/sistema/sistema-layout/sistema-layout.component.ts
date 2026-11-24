@@ -44,7 +44,7 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
           </header>
           @if (avisos()) {
             <div class="sistema__fondo sistema__fondo--claro" (click)="avisos.set(false)"></div>
-            <app-panel-notificaciones class="avisos-movil" />
+            <app-panel-notificaciones class="avisos-movil" (ir)="avisos.set(false)" />
           }
         } @else {
           <header class="barra-movil">

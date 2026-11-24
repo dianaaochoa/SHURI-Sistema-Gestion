@@ -14,7 +14,7 @@
     <a
       class="boton boton--primario boton--bloque"
       routerLink="/iniciar-sesion"
-      [queryParams]="{ usuario: formulario.getRawValue().usuario }"
+      [queryParams]="{ usuario: usuarioRecuperado() }"
     >
       <img src="assets/iconos/key-btn.svg" width="16" height="16" alt="" />
       Entrar con mi contraseña temporal
@@ -100,7 +100,7 @@
     }
 
     <div class="campo">
-      <label class="campo__etiqueta" for="usuario">Usuario</label>
+      <label class="campo__etiqueta" for="usuario">Usuario o correo</label>
       <div class="campo__control" [class.campo__control--error]="usuarioInvalido">
         <img src="assets/iconos/user.svg" width="16" height="16" alt="" />
         <input
@@ -113,7 +113,7 @@
         />
       </div>
       @if (usuarioInvalido) {
-        <span class="campo__error">Escribe tu usuario.</span>
+        <span class="campo__error">Escribe tu usuario o tu correo.</span>
       }
     </div>
 

@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { AVISOS_CORREO } from './ajustes-documentos';
 
 export type TipoCorreo = 'acceso' | 'cotizacion' | 'listo' | 'bodega' | 'respuesta';
 
@@ -25,6 +26,9 @@ export const TIPOS_CORREO: Record<TipoCorreo, string> = {
   respuesta: 'Respuesta del chat',
 };
 
+/** Aviso de AD9.6 que controla cada correo (la respuesta del chat no depende de ninguno). */
+const AVISO_DE: Record<TipoCorreo, string> = { acceso: 'temporal', cotizacion: 'presupuesto', listo: 'listo', bodega: 'bodega', respuesta: '' };
+
 /**
  * P6 · Bandeja de correos que se mandan al cliente. Simulado: guarda lo que se enviaría; la API los mandará con la
  * cuenta de Configuración › Correo (AD9.7). No inyecta nada para que órdenes, clientes y mensajes puedan usarlo.
@@ -34,9 +38,10 @@ export class CorreosService {
   readonly enviados = signal<Correo[]>([]);
   private consecutivo = 0;
 
-  /** Solo se manda si el cliente tiene correo. */
+  /** Solo se manda si el cliente tiene correo y el aviso tiene “Correo” encendido en AD9.6. */
   enviar(correo: Omit<Correo, 'id' | 'fecha'>): Correo | null {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.para ?? '')) return null;
+    if (AVISOS_CORREO[AVISO_DE[correo.tipo]] === false) return null;
     const c: Correo = { ...correo, id: ++this.consecutivo, fecha: new Date().toISOString() };
     this.enviados.update((l) => [c, ...l]);
     return c;

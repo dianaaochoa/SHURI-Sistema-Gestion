@@ -18,6 +18,8 @@ export interface Sesion {
   puesto: string;
   /** Entró con contraseña temporal: debe crear la suya (A.5) antes de seguir. */
   requiereCambioContrasena: boolean;
+  /** Aún no elige su pregunta de seguridad: debe hacerlo antes de seguir. */
+  requierePregunta?: boolean;
   /** ISO: cuándo inició sesión en este equipo (C1.6 "Último acceso"). */
   desde?: string;
   correo?: string;
@@ -146,6 +148,33 @@ export type ResultadoInicioSesion =
   | { ok: false; mensaje: string; mfa?: undefined }
   | { ok: false; mfa: RetoMfa; mensaje: string };
 
+/**
+ * Catálogo fijo de preguntas de seguridad, igual al del backend (`App\Support\SecurityQuestions`,
+ * `GET /security-questions`): se guarda la clave y se muestra el texto.
+ */
+export const PREGUNTAS_SEGURIDAD = [
+  { clave: 'first_pet', texto: '¿Cómo se llamaba tu primera mascota?' },
+  { clave: 'birth_city', texto: '¿En qué ciudad naciste?' },
+  { clave: 'first_school', texto: '¿Cómo se llamaba tu escuela primaria?' },
+  { clave: 'childhood_friend', texto: '¿Cómo se llama tu mejor amigo(a) de la infancia?' },
+  { clave: 'favorite_teacher', texto: '¿Cuál es el apellido de tu maestro(a) favorito(a)?' },
+  { clave: 'first_job', texto: '¿En qué empresa fue tu primer trabajo?' },
+] as const;
+
+export type ClavePregunta = (typeof PREGUNTAS_SEGURIDAD)[number]['clave'];
+
+export const textoPregunta = (clave: string) => PREGUNTAS_SEGURIDAD.find((p) => p.clave === clave)?.texto ?? clave;
+
+export interface PreguntaSeguridad {
+  clave: ClavePregunta;
+  /** Guardada sin acentos, en minúsculas y sin espacios de más (así “Firulais ” = “firulais”). */
+  respuesta: string;
+}
+
+/** “ Firuláis ” → “firulais” */
+export const normalizarRespuesta = (texto: string) =>
+  texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+
 export type Turno = 'Matutino' | 'Vespertino';
 
 /** Cuenta del personal (AD7). La contraseña nunca sale del servicio. */
@@ -188,7 +217,12 @@ export interface SolicitudContrasena {
 
 interface Registro extends CuentaUsuario {
   contrasena: string;
+  /** Su pregunta de seguridad (como `users.security_question` y `security_answer_hash`); sin ella, al entrar se le pide. */
+  pregunta?: PreguntaSeguridad;
 }
+
+/** Respuesta de prueba de los usuarios demo (sin API): primera mascota “Firulais”. */
+const PREGUNTA_DEMO: PreguntaSeguridad = { clave: 'first_pet', respuesta: 'firulais' };
 
 export const CLAVE_SESION = 'shuri.sesion';
 /** Último uso de la app (ms) y pantalla bloqueada por inactividad; compartidos entre pestañas. */
@@ -222,7 +256,7 @@ function usuariosDemo(): Record<string, Registro> {
     { usuario: 'lortega', contrasena: 'temporal123', nombre: 'Luis Ortega', rol: 'tecnico', puesto: 'Técnico', correo: 'lortega@shuri.mx', telefono: '55 4433 5544', horario: '10:00–19:00', activo: true, temporal: true },
     { usuario: 'rsanchez', contrasena: 'Shuri2026!', nombre: 'Raúl Sánchez', rol: 'tecnico', puesto: 'Técnico', correo: 'rsanchez@shuri.mx', telefono: '55 4433 8899', horario: '9:00–18:00', activo: false, temporal: false, ultimoAcceso: haceDias('18:00', 41) },
   ];
-  return Object.fromEntries(lista.map((r) => [r.usuario, r]));
+  return Object.fromEntries(lista.map((r) => [r.usuario, r.temporal ? r : { ...r, pregunta: PREGUNTA_DEMO }]));
 }
 
 /** Convierte el usuario de la API en la sesión que usan las pantallas y los guards. */
@@ -250,7 +284,8 @@ function sesionDesdeApi(u: UsuarioApi, desde = new Date().toISOString()): Sesion
 }
 
 function sinContrasena(r: Registro): CuentaUsuario {
-  const { contrasena: _contrasena, ...cuenta } = r;
+  // Ni la contraseña ni las respuestas de seguridad salen del servicio.
+  const { contrasena: _contrasena, pregunta: _pregunta, ...cuenta } = r;
   return cuenta;
 }
 
@@ -466,7 +501,8 @@ export class AuthService {
 
   /** AD7.4 · Contraseña temporal entregada en persona; puede desbloquear la cuenta. */
   asignarTemporal(usuario: string, temporal: string, desbloquear: boolean): void {
-    this.actualizar(usuario, { contrasena: temporal, temporal: true });
+    // También se borra su pregunta de seguridad: al entrar elegirá otra (sirve si olvidó la respuesta).
+    this.actualizar(usuario, { contrasena: temporal, temporal: true, pregunta: undefined });
     if (desbloquear) this.reiniciarIntentos(usuario);
     this.solicitudes.update((lista) => lista.filter((s) => s.usuario !== usuario));
   }

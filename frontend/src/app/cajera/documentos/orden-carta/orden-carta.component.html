@@ -69,7 +69,7 @@
         <p class="fuerte">Usuario: {{ orden().cliente.correo ?? orden().cliente.telefono }}</p>
         <p class="fuerte">Contraseña temporal: {{ orden().ficha?.contrasena ?? 'la que te enviamos por correo' }} (también te la enviamos por correo; al entrar te pediremos cambiarla)</p>
       </div>
-      <div class="qr" aria-label="Código QR">QR</div>
+      <app-qr class="qr" [texto]="seguimiento()" [tamano]="72" />
     </section>
   </div>
 

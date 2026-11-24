@@ -26,3 +26,5 @@
   .rejilla--2, .rejilla--3 { grid-template-columns: minmax(0, 1fr); }
   .modal__acciones .boton { flex: 1 1 auto; }
 }
+
+.campo__nota { margin: 4px 0 0; font-size: 12px; color: var(--color-texto-secundario); }

@@ -7,6 +7,7 @@ import { CajaService } from '../../caja.service';
 import { CorteService } from '../../corte/corte.service';
 import { OrdenesService } from '../../ordenes/ordenes.service';
 import { DispositivosService } from '../../punto-de-venta/dispositivos.service';
+import { DocumentosService } from '../../documentos/documentos.service';
 import { FORMAS_PAGO, FormaPago, IVA, LineaEntrada, PROVEEDORES, Pedido, redondear } from '../inventario.datos';
 import { InventarioService, NuevaEntrada } from '../inventario.service';
 import { PagoProveedorComponent } from '../pago-proveedor/pago-proveedor.component';
@@ -34,6 +35,7 @@ export class EntradaComponent implements OnInit {
   private readonly permisos = inject(PermisosService);
   private readonly corte = inject(CorteService);
   private readonly dispositivos = inject(DispositivosService);
+  private readonly documentos = inject(DocumentosService);
   protected readonly cajera = inject(AuthService).sesion()?.nombre ?? '';
   private readonly buscador = viewChild<ElementRef<HTMLInputElement>>('buscador');
 
@@ -243,7 +245,7 @@ export class EntradaComponent implements OnInit {
       if (entregado !== null) {
         this.caja.pagarProveedor({ proveedor: entrada.proveedor, documento: entrada.documento, pedido: entrada.pedido, monto: entrada.total });
         partes.push(`pago en efectivo, cambio ${formatearDinero(redondear(entregado - entrada.total))}`);
-        if (!this.dispositivos.imprimir(entrada.folio)) partes.push('no se pudo imprimir el comprobante');
+        if (!this.documentos.imprimir({ tipo: 'entrada', entrada })) partes.push('no se pudo imprimir el comprobante');
       }
       const apartadas = datos.lineas.filter((l) => l.orden).map((l) => l.orden);
       if (apartadas.length) partes.push(`apartado para ${apartadas.join(', ')}`);

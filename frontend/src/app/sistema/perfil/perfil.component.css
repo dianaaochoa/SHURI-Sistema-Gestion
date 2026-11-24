@@ -45,3 +45,8 @@ h2 .icono { width: 18px; height: 18px; color: var(--color-primario); }
   .datos div { flex-direction: column; gap: 2px; }
   .datos dd { text-align: left; }
 }
+.pregunta-seguridad { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--color-borde); }
+.pregunta-seguridad h3 { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-marino); }
+.pregunta-seguridad h3 .icono { width: 16px; height: 16px; }
+.pregunta-seguridad__texto { margin: 0; font-size: 13px; color: var(--color-texto-secundario); }
+.pregunta-seguridad > .boton { align-self: flex-start; }

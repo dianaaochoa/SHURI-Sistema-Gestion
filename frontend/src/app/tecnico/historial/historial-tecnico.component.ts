@@ -59,12 +59,12 @@ export class HistorialTecnicoComponent {
     const q = this.busqueda().trim().toLowerCase();
     return this.delMes()
       .filter((o) => !q || [o.folio, o.cliente.nombre, o.equipo, o.imei].some((t) => t.toLowerCase().includes(q)))
-      .map((o) => ({ o, terminado: diaCorto(o.listaDesde!), trabajo: o.trabajo, tiempo: duracionCorta(this.banco.tiempo(o.folio)), garantia: estadoGarantia(o) }));
+      .map((o) => ({ o, terminado: diaCorto(o.listaDesde!), trabajo: o.trabajo, tiempo: duracionCorta(this.banco.tiempoReparacion(o.folio)), garantia: estadoGarantia(o) }));
   });
 
   protected readonly indicadores = computed(() => {
     const mes = this.delMes();
-    const tiempos = mes.map((o) => this.banco.tiempo(o.folio)).filter(Boolean);
+    const tiempos = mes.map((o) => this.banco.tiempoReparacion(o.folio)).filter(Boolean);
     const promedio = tiempos.length ? tiempos.reduce((s, t) => s + t, 0) / tiempos.length : 0;
     const enMes = (iso?: string) => !!iso && mesDe(iso) === this.mes();
     const recibidas = this.suyos().filter((o) => enMes(o.garantia?.recibida)).length;

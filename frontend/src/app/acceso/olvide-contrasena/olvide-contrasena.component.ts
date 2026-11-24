@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../auth.service';
@@ -33,6 +33,8 @@ export class OlvideContrasenaComponent {
   readonly sinRecuperacion = signal<string | null>(null);
   /** Correo enmascarado al que se envió la contraseña temporal; si existe se muestra A.4. */
   readonly correoEnviado = signal<string | null>(null);
+  /** Usuario de la cuenta recuperada (aunque haya escrito su correo), para llenar el inicio de sesión. */
+  readonly usuarioRecuperado = signal('');
 
   get usuarioInvalido(): boolean {
     const control = this.formulario.controls.usuario;

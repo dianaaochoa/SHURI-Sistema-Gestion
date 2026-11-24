@@ -160,6 +160,25 @@ export class PortalService {
   }
 
   /**
+   * Si el cliente ya tiene pregunta de seguridad. La API no devuelve cuál es (solo `has_security_question`),
+   * así que se muestra un texto genérico; null si todavía no tiene.
+   */
+  readonly preguntaDelCliente = computed(() => (this.datosCliente()?.has_security_question ? 'Ya tienes una pregunta configurada.' : null));
+
+  /** PUT /portal/security-question: pide la contraseña actual y guarda la pregunta con su respuesta. */
+  guardarPregunta(clave: string, respuesta: string, actual?: string): Observable<{ ok: boolean; mensaje?: string }> {
+    if (!actual) return of({ ok: false, mensaje: 'Escribe tu contraseña actual.' });
+    return this.http.put<{ message: string }>(`${this.api}/security-question`, { current_password: actual, question: clave, answer: respuesta.trim() }).pipe(
+      map((r) => {
+        const c = this.datosCliente();
+        if (c) this.datosCliente.set({ ...c, has_security_question: true });
+        return { ok: true, mensaje: r.message };
+      }),
+      catchError((e) => of({ ok: false, mensaje: mensajeDeError(e) })),
+    );
+  }
+
+  /**
    * P1.4 · Elige su pregunta secreta y crea su contraseña. Primero la pregunta (la API pide la
    * temporal) y después la contraseña: si algo falla, puede reintentar con la misma temporal.
    */

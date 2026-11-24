@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, signal } from '@angular/core';
+import { HistorialCartaComponent } from '../historial-carta/historial-carta.component';
 import { OrdenCartaComponent } from '../orden-carta/orden-carta.component';
 import { TicketComponent } from '../ticket/ticket.component';
 import { Documento, DocumentosService, folioDe } from '../documentos.service';
@@ -11,6 +12,8 @@ const NOMBRES: Record<Documento['tipo'], string> = {
   garantia: 'Recepción en garantía',
   corte: 'Corte de caja',
   movimiento: 'Movimiento de efectivo',
+  entrada: 'Entrada de mercancía',
+  historial: 'Historial del cliente',
 };
 
 /**
@@ -20,7 +23,7 @@ const NOMBRES: Record<Documento['tipo'], string> = {
 @Component({
   selector: 'app-vista-impresion',
   standalone: true,
-  imports: [TicketComponent, OrdenCartaComponent],
+  imports: [TicketComponent, OrdenCartaComponent, HistorialCartaComponent],
   template: `
     @if (doc(); as d) {
       <div class="vista" role="dialog" aria-modal="true" aria-labelledby="titulo-vista">
@@ -43,10 +46,17 @@ const NOMBRES: Record<Documento['tipo'], string> = {
           </div>
         </header>
         <div class="vista__papel">
-          @if (d.tipo === 'orden' && carta()) {
-            <app-orden-carta [orden]="d.orden" />
-          } @else {
-            <app-ticket [doc]="d" />
+          <!-- El papel (ticket, carta y QR) se carga al abrir la vista: no pesa en el paquete inicial. -->
+          @defer (on immediate) {
+            @if (d.tipo === 'orden' && carta()) {
+              <app-orden-carta [orden]="d.orden" />
+            } @else if (d.tipo === 'historial') {
+              <app-historial-carta [cliente]="d.cliente" [movimientos]="d.movimientos" [periodo]="d.periodo" />
+            } @else {
+              <app-ticket [doc]="d" />
+            }
+          } @placeholder {
+            <p class="vista__cargando">Preparando el documento…</p>
           }
         </div>
       </div>
@@ -64,6 +74,7 @@ const NOMBRES: Record<Documento['tipo'], string> = {
     .vista__acciones .icono { width: 16px; height: 16px; }
     .vista__papel { flex: 1; overflow: auto; padding: 24px; text-align: center; }
     .vista__papel > * { display: inline-block; text-align: left; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); }
+    .vista__papel > .vista__cargando { box-shadow: none; color: var(--color-superficie); }
     @media (max-width: 560px) {
       .vista__barra { padding: 12px 16px; }
       .vista__acciones { flex: 1 1 100%; }
@@ -80,7 +91,7 @@ export class VistaImpresionComponent implements AfterViewInit, OnDestroy {
   protected readonly formato = signal<'ticket' | 'carta'>('ticket');
   protected readonly carta = computed(() => {
     const d = this.doc();
-    return d?.tipo === 'orden' && this.formato() === 'carta';
+    return (d?.tipo === 'orden' && this.formato() === 'carta') || d?.tipo === 'historial';
   });
   protected readonly nombre = computed(() => (this.doc() ? NOMBRES[this.doc()!.tipo] : ''));
   protected readonly folio = computed(() => (this.doc() ? folioDe(this.doc()!) : ''));

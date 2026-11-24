@@ -94,7 +94,7 @@
       />
     }
     @if (abierto() === 'notificaciones') {
-      <app-panel-notificaciones class="flotante flotante--notificaciones" />
+      <app-panel-notificaciones class="flotante flotante--notificaciones" (ir)="abierto.set(null); cerrar.emit()" />
     }
   </div>
 </nav>

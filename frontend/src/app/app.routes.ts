@@ -20,8 +20,12 @@ const aSuInicio: CanActivateFn = () => {
   const sesion = inject(AuthService).sesion();
   const router = inject(Router);
   if (!sesion) return router.parseUrl('/iniciar-sesion');
-  return router.parseUrl(sesion.requiereCambioContrasena ? '/crear-contrasena' : rutaInicio(sesion.rol));
+  if (sesion.requiereCambioContrasena) return router.parseUrl('/crear-contrasena');
+  return router.parseUrl(sesion.requierePregunta ? '/pregunta-seguridad' : rutaInicio(sesion.rol));
 };
+
+/** Elegir pregunta: solo si la sesión aún no la tiene. */
+const sinPregunta: CanActivateFn = () => (inject(AuthService).sesion()?.requierePregunta ? true : inject(Router).parseUrl('/inicio'));
 
 /** Portal del cliente (P1): sesión aparte de la del personal. */
 const clienteDentro: CanActivateFn = () => {
@@ -47,7 +51,7 @@ const soloRol =
   (rol: Rol): CanActivateFn =>
   () => {
     const sesion = inject(AuthService).sesion();
-    if (sesion?.rol === rol && !sesion.requiereCambioContrasena) return true;
+    if (sesion?.rol === rol && !sesion.requiereCambioContrasena && !sesion.requierePregunta) return true;
     return inject(Router).parseUrl('/inicio');
   };
 
@@ -100,7 +104,8 @@ const PANTALLAS: Record<string, () => Promise<Type<unknown>>> = {
 
 /** C1.6 Mi perfil (también A.6 Cambiar contraseña): la misma pantalla en todos los roles. */
 const PERFIL = () => import('./sistema/perfil/perfil.component').then((m) => m.PerfilComponent);
-const DE_TODOS: Record<string, () => Promise<Type<unknown>>> = { perfil: PERFIL, 'cambiar-contrasena': PERFIL };
+const NOTIFICACIONES = () => import('./sistema/notificaciones/notificaciones.component').then((m) => m.NotificacionesComponent);
+const DE_TODOS: Record<string, () => Promise<Type<unknown>>> = { perfil: PERFIL, 'cambiar-contrasena': PERFIL, notificaciones: NOTIFICACIONES };
 
 /** Rutas de un rol a partir de su menú: /cajera/punto-de-venta, /jefe/mensajes, … */
 function rutasDeRol(rol: Rol): Route {
@@ -109,6 +114,7 @@ function rutasDeRol(rol: Rol): Route {
     ...grupos.flatMap((grupo) => grupo.destinos),
     { etiqueta: 'Mi perfil', ruta: 'perfil', figma: 'C1.6' },
     { etiqueta: 'Cambiar contraseña', ruta: 'cambiar-contrasena', figma: 'C1.6 / A.6' },
+    { etiqueta: 'Notificaciones', ruta: 'notificaciones', figma: 'C1.4 · ver todas' },
   ];
   return {
     path: prefijo,
@@ -141,6 +147,12 @@ export const routes: Routes = [
         canActivate: [conContrasenaTemporal],
         title: 'Crea tu contraseña · SHURI',
       },
+      {
+        path: 'pregunta-seguridad',
+        canActivate: [sinPregunta],
+        loadComponent: () => import('./acceso/elegir-pregunta/elegir-pregunta.component').then((m) => m.ElegirPreguntaComponent),
+        title: 'Pregunta de seguridad · SHURI',
+      },
     ],
   },
   { path: 'inicio', canActivate: [aSuInicio], children: [] },
@@ -154,6 +166,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', canActivate: [clienteFuera], loadComponent: () => import('./portal/acceso/acceso-portal.component').then((m) => m.AccesoPortalComponent), title: 'Rastrea tu equipo · SHURI' },
       { path: 'olvide-contrasena', loadComponent: () => import('./portal/olvide/olvide-portal.component').then((m) => m.OlvidePortalComponent), title: '¿Olvidaste tu contraseña? · SHURI' },
       { path: 'crear-contrasena', canActivate: [clienteConTemporal], loadComponent: () => import('./portal/crear/crear-portal.component').then((m) => m.CrearPortalComponent), title: 'Crea tu contraseña · SHURI' },
+      { path: 'pregunta-seguridad', canActivate: [clienteDentro], loadComponent: () => import('./portal/pregunta/pregunta-portal.component').then((m) => m.PreguntaPortalComponent), title: 'Pregunta de seguridad · SHURI' },
       { path: 'mis-equipos', canActivate: [clienteDentro], loadComponent: () => import('./portal/mis-equipos/mis-equipos.component').then((m) => m.MisEquiposComponent), title: 'Mis equipos · SHURI' },
       { path: 'equipo/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/seguimiento/seguimiento.component').then((m) => m.SeguimientoComponent), title: 'Seguimiento · SHURI' },
       { path: 'chat/:folio', canActivate: [clienteDentro], loadComponent: () => import('./portal/chat/chat-portal.component').then((m) => m.ChatPortalComponent), title: 'Chat con el taller · SHURI' },
