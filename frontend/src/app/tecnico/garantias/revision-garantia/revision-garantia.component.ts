@@ -109,20 +109,32 @@ export class RevisionGarantiaComponent {
     const motivo = aplica
       ? this.relacion().startsWith('Sí, es la pieza') ? 'pieza defectuosa' : 'falla de la reparación'
       : this.malUso() !== 'Ninguna' ? `${this.malUso().toLowerCase()} posterior` : 'daño posterior a la entrega';
-    this.servicio.enviarReporteGarantia(
-      this.orden().folio,
-      {
-        hallazgo: this.hallazgo().trim(),
-        relacion: this.relacion(),
-        malUso: this.malUso(),
-        trabajo: this.trabajo().trim() || '—',
-        recomienda: aplica ? 'aplica' : 'no-aplica',
-        motivo,
-        costo: !aplica && this.costo() ? this.costo()! : undefined,
-      },
-      this.nombre,
-    );
-    this.fotosServicio.agregarEvidencias(this.orden().folio, 'garantia', this.fotos(), this.nombreFotos);
-    this.volver.emit(`Reporte de ${this.orden().folio} enviado al jefe: queda “Esperando dictamen”.`);
+    const folio = this.orden().folio;
+    this.errorServidor.set(null);
+    this.servicio
+      .enviarReporteGarantia(
+        folio,
+        {
+          hallazgo: this.hallazgo().trim(),
+          relacion: this.relacion(),
+          malUso: this.malUso(),
+          trabajo: this.trabajo().trim() || '—',
+          recomienda: aplica ? 'aplica' : 'no-aplica',
+          motivo,
+          costo: !aplica && this.costo() ? this.costo()! : undefined,
+        },
+        this.nombre,
+      )
+      .subscribe((r) => {
+        if (!r.ok) {
+          this.errorServidor.set(r.mensaje);
+          return;
+        }
+        this.fotosServicio.agregarEvidencias(folio, 'garantia', this.fotos(), this.nombreFotos);
+        this.volver.emit(`Reporte de ${folio} enviado al jefe: queda “Esperando dictamen”.`);
+      });
   }
+
+  /** Error de la API al enviar el reporte. */
+  protected readonly errorServidor = signal<string | null>(null);
 }

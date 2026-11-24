@@ -178,9 +178,12 @@ export class BancoComponent {
     );
   }
 
-  /** Con la API, reanudar ya dejó corriendo el cronómetro: no hace falta "start". */
+  /**
+   * Con la API, reanudar ya dejó corriendo el cronómetro del servidor: no hace falta "start".
+   * Una garantía se mide en el navegador, así que ahí sí se arranca.
+   */
   private pausadaAntes(o: Orden): boolean {
-    return !!o.pausa || o.estado === 'esperando-refaccion';
+    return (!!o.pausa || o.estado === 'esperando-refaccion') && o.estado !== 'en-garantia';
   }
 
   /** T3.11 · Pausa la que iba en curso e inicia esta. */

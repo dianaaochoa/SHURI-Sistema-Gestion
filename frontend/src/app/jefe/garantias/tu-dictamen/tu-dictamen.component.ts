@@ -72,13 +72,24 @@ export class TuDictamenComponent {
   protected publicar(): void {
     if (this.falta()) return;
     const o = this.orden();
-    this.servicio.dictaminarGarantia(o.folio, { tipo: this.tipo(), texto: this.textoElegido(), concepto: this.conceptoElegido(), costo: this.costoElegido(), por: this.jefe });
+    const tipo = this.tipo();
+    const costo = this.costoElegido();
     const nombre = o.cliente.nombre.split(' ')[0];
     const resumen = {
       aplica: `garantía aplicada · ${o.tecnico.nombre.split(' ')[0]} la repara sin costo`,
-      'con-costo': `no aplica · se ofreció la reparación por ${formatearDinero(this.costoElegido())}`,
+      'con-costo': `no aplica · se ofreció la reparación por ${formatearDinero(costo)}`,
       'sin-reparar': 'no aplica · caja lo entrega sin reparar',
-    }[this.tipo()];
-    this.publicado.emit(`Dictamen de ${o.folio} publicado en el portal de ${nombre}: ${resumen}`);
+    }[tipo];
+    this.errorServidor.set(null);
+    this.servicio.dictaminarGarantia(o.folio, { tipo, texto: this.textoElegido(), concepto: this.conceptoElegido(), costo, por: this.jefe }).subscribe((r) => {
+      if (!r.ok) {
+        this.errorServidor.set(r.mensaje);
+        return;
+      }
+      this.publicado.emit(`Dictamen de ${o.folio} publicado en el portal de ${nombre}: ${resumen}`);
+    });
   }
+
+  /** Error de la API al publicar el dictamen. */
+  protected readonly errorServidor = signal<string | null>(null);
 }

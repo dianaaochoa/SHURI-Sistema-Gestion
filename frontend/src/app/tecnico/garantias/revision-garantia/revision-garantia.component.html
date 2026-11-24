@@ -106,6 +106,9 @@
         }
         <div class="lado__pie">
           <p class="aviso aviso--info"><span class="icono" style="--icono: url(assets/menu/shield.svg); color: var(--color-primario)"></span>Tú no decides si aplica. El jefe revisa tu reporte y da el dictamen; el cliente lo verá en su portal.</p>
+          @if (errorServidor(); as mensaje) {
+            <p class="aviso aviso--error" role="alert">No se envió: {{ mensaje }}</p>
+          }
           <button type="button" class="boton boton--primario boton-grande" (click)="mandar()"><span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Enviar reporte al jefe</button>
         </div>
       }

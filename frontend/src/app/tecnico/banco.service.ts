@@ -48,11 +48,14 @@ export class BancoService {
   /** Orden en curso por técnico con datos de prueba (iniciales → folio). */
   private readonly enCursoLocal = signal<Record<string, string>>({});
   /** Orden en curso por técnico (iniciales → folio): la que tiene el cronómetro corriendo en el servidor. */
-  readonly enCurso = computed<Record<string, string>>(() =>
-    this.servicio.conApi()
-      ? Object.fromEntries(this.ordenes().filter((o) => o.cronometro?.corriendo).map((o) => [o.tecnico.iniciales, o.folio]))
-      : this.enCursoLocal(),
-  );
+  readonly enCurso = computed<Record<string, string>>(() => {
+    if (!this.servicio.conApi()) return this.enCursoLocal();
+    // Con la API: la del servidor y, si trae una garantía en curso (se mide en el navegador), esa
+    const enGarantia = new Set(this.ordenes().filter((o) => o.estado === 'en-garantia').map((o) => o.folio));
+    const locales = Object.entries(this.enCursoLocal()).filter(([, f]) => enGarantia.has(f));
+    const servidor = this.ordenes().filter((o) => o.cronometro?.corriendo).map((o) => [o.tecnico.iniciales, o.folio]);
+    return Object.fromEntries([...locales, ...servidor]);
+  });
   readonly tiempos = signal<Record<string, Cronometro>>({});
   readonly pasos = signal<Record<string, boolean[]>>({});
   /** Figma T1.1 "Mi día": 3 h 40 min trabajadas (con los 45 min del equipo en curso) y 25 min en pausa. */
@@ -88,6 +91,14 @@ export class BancoService {
   }
 
   /**
+   * El cronómetro lo lleva el servidor, salvo en una garantía: la orden ya está entregada en la API
+   * y su revisión o reparación se mide en el navegador (por separado de la reparación original).
+   */
+  private usaApi(folio: string): boolean {
+    return this.servicio.conApi() && this.ordenes().find((o) => o.folio === folio)?.estado !== 'en-garantia';
+  }
+
+  /**
    * Clave del cronómetro y de los pasos: mientras la orden está en garantía se mide aparte (`#1024·garantia`),
    * así el tiempo de la reparación original no cambia y el de la garantía se ve por separado.
    */
@@ -97,7 +108,7 @@ export class BancoService {
 
   /** Milisegundos trabajados en la orden (lee el reloj, así los cronómetros avanzan solos). */
   tiempo(folio: string): number {
-    if (this.servicio.conApi()) {
+    if (this.usaApi(folio)) {
       const api = this.cronometroApi(folio);
       if (!api) return 0;
       return api.minutos * 60_000 + (api.corriendo && api.desde ? Math.max(0, this.ahora() - new Date(api.desde).getTime()) : 0);
@@ -107,12 +118,14 @@ export class BancoService {
 
   /** Tiempo de la reparación original, aunque la orden esté en garantía (con la API, el total del servidor). */
   tiempoReparacion(folio: string): number {
-    return this.servicio.conApi() ? this.tiempo(folio) : this.medir(folio);
+    if (!this.servicio.conApi()) return this.medir(folio);
+    const api = this.cronometroApi(folio);
+    return api ? api.minutos * 60_000 : 0;
   }
 
-  /** Tiempo trabajado en la garantía (0 si no ha tenido; la API todavía no lo separa). */
+  /** Tiempo trabajado en la garantía (0 si no ha tenido); se mide en el navegador. */
   tiempoGarantia(folio: string): number {
-    return this.servicio.conApi() ? 0 : this.medir(claveGarantia(folio));
+    return this.medir(claveGarantia(folio));
   }
 
   private medir(clave: string): number {
@@ -122,7 +135,7 @@ export class BancoService {
   }
 
   corriendo(folio: string): boolean {
-    if (this.servicio.conApi()) return !!this.cronometroApi(folio)?.corriendo;
+    if (this.usaApi(folio)) return !!this.cronometroApi(folio)?.corriendo;
     return !!this.tiempos()[this.clave(folio)]?.desde;
   }
 
@@ -131,9 +144,9 @@ export class BancoService {
    * Con la API, el servidor arranca el cronómetro (y rechaza si ya corre otra orden).
    */
   iniciar(iniciales: string, folio: string): Observable<ResultadoOrden> {
-    if (this.servicio.conApi()) return this.servicio.iniciarTrabajo(folio);
+    if (this.usaApi(folio)) return this.servicio.iniciarTrabajo(folio);
     const anterior = this.enCurso()[iniciales];
-    if (anterior && anterior !== folio) this.detener(anterior);
+    if (anterior && anterior !== folio && !this.usaApi(anterior)) this.detener(anterior);
     const clave = this.clave(folio);
     this.tiempos.update((t) => ({ ...t, [clave]: { acumulado: t[clave]?.acumulado ?? 0, desde: new Date().toISOString() } }));
     this.enCursoLocal.update((e) => ({ ...e, [iniciales]: folio }));
@@ -145,7 +158,7 @@ export class BancoService {
    * Con la API no hace nada: cada una de esas acciones ya lo detiene en el servidor.
    */
   detener(folio: string): void {
-    if (this.servicio.conApi()) return;
+    if (this.usaApi(folio)) return;
     const clave = this.clave(folio);
     const c = this.tiempos()[clave];
     if (c?.desde) {
@@ -160,7 +173,7 @@ export class BancoService {
 
   /** Lo que lleva corriendo desde la última vez que se inició. */
   segmento(folio: string): number {
-    const desde = this.servicio.conApi() ? (this.cronometroApi(folio)?.corriendo ? this.cronometroApi(folio)?.desde : undefined) : this.tiempos()[this.clave(folio)]?.desde;
+    const desde = this.usaApi(folio) ? (this.cronometroApi(folio)?.corriendo ? this.cronometroApi(folio)?.desde : undefined) : this.tiempos()[this.clave(folio)]?.desde;
     return desde ? Math.max(0, this.ahora() - new Date(desde).getTime()) : 0;
   }
 

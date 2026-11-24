@@ -1590,7 +1590,14 @@ export class OrdenesService {
    * J4.2 · Publica el dictamen de garantía. Aplica: el técnico repara sin costo. Con costo: el cliente decide en su portal (P3.2).
    * Sin reparar: pasa a "Garantía lista" para que caja lo entregue (C6.3).
    */
-  dictaminarGarantia(folio: string, datos: { tipo: TipoDictamen; texto: string; concepto?: string; costo?: number; por: string }): void {
+  dictaminarGarantia(folio: string, datos: { tipo: TipoDictamen; texto: string; concepto?: string; costo?: number; por: string }): Observable<ResultadoOrden> {
+    const garantiaApi = this.ordenes().find((o) => o.folio === folio)?.garantia?.folio;
+    if (this.desdeApi() && garantiaApi) {
+      // POST /warranties/{folio}/rule: el servidor avisa al cliente por correo y en su portal
+      const ruling = { aplica: 'covered', 'con-costo': 'covered_with_cost', 'sin-reparar': 'not_covered' }[datos.tipo];
+      const motivo = datos.tipo === 'con-costo' && datos.concepto?.trim() ? `${datos.concepto.trim()}: ${datos.texto.trim()}` : datos.texto.trim();
+      return this.accionGarantia(folio, `warranties/${garantiaApi}/rule`, { ruling, reason: motivo.slice(0, 255), extra_cost: datos.tipo === 'con-costo' ? (datos.costo ?? 0) : null });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => {
       if (!o.garantia) return o;
@@ -1616,6 +1623,16 @@ export class OrdenesService {
         contactos: [...o.contactos, { fecha: ahora, texto: 'Dictamen de garantía publicado en el portal' }],
       };
     });
+    return of({ ok: true, mensaje: '' });
+  }
+
+  /** POST a un endpoint de garantías (responde la garantía): luego se recarga la orden. */
+  private accionGarantia(folio: string, ruta: string, cuerpo: object = {}): Observable<ResultadoOrden> {
+    return this.enviar(
+      this.http.post<{ message: string }>(`${this.api}/${ruta}`, cuerpo).pipe(
+        switchMap((r) => this.recargar(folio).pipe(map((orden) => ({ ok: true as const, orden, mensaje: r.message })))),
+      ),
+    );
   }
 
   /** Anota un evento en el historial de la orden (J5: piezas entregadas, pedidas o rechazadas). */
@@ -1642,6 +1659,10 @@ export class OrdenesService {
         .post<{ data: OrdenApi }>(`${this.api}/my/orders/${folioParaApi(folio)}/${accion}`, cuerpo)
         .pipe(map((r) => ({ ok: true as const, orden: this.reemplazar(r.data), mensaje: '' }))),
     );
+  }
+
+  private enGarantia(folio: string): boolean {
+    return this.ordenes().find((o) => o.folio === folio)?.estado === 'en-garantia';
   }
 
   /** T3 · "Iniciar": la primera vez pasa a diagnóstico; arranca el cronómetro del servidor. */
@@ -1707,7 +1728,8 @@ export class OrdenesService {
 
   /** T3.6 / T3.8 · Pausa la orden con su motivo; "Esperando refacción" la deja en esa columna del tablero. */
   pausar(folio: string, motivo: string, detalle: string, por: string): Observable<ResultadoOrden> {
-    if (this.desdeApi()) {
+    // Una garantía se trabaja con la orden ya entregada: su pausa se queda en el banco (navegador)
+    if (this.desdeApi() && !this.enGarantia(folio)) {
       return this.accionBanco(folio, 'pause', { reason: `${motivo}${detalle.trim() ? `: ${detalle.trim()}` : ''}`.slice(0, 255) });
     }
     const ahora = ahoraIso();
@@ -1722,7 +1744,7 @@ export class OrdenesService {
 
   /** El técnico retoma la orden pausada (en la API también vuelve a correr el cronómetro). */
   reanudar(folio: string, por: string): Observable<ResultadoOrden> {
-    if (this.desdeApi()) return this.accionBanco(folio, 'resume');
+    if (this.desdeApi() && !this.enGarantia(folio)) return this.accionBanco(folio, 'resume');
     this.actualizar(folio, (o) =>
       o.pausa || o.estado === 'esperando-refaccion'
         ? { ...o, estado: o.estado === 'esperando-refaccion' ? 'en-taller' : o.estado, pausa: undefined, historial: [...o.historial, { fecha: ahoraIso(), texto: `Reanudada por ${por}` }] }
@@ -1740,6 +1762,13 @@ export class OrdenesService {
     const actual = this.ordenes().find((o) => o.folio === folio);
     if (this.desdeApi() && actual?.estado !== 'en-garantia') {
       return this.accionBanco(folio, 'finish', { work_done: d.realizado.trim() || 'Reparación terminada', notes: d.notaInterna.trim() || null });
+    }
+    // Garantía reparada → POST /my/warranties/{folio}/finish (el cliente recibe el aviso)
+    if (this.desdeApi() && actual?.garantia?.folio) {
+      const nota = d.notaInterna.trim();
+      const terminar = this.accionGarantia(folio, `my/warranties/${actual.garantia.folio}/finish`);
+      if (!nota) return terminar;
+      return terminar.pipe(switchMap((r) => (r.ok ? this.agregarNota(folio, nota, d.por).pipe(map(() => r)) : of(r))));
     }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) => {
@@ -1762,7 +1791,12 @@ export class OrdenesService {
   }
 
   /** T4.2 · El técnico revisa la garantía y manda su reporte; el jefe da el dictamen (J4.2). */
-  enviarReporteGarantia(folio: string, reporte: Omit<ReporteGarantia, 'fecha'>, por: string): void {
+  enviarReporteGarantia(folio: string, reporte: Omit<ReporteGarantia, 'fecha'>, por: string): Observable<ResultadoOrden> {
+    const garantiaApi = this.ordenes().find((o) => o.folio === folio)?.garantia?.folio;
+    if (this.desdeApi() && garantiaApi) {
+      // POST /my/warranties/{folio}/review: el formulario viaja como JSON para que el jefe lo vea igual (J4.2)
+      return this.accionGarantia(folio, `my/warranties/${garantiaApi}/review`, { report: JSON.stringify(reporte).slice(0, 2000) });
+    }
     const ahora = ahoraIso();
     this.actualizar(folio, (o) =>
       o.garantia
@@ -1773,6 +1807,7 @@ export class OrdenesService {
           }
         : o,
     );
+    return of({ ok: true, mensaje: '' });
   }
 
   /** T3.9 · Presupuesto rechazado: el técnico arma el equipo como llegó y lo devuelve a caja → POST /my/orders/{folio}/return-to-counter. */

@@ -1,5 +1,5 @@
 import { REGLAS_TALLER } from '../../compartido/reglas-taller';
-import type { Concepto, DecisionGarantia, EstadoOrden, Evento, Orden, Prioridad, Tecnico } from './ordenes.service';
+import type { Concepto, DecisionGarantia, EstadoOrden, Evento, Orden, Prioridad, ReporteGarantia, Tecnico } from './ordenes.service';
 
 /** Orden como la responde la API (ServiceOrderResource, docs/api/endpoints.md §6). */
 export interface OrdenApi {
@@ -66,6 +66,9 @@ export interface OrdenApi {
     customer_reason: string;
     ruling: 'covered' | 'not_covered' | 'covered_with_cost' | null;
     ruling_reason: string | null;
+    /** Reporte del técnico (T4): JSON con el formulario de la revisión, o texto libre. Solo el personal. */
+    technician_review?: string | null;
+    technician_id?: number | null;
     extra_cost: number | null;
     extra_cost_accepted: boolean | null;
     created_at: string;
@@ -177,6 +180,24 @@ function propuesta(texto: string): { texto: string; conceptos: Concepto[] } {
   };
 }
 
+/**
+ * Reporte de la revisión de garantía (T4 → J4.2). El banco lo manda como JSON con los campos del
+ * formulario; si alguien lo escribió como texto libre, se muestra completo como hallazgo.
+ */
+function reporteDeApi(w: NonNullable<OrdenApi['warranty']>): ReporteGarantia | undefined {
+  if (!w.technician_review) return undefined;
+  const fecha = w.ruled_at ?? w.received_at ?? w.created_at;
+  try {
+    const r = JSON.parse(w.technician_review) as Partial<ReporteGarantia>;
+    if (r && typeof r === 'object' && r.hallazgo) {
+      return { fecha, hallazgo: r.hallazgo, relacion: r.relacion ?? '', malUso: r.malUso ?? '', trabajo: r.trabajo ?? '', recomienda: r.recomienda === 'no-aplica' ? 'no-aplica' : 'aplica', motivo: r.motivo ?? '', costo: r.costo };
+    }
+  } catch {
+    // Texto libre
+  }
+  return { fecha, hallazgo: w.technician_review, relacion: '', malUso: '', trabajo: '', recomienda: 'aplica', motivo: '' };
+}
+
 function ultimoLog(o: OrdenApi, tipo: string): string | undefined {
   return [...(o.logs ?? [])].reverse().find((l) => l.type === tipo)?.created_at;
 }
@@ -271,6 +292,7 @@ export function ordenDeApi(o: OrdenApi, extras: ExtrasLocales = {}): Orden {
           dictamen: DICTAMEN[w.status] ?? w.status,
           resolucion: w.ruling_reason ?? '',
           recibio: w.request_channel === 'counter' ? 'Mostrador' : undefined,
+          reporte: reporteDeApi(w),
           decision,
         }
       : undefined,

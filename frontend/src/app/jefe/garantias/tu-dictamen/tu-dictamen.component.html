@@ -33,6 +33,9 @@
   @if (falta(); as mensaje) {
     <p class="falta" role="status">{{ mensaje }}</p>
   }
+  @if (errorServidor(); as mensaje) {
+    <p class="falta" role="alert">No se publicó: {{ mensaje }}</p>
+  }
   <button type="button" class="boton boton--primario publicar" [disabled]="!!falta()" (click)="publicar()">
     <span class="icono" style="--icono: url(assets/iconos/send.svg)"></span>Publicar dictamen
   </button>
