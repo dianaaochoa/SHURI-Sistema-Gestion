@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 23 nov 2026 (limpieza y rendimiento: logo de 36 KB, paquete inicial de 428.7 kB, presupuesto de CSS, clientes de prueba unificados y Excel .xlsx de verdad sin librerías)
+- **Última actualización:** 23 nov 2026 (se integró `feature/backend`: el acceso del personal ya usa la API de Laravel, con código MFA por correo y la pregunta secreta en el primer ingreso y en Mi perfil)
 
 ---
 
@@ -27,8 +27,8 @@ flowchart LR
     A4["A.4 Correo enviado"]:::hecho
     A5["A.5 Crea tu contraseña"]:::hecho
     A6["A.6 Cambiar contraseña<br/>(en Mi perfil, C1.6)"]:::hecho
-    A7["Confirma que eres tú<br/>pregunta de seguridad"]:::hecho
-    A8["Elegir pregunta de seguridad<br/>(primer acceso y Mi perfil)"]:::hecho
+    A7["A.1b Código MFA por correo<br/>(API)"]:::hecho
+    A8["Pregunta secreta<br/>(A.5 y Mi perfil, API)"]:::hecho
   end
 
   subgraph SHELL["Estructura de la app"]
@@ -157,10 +157,10 @@ flowchart TD
   G1{{"conContrasenaTemporal"}}:::guarda
 
   LOGIN -->|"¿Olvidaste tu contraseña?"| OLV
-  OLV -->|"usuario o correo → su pregunta → temporal al correo"| OLV
+  OLV -->|"usuario → su pregunta → temporal al correo (API)"| OLV
   OLV -->|"Volver / Entrar con temporal"| LOGIN
   LOGIN -->|"entra con contraseña temporal"| G1 --> CREAR
-  LOGIN -->|"entra con su contraseña"| INICIO
+  LOGIN -->|"contraseña + código MFA"| INICIO
   CREAR -->|"Guardar y entrar"| INICIO
   CREAR -->|"Salir sin guardar"| LOGIN
 
@@ -191,8 +191,6 @@ flowchart LR
     IS["IniciarSesion"]:::comp
     OC["OlvideContrasena"]:::comp
     CC["CrearContrasena"]:::comp
-    VPR["VerificarPregunta<br/>su pregunta al entrar"]:::comp
-    EPR["ElegirPregunta<br/>primer acceso, Mi perfil y portal"]:::comp
   end
 
   subgraph SISTEMA["sistema/"]
@@ -364,7 +362,7 @@ flowchart LR
   PVS["ProveedoresService<br/>condiciones, facturas a crédito<br/>y pagos (simulado)"]:::serv
   FCS["FacturacionService<br/>CFDI timbrados, cancelaciones<br/>y timbres (simulado)"]:::serv
 
-  AUTH["AuthService<br/>sesión, cuentas del personal,<br/>bloqueos y pedidos (simulado)"]:::serv
+  AUTH["AuthService<br/>acceso con la API (login, MFA,<br/>pregunta secreta) y cuentas de prueba"]:::serv
   USA["UsuariosAdmin AD7.1<br/>UsuarioForm AD7.2 · PermisosRol AD7.3<br/>AsignarTemporal AD7.4"]:::comp
   PMS["PermisosService<br/>permisos por rol y puede(permiso)<br/>(simulado)"]:::serv
   BTA["BitacoraAdmin AD8.1<br/>ExportarBitacora AD8.2"]:::comp
@@ -381,9 +379,9 @@ flowchart LR
   GLB["styles.css<br/>tokens + .campo .boton .icono .avatar .popover<br/>.panel .fila .indicador .estado .tecla .modal<br/>.selector .alternar .boton-icono .sugerencias"]:::css
 
   APP --> RUT
-  RUT --> LAY --> IS & OC & CC & VPR & EPR
-  VPR & EPR --> AUTH
-  PF --> EPR
+  RUT --> LAY --> IS & OC & CC
+  API["api/<br/>token-api · auth.interceptor · errores-api<br/>+ environments/environment.ts (apiUrl)"]:::serv
+  AUTH --> API
   RUT --> SL --> ML --> MU & PN
   SL --> NM & PN
   SL --> BLQ --> AUTH
@@ -466,7 +464,6 @@ flowchart LR
   RUT --> PTA
   RUT --> PSE
   PTA --> PTS
-  PTA --> EPR
   PTS --> PSE & CLSV & OS
   CRS["compartido/correos.service.ts<br/>bandeja de correos enviados<br/>+ correos.ts (plantillas, bajo demanda)"]:::serv
   OS & CLSV & MS --> CRS
@@ -563,47 +560,18 @@ npm start          # http://localhost:4200
 npm run build      # compilación de producción
 ```
 
-**Usuarios de prueba** (mientras no exista la API de Laravel), definidos en `src/app/acceso/auth.service.ts`:
+**Personal (API de Laravel).** Desde que se integró `feature/backend` (Brisa, 20 nov), el acceso del personal usa la API: hay que levantar el backend (`backend/README.md`: `composer install`, `.env` con la base MySQL, `php artisan key:generate`, `php artisan migrate --seed`, `php artisan serve`). La URL está en `src/environments/environment.ts` (`http://localhost:8000/api/v1`). Sin el backend, iniciar sesión dice “No hay conexión con el servidor. Revisa tu internet.”
 
-| Usuario | Contraseña | Rol / resultado |
+| Usuario | Contraseña | Rol |
 |---|---|---|
-| `vcastillo` | `Shuri2026!` | Administradora → `/administrador/inicio` |
-| `amartinez` | `Shuri2026!` | Cajera → `/cajera/inicio` |
-| `jlopez` | `Shuri2026!` | Jefe de técnicos → `/jefe/inicio` |
-| `cruiz` | `Shuri2026!` | Técnico → `/tecnico/inicio` |
-| `lortega` | `temporal123` | Simula primer ingreso → A.5 (técnico Luis Ortega) |
-| `lpena`, `mvega` | `Shuri2026!` | Cajero vespertino y técnica de AD7 |
-| `rsanchez` | `Shuri2026!` | Inactivo: “Tu usuario está desactivado” |
-| cualquier otro | — | A.2: “Te quedan N intentos”; al 3.º fallo la cuenta se bloquea |
+| `admin` | `password` | Administrador |
+| `jefe` | `password` | Jefe de técnicos |
+| `carlos`, `laura` | `password` | Técnicos |
+| `sofia` | `password` | Cajera (Caja 01) |
 
-**Pregunta de seguridad:** como en el backend, cada cuenta tiene **una** pregunta, elegida del mismo catálogo de 6 (`first_pet`, `birth_city`, `first_school`, `childhood_friend`, `favorite_teacher`, `first_job`). Se pide después de usuario y contraseña (“Confirma que eres tú”). Los usuarios de prueba tienen “¿Cómo se llamaba tu primera mascota?” → `Firulais` (no importan mayúsculas ni acentos). Las respuestas mal cuentan para el bloqueo (3 intentos). `lortega`, después de crear su contraseña, elige su pregunta. En Mi perfil se cambia (pide la contraseña actual). Si alguien olvida la respuesta, el administrador le asigna una contraseña temporal (AD7.4): eso también borra su pregunta y al entrar elige otra. La pantalla bloqueada (30 min) solo pide la contraseña.
-
-**¿Olvidaste tu contraseña? (A.3):** como la API, pide usuario o correo, hace la pregunta de la cuenta y, si la respuesta es correcta, “envía” una contraseña temporal de 10 letras y números y desbloquea la cuenta. Sin backend no sale el correo: la temporal aparece en la consola del navegador (`[demo] Contraseña temporal de …`). Con 3 respuestas mal se anula. Una cuenta sin pregunta (`lortega`) recibe “No podemos recuperar esta cuenta en línea…” y su pedido le llega al administrador (AD7).
-
-Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nuevas, contraseñas temporales y bloqueos se manejan en Usuarios y permisos (AD7) y viven en memoria.
-
-**Notificaciones:** el pie del panel de la campana, “Ver todas las notificaciones”, abre `/<rol>/notificaciones`: todos los avisos del rol con filtros (Todas, Sin leer y por tipo), “Marcar como leída”, “Marcar todo como leído” y “Abrir”, que lleva a la pantalla del aviso y lo marca como leído.
-
-**QR:** el ticket de venta (factura), la orden de servicio en ticket y en carta (seguimiento en el portal) y la nota de crédito llevan un QR real, hecho por `compartido/qr` (sin librerías).
-
-**Pantalla bloqueada (30 min sin uso):** sin tocar el mouse, el teclado ni la pantalla por 30 minutos, se cubre todo con “Pantalla bloqueada” y se pide la contraseña; al escribirla se sigue donde se quedó (una venta a medias sigue ahí). Los fallos cuentan para el bloqueo de la cuenta (3 intentos). “Entrar con otro usuario” cierra la sesión. Para probarlo sin esperar: en la consola, `localStorage.setItem('shuri.actividad', Date.now() - 31 * 60000)` y luego mover el mouse.
-
-**Configuración (`/administrador/configuracion`):** siete pestañas que se guardan juntas con “Guardar cambios” (un punto marca las que tienen cambios; “Descartar” los quita). Si falta algo obligatorio no se guarda y se abre la pestaña a corregir.
-- Negocio y marca: el nombre (SHURI · Reparaciones y Ventas) y el logo son fijos de SHURI y no se pueden cambiar; se editan razón social, dirección y teléfono, y el ticket (encabezado, pie, logo, desglose de IVA y quién cobró) con vista previa. El ticket impreso (C11) los usa al guardar.
-- Cajas y pagos: fondo, ubicación y terminal de cada caja (el fondo pasa a la apertura de turno), formas de pago y CLABE (se ve tapada; “Cambiar” pide los 18 dígitos). Al guardar, el cobro del punto de venta solo ofrece las formas activas (el efectivo siempre) y muestra la cuenta y CLABE de aquí.
-
-- Documentos: cláusulas que se imprimen en la hoja de recepción; llevan variables como `{garantia}` que se llenan con lo del taller. Aviso de privacidad y vista previa.
-- Taller: el mismo tabulador y reglas de J9; lo que cambia queda también en el historial de J9.
-- Facturación: RFC, razón social, régimen, C.P., CSD (solo guarda el nombre del archivo), serie y timbres. Las facturas nuevas usan la serie y el emisor guardados.
-- Mensajes: medio y texto de cada aviso automático, con variables y vista previa. Correo: cuenta de envío y “Enviar correo de prueba” (simulado).
-
-**Usuarios y permisos (`/administrador/usuarios-y-permisos`):**
-- Activos e inactivos con rol, turno o área, último acceso, tipo de acceso y estado (activo, en turno, pendiente, bloqueado).
-- El aviso amarillo muestra el último pedido de “¿Olvidaste tu contraseña?” (A.3); “Asignar contraseña temporal” (AD7.4) genera una clave tipo `Q8T-3ZK`, puede desbloquear la cuenta y quita el pedido. Al entrar con ella, el login manda a A.5.
-- “Nuevo usuario” (AD7.2) sugiere el usuario a partir del nombre, pide rol, caja y turno (cajeras) u horario (taller) y el descuento máximo; “Editar” permite cambiar datos, desactivar o reactivar (no a uno mismo) y asignar temporal.
-- Cada alta, cambio, desactivación, contraseña temporal y cambio de permisos queda en la Bitácora (AD8).
-- “Permisos por rol” (AD7.3): matriz de 12 permisos; el descuento de la cajera (0 a 20 %) es el valor por omisión de las cajeras nuevas. El punto de venta ya respeta el descuento máximo de cada cajera.
-- Los permisos aplican al guardar: sin “Vender” la cajera no ve Punto de venta; sin “Aplicar descuentos” el botón y la columna de descuento quedan apagados; sin “Cancelar ventas y devoluciones” esos botones de Ventas se desactivan; sin “Retiros y pagos a proveedor” no hay retiro ni ingreso en el corte ni pago en efectivo en las entradas; sin “Recibir mercancía” Inventario solo muestra el catálogo. Al jefe, “Cotizar y dictaminar” quita Por cotizar y Garantías, y “Pedidos” quita Refacciones; al técnico, “Trabajar órdenes en banco” quita Banco y Garantías; al administrador, “Ver reportes” quita los tres reportes. Una ruta sin permiso regresa al inicio del rol.
+- Todos tienen MFA: después de la contraseña se pide el código que llega por correo. Con `MAIL_MAILER=log` el código (y las contraseñas temporales) se ven en `backend/storage/logs/laravel.log`.
+- **Pregunta secreta:** se elige en el primer ingreso (A.5, junto con la contraseña nueva) y se cambia en Mi perfil; sirve para “¿Olvidaste tu contraseña?” (A.3). El login no la pide: la API usa el código MFA.
+- Los usuarios de prueba que estaban en el frontend (`vcastillo`, `amartinez`…) ya no sirven para entrar; los datos de las pantallas (órdenes, ventas, inventario…) siguen siendo de prueba en memoria.
 
 **Portal del cliente (`/portal`):** sesión aparte de la del personal (no usa el menú).
 
@@ -858,7 +826,8 @@ frontend/src/
     │   ├── fotos-orden/       # fotos del equipo al recibirlo: miniaturas, agregar, quitar y visor
     │   ├── campo-dinero.directive.ts  # campos de dinero: 1000 al escribir, $1,000.00 fuera del campo
     │   ├── qr/                # generador de códigos QR propio y <app-qr> en SVG
-    │   └── excel.ts           # leer y escribir .xlsx (ZIP + XML) sin librerías
+    │   ├── excel.ts           # leer y escribir .xlsx (ZIP + XML) sin librerías
+    │   └── preguntas-seguridad.ts  # catálogo de preguntas igual al backend (lo usa el portal, aún de prueba)
     ├── jefe/                  # 04 · Jefe de técnicos
     │   ├── jefe.datos.ts      # preguntas de los técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
@@ -907,7 +876,7 @@ frontend/src/
     │   ├── portal.service.ts  # entrar, temporal, crear contraseña y equipos del cliente
     │   ├── portal.css · compartido/   # columna de celular, marca, pie y modal de cláusulas/privacidad
     │   ├── acceso/ · olvide/ · crear/ · mis-equipos/   # P1.1 · P1.3 · P1.4 · P1.2
-    │   ├── pregunta/          # pregunta de seguridad del cliente
+    │   ├── pregunta/          # pregunta de seguridad del cliente (con su ElegirPregunta)
     │   ├── seguimiento/       # P2.1–P2.11 (seguimiento.component + tarjetas.css)
     │   ├── garantia/          # P3.1 solicitar-garantia · P3.2–P3.5 garantia-portal
     │   ├── factura/           # P4.2 autofactura (/portal/factura)
@@ -1029,8 +998,6 @@ frontend/src/
     │   ├── auth.service.ts    # sesión, intentos, contraseña temporal (simulado)
     │   ├── acceso-layout/     # marco común A.1–A.5
     │   ├── iniciar-sesion/    # A.1 · A.2
-    │   ├── verificar-pregunta/ # “Confirma que eres tú”: la pregunta de seguridad
-    │   ├── elegir-pregunta/   # elegir la pregunta (primer acceso, Mi perfil y portal)
     │   ├── olvide-contrasena/ # A.3 · A.4
     │   └── crear-contrasena/  # A.5 + indicador de seguridad
     └── sistema/
@@ -1288,6 +1255,7 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Foto de la carta poder (C6) | “Tomar foto de la carta poder” abre la cámara (o el explorador), guarda la foto reducida y la muestra con “Cambiar” y “Quitar”; queda en `Orden.entrega.cartaPoder` | Como las fotos de la orden, vive en memoria como data URL hasta la API. |
 | Tiempo de la garantía (T) | Mientras la orden está “en garantía”, el cronómetro y los pasos usan la clave `#folio·garantia`; `tiempoReparacion` y `tiempoGarantia` los leen aparte | El historial del técnico y el reporte del taller usan el tiempo de la reparación original; el detalle del historial muestra también el de la garantía. |
 | Ventas sin conexión (C2.16) | `DispositivosService` guarda la cola en `localStorage`; `HistorialVentasService` la vuelve a registrar al cargar y, con internet, la sube | Con la API, “subir” será mandarlas al servidor. |
+| Integración de `feature/backend` (23 nov) | En los 4 archivos con conflicto (`auth.service.ts`, `iniciar-sesion`, `olvide-contrasena` .ts y .html) quedó la versión de Brisa conectada a la API: login con código MFA, “¿Olvidaste tu contraseña?” con `/auth/password/forgot` y `/answer`, pregunta secreta en A.5 y Mi perfil. Se quitaron “Confirma que eres tú” (`/verificar`), `/pregunta-seguridad` y su sección en Mi perfil. El portal, que aún no está conectado, usa `compartido/preguntas-seguridad.ts` y su propio `ElegirPregunta` | Decisión del usuario: el login real es el de la API. La API no pide la pregunta al iniciar sesión (usa MFA), así que pedirla en cada login queda para cuando Diana lo agregue al backend. |
 | Una sola pregunta de seguridad (pedido del usuario, 22 nov) | `Registro.pregunta` (una, como `users.security_question`); `responderPregunta`, `guardarPregunta`, `preguntaDeSesion`, `requierePregunta`; rutas `verificar` y `pregunta-seguridad`. El portal guarda la suya en `PortalService` (como `customers.security_question`), la elige en `/portal/pregunta-seguridad` con el mismo `ElegirPregunta` (`guardarCon`) y P1.3 la pide como `/portal/password/forgot` y `/answer` | Si el backend guarda una, el frontend también. El personal la contesta al iniciar sesión (pedido del usuario); el backend aún no la pide ahí. El cliente no la contesta al entrar al portal: en la API solo sirve para recuperar la contraseña. |
 | Preguntas de seguridad iguales al backend (pedido del usuario, 22 nov) | `PREGUNTAS_SEGURIDAD` es `{ clave, texto }` con las 6 de `App\Support\SecurityQuestions` (`GET /security-questions`); se guarda la clave, como `users.security_question`. A.3 sigue `POST /auth/password/forgot` y `/answer`: usuario o correo, la pregunta 1, 3 intentos y temporal al correo con la cuenta desbloqueada | Así el frontend manda al backend claves que conoce. Después quedó una sola pregunta (fila de arriba). |
 | Preguntas de seguridad (pedido del usuario, 21 nov; luego una sola) | Después de usuario y contraseña, “Confirma que eres tú” pedía 2 preguntas (`AuthService.porVerificar`, `responderPreguntas`); sin preguntas (primer acceso o tras una temporal) la sesión trae `requierePreguntas` y las guardas mandan a elegirlas. Respuestas guardadas sin acentos ni mayúsculas, nunca salen del servicio; los fallos suman al mismo bloqueo de 3 intentos. La pantalla bloqueada solo pide la contraseña | No están en Figma: se usaron los estilos de A.1/A.5. **La API de Diana usa una sola pregunta y solo para “¿Olvidaste tu contraseña?”**: para pedir 2 al iniciar sesión hay que ajustar el backend. |
@@ -1308,8 +1276,9 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 
 ## 9. Pendientes conocidos
 
-- [ ] Pregunta de seguridad: el catálogo, la cantidad (una), la recuperación del personal y la del portal ya son iguales a la API (PR #10). Falta que el backend pida la pregunta al iniciar sesión del personal (hablar con Diana). Las respuestas viven en memoria.
-- [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
+- [ ] Pregunta de seguridad al iniciar sesión: el usuario la quería en cada login; la API usa código MFA y no la pide. Si Diana la agrega al backend, se vuelve a poner en el frontend.
+- [ ] Portal del cliente: conectar su acceso, recuperación y pregunta a la API (`/portal/…`); hoy siguen de prueba.
+- [ ] Conectar `NotificacionesService` y el resto de los servicios a la API (el acceso del personal ya está conectado).
 - [ ] El texto de resumen bajo la marca ya se calcula para los 4 roles (caja, órdenes abiertas, equipos asignados, estado de la caja); con la API vendrá del servidor.
 - [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
 - [x] Todas las pantallas de Figma: cajera (C1–C11 y C1.6), jefe de técnicos (J1–J11), técnico (T1–T7), administrador (AD1–AD9) y portal del cliente (P1–P6).
@@ -2162,3 +2131,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - el inicio de sesión carga aparte; el panel de notificaciones abre; “Reimprimir” en Ventas abre la vista de impresión; el logo nuevo carga (256 px)
   - `ng build` sin avisos (paquete inicial 428.7 kB); sin errores en consola
   - no se pudo abrir el `.xlsx` con Excel ni con `openpyxl` (la instalación quedó bloqueada)
+
+### 23 nov 2026 · Integración de feature/backend
+- Pedido del usuario: integrar los commits nuevos de `feature/backend` (Brisa, 17–20 nov) en `feature/frontend-ui` y resolver los conflictos dejando el login de la API.
+- Llegan: cliente HTTP con la URL de la API, interceptor del token y manejo de errores (`api/`, `environments/`); acceso del personal con la API (MFA, pregunta secreta en A.5 y Mi perfil, recuperación); rol de súper usuario en el backend.
+- Conflictos en `auth.service.ts`, `iniciar-sesion.component.ts` y `olvide-contrasena` (.ts y .html): se tomó la versión de `feature/backend`. Mi perfil quedó solo con la sección “Pregunta secreta” de la API.
+- Se quitaron `acceso/verificar-pregunta/`, las rutas `verificar` y `pregunta-seguridad` y sus guardas (`conVerificacion`, `sinPregunta`, `requierePregunta`). `ElegirPregunta` pasó a `portal/pregunta/` y el catálogo de preguntas a `compartido/preguntas-seguridad.ts`.
+- Verificado:
+  - `ng build` sin errores ni avisos (paquete inicial 446.4 kB: ahora arranca con el cliente HTTP)
+  - sin backend, `amartinez` en el login → “No hay conexión con el servidor. Revisa tu internet.”
+  - portal: “¿Olvidaste tu contraseña?” con `maria.hdz@gmail.com` → “¿Cómo se llamaba tu primera mascota?”; María › Mis equipos › “Pregunta de seguridad” muestra su pregunta actual y el selector
+  - no se probó el login con la API: el backend no está instalado en este equipo (sin `vendor/` ni `.env`, y el MySQL local pide contraseña)

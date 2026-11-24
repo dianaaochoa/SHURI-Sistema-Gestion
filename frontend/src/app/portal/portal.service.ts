@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, delay, of } from 'rxjs';
-import { ClavePregunta, PREGUNTAS_SEGURIDAD, PreguntaSeguridad, enmascararCorreo, normalizarRespuesta, textoPregunta } from '../acceso/auth.service';
+import { ClavePregunta, PREGUNTAS_SEGURIDAD, PreguntaSeguridad, enmascararCorreo, normalizarRespuesta, textoPregunta } from '../compartido/preguntas-seguridad';
 import { ClientesService } from '../cajera/clientes/clientes.service';
 import { Orden, OrdenesService, EstadoOrden } from '../cajera/ordenes/ordenes.service';
 import { Cliente } from '../cajera/punto-de-venta/clientes.datos';

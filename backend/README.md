@@ -981,12 +981,12 @@ Usuarios internos (Administrador, Jefe de Técnicos, Técnico, Cajera), sus role
 
 ##### `roles`
 
-Catálogo de los 4 roles internos del sistema.
+Catálogo de los 5 roles internos del sistema: Super usuario (una sola cuenta, acceso total), Administrador, Jefe de Técnicos, Técnico y Cajera.
 
 | Columna | Tipo (MySQL) | Qué guarda | Obligatorio | Por defecto | Llave | Descripción |
 |---|---|---|---|---|---|---|
 | `id` | `bigint unsigned` | Número entero (se genera solo) | Automático |  | PK | Identificador único del registro. |
-| `slug` | `varchar(30)` | Texto (letras y números), hasta 30 caracteres | Sí |  | Único | Clave interna del rol (admin, head_technician, technician, cashier). |
+| `slug` | `varchar(30)` | Texto (letras y números), hasta 30 caracteres | Sí |  | Único | Clave interna del rol (super_admin, admin, head_technician, technician, cashier). |
 | `name` | `varchar(50)` | Texto (letras y números), hasta 50 caracteres | Sí |  |  | Nombre visible del rol. |
 | `description` | `varchar(255)` | Texto (letras y números), hasta 255 caracteres | No |  |  | Explicación breve de lo que hace el rol. |
 | `created_at` | `timestamp` | Fecha y hora | No |  |  | Fecha y hora en que se creó el registro. |
@@ -2176,6 +2176,22 @@ Con `APP_ENV=local`, el seeder crea usuarios de prueba. Todos tienen la contrase
 | `sofia` | Cajera (Caja 01) |
 
 Con `MAIL_MAILER=log` (el valor de `.env.example`) los correos no salen: se escriben en `storage/logs/laravel.log`. Ahí aparecen el **código MFA** al iniciar sesión y las contraseñas temporales.
+
+**Super usuario.** Rol por encima del administrador, con acceso total. Solo puede existir una cuenta y no se crea desde la pantalla de usuarios, sino en el servidor:
+
+```bash
+php artisan shuri:create-superuser <usuario> <correo> "<Nombre completo>"
+```
+
+El comando muestra una contraseña temporal; al entrar, el sistema pide el código MFA (que llega al correo indicado), crear una contraseña propia y elegir la pregunta secreta. Ningún administrador puede ver, editar ni bloquear esta cuenta.
+
+Si el super usuario olvida su contraseña (nadie más puede asignarle una temporal), se regresa a su primer ingreso con:
+
+```bash
+php artisan shuri:reset-superuser
+```
+
+La cuenta no se puede borrar: la auditoría es inmutable y conserva sus acciones.
 
 La guía de todos los endpoints para el frontend está en [`docs/api/endpoints.md`](../docs/api/endpoints.md).
 

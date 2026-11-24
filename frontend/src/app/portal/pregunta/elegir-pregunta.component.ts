@@ -1,27 +1,18 @@
-import { Component, inject, input, output, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, input, output, signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AuthService, ClavePregunta, PREGUNTAS_SEGURIDAD } from '../auth.service';
+import { ClavePregunta, PREGUNTAS_SEGURIDAD } from '../../compartido/preguntas-seguridad';
 
-export type GuardarPregunta = (clave: ClavePregunta, respuesta: string, actual?: string) => Observable<{ ok: boolean; mensaje?: string }>;
+export type GuardarPregunta = (clave: ClavePregunta, respuesta: string, actual: string) => Observable<{ ok: boolean; mensaje?: string }>;
 
 /**
- * Elegir la pregunta de seguridad (una, como el backend: `security_question`). Como pantalla (primer acceso o
- * cuenta sin pregunta) entra al terminar; dentro de Mi perfil o del portal (`enPerfil`) pide la contraseña actual
- * y avisa al guardar. El portal pasa su propio `guardarCon`; si no, guarda en la cuenta del personal.
+ * Elegir la pregunta de seguridad del cliente en el portal (una, como `customers.security_question`). Pide la
+ * contraseña actual, como `PUT /portal/security-question`. El personal la elige contra la API en A.5 y Mi perfil.
  */
 @Component({
   selector: 'app-elegir-pregunta',
   standalone: true,
   template: `
-    <form [class.tarjeta]="!enPerfil()" class="pregunta" (submit)="$event.preventDefault(); guardar()" novalidate>
-      @if (!enPerfil()) {
-        <span class="tarjeta__icono"><img src="assets/iconos/key-lg.svg" width="26" height="26" alt="" /></span>
-        <div class="tarjeta__encabezado">
-          <h1 class="tarjeta__titulo">Elige tu pregunta de seguridad</h1>
-          <p class="tarjeta__descripcion">Cada vez que inicies sesión te pediremos contestarla, después de tu contraseña. También te la haremos si olvidas tu contraseña. Elige una cuya respuesta solo tú sepas.</p>
-        </div>
-      }
+    <form class="pregunta" (submit)="$event.preventDefault(); guardar()" novalidate>
 
       @if (error(); as mensaje) {
         <div class="aviso aviso--error" role="alert"><img src="assets/iconos/alert.svg" width="16" height="16" alt="" /><span>{{ mensaje }}</span></div>
@@ -46,43 +37,29 @@ export type GuardarPregunta = (clave: ClavePregunta, respuesta: string, actual?:
         @if (intentado() && corta()) { <span class="campo__error">Escribe al menos 2 letras.</span> }
       </div>
 
-      @if (enPerfil()) {
-        <div class="campo">
+      <div class="campo">
           <label class="campo__etiqueta" for="pregunta-actual">Tu contraseña actual *</label>
           <div class="campo__control campo__control--40" [class.campo__control--error]="intentado() && !actual()">
             <input id="pregunta-actual" class="campo__input" type="password" autocomplete="current-password" [value]="actual()" (input)="actual.set($any($event.target).value); error.set(null)" />
           </div>
         </div>
-      }
 
       <p class="nota">La respuesta no distingue mayúsculas ni acentos. Nadie del taller puede verla.</p>
       <div class="acciones">
-        @if (enPerfil()) {
-          <button type="button" class="boton boton--contorno boton--40" (click)="cancelado.emit()">Cancelar</button>
-        }
-        <button type="submit" class="boton boton--primario" [class.boton--bloque]="!enPerfil()" [class.boton--40]="enPerfil()" [disabled]="enviando()">
-          {{ enviando() ? 'Guardando…' : enPerfil() ? 'Guardar pregunta' : 'Guardar y entrar' }}
-        </button>
+        <button type="button" class="boton boton--contorno boton--40" (click)="cancelado.emit()">Cancelar</button>
+        <button type="submit" class="boton boton--primario boton--40" [disabled]="enviando()">{{ enviando() ? 'Guardando…' : 'Guardar pregunta' }}</button>
       </div>
-      @if (!enPerfil()) {
-        <button type="button" class="enlace salir" (click)="salir()">Salir</button>
-      }
     </form>
   `,
   styles: `
     .pregunta { display: flex; flex-direction: column; gap: 14px; }
     .nota { font-size: 12px; color: var(--color-texto-secundario); }
     .acciones { display: flex; justify-content: flex-end; gap: 8px; }
-    .salir { align-self: center; }
   `,
 })
 export class ElegirPreguntaComponent {
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
-  /** Dentro de Mi perfil o del portal: pide la contraseña actual y no navega. */
-  readonly enPerfil = input(false);
-  /** Cómo guardar (el portal guarda en la cuenta del cliente); por omisión, la del personal. */
-  readonly guardarCon = input<GuardarPregunta | null>(null);
+  /** Cómo se guarda (en la cuenta del cliente). */
+  readonly guardarCon = input.required<GuardarPregunta>();
   readonly guardada = output<void>();
   readonly cancelado = output<void>();
 
@@ -100,22 +77,15 @@ export class ElegirPreguntaComponent {
 
   protected guardar(): void {
     this.intentado.set(true);
-    if (this.corta() || (this.enPerfil() && !this.actual()) || this.enviando()) return;
+    if (this.corta() || !this.actual() || this.enviando()) return;
     this.enviando.set(true);
-    const guardar = this.guardarCon() ?? ((c, r, a) => this.auth.guardarPregunta(c, r, a));
-    guardar(this.elegida(), this.respuesta(), this.enPerfil() ? this.actual() : undefined).subscribe((r) => {
+    this.guardarCon()(this.elegida(), this.respuesta(), this.actual()).subscribe((r) => {
       this.enviando.set(false);
       if (!r.ok) {
         this.error.set(r.mensaje ?? 'No se pudo guardar.');
         return;
       }
       this.guardada.emit();
-      if (!this.enPerfil()) this.router.navigateByUrl('/inicio');
     });
-  }
-
-  protected salir(): void {
-    this.auth.cerrarSesion();
-    this.router.navigateByUrl('/iniciar-sesion');
   }
 }

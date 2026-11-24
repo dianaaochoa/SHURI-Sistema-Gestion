@@ -17,15 +17,8 @@ const aSuInicio: CanActivateFn = () => {
   const sesion = inject(AuthService).sesion();
   const router = inject(Router);
   if (!sesion) return router.parseUrl('/iniciar-sesion');
-  if (sesion.requiereCambioContrasena) return router.parseUrl('/crear-contrasena');
-  return router.parseUrl(sesion.requierePregunta ? '/pregunta-seguridad' : rutaInicio(sesion.rol));
+  return router.parseUrl(sesion.requiereCambioContrasena ? '/crear-contrasena' : rutaInicio(sesion.rol));
 };
-
-/** “Confirma que eres tú”: solo con usuario y contraseña ya correctos. */
-const conVerificacion: CanActivateFn = () => (inject(AuthService).verificacion() ? true : inject(Router).parseUrl('/iniciar-sesion'));
-
-/** Elegir pregunta: solo si la sesión aún no la tiene. */
-const sinPregunta: CanActivateFn = () => (inject(AuthService).sesion()?.requierePregunta ? true : inject(Router).parseUrl('/inicio'));
 
 /** Portal del cliente (P1): sesión aparte de la del personal. */
 const clienteDentro: CanActivateFn = () => {
@@ -51,7 +44,7 @@ const soloRol =
   (rol: Rol): CanActivateFn =>
   () => {
     const sesion = inject(AuthService).sesion();
-    if (sesion?.rol === rol && !sesion.requiereCambioContrasena && !sesion.requierePregunta) return true;
+    if (sesion?.rol === rol && !sesion.requiereCambioContrasena) return true;
     return inject(Router).parseUrl('/inicio');
   };
 
@@ -146,18 +139,6 @@ export const routes: Routes = [
         loadComponent: () => import('./acceso/crear-contrasena/crear-contrasena.component').then((m) => m.CrearContrasenaComponent),
         canActivate: [conContrasenaTemporal],
         title: 'Crea tu contraseña · SHURI',
-      },
-      {
-        path: 'verificar',
-        canActivate: [conVerificacion],
-        loadComponent: () => import('./acceso/verificar-pregunta/verificar-pregunta.component').then((m) => m.VerificarPreguntaComponent),
-        title: 'Confirma que eres tú · SHURI',
-      },
-      {
-        path: 'pregunta-seguridad',
-        canActivate: [sinPregunta],
-        loadComponent: () => import('./acceso/elegir-pregunta/elegir-pregunta.component').then((m) => m.ElegirPreguntaComponent),
-        title: 'Pregunta de seguridad · SHURI',
       },
     ],
   },

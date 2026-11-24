@@ -23,19 +23,6 @@
         @if (perfil?.descuentoMaximo !== undefined) { <div><dt>Descuento máximo</dt><dd>{{ perfil!.descuentoMaximo }}% (lo define el administrador)</dd></div> }
         <div><dt>Último acceso</dt><dd>{{ ultimoAcceso() }}</dd></div>
       </dl>
-
-      <div class="pregunta-seguridad">
-        <h3><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Pregunta de seguridad</h3>
-        @if (avisoPregunta()) {
-          <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Pregunta guardada. Te la pediremos en tu próximo inicio de sesión.</p>
-        }
-        @if (cambiandoPregunta()) {
-          <app-elegir-pregunta [enPerfil]="true" (guardada)="preguntaGuardada()" (cancelado)="cambiandoPregunta.set(false)" />
-        } @else {
-          <p class="pregunta-seguridad__texto">{{ pregunta() ?? 'Aún no eliges tu pregunta.' }}</p>
-          <button type="button" class="boton boton--contorno boton--40" (click)="cambiandoPregunta.set(true); avisoPregunta.set(false)">Cambiar pregunta</button>
-        }
-      </div>
     </section>
 
     <section class="tarjeta-perfil" aria-labelledby="titulo-contrasena">
@@ -94,6 +81,53 @@
       <div class="acciones">
         <button type="button" class="boton boton--primario boton--44" [disabled]="guardando()" (click)="guardar()">
           <img src="assets/iconos/check-btn.svg" width="16" height="16" alt="" />{{ guardando() ? 'Guardando…' : 'Guardar contraseña' }}
+        </button>
+      </div>
+    </section>
+
+    <section class="tarjeta-perfil" id="pregunta-secreta" aria-labelledby="titulo-pregunta">
+      <h2 id="titulo-pregunta"><span class="icono" style="--icono: url(assets/menu/key.svg)"></span>Pregunta secreta</h2>
+
+      @if (preguntaLista()) {
+        <p class="aviso aviso--exito" role="status"><img src="assets/iconos/circle-check-sm.svg" width="14" height="14" alt="" />Pregunta secreta guardada. Ya puedes recuperar tu contraseña desde "¿Olvidaste tu contraseña?".</p>
+      } @else if (!sesion()?.tienePregunta) {
+        <p class="aviso aviso--advertencia" role="status"><img src="assets/iconos/alert.svg" width="14" height="14" alt="" />Aún no tienes pregunta secreta: si olvidas tu contraseña, no podrás recuperarla sin el administrador.</p>
+      } @else {
+        <p class="aviso aviso--info"><img src="assets/iconos/lock-a5.svg" width="14" height="14" alt="" />Ya tienes una pregunta secreta. Puedes cambiarla cuando quieras.</p>
+      }
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-pregunta">Pregunta</label>
+        <select id="perfil-pregunta" class="campo__input campo__select" [class.campo__control--error]="errorDePregunta('pregunta')" [value]="pregunta()" (change)="escribirPregunta('pregunta', $any($event.target).value)">
+          <option value="" disabled [selected]="!pregunta()">Selecciona una pregunta</option>
+          @for (p of preguntas(); track p.clave) {
+            <option [value]="p.clave" [selected]="p.clave === pregunta()">{{ p.texto }}</option>
+          }
+        </select>
+        @if (errorDePregunta('pregunta'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-respuesta">Respuesta</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="errorDePregunta('respuesta')">
+          <img src="assets/iconos/key-btn.svg" width="16" height="16" alt="" />
+          <input id="perfil-respuesta" class="campo__input" autocomplete="off" spellcheck="false" [value]="respuesta()" (input)="escribirPregunta('respuesta', $any($event.target).value)" (keydown.enter)="guardarPregunta()" />
+        </div>
+        @if (errorDePregunta('respuesta'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+
+      <div class="campo">
+        <label class="campo__etiqueta" for="perfil-contrasena-pregunta">Contraseña actual</label>
+        <div class="campo__control campo__control--40" [class.campo__control--error]="errorDePregunta('contrasena')">
+          <img src="assets/iconos/lock-a5.svg" width="16" height="16" alt="" />
+          <input id="perfil-contrasena-pregunta" class="campo__input" type="password" autocomplete="current-password" [value]="contrasenaPregunta()" (input)="escribirPregunta('contrasenaPregunta', $any($event.target).value)" (keydown.enter)="guardarPregunta()" />
+        </div>
+        @if (errorDePregunta('contrasena'); as e) { <p class="campo__error">{{ e }}</p> }
+      </div>
+
+      <div class="acciones">
+        <button type="button" class="boton boton--primario boton--44" [disabled]="guardandoPregunta()" (click)="guardarPregunta()">
+          <img src="assets/iconos/check-btn.svg" width="16" height="16" alt="" />{{ guardandoPregunta() ? 'Guardando…' : 'Guardar pregunta' }}
         </button>
       </div>
     </section>

@@ -115,6 +115,11 @@ class User extends Authenticatable
             return $this->permissionCodesCache;
         }
 
+        // El super usuario tiene todos los permisos, también los que se agreguen después
+        if ($this->isSuperUser()) {
+            return $this->permissionCodesCache = Permission::query()->orderBy('id')->pluck('code')->all();
+        }
+
         $roleIds = $this->userRoleSubstitutions()
             ->whereNull('revoked_at')
             ->where('starts_at', '<=', now())
@@ -134,5 +139,11 @@ class User extends Authenticatable
     public function hasPermission(string $code): bool
     {
         return in_array($code, $this->permissionCodes(), true);
+    }
+
+    /** Rol por encima del administrador: acceso total; ningún administrador puede verlo ni modificarlo. */
+    public function isSuperUser(): bool
+    {
+        return $this->role?->slug === Role::SUPER_ADMIN;
     }
 }

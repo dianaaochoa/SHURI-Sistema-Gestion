@@ -7,7 +7,7 @@ export interface SesionPortal {
   temporal: boolean;
 }
 
-const CLAVE = 'shuri.portal';
+export const CLAVE = 'shuri.portal';
 
 /**
  * Sesión del portal del cliente, aparte de la del personal. Vive en un archivo pequeño para que las guardas

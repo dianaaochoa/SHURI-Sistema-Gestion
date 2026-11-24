@@ -47,6 +47,12 @@ class UserFactory extends Factory
         return $this->state(['role_id' => 1, 'max_discount_pct' => 100]);
     }
 
+    /** Rol 5: Super usuario, por encima del administrador. */
+    public function superUser(): static
+    {
+        return $this->state(['role_id' => 5, 'max_discount_pct' => 100]);
+    }
+
     public function headTechnician(): static
     {
         return $this->state(['role_id' => 2, 'max_discount_pct' => 20]);

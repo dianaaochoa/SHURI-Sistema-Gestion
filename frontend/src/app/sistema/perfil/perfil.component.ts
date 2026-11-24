@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, ElementRef, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../acceso/auth.service';
-import { ElegirPreguntaComponent } from '../../acceso/elegir-pregunta/elegir-pregunta.component';
 import { REQUISITOS } from '../../acceso/contrasena';
 import { formatearFechaCorta, formatearHora } from '../../compartido/formato';
 import { CajaService } from '../../cajera/caja.service';
@@ -20,7 +20,6 @@ const NIVELES = [
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [ElegirPreguntaComponent],
   templateUrl: './perfil.component.html',
   styleUrl: './perfil.component.css',
 })
@@ -30,18 +29,10 @@ export class PerfilComponent implements AfterViewInit {
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   /** Desde "Cambiar contraseña" del menú de usuario se enfoca el formulario. */
   private readonly aCambiar = inject(Router).url.endsWith('/cambiar-contrasena');
+  /** Desde el aviso "Configura tu pregunta secreta" se baja a esa sección. */
+  private readonly aPregunta = inject(ActivatedRoute).snapshot.fragment === 'pregunta-secreta';
 
   protected readonly sesion = this.auth.sesion;
-  /** Pregunta de seguridad (solo el texto; la respuesta nunca se muestra). */
-  protected readonly pregunta = signal(this.auth.preguntaDeSesion());
-  protected readonly cambiandoPregunta = signal(false);
-  protected readonly avisoPregunta = signal(false);
-
-  protected preguntaGuardada(): void {
-    this.pregunta.set(this.auth.preguntaDeSesion());
-    this.cambiandoPregunta.set(false);
-    this.avisoPregunta.set(true);
-  }
   protected readonly perfil = this.auth.perfil();
   protected readonly iniciales = computed(() =>
     (this.sesion()?.nombre ?? '')
@@ -98,6 +89,12 @@ export class PerfilComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     if (this.aCambiar) setTimeout(() => this.elemento.nativeElement.querySelector<HTMLInputElement>('#perfil-actual')?.focus());
+    if (this.aPregunta) {
+      setTimeout(() => {
+        this.elemento.nativeElement.querySelector('#pregunta-secreta')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        this.elemento.nativeElement.querySelector<HTMLSelectElement>('#perfil-pregunta')?.focus({ preventScroll: true });
+      });
+    }
   }
 
   protected escribir(campo: 'actual' | 'nueva' | 'repetida', valor: string): void {
@@ -121,6 +118,54 @@ export class PerfilComponent implements AfterViewInit {
       this.repetida.set('');
       this.intentado.set(false);
       this.listo.set(true);
+    });
+  }
+
+  // ---------- Pregunta secreta (para recuperar la contraseña en línea, A.3) ----------
+  protected readonly preguntas = toSignal(this.auth.preguntasSecretas(), { initialValue: [] });
+  protected readonly pregunta = signal('');
+  protected readonly respuesta = signal('');
+  protected readonly contrasenaPregunta = signal('');
+  private readonly intentadoPregunta = signal(false);
+  protected readonly guardandoPregunta = signal(false);
+  private readonly errorApiPregunta = signal<string | null>(null);
+  protected readonly preguntaLista = signal(false);
+
+  private readonly erroresPregunta = computed(() => {
+    const e: Record<string, string> = {};
+    if (!this.pregunta()) e['pregunta'] = 'Elige una pregunta.';
+    const largo = this.respuesta().trim().length;
+    if (!largo) e['respuesta'] = 'Escribe tu respuesta.';
+    else if (largo < 3 || largo > 100) e['respuesta'] = 'La respuesta debe tener entre 3 y 100 caracteres.';
+    if (!this.contrasenaPregunta()) e['contrasena'] = 'Escribe tu contraseña actual.';
+    return e;
+  });
+
+  protected errorDePregunta(campo: 'pregunta' | 'respuesta' | 'contrasena'): string | null {
+    if (campo === 'contrasena' && this.errorApiPregunta()) return this.errorApiPregunta();
+    return this.intentadoPregunta() ? (this.erroresPregunta()[campo] ?? null) : null;
+  }
+
+  protected escribirPregunta(campo: 'pregunta' | 'respuesta' | 'contrasenaPregunta', valor: string): void {
+    this[campo].set(valor);
+    this.preguntaLista.set(false);
+    if (campo === 'contrasenaPregunta') this.errorApiPregunta.set(null);
+  }
+
+  protected guardarPregunta(): void {
+    this.intentadoPregunta.set(true);
+    if (Object.keys(this.erroresPregunta()).length || this.guardandoPregunta()) return;
+    this.guardandoPregunta.set(true);
+    this.auth.guardarPregunta(this.contrasenaPregunta(), { pregunta: this.pregunta(), respuesta: this.respuesta() }).subscribe((r) => {
+      this.guardandoPregunta.set(false);
+      if (!r.ok) {
+        this.errorApiPregunta.set(r.mensaje ?? 'No se pudo guardar la pregunta.');
+        return;
+      }
+      this.respuesta.set('');
+      this.contrasenaPregunta.set('');
+      this.intentadoPregunta.set(false);
+      this.preguntaLista.set(true);
     });
   }
 }

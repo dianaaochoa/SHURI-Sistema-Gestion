@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ElegirPreguntaComponent, GuardarPregunta } from '../../acceso/elegir-pregunta/elegir-pregunta.component';
+import { ElegirPreguntaComponent, GuardarPregunta } from './elegir-pregunta.component';
 import { PortalMarcaComponent } from '../compartido/portal-marca.component';
 import { PortalPieComponent } from '../compartido/portal-pie.component';
 import { PortalService } from '../portal.service';
@@ -34,7 +34,7 @@ import { PortalService } from '../portal.service';
         @if (!primera) {
           <p class="actual"><span>Tu pregunta actual</span>{{ portal.preguntaDelCliente() ?? 'Aún no eliges una.' }}</p>
         }
-        <app-elegir-pregunta [enPerfil]="true" [guardarCon]="guardar" (guardada)="guardada.set(true)" (cancelado)="salir()" />
+        <app-elegir-pregunta [guardarCon]="guardar" (guardada)="guardada.set(true)" (cancelado)="salir()" />
       }
 
       <app-portal-pie />
