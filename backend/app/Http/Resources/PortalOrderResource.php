@@ -37,6 +37,11 @@ class PortalOrderResource extends ServiceOrderResource
             ->values()
             ->all();
 
+        // El reporte interno del técnico sobre la garantía no lo ve el cliente
+        if (is_array($data['warranty'] ?? null)) {
+            unset($data['warranty']['technician_review'], $data['warranty']['technician_id']);
+        }
+
         // El último presupuesto que el cliente ya recibió (no el borrador del jefe)
         $quote = $this->quotes->whereIn('status', self::VISIBLE_QUOTES)->sortByDesc('id')->first();
         $data['quote'] = $quote ? [

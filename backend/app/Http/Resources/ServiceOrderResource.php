@@ -120,6 +120,9 @@ class ServiceOrderResource extends JsonResource
                 'customer_reason' => $w->customer_reason,
                 'ruling' => $w->ruling,
                 'ruling_reason' => $w->ruling_reason,
+                // Reporte del técnico (T4) y quién la revisa: solo el personal (el portal los quita)
+                'technician_review' => $w->technician_review,
+                'technician_id' => $w->technician_id,
                 'extra_cost' => $w->extra_cost !== null ? (float) $w->extra_cost : null,
                 'extra_cost_accepted' => $w->extra_cost_accepted,
                 'created_at' => $w->created_at?->toIso8601String(),

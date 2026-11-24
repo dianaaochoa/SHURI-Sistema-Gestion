@@ -125,10 +125,26 @@ class WarrantyTest extends TestCase
 
     public function test_cashier_registers_a_warranty_at_the_counter(): void
     {
+        // Con su técnico activo pasa directo a revisión (C4.5)
         $this->as($this->cashier, 'POST', "/api/v1/service-orders/{$this->order->folio}/warranties", ['reason' => 'No carga.'])
             ->assertCreated()
-            ->assertJsonPath('data.status', 'received')
+            ->assertJsonPath('data.status', 'in_review')
             ->assertJsonPath('data.request_channel', 'counter');
+    }
+
+    public function test_without_an_active_technician_the_head_assigns_the_review(): void
+    {
+        $this->technician->update(['is_active' => false]);
+
+        $folio = $this->as($this->cashier, 'POST', "/api/v1/service-orders/{$this->order->folio}/warranties", ['reason' => 'No carga.'])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'received')
+            ->json('data.folio');
+
+        $otro = User::factory()->technician()->create();
+        $this->as($this->head, 'POST', "/api/v1/warranties/{$folio}/assign", ['technician_id' => $otro->id])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'in_review');
     }
 
     public function test_covered_warranty_is_repaired_and_delivered_without_cost(): void

@@ -64,7 +64,8 @@ class WarrantyService
                 'customer_id' => $order->customer_id,
                 'request_channel' => $atCounter ? 'counter' : 'portal',
                 'customer_reason' => $reason,
-                'status' => $atCounter ? 'received' : 'requested',
+                // En mostrador el equipo ya está aquí: pasa directo a revisión con su técnico (C4.5)
+                'status' => $atCounter ? ($this->canReview($order->technician_id) ? 'in_review' : 'received') : 'requested',
                 'received_by' => $cashier?->id,
                 'received_at' => $atCounter ? now() : null,
                 // Por defecto la revisa quien hizo la reparación
@@ -86,10 +87,20 @@ class WarrantyService
     {
         $this->expect($warranty, ['requested'], 'Esta garantía ya fue recibida.');
 
-        $warranty->forceFill(['status' => 'received', 'received_by' => $cashier->id, 'received_at' => now()])->save();
+        // Si el técnico que la reparó sigue activo, la revisión es suya de una vez; si no, la asigna el jefe
+        $status = $this->canReview($warranty->technician_id) ? 'in_review' : 'received';
+        $warranty->forceFill(['status' => $status, 'received_by' => $cashier->id, 'received_at' => now()])->save();
         $this->log($warranty, $cashier, "Recibimos tu equipo para revisar la garantía {$warranty->folio}.", true);
 
         return $warranty;
+    }
+
+    /** El técnico de la orden puede revisar la garantía si sigue activo y repara equipos. */
+    private function canReview(?int $technicianId): bool
+    {
+        $technician = $technicianId ? User::where('is_active', true)->find($technicianId) : null;
+
+        return $technician !== null && $technician->hasPermission('orders.repair');
     }
 
     /** El jefe manda el equipo a revisión con un técnico. */

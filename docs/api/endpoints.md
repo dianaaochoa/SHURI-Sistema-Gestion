@@ -1449,8 +1449,10 @@ Si la cajera la registra en mostrador, empieza ya como `received`. El cliente re
 
 | Endpoint | Para qué |
 |---|---|
-| `POST /service-orders/{folio}/warranties` con `{ "reason": "…" }` | C4 Registrar la garantía en mostrador (queda `received`) |
+| `POST /service-orders/{folio}/warranties` con `{ "reason": "…" }` | C4 Registrar la garantía en mostrador |
 | `POST /warranties/{folio}/receive` | Recibir el equipo de una garantía pedida en el portal |
+
+Al recibir el equipo (en mostrador o desde el portal), si el técnico que hizo la reparación **sigue activo**, la garantía pasa directo a **`in_review`** con él (C4.5); si no, queda `received` y el jefe la asigna.
 | `POST /warranties/{folio}/deliver` | Entregar **sin costo** (`finished` sin costo extra, o `rejected`) |
 | `POST /sales` con `{ "type": "warranty", "folio": "GAR-…" }` | Cobrar el costo extra y entregar ([sección 11](#11-punto-de-venta-y-entrega-c2-c3-c6)) |
 | `GET /warranties?status=` · `GET /warranties/{folio}` | Lista y detalle |
@@ -1473,8 +1475,10 @@ Si la cajera la registra en mostrador, empieza ya como `received`. El cliente re
 | Endpoint | Para qué |
 |---|---|
 | `GET /my/warranties` | T4 Garantías asignadas |
-| `POST /my/warranties/{folio}/review` con `{ "report": "…" }` | Reporte de la revisión (pasa a `awaiting_ruling`) |
+| `POST /my/warranties/{folio}/review` con `{ "report": "…" }` | Reporte de la revisión (pasa a `awaiting_ruling`). El frontend manda el formulario de T4 como JSON (hallazgo, relación, mal uso, recomendación…) |
 | `POST /my/warranties/{folio}/finish` | Terminar la reparación (pasa a `finished`) |
+
+> La orden de servicio (`GET /service-orders/{folio}` y `/my/orders`) trae su garantía más reciente en `warranty`, con `technician_review` y `technician_id` para el personal; el portal no los recibe.
 
 ---
 
