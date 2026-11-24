@@ -4,7 +4,7 @@ Registro vivo de lo que se construye en el frontend (Angular 17). Se actualiza *
 
 - **Diseño fuente:** [Figma · SHURI](https://www.figma.com/design/wUFXid6RcC3a6H9iEdokWi/Untitled) (exportes en [`docs/diseno/`](../docs/diseno/README.md))
 - **Rama de trabajo:** `feature/frontend-ui`
-- **Última actualización:** 22 nov 2026 (pendientes de funcionalidad sin backend: permisos de costos y precios, nota de crédito y cambio por otro, comisión de tarjeta, cobros de entrega en Ventas, avisos de AD9.6, calificaciones, horario del chat, foto de la carta poder, tiempo de garantía aparte y ventas sin conexión guardadas)
+- **Última actualización:** 23 nov 2026 (limpieza y rendimiento: logo de 36 KB, paquete inicial de 428.7 kB, presupuesto de CSS, clientes de prueba unificados y Excel .xlsx de verdad sin librerías)
 
 ---
 
@@ -249,7 +249,7 @@ flowchart LR
     IAD["InicioAdmin<br/>AD1.1"]:::comp
     VYU["VentasUtilidad<br/>AD2.1 · AD2.3"]:::comp
     TRP["TallerReporte<br/>AD2.2"]:::comp
-    RPT["reportes.ts<br/>meses y exportar CSV"]:::serv
+    RPT["reportes.ts<br/>meses y exportar Excel (.xlsx)"]:::serv
     CAD["CortesAdmin<br/>AD3.1 · DetalleCorte AD3.2"]:::comp
     CTA["CatalogoAdmin<br/>AD4.1 · EditarPrecio AD4.2<br/>AjustarPrecios AD4.3"]:::comp
     PRV["ProveedoresAdmin<br/>AD5.1 · RegistrarPago AD5.2<br/>NuevoProveedor AD5.3"]:::comp
@@ -373,7 +373,7 @@ flowchart LR
   CAJA["CajaService<br/>turno (de quién lo abrió), retiros,<br/>ingresos y pagos a proveedor (simulado)"]:::serv
   FMT["compartido/formato.ts<br/>$1,234.56 · 16 oct 2026"]:::serv
   RT9["compartido/reglas-taller.ts<br/>REGLAS_TALLER (J9)"]:::serv
-  ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET, CLAUSULAS_RECEPCION,<br/>LOGO_NEGOCIO y FORMAS_PAGO_CAJA"]:::serv
+  ADO["compartido/ajustes-documentos.ts<br/>AJUSTES_TICKET, CLAUSULAS_RECEPCION,<br/>FORMAS_PAGO_CAJA y AVISOS_CORREO"]:::serv
   FTO["compartido/fotos-orden<br/>FotosOrden: miniaturas, agregar,<br/>quitar y visor (recepción y técnico)"]:::comp
   CDN["compartido/campo-dinero.directive.ts<br/>[(campoDinero)]: 1000 al escribir,<br/>$1,000.00 fuera del campo"]:::comp
   CFA["ConfiguracionAdmin AD9<br/>7 pestañas: Negocio · Cajas · Documentos<br/>Taller · Facturación · Mensajes · Correo"]:::comp
@@ -479,6 +479,8 @@ flowchart LR
   PTA --> ADO & FCS & MS
   TK & OCA --> ADO
   QRC["compartido/qr<br/>generador de QR propio"]:::comp
+  XLS["compartido/excel.ts<br/>leer y escribir .xlsx sin librerías"]:::serv
+  RPT --> XLS
   TK & OCA --> QRC
   VI --> TK & OCA & HCA
   HC --> HCA
@@ -683,7 +685,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - Al registrar una entrada pagada desde caja, y con “Reimprimir comprobante” en el historial de entradas, sale el comprobante de 80 mm “ENTRADA DE MERCANCÍA” (productos, costos, IVA, total, forma de pago y firmas de quien recibió y del proveedor).
 - Catálogo con 19 productos de prueba (los 12 de Figma y los del punto de venta). “Stock bajo” y “Sin existencias” filtran; la búsqueda acepta nombre, SKU o código de barras (`7501000000465`).
 - “Añadir Producto” abre C7.1; el lápiz edita y el reloj muestra los movimientos del producto (con “Ajustar stock”).
-- Importar: cualquier `.xlsx` muestra la vista previa de Figma (la lectura real de Excel llega con la API); un `.csv` con las columnas de la plantilla se lee de verdad. Exportar baja un CSV que abre Excel.
+- Importar: se leen de verdad `.xlsx` (la primera hoja; el número de fila es el de Excel) y `.csv` con las columnas de la plantilla. Un `.xls` viejo pide guardarlo como `.xlsx`. La plantilla, las filas con error y “exportar” bajan `.xlsx`.
 - Entradas: PED-0123 llega hoy y se paga con efectivo de caja (C7.5 → C7.6). Al registrarla, el kit de sellos queda apartado para #1028 y esa orden pasa de “Esperando refacción” a “En taller”.
 - Con “Crédito del proveedor” se ve el crédito disponible (Distribuidora MovilTec: $9,241.00 de $20,000.00). Una factura que lo rebasa no se registra; un proveedor de contado (Refacciones Móviles del Centro, Importadora Celular GDL) cambia solo a transferencia y no acepta crédito.
 
@@ -698,7 +700,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 **Estadísticas (`/cajera/estadisticas`):**
 - Hoy, Semana, Mes y Año. Los días anteriores salen de un historial de prueba de dos años (determinista, con la escala de Figma: ~$48,000 de mostrador y ~$32,000 de reparaciones al mes); a eso se suman las ventas de Ventas y las entregas y presupuestos de Órdenes, así que una venta cobrada en Punto de venta aparece en “Hoy”.
 - “Reparaciones por estado” es lo que hay en el taller ahora mismo (no depende del periodo).
-- “Exportar” baja un CSV con todo lo que se ve.
+- “Exportar” baja un `.xlsx` con todo lo que se ve.
 
 **Corte de caja (`/cajera/corte-de-caja`):**
 - “Turno actual” solo trae lo que pasó desde que se abrió el turno: ventas cobradas, anticipos de órdenes nuevas, entregas cobradas, pagos a proveedor, retiros, ingresos y devoluciones. Para probarlo: abre turno, cobra una venta en Punto de venta, entrega #1026 en efectivo y registra un retiro.
@@ -808,7 +810,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 **Reportes del administrador (`/administrador/ventas-y-utilidad` y `/administrador/taller`):**
 - Ventas y utilidad (AD2.1) por mes: ventas contra el mes anterior, utilidad bruta, ticket promedio, descuentos, ventas por semana, utilidad por categoría, cómo se cobró en mostrador, quién cobró, devoluciones, cancelaciones y faltantes. Si el mes no tiene ventas sale AD2.3 con “Ver el mes anterior”.
 - Desempeño del taller (AD2.2) por mes, con las órdenes de la app: recibidas y entregadas, presupuestos aprobados, tiempo a cotizar contra el SLA, tasa de garantías, tabla por técnico, órdenes por resultado y motivos de rechazo.
-- “Exportar Excel” descarga un CSV con lo que se ve (Excel lo abre con acentos).
+- “Exportar Excel” descarga un `.xlsx` con lo que se ve.
 - Taller › “Calificaciones del portal”: promedio y lista del mes (folio, cliente, equipo, técnico, estrellas, lo que le gustó y su comentario). Hay 2 de prueba (#1002 y #1006).
 
 **Cortes de caja del administrador (`/administrador/cortes-de-caja`):**
@@ -825,7 +827,7 @@ Los nombres y puestos son los de las pantallas de Figma (AD7.1). Las cuentas nue
 - Por pagar, comprado este mes, pagado desde caja y pedidos incompletos. La tabla de proveedores muestra contacto, qué surte, condición y lo que se les debe; clic en uno para ver su detalle a la derecha.
 - “Últimas compras” son las entradas de mercancía de caja (C7.3) con cómo se pagaron; las de crédito dicen cuándo vencen y si están parciales.
 - “Registrar pago” (AD5.2) abona a la factura que vence primero: transferencia (no toca la caja) o efectivo de caja (solo con turno abierto; entra al corte como pago a proveedor). El aviso de AD1 se actualiza.
-- “Ver estado de cuenta” descarga un CSV con compras, pagos y saldo. “Nuevo proveedor” (AD5.3) lo agrega también a las listas de pedidos del jefe y entradas de caja.
+- “Ver estado de cuenta” descarga un `.xlsx` con compras, pagos y saldo. “Nuevo proveedor” (AD5.3) lo agrega también a las listas de pedidos del jefe y entradas de caja.
 
 **Facturación (`/administrador/facturacion`):**
 - Facturas (CFDI 4.0) del mes elegido con pestañas Todas, Timbradas, Canceladas y Errores; lo facturado, tickets con cliente sin factura, canceladas y timbres que quedan.
@@ -855,7 +857,8 @@ frontend/src/
     │   ├── reglas-taller.ts   # SLA, vigencia, garantía, bodega y revisión (las cambia J9)
     │   ├── fotos-orden/       # fotos del equipo al recibirlo: miniaturas, agregar, quitar y visor
     │   ├── campo-dinero.directive.ts  # campos de dinero: 1000 al escribir, $1,000.00 fuera del campo
-    │   └── qr/                # generador de códigos QR propio y <app-qr> en SVG
+    │   ├── qr/                # generador de códigos QR propio y <app-qr> en SVG
+    │   └── excel.ts           # leer y escribir .xlsx (ZIP + XML) sin librerías
     ├── jefe/                  # 04 · Jefe de técnicos
     │   ├── jefe.datos.ts      # preguntas de los técnicos (de prueba)
     │   ├── etapas.ts          # columnas del tablero, SLA de diagnóstico (24 h), atrasadas y tiempos
@@ -911,7 +914,7 @@ frontend/src/
     │   └── chat/              # P5 chat-portal · aviso-chat (P5.4)
     ├── administrador/         # 02 · Administrador
     │   ├── negocio.ts         # utilidad (costo de Inventario y margen de taller de prueba), lo que más deja, origen del dinero
-    │   ├── reportes.ts · reportes.css   # meses, exportar CSV y estilos de AD2
+    │   ├── reportes.ts · reportes.css   # meses, exportar Excel y estilos de AD2
     │   ├── inicio-admin/      # AD1.1
     │   ├── ventas-utilidad/   # AD2.1 · AD2.3
     │   ├── taller-reporte/    # AD2.2
@@ -1255,7 +1258,10 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 | Quién cobró | La parte de cada cajera según sus cortes del mes, aplicada a las ventas del mes | Los cortes de prueba y el historial de prueba son independientes; sin esto las cajeras sumaban más que el mes. Los cortes de prueba solo cubren ~40 días. |
 | Cómo se cobró | Solo mostrador (el historial no guarda con qué se pagaron las reparaciones) | Figma lo muestra para todo; el título dice “en mostrador”. |
 | Desempeño del taller (AD2.2) | Con las órdenes de la app (pocas: 10 recibidas en octubre); la tasa de garantías usa las entregas del mes de Estadísticas, como AD1 y J4. Las garantías de cada técnico se miden contra todo lo que ha terminado | Las garantías del mes vienen de reparaciones de meses anteriores; contra lo terminado en el mes daba más de 100 %. “En pausa” cuenta sus órdenes pausadas ahora. |
-| Exportar Excel | CSV con BOM (`exportarCsv`) en lugar de .xlsx | No hay librería de Excel en el proyecto; Excel lo abre igual. |
+| Exportar e importar Excel | `compartido/excel.ts`: el .xlsx es un ZIP con XML. Al escribir se guarda sin comprimir (texto como `inlineStr`, números como números); al leer se descomprime con `DecompressionStream('deflate-raw')` del navegador y se leen `sharedStrings`, las relaciones del libro y la primera hoja. `exportarExcel` en reportes; la bitácora conserva su opción CSV | La instalación de una librería quedó bloqueada; con esto no se agrega nada al proyecto. No lee `.xls` (Excel 97-2003), fórmulas ni formatos: solo valores. |
+| Paquete inicial | Iniciar sesión, ¿Olvidaste tu contraseña? y Crea tu contraseña se cargan aparte (`loadComponent`), y el panel de notificaciones, “Salir con turno abierto” y la vista de impresión con `@defer` | Bajó de 508.8 a 428.7 kB (también salió `@angular/forms` del arranque). El bloqueo por inactividad se queda: debe escuchar desde el inicio. |
+| Presupuesto de CSS por componente | Aviso a 4 kB y error a 6 kB (antes 2 y 4) | Los 41 estilos que pasaban de 2 kB no tenían reglas sin uso (se revisó acceso-layout y menu-lateral) y cada uno se carga solo con su pantalla; recortarlos arriesgaba cambiar pantallas que ya coinciden con Figma. El más grande mide 3.8 kB. |
+| Logo | `logo-shuri.png` reducido de 2000 a 256 px (1.2 MB → 36 KB) | Lo más grande que se dibuja es 56 px; 256 alcanza para pantallas de alta densidad. |
 | Cortes de caja (AD3) | Hecho con el PNG `docs/diseno/02-administrador/ad3-cortes-de-caja.png`. `Corte.revision` guarda la decisión (descontar, absorber o investigar), quién y cuándo; `revisionDe()` da el estado (Revisado si cuadró, Por revisar, Descontado, Absorbido, En investigación) | Los cortes de prueba con diferencia de hace más de 3 días ya vienen revisados; “En investigación” sigue contando como por revisar. |
 | Movimientos de un corte | `CorteService.movimientosEntre()` sirve para el turno abierto y para cualquier corte cerrado | Los cortes de prueba no tienen sus ventas en la app: AD3.2 muestra la apertura y una nota; su arqueo sí es el del corte. |
 | Arqueo (AD3.2) | Fondo + ventas + reparaciones − lo cobrado con tarjeta o transferencia − retiros − pagos = efectivo esperado | Figma no muestra el renglón de tarjeta y transferencia, pero sin él el arqueo no cuadra. |
@@ -1306,8 +1312,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Conectar `AuthService` y `NotificacionesService` a la API de Laravel (Sanctum); quitar los datos de prueba.
 - [ ] El texto de resumen bajo la marca ya se calcula para los 4 roles (caja, órdenes abiertas, equipos asignados, estado de la caja); con la API vendrá del servidor.
 - [ ] El contador de Mensajes del jefe ya sale de las conversaciones sin responder (`MensajesService`, de prueba); con la API vendrá del servidor y del portal del cliente.
-- [ ] Optimizar `assets/acceso/logo-shuri.png` (1.2 MB para un logo de 36 px).
-- [ ] Avisos de presupuesto de CSS en `acceso-layout` (2.9 kB) y `menu-lateral` (3.7 kB) contra 2 kB. No rompen la compilación; el límite de error es 4 kB.
 - [x] Todas las pantallas de Figma: cajera (C1–C11 y C1.6), jefe de técnicos (J1–J11), técnico (T1–T7), administrador (AD1–AD9) y portal del cliente (P1–P6).
 - [ ] Correos (P6): el envío real y los interruptores de “Correo” por mensaje de AD9.6 los aplicará la API; hoy se arma el correo cada vez que el cliente tiene correo.
 - [ ] Chat (P5): el aviso de respuesta solo aparece con el portal abierto (notificaciones push y correo le tocan a la API).
@@ -1322,7 +1326,6 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Reportes: unir cortes, ventas e historial en la API de reportes (hoy son datos de prueba independientes) y guardar el método de pago de las reparaciones.
 - [ ] Tiempos del técnico: traer los tiempos reales de la API (la garantía ya se mide aparte).
 - [ ] Banco del técnico: cronómetros, pasos marcados y jornada viven en memoria (`BancoService`); los avisos del Inicio se arman con las órdenes y Refacciones, no con la campana.
-- [ ] El paquete inicial pasó el aviso de 500 kB (508.8 kB; el límite de error es más alto): revisar si conviene cargar `mi-trabajo` o el bloqueo por inactividad aparte.
 - [ ] Mensajes (J11 y chat P5): las conversaciones viven en memoria; falta guardarlas en la API.
 - [ ] Configuración (J9): se guarda en memoria (al recargar vuelve a los valores de inicio).
 - [ ] Equipos terminados: el paso a resguardo a los 90 días y el chat del cliente (último aviso) llegan con J11 y la API.
@@ -1336,14 +1339,14 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
 - [ ] Las órdenes viven en memoria (`OrdenesService`): respuestas, garantías y envíos a bodega se pierden al recargar. El aviso al portal y el correo solo se anotan en el historial.
 - [ ] Una orden lista no pasa sola a “Vencido” al cumplir 30 días: el estado viene de los datos de prueba; debe calcularlo la API.
 - [ ] Los clientes viven en memoria (`ClientesService`): altas, ediciones y contraseñas temporales se pierden al recargar. La contraseña temporal no se envía de verdad.
-- [ ] Algunos clientes de prueba tienen un teléfono en Punto de venta y otro en Órdenes (Laura Medina, Raúl Ortiz, Andrés Vega, Pedro Núñez): se unen por nombre. La API debe tener un solo registro con un id.
+- [ ] Los clientes de prueba se unen por teléfono o nombre; la API debe tener un solo registro con un id y las órdenes deben apuntar a él.
 - [ ] En la entrega, la tarjeta no pide autorización de la terminal.
 - [ ] Las ventas en espera viven en memoria: se pierden al recargar. Deben guardarse en la API (ligadas al turno).
 - [ ] Terminal bancaria, impresora térmica y timbrado de facturas son simulados: falta conectarlos (la factura no se timbra ni se envía).
 - [ ] Las ventas cobradas sin conexión se guardan en el equipo; subirlas de verdad le toca a la API.
 - [ ] Las ventas cobradas, cancelaciones y devoluciones viven en memoria (`HistorialVentasService`): se pierden al recargar. Deben ir a la API.
 - [ ] El inventario (C7) vive en memoria: productos, entradas, ajustes, pedidos y cambios de precio se pierden al recargar. El punto de venta ya cobra con sus nombres, precios y disponibles.
-- [ ] Importar `.xlsx` usa la vista previa de Figma; leer Excel de verdad (y exportar `.xlsx` en vez de CSV) le toca a la API o a una librería.
+- [ ] Excel: no se leen `.xls` viejos, fórmulas ni varias hojas (solo la primera). Falta probar un archivo hecho en Excel de verdad.
 - [ ] Retiros, ingresos, pagos a proveedor y cortes viven en memoria (el turno abierto sí queda en el navegador): al recargar con el turno abierto, el arqueo pierde esos movimientos.
 - [ ] Los pedidos del jefe se crean en Refacciones (J5) y viven en memoria. Avisar al técnico y al jefe solo se anota en el historial de la orden.
 - [ ] La foto del producto y la de la factura no se suben a ningún lado (la del producto solo se ve mientras dura la sesión).
@@ -2145,3 +2148,17 @@ Reglas tomadas del [README principal](../README.md) (sección 12) y de [`.github
   - Entrega de equipo › Otra persona › foto de prueba → miniatura con “Foto de la carta poder adjunta · Cambiar · Quitar”
   - Sin conexión: V-00866 → “se sincroniza al reconectar”, guardada en `localStorage` y “Sin conexión · 1 por sincronizar”; al recargar con internet la cola se subió y se vació
   - No se probaron en pantalla el horario del chat en J9 ni el tiempo de garantía del técnico (sí compilan)
+
+### 23 nov 2026 · Limpieza y rendimiento
+- Pedido del usuario: seguir con los pendientes de limpieza y rendimiento.
+- **Logo:** `assets/acceso/logo-shuri.png` a 256 px (1.2 MB → 36 KB), reducido con OpenCV.
+- **Paquete inicial:** rutas de acceso con `loadComponent`; `@defer` en el panel de notificaciones (menú lateral y barra del jefe), “Salir con turno abierto” y la vista de impresión. 508.8 → 428.7 kB.
+- **CSS:** presupuesto `anyComponentStyle` a 4 kB / 6 kB en `angular.json`; el build ya no muestra avisos.
+- **Clientes de prueba:** las órdenes de Laura Medina, Raúl Ortiz, Andrés Vega y Pedro Núñez usan el teléfono del directorio; Pedro ya tiene correo.
+- **Excel:** `compartido/excel.ts` (`descargarXlsx`, `crearXlsx`, `leerXlsx`); importar lee `.xlsx`; plantilla, errores, catálogo, estadísticas y los reportes del administrador bajan `.xlsx`; la bitácora (AD8) ofrece Excel (.xlsx), CSV y PDF. Se quitó la vista previa de Figma (`FILAS_XLSX`) y `descargarCsv`.
+- Verificado:
+  - un `.xlsx` generado con `crearXlsx`: ZIP válido (CRC correctos con `zipfile` de Python) y XML válido en sus 5 partes
+  - un `.xlsx` como los de Excel (comprimido con deflate, `sharedStrings`, hoja “Productos” en otra ruta y una fila en blanco) en Inventario › importar: ACC-090 “Nuevo”, ACC-001 “Actualiza precio y 2 más”, fila 5 “Categoría no válida” y “Hoja “Productos””; al importar, “1 producto nuevo y 1 actualizado” y ACC-090 en el catálogo
+  - el inicio de sesión carga aparte; el panel de notificaciones abre; “Reimprimir” en Ventas abre la vista de impresión; el logo nuevo carga (256 px)
+  - `ng build` sin avisos (paquete inicial 428.7 kB); sin errores en consola
+  - no se pudo abrir el `.xlsx` con Excel ni con `openpyxl` (la instalación quedó bloqueada)

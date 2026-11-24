@@ -2,9 +2,6 @@ import { Type, inject } from '@angular/core';
 import { CanActivateFn, Route, Router, Routes } from '@angular/router';
 import { AccesoLayoutComponent } from './acceso/acceso-layout/acceso-layout.component';
 import { AuthService, Rol } from './acceso/auth.service';
-import { CrearContrasenaComponent } from './acceso/crear-contrasena/crear-contrasena.component';
-import { IniciarSesionComponent } from './acceso/iniciar-sesion/iniciar-sesion.component';
-import { OlvideContrasenaComponent } from './acceso/olvide-contrasena/olvide-contrasena.component';
 import { NAVEGACION, rutaInicio } from './sistema/navegacion';
 import { ClavePermiso, PermisosService } from './administrador/permisos.service';
 import { PaginaPendienteComponent } from './sistema/pagina-pendiente/pagina-pendiente.component';
@@ -142,11 +139,11 @@ export const routes: Routes = [
     component: AccesoLayoutComponent,
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'iniciar-sesion' },
-      { path: 'iniciar-sesion', component: IniciarSesionComponent, title: 'Iniciar sesión · SHURI' },
-      { path: 'olvide-contrasena', component: OlvideContrasenaComponent, title: '¿Olvidaste tu contraseña? · SHURI' },
+      { path: 'iniciar-sesion', loadComponent: () => import('./acceso/iniciar-sesion/iniciar-sesion.component').then((m) => m.IniciarSesionComponent), title: 'Iniciar sesión · SHURI' },
+      { path: 'olvide-contrasena', loadComponent: () => import('./acceso/olvide-contrasena/olvide-contrasena.component').then((m) => m.OlvideContrasenaComponent), title: '¿Olvidaste tu contraseña? · SHURI' },
       {
         path: 'crear-contrasena',
-        component: CrearContrasenaComponent,
+        loadComponent: () => import('./acceso/crear-contrasena/crear-contrasena.component').then((m) => m.CrearContrasenaComponent),
         canActivate: [conContrasenaTemporal],
         title: 'Crea tu contraseña · SHURI',
       },

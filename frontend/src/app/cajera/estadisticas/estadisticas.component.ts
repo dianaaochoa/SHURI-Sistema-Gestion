@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { formatearDinero } from '../../compartido/formato';
-import { descargarCsv } from '../inventario/csv';
+import { descargarXlsx } from '../../compartido/excel';
 import { EstadisticasService, Periodo } from './estadisticas.service';
 import { GraficaIngresosComponent } from './grafica-ingresos/grafica-ingresos.component';
 
@@ -42,7 +42,7 @@ export class EstadisticasComponent {
 
   protected exportar(): void {
     const d = this.datos();
-    descargarCsv(`estadisticas_${this.periodo()}_${new Date().toISOString().slice(0, 10)}.csv`, [
+    descargarXlsx(`estadisticas_${this.periodo()}_${new Date().toISOString().slice(0, 10)}.xlsx`, [
       ['Estadísticas', d.descripcion],
       [],
       ['Ventas de mostrador', d.mostrador.toFixed(2)],

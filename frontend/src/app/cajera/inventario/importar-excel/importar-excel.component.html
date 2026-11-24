@@ -36,7 +36,7 @@
           <span>{{ a.filas.length }} {{ a.filas.length === 1 ? 'fila' : 'filas' }} · {{ a.kb }} KB{{ a.hoja ? ' · Hoja “' + a.hoja + '”' : '' }}</span>
         </div>
         <label class="archivo__enlace">
-          <input type="file" accept=".xlsx,.xls,.csv" class="oculto" (change)="subir($event)" />
+          <input type="file" accept=".xlsx,.csv" class="oculto" (change)="subir($event)" />
           <img src="assets/inventario/upload-14.svg" width="14" height="14" alt="" />Cambiar archivo
         </label>
         <button type="button" class="archivo__enlace" (click)="descargarPlantilla()">
@@ -84,7 +84,7 @@
       <p class="nota">
         {{ filas().length }} {{ filas().length === 1 ? 'fila' : 'filas' }} en el archivo.
         @if (conteo().errores) { Las filas con error no se importan; descárgalas, corrígelas y vuelve a subirlas. }
-        @if (a.hoja) { Vista previa de prueba: la lectura de .xlsx llega con la API. }
+        @if (a.hoja) { Hoja “{{ a.hoja }}”. }
       </p>
     } @else {
       <div class="inicio">
@@ -96,7 +96,7 @@
           </button>
         </div>
         <label class="inicio__paso inicio__subir">
-          <input type="file" accept=".xlsx,.xls,.csv" class="oculto" (change)="subir($event)" />
+          <input type="file" accept=".xlsx,.csv" class="oculto" (change)="subir($event)" />
           <strong>2. Sube el archivo lleno</strong>
           <p>Excel (.xlsx) o CSV. Antes de importar verás qué productos son nuevos, cuáles se actualizan y cuáles tienen error.</p>
           <span class="boton boton--primario boton--40"><img src="assets/inventario/upload-blanco.svg" width="16" height="16" alt="" />Elegir archivo</span>

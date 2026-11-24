@@ -8,7 +8,7 @@ import { BancoService } from '../../tecnico/banco.service';
 import { PortalService } from '../../portal/portal.service';
 import { duracionCorta, terminado } from '../../tecnico/historial/historial';
 import { META_GARANTIAS } from '../negocio';
-import { Mes, dentro, exportarCsv, ultimosMeses } from '../reportes';
+import { Mes, dentro, exportarExcel, ultimosMeses } from '../reportes';
 
 const HORA = 3_600_000;
 /** 5.33 h → "5 h 20" */
@@ -127,7 +127,7 @@ export class TallerReporteComponent {
   }
 
   protected exportar(): void {
-    exportarCsv(`desempeno-del-taller-${this.mes().id}`, [
+    exportarExcel(`desempeno-del-taller-${this.mes().id}`, [
       [`Desempeño del taller · ${this.mes().texto}`],
       [],
       ...this.indicadores().map((i) => [i.titulo, i.valor, i.detalle]),

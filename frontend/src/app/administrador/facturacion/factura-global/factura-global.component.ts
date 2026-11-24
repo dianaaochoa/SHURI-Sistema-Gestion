@@ -2,7 +2,7 @@ import { Component, HostListener, computed, inject, input, output } from '@angul
 import { formatearDinero } from '../../../compartido/formato';
 import { EstadisticasService } from '../../../cajera/estadisticas/estadisticas.service';
 import { FacturacionService, RFC_PUBLICO, serieFolio } from '../../facturacion.service';
-import { Mes, dentro, exportarCsv } from '../../reportes';
+import { Mes, dentro, exportarExcel } from '../../reportes';
 
 /** AD6.3 · Factura global del mes a Público en general con lo que nadie facturó. */
 @Component({
@@ -70,7 +70,7 @@ export class FacturaGlobalComponent {
       const d = this.estadisticas.suma(new Date(f), new Date(f));
       if (d.ventas || d.entregados) filas.push([f.toLocaleDateString('es-MX'), d.ventas, d.entregados, d.mostrador, d.reparaciones]);
     }
-    exportarCsv(`tickets-global-${m.id}`, filas);
+    exportarExcel(`tickets-global-${m.id}`, filas);
   }
 
   protected timbrar(): void {

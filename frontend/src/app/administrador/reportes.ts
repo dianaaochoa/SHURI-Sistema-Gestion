@@ -1,3 +1,4 @@
+import { descargarXlsx } from '../compartido/excel';
 /** Meses y exportación de los reportes del administrador (AD2, AD3). */
 
 export interface Mes {
@@ -36,7 +37,12 @@ export const dentro = (iso: string | undefined, m: Mes) => {
   return t >= m.desde.getTime() && t < m.hasta.getTime() + 86_400_000;
 };
 
-/** "Exportar Excel": descarga un CSV que Excel abre directo (con BOM para los acentos). */
+/** "Exportar Excel": descarga un .xlsx con lo que se ve. */
+export function exportarExcel(nombre: string, filas: (string | number)[][], hoja = 'Reporte'): void {
+  descargarXlsx(nombre, filas, hoja);
+}
+
+/** CSV (con BOM para los acentos), cuando se pide ese formato. */
 export function exportarCsv(nombre: string, filas: (string | number)[][]): void {
   const texto = filas.map((f) => f.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob(['﻿' + texto], { type: 'text/csv;charset=utf-8' }));

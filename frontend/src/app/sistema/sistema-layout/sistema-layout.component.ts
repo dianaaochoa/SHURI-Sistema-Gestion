@@ -41,7 +41,9 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
           </header>
           @if (avisos()) {
             <div class="sistema__fondo sistema__fondo--claro" (click)="avisos.set(false)"></div>
-            <app-panel-notificaciones class="avisos-movil" (ir)="avisos.set(false)" />
+            @defer (on immediate) {
+              <app-panel-notificaciones class="avisos-movil" (ir)="avisos.set(false)" />
+            }
           }
         } @else {
           <header class="barra-movil">
@@ -53,7 +55,10 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
         }
         <main class="sistema__contenido">
           <router-outlet />
-          <app-vista-impresion />
+          <!-- La vista de impresión se carga aparte, cuando el navegador está libre (no hace falta al arrancar). -->
+          @defer (on idle) {
+            <app-vista-impresion />
+          }
         </main>
       </div>
       @if (esJefe()) {

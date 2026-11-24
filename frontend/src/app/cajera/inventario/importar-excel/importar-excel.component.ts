@@ -1,20 +1,12 @@
 import { Component, HostListener, computed, inject, output, signal } from '@angular/core';
 import { formatearDinero } from '../../../compartido/formato';
-import { descargarCsv, leerCsv } from '../csv';
+import { descargarXlsx, leerXlsx } from '../../../compartido/excel';
+import { leerCsv } from '../csv';
 import { CATEGORIAS_INVENTARIO, PROVEEDORES, ProductoInventario } from '../inventario.datos';
 import { InventarioService } from '../inventario.service';
 
 const COLUMNAS = ['SKU', 'Nombre', 'Categoría', 'Costo', 'Precio', 'Stock'];
 
-/** Filas de la vista previa de Figma C7.2: se usan cuando suben un .xlsx (lo leerá la API). */
-const FILAS_XLSX: string[][] = [
-  ['ACC-047', 'Protector de cámara iPhone 15 Pro', 'Accesorios', '45', '139', '20'],
-  ['ACC-001', 'Mica cristal templado', 'Accesorios', '28', '100', '124'],
-  ['REF-A15-LCD', 'Pantalla Samsung A15', 'Refacciones', '520', '980', '4'],
-  ['ACC-048', 'Cable Lightning 2 m', 'Accesorios', '40', '', '15'],
-  ['REF-IP11-BAT', 'Batería iPhone 11', 'Refacciones', '210', '480', '—'],
-  ['CON-012', 'Alcohol isopropílico 1 L', 'Consumibles', '85', '0', '6'],
-];
 
 type Resultado = { texto: string; tono: 'exito' | 'info' | 'peligro' | 'neutro'; tipo: 'nuevo' | 'actualiza' | 'error' | 'omite' };
 
@@ -48,7 +40,10 @@ export class ImportarExcelComponent {
 
   protected readonly paso = computed(() => (this.archivo() ? 3 : this.plantillaDescargada() ? 2 : 1));
 
-  protected readonly filas = computed<FilaImportada[]>(() => (this.archivo()?.filas ?? []).map((c, i) => this.revisar(c, i + 2)));
+  /** El número es el de la fila en Excel (las filas en blanco se saltan sin cambiar la numeración). */
+  protected readonly filas = computed<FilaImportada[]>(() =>
+    (this.archivo()?.filas ?? []).flatMap((c, i) => (c.some((x) => x?.trim()) ? [this.revisar(c, i + 2)] : [])),
+  );
   protected readonly conteo = computed(() => {
     const f = this.filas();
     const de = (tipo: Resultado['tipo']) => f.filter((x) => x.resultado.tipo === tipo).length;
@@ -87,7 +82,7 @@ export class ImportarExcelComponent {
 
   // ---------- Pasos ----------
   protected descargarPlantilla(): void {
-    descargarCsv('plantilla_productos.csv', [COLUMNAS, ['ACC-047', 'Protector de cámara iPhone 15 Pro', 'Accesorios', '45.00', '139.00', '20']]);
+    descargarXlsx('plantilla_productos.xlsx', [COLUMNAS, ['ACC-047', 'Protector de cámara iPhone 15 Pro', 'Accesorios', 45, 139, 20]], 'Productos');
     this.plantillaDescargada.set(true);
   }
 
@@ -97,33 +92,32 @@ export class ImportarExcelComponent {
     entrada.value = '';
     if (!archivo) return;
     const kb = Math.max(1, Math.round(archivo.size / 1024));
-    if (/\.xlsx?$/i.test(archivo.name)) {
-      this.errorArchivo.set(null);
-      this.archivo.set({ nombre: archivo.name, kb, hoja: 'Productos', filas: FILAS_XLSX });
+    const excel = /\.xlsx$/i.test(archivo.name);
+    if (!excel && !/\.csv$/i.test(archivo.name)) {
+      this.errorArchivo.set(/\.xls$/i.test(archivo.name) ? 'El formato .xls (Excel 97-2003) no se puede leer: guárdalo como .xlsx desde Excel.' : 'Sube la plantilla en Excel (.xlsx) o CSV.');
       return;
     }
-    if (!/\.csv$/i.test(archivo.name)) {
-      this.errorArchivo.set('Sube la plantilla en Excel (.xlsx) o CSV.');
-      return;
-    }
-    archivo.text().then((texto) => {
-      const [encabezado, ...filas] = leerCsv(texto);
-      if (!encabezado || encabezado[0]?.trim().toUpperCase() !== 'SKU') {
-        this.errorArchivo.set('El archivo no tiene las columnas de la plantilla (SKU, Nombre, Categoría, Costo, Precio, Stock).');
-        return;
-      }
-      if (!filas.length) {
-        this.errorArchivo.set('El archivo no tiene productos.');
-        return;
-      }
-      this.errorArchivo.set(null);
-      this.archivo.set({ nombre: archivo.name, kb, hoja: null, filas });
-    });
+    const lectura = excel ? leerXlsx(archivo) : archivo.text().then((texto) => ({ hoja: null as string | null, filas: leerCsv(texto) }));
+    lectura
+      .then(({ hoja, filas: todas }) => {
+        const [encabezado, ...filas] = todas;
+        if (!encabezado || encabezado[0]?.trim().toUpperCase() !== 'SKU') {
+          this.errorArchivo.set('El archivo no tiene las columnas de la plantilla (SKU, Nombre, Categoría, Costo, Precio, Stock).');
+          return;
+        }
+        if (!filas.some((f) => f.some((x) => x?.trim()))) {
+          this.errorArchivo.set('El archivo no tiene productos.');
+          return;
+        }
+        this.errorArchivo.set(null);
+        this.archivo.set({ nombre: archivo.name, kb, hoja, filas });
+      })
+      .catch(() => this.errorArchivo.set('No se pudo leer el archivo. Ábrelo en Excel y guárdalo de nuevo como .xlsx.'));
   }
 
   protected descargarErrores(): void {
     const errores = this.filas().filter((f) => f.resultado.tipo === 'error');
-    descargarCsv('filas_con_error.csv', [['Fila', ...COLUMNAS, 'Error'], ...errores.map((f) => [f.numero, ...this.archivo()!.filas[f.numero - 2], f.resultado.texto])]);
+    descargarXlsx('filas_con_error.xlsx', [['Fila', ...COLUMNAS, 'Error'], ...errores.map((f) => [f.numero, ...this.archivo()!.filas[f.numero - 2], f.resultado.texto])], 'Errores');
   }
 
   protected importar(): void {
