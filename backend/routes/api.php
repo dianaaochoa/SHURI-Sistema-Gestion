@@ -56,6 +56,8 @@ Route::prefix('v1')->group(function () {
         Route::get('auth/me', [StaffAuthController::class, 'me']);
         Route::post('auth/logout', [StaffAuthController::class, 'logout']);
         Route::put('auth/password', [StaffAuthController::class, 'changePassword']);
+        // Desbloquear la pantalla tras 30 min sin uso: confirma la contraseña sin abrir otra sesión
+        Route::post('auth/confirm-password', [StaffAuthController::class, 'confirmPassword'])->middleware('throttle:5,1');
         Route::put('auth/security-question', [PasswordRecoveryController::class, 'setQuestion']);
 
         // Multisesión: sesiones activas

@@ -19,6 +19,9 @@ export const REGLAS_TALLER = {
   despuesResguardo: 'resguardo' as DespuesResguardo,
   /** Cobro de revisión de un equipo sin reparación (J3.3): el nivel "Revisión / diagnóstico" del tabulador. */
   revision: 300,
+  /** Horario del chat del portal (P5), lunes a sábado: hora en que abre y en que cierra. */
+  chatAbre: 9,
+  chatCierra: 19,
 };
 
 export type ReglasTaller = typeof REGLAS_TALLER;

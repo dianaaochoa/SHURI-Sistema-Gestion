@@ -1,12 +1,11 @@
 import { Component, HostListener, computed, inject, output, signal } from '@angular/core';
 import { ACCIONES, BitacoraService } from '../../bitacora.service';
 import { descargar, pdfDeLineas } from '../../pdf-simple';
-import { exportarCsv } from '../../reportes';
+import { exportarCsv, exportarExcel } from '../../reportes';
 
-type Formato = 'xls' | 'csv' | 'pdf';
+type Formato = 'xlsx' | 'csv' | 'pdf';
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const xml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** AD8.2 · Exportar la bitácora para el contador o como respaldo. */
 @Component({
@@ -29,10 +28,10 @@ export class ExportarBitacoraComponent {
   protected readonly hoy = iso(new Date());
   protected readonly desde = signal(iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
   protected readonly hasta = signal(this.hoy);
-  protected readonly formato = signal<Formato>('xls');
+  protected readonly formato = signal<Formato>('xlsx');
   protected readonly detalle = signal(true);
   protected readonly formatos: { id: Formato; texto: string }[] = [
-    { id: 'xls', texto: 'Excel (.xls)' },
+    { id: 'xlsx', texto: 'Excel (.xlsx)' },
     { id: 'csv', texto: 'CSV' },
     { id: 'pdf', texto: 'PDF' },
   ];
@@ -67,16 +66,7 @@ export class ExportarBitacoraComponent {
     const titulo = `Bitácora SHURI · ${this.desde()} a ${this.hasta()} · ${filas.length} acciones`;
     if (this.formato() === 'csv') exportarCsv(nombre, [[titulo], [], encabezado, ...filas]);
     else if (this.formato() === 'pdf') descargar(`${nombre}.pdf`, pdfDeLineas([titulo, '', ...filas.map((f) => f.join(' · '))], 9));
-    else {
-      // Hoja de cálculo XML (SpreadsheetML) que Excel abre directo.
-      const celdas = (f: string[]) => `<Row>${f.map((c) => `<Cell><Data ss:Type="String">${xml(c)}</Data></Cell>`).join('')}</Row>`;
-      const libro = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Worksheet ss:Name="Bitácora"><Table>${celdas([titulo])}${celdas(encabezado)}${filas.map(celdas).join('')}</Table></Worksheet>
-</Workbook>`;
-      descargar(`${nombre}.xls`, new Blob([libro], { type: 'application/vnd.ms-excel' }));
-    }
+    else exportarExcel(nombre, [[titulo], [], encabezado, ...filas], 'Bitácora');
     this.cerrar.emit();
   }
 

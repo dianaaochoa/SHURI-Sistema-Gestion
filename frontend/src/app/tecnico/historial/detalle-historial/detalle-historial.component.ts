@@ -57,7 +57,8 @@ export class DetalleHistorialComponent {
       ['Diagnóstico', o.diagnostico?.resumen ?? o.diagnostico?.texto ?? '—'],
       ['Trabajo', o.realizado || o.trabajo],
       ['Pruebas finales', '6 de 6 aprobadas'],
-      ['Tiempo de trabajo', duracionCorta(this.banco.tiempo(o.folio))],
+      ['Tiempo de trabajo', duracionCorta(this.banco.tiempoReparacion(o.folio))],
+      ...(this.banco.tiempoGarantia(o.folio) ? [['Tiempo de la garantía', duracionCorta(this.banco.tiempoGarantia(o.folio))]] : []),
     ];
   });
 

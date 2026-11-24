@@ -1,6 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { AuthService } from '../../acceso/auth.service';
+import { NAVEGACION } from '../navegacion';
 import { BloqueoSesionComponent } from '../bloqueo-sesion/bloqueo-sesion.component';
 import { VistaImpresionComponent } from '../../cajera/documentos/vista-impresion/vista-impresion.component';
 import { MenuLateralComponent } from '../menu-lateral/menu-lateral.component';
@@ -16,7 +19,7 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
 @Component({
   selector: 'app-sistema-layout',
   standalone: true,
-  imports: [RouterOutlet, BloqueoSesionComponent, MenuLateralComponent, VistaImpresionComponent, NavegacionMovilComponent, PanelNotificacionesComponent],
+  imports: [RouterOutlet, RouterLink, BloqueoSesionComponent, MenuLateralComponent, VistaImpresionComponent, NavegacionMovilComponent, PanelNotificacionesComponent],
   template: `
     <!-- Con la pantalla bloqueada (30 min sin uso) nada de atrás se puede tocar ni enfocar. -->
     <div class="sistema" [class.sistema--jefe]="esJefe()" [attr.inert]="bloqueo.bloqueada() ? '' : null">
@@ -41,7 +44,9 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
           </header>
           @if (avisos()) {
             <div class="sistema__fondo sistema__fondo--claro" (click)="avisos.set(false)"></div>
-            <app-panel-notificaciones class="avisos-movil" />
+            @defer (on immediate) {
+              <app-panel-notificaciones class="avisos-movil" (ir)="avisos.set(false)" />
+            }
           }
         } @else {
           <header class="barra-movil">
@@ -52,8 +57,20 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
           </header>
         }
         <main class="sistema__contenido">
+          @if (sinPregunta()) {
+            <!-- Sin pregunta secreta no puede recuperar su contraseña en línea (A.3) -->
+            <div class="aviso aviso--advertencia aviso-pregunta" role="status">
+              <img src="assets/iconos/alert.svg" width="16" height="16" alt="" />
+              <span>Configura tu pregunta secreta para poder recuperar tu contraseña si la olvidas.</span>
+              <a class="boton boton--primario aviso-pregunta__boton" [routerLink]="rutaPerfil()" fragment="pregunta-secreta">Configurar ahora</a>
+              <button type="button" class="enlace" (click)="avisoOculto.set(true)">Ahora no</button>
+            </div>
+          }
           <router-outlet />
-          <app-vista-impresion />
+          <!-- La vista de impresión se carga aparte, cuando el navegador está libre (no hace falta al arrancar). -->
+          @defer (on idle) {
+            <app-vista-impresion />
+          }
         </main>
       </div>
       @if (esJefe()) {
@@ -69,6 +86,9 @@ import { PanelNotificacionesComponent } from '../panel-notificaciones/panel-noti
     .sistema__fondo { position: fixed; inset: 0; z-index: 15; background: rgba(23, 55, 78, 0.4); }
     .sistema__fondo--claro { z-index: 25; background: transparent; }
     .barra-movil { display: none; }
+    .aviso-pregunta { flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .aviso-pregunta span { flex: 1; min-width: 200px; }
+    .aviso-pregunta__boton { padding: 6px 12px; font-size: 13px; text-decoration: none; }
 
     @media (max-width: 768px) {
       .sistema__contenido { padding: 16px; }
@@ -104,4 +124,25 @@ export class SistemaLayoutComponent {
   protected readonly notificaciones = inject(NotificacionesService);
   private readonly sesion = inject(AuthService).sesion;
   protected readonly esJefe = computed(() => this.sesion()?.rol === 'jefe-tecnicos');
+
+  private readonly router = inject(Router);
+  /** Ruta actual, para no repetir el aviso dentro de Mi perfil (ahí ya está el formulario). */
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /** "Ahora no": se oculta hasta recargar la página. */
+  protected readonly avisoOculto = signal(false);
+  /** Aviso para quien ya tiene contraseña pero aún no configuró su pregunta secreta. */
+  protected readonly sinPregunta = computed(
+    () => this.sesion()?.tienePregunta === false && !this.avisoOculto() && !this.url().includes('/perfil'),
+  );
+  protected readonly rutaPerfil = computed(() => {
+    const rol = this.sesion()?.rol;
+    return rol ? `/${NAVEGACION[rol].prefijo}/perfil` : '/inicio';
+  });
 }

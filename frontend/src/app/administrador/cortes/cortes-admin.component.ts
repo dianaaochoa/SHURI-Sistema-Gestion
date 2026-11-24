@@ -5,7 +5,7 @@ import { map } from 'rxjs';
 import { formatearDinero } from '../../compartido/formato';
 import { CajaService } from '../../cajera/caja.service';
 import { Corte, CorteService, diferencia, revisionDe } from '../../cajera/corte/corte.service';
-import { Mes, dentro, exportarCsv, ultimosMeses } from '../reportes';
+import { Mes, dentro, exportarExcel, ultimosMeses } from '../reportes';
 import { DetalleCorteComponent } from './detalle-corte/detalle-corte.component';
 
 type Vista = 'por-revisar' | 'todos' | 'revisados';
@@ -129,7 +129,7 @@ export class CortesAdminComponent {
   }
 
   protected exportar(): void {
-    exportarCsv(`cortes-de-caja-${this.mes().id}`, [
+    exportarExcel(`cortes-de-caja-${this.mes().id}`, [
       ['Folio', 'Fecha', 'Turno', 'Caja', 'Cajera', 'Esperado', 'Contado', 'Diferencia', 'Pagos a proveedor', 'Estado', 'Comentario'],
       ...this.delMes().map((c) => [c.folio, new Date(c.hasta).toLocaleDateString('es-MX'), c.turno, c.caja, c.cajera, c.esperado, c.contado, diferencia(c), pagos(c), revisionDe(c).texto, c.comentario]),
     ]);

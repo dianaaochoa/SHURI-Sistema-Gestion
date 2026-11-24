@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,7 +27,13 @@ class UserRequest extends FormRequest
             'name' => [$required, 'string', 'max:150'],
             'username' => [$required, 'string', 'min:3', 'max:40', 'regex:/^[a-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($userId)],
             'email' => [$required, 'email', 'max:150', Rule::unique('users', 'email')->ignore($userId)],
-            'role_id' => [$required, 'integer', 'exists:roles,id'],
+            'role_id' => [$required, 'integer', 'exists:roles,id', function (string $attribute, mixed $value, \Closure $fail) {
+                // El rol Super usuario no se asigna desde aquí (solo existe la cuenta creada por comando)
+                $superRoleId = Role::where('slug', Role::SUPER_ADMIN)->value('id');
+                if ((int) $value === $superRoleId && ! $this->route('user')?->isSuperUser()) {
+                    $fail('El rol Super usuario no se asigna desde la pantalla de usuarios.');
+                }
+            }],
             'phone' => ['nullable', 'digits:10'],
             'cash_register_id' => ['nullable', 'integer', 'exists:cash_registers,id'],
             'specialty' => ['nullable', 'string', 'max:100'],

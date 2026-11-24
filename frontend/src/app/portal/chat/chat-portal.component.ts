@@ -3,13 +3,11 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { NEGOCIO } from '../../cajera/documentos/documentos.service';
+import { REGLAS_TALLER } from '../../compartido/reglas-taller';
 import { MensajesService } from '../../jefe/mensajes/mensajes.service';
 import { ESTADO_PORTAL, PortalService } from '../portal.service';
 
 const DIA = 86_400_000;
-/** Horario del chat (Figma P5.1): lunes a sábado de 9:00 a 19:00. */
-const ABRE = 9;
-const CIERRA = 19;
 export const PREGUNTAS = ['¿Ya revisaron mi equipo?', '¿Cuánto tarda la garantía?', 'Quiero revisar otra falla', 'Cambié mi número de teléfono'];
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -23,6 +21,9 @@ function etiquetaDia(iso: string): string {
 
 /** ¿Está en horario? Si no, a qué hora se responde. */
 export function enHorario(ahora = new Date()): { abierto: boolean; cuando: string } {
+  // Horario del chat (P5.1, lunes a sábado): lo cambia el jefe en Configuración (J9).
+  const ABRE = REGLAS_TALLER.chatAbre;
+  const CIERRA = REGLAS_TALLER.chatCierra;
   const dia = ahora.getDay();
   const h = ahora.getHours();
   const abierto = dia !== 0 && h >= ABRE && h < CIERRA;
@@ -52,6 +53,7 @@ export class ChatPortalComponent implements AfterViewChecked {
   protected readonly preguntas = PREGUNTAS;
   protected readonly texto = signal('');
   protected readonly horario = enHorario();
+  protected readonly horas = `${REGLAS_TALLER.chatAbre}:00 a ${REGLAS_TALLER.chatCierra}:00`;
   protected readonly disponible = this.mensajes.disponible;
 
   protected readonly orden = computed(() => this.portal.ordenDe(this.folio()) ?? null);

@@ -63,3 +63,24 @@ export function llenarClausula(texto: string, r: ReglasTaller = REGLAS_TALLER): 
     .replace(/\{almacenaje\}/g, formatearDinero(r.almacenajeDia))
     .replace(/\{resguardo\}/g, r.despuesResguardo === 'resguardo' ? `A los ${r.diasResguardo} días el equipo pasa a resguardo.` : r.despuesResguardo === 'cobrar' ? 'Después se sigue cobrando almacenaje.' : 'Después solo se avisa al cliente.');
 }
+
+/** Formas de pago y cuenta para transferencias (AD9.2): las usa el cobro del punto de venta (C2.10–C2.13). */
+export const FORMAS_PAGO_CAJA = {
+  tarjeta: true,
+  /** % que cobra la terminal; se suma a lo que paga el cliente con tarjeta (AD9.2). */
+  comisionTarjeta: 3.5,
+  transferencia: true,
+  mixto: true,
+  banco: 'BBVA',
+  clabe: '012180001234564821',
+  titular: 'SHURI Reparaciones y Ventas S.A. de C.V.',
+};
+
+/**
+ * AD9.6 · Qué avisos automáticos se mandan por correo (P6). Lo actualiza Configuración al guardar; si el aviso está
+ * apagado o sin “Correo”, no se manda. La respuesta del chat no es un aviso automático: se manda siempre.
+ */
+export const AVISOS_CORREO: Record<string, boolean> = { temporal: true, presupuesto: true, listo: true, bodega: true };
+
+/** "012 180 0012 3456 4821" */
+export const clabeLegible = (clabe: string): string => clabe.replace(/\D/g, '').replace(/^(\d{3})(\d{3})(\d{4})(\d{4})(\d{4})$/, '$1 $2 $3 $4 $5');

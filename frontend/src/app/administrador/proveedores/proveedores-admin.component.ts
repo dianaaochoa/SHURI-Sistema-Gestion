@@ -4,7 +4,7 @@ import { CajaService } from '../../cajera/caja.service';
 import { Entrada, FORMAS_PAGO } from '../../cajera/inventario/inventario.datos';
 import { InventarioService } from '../../cajera/inventario/inventario.service';
 import { RefaccionesService } from '../../jefe/refacciones/refacciones.service';
-import { exportarCsv } from '../reportes';
+import { exportarExcel } from '../reportes';
 import { CONDICIONES, Factura, ProveedoresService } from '../proveedores.service';
 import { NuevoProveedorComponent } from './nuevo-proveedor/nuevo-proveedor.component';
 import { RegistrarPagoComponent } from './registrar-pago/registrar-pago.component';
@@ -130,7 +130,7 @@ export class ProveedoresAdminComponent {
     if (!d) return;
     const compras = this.inventario.entradas().filter((e) => e.proveedor === d.p.nombre);
     const pagos = this.servicio.pagos().filter((x) => x.proveedor === d.p.nombre).reverse();
-    exportarCsv(`estado-de-cuenta-${d.p.nombre.toLowerCase().replace(/\s+/g, '-')}`, [
+    exportarExcel(`estado-de-cuenta-${d.p.nombre.toLowerCase().replace(/\s+/g, '-')}`, [
       [`Estado de cuenta · ${d.p.nombre}`],
       ['RFC', d.p.rfc, 'Condición', CONDICIONES[d.p.condicion].texto],
       [],

@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, delay, of } from 'rxjs';
+import { ClavePregunta, PREGUNTAS_SEGURIDAD, PreguntaSeguridad, enmascararCorreo, normalizarRespuesta, textoPregunta } from '../compartido/preguntas-seguridad';
 import { ClientesService } from '../cajera/clientes/clientes.service';
 import { Orden, OrdenesService, EstadoOrden } from '../cajera/ordenes/ordenes.service';
 import { Cliente } from '../cajera/punto-de-venta/clientes.datos';
@@ -38,6 +39,8 @@ export interface EquipoPortal {
 }
 
 const INTENTOS = 5;
+/** Respuestas mal a la pregunta de seguridad antes de anular la recuperación (como la API). */
+const INTENTOS_PREGUNTA = 3;
 const BLOQUEO_MIN = 15;
 /** Contraseña de prueba de los clientes que ya crearon la suya (mientras no exista la API). */
 const CONTRASENA_DEMO = 'Shuri2026!';
@@ -59,6 +62,13 @@ export class PortalService {
   /** Contraseñas que el cliente creó en P1.4 (la API las guardará con hash). */
   private readonly propias = new Map<string, string>();
   private readonly fallos = new Map<string, { n: number; hasta?: number }>();
+  /**
+   * Pregunta de seguridad de cada cliente (como `customers.security_question`); solo sirve para recuperar la
+   * contraseña. De prueba: María, “¿Cómo se llamaba tu primera mascota?” → Firulais.
+   */
+  private readonly preguntas = signal<Record<string, PreguntaSeguridad>>({ 'c-001': { clave: 'first_pet', respuesta: 'firulais' } });
+  /** Recuperación en curso (P1.3): de quién y cuántas respuestas mal lleva. */
+  private readonly recuperando = signal<{ clienteId: string; intentos: number } | null>(null);
   private readonly sesiones = inject(PortalSesion);
   readonly sesion = this.sesiones.sesion;
   readonly cliente = computed(() => {
@@ -103,17 +113,66 @@ export class PortalService {
     return of(r).pipe(delay(400));
   }
 
+  /** Texto de la pregunta del cliente con sesión (nunca la respuesta). */
+  readonly preguntaDelCliente = computed(() => {
+    const s = this.sesion();
+    const q = s ? this.preguntas()[s.clienteId] : undefined;
+    return q ? textoPregunta(q.clave) : null;
+  });
+
+  /** Como `PUT /portal/security-question`: pide la contraseña actual y guarda la pregunta con su respuesta. */
+  guardarPregunta(clave: ClavePregunta, respuesta: string, actual?: string): Observable<{ ok: boolean; mensaje?: string }> {
+    const cliente = this.cliente();
+    if (!cliente) return of({ ok: false, mensaje: 'Vuelve a iniciar sesión.' });
+    const propia = this.propias.get(cliente.id) ?? (cliente.portal?.tipo === 'personalizada' ? CONTRASENA_DEMO : undefined);
+    if (!actual || actual !== propia) return of({ ok: false, mensaje: 'La contraseña actual no es correcta.' }).pipe(delay(400));
+    if (!PREGUNTAS_SEGURIDAD.some((p) => p.clave === clave) || normalizarRespuesta(respuesta).length < 2)
+      return of({ ok: false, mensaje: 'Elige una pregunta y escribe al menos 2 letras.' });
+    this.preguntas.update((m) => ({ ...m, [cliente.id]: { clave, respuesta: normalizarRespuesta(respuesta) } }));
+    return of({ ok: true }).pipe(delay(400));
+  }
+
   /**
-   * P1.3 · Genera una temporal (como C8.4) y la "envía" al correo registrado. Siempre responde igual, exista o no
-   * el correo, para no revelar quién es cliente.
+   * P1.3 paso 1, como `POST /portal/password/forgot`: con el correo devuelve su pregunta de seguridad. Si no es
+   * cliente o no tiene pregunta, el mismo aviso para todos (así nadie averigua quién es cliente).
    */
-  solicitarTemporal(correo: string): Observable<void> {
+  iniciarRecuperacion(correo: string): Observable<{ pregunta: string } | { mensaje: string }> {
     const cliente = this.porCorreo(correo);
-    if (cliente) {
-      this.clientes.generarTemporal(cliente);
-      this.propias.delete(cliente.id);
+    const q = cliente ? this.preguntas()[cliente.id] : undefined;
+    if (!cliente || !q) {
+      this.recuperando.set(null);
+      return of({ mensaje: 'No podemos recuperar esta cuenta en línea. Pide una contraseña temporal en la sucursal.' }).pipe(delay(500));
     }
-    return of(undefined).pipe(delay(500));
+    this.recuperando.set({ clienteId: cliente.id, intentos: 0 });
+    return of({ pregunta: textoPregunta(q.clave) }).pipe(delay(500));
+  }
+
+  /**
+   * P1.3 paso 2, como `POST /portal/password/answer`: respuesta correcta → temporal nueva al correo (como C8.4)
+   * y se quita el bloqueo del acceso. A la 3.ª respuesta mal se anula.
+   */
+  responderRecuperacion(respuesta: string): Observable<{ ok: true; correo: string } | { ok: false; mensaje: string; anulada: boolean }> {
+    const p = this.recuperando();
+    const cliente = p ? this.clientes.buscar(p.clienteId) : undefined;
+    const q = cliente ? this.preguntas()[cliente.id] : undefined;
+    if (!p || !cliente?.correo || !q) return of({ ok: false as const, mensaje: 'Vuelve a escribir tu correo.', anulada: true });
+    if (q.respuesta !== normalizarRespuesta(respuesta)) {
+      const intentos = p.intentos + 1;
+      if (intentos >= INTENTOS_PREGUNTA) {
+        this.recuperando.set(null);
+        return of({ ok: false as const, mensaje: 'Demasiadas respuestas incorrectas. Pide una contraseña temporal en la sucursal.', anulada: true }).pipe(delay(400));
+      }
+      this.recuperando.set({ ...p, intentos });
+      const quedan = INTENTOS_PREGUNTA - intentos;
+      return of({ ok: false as const, mensaje: `La respuesta no es correcta. Te ${quedan === 1 ? 'queda 1 intento' : `quedan ${quedan} intentos`}.`, anulada: false }).pipe(delay(400));
+    }
+    this.recuperando.set(null);
+    const temporal = this.clientes.generarTemporal(cliente);
+    this.propias.delete(cliente.id);
+    this.fallos.delete(cliente.correo.toLowerCase());
+    // Sin backend no sale el correo: la temporal se muestra en la consola para poder probar.
+    console.info(`[demo] Contraseña temporal de ${cliente.correo}: ${temporal}`);
+    return of({ ok: true as const, correo: enmascararCorreo(cliente.correo) }).pipe(delay(500));
   }
 
   /** P1.4 · La temporal deja de funcionar. */
@@ -160,7 +219,10 @@ export class PortalService {
   }
 
   /** P2.11 · Calificación del servicio (una por folio). */
-  readonly calificaciones = signal<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>({});
+  readonly calificaciones = signal<Record<string, { estrellas: number; gusto: string[]; comentario: string; fecha: string }>>({
+    '#1002': { estrellas: 5, gusto: ['Rapidez', 'Trato', 'Avisos en el portal'], comentario: 'Quedó como nuevo y me avisaron por el portal.', fecha: new Date(Date.now() - 12 * 86_400_000).toISOString() },
+    '#1006': { estrellas: 4, gusto: ['Precio'], comentario: '', fecha: new Date(Date.now() - 15 * 86_400_000).toISOString() },
+  });
 
   calificar(folio: string, estrellas: number, gusto: string[], comentario: string): void {
     if (!this.ordenDe(folio)) return;

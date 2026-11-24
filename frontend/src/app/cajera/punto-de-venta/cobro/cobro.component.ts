@@ -7,7 +7,9 @@ import { DatosFacturaComponent } from '../datos-factura/datos-factura.component'
 import { DispositivosService } from '../dispositivos.service';
 import { PagoMixtoComponent, resumenMixto } from '../pago-mixto/pago-mixto.component';
 import { TarjetaRechazadaComponent } from '../tarjeta-rechazada/tarjeta-rechazada.component';
-import { MetodoPago, ParteMixta, Pago } from '../venta.service';
+import { NotaCredito } from '../../ventas/historial-ventas.service';
+import { MetodoPago, NotaAplicada, ParteMixta, Pago, redondear } from '../venta.service';
+import { FORMAS_PAGO_CAJA, clabeLegible } from '../../../compartido/ajustes-documentos';
 
 interface OpcionMetodo {
   id: MetodoPago;
@@ -51,6 +53,10 @@ export class CobroComponent implements AfterViewInit {
   readonly total = input.required<number>();
   readonly articulos = input.required<number>();
   readonly cliente = input.required<Cliente>();
+  /** Notas de crédito con saldo del cliente (o la que se busque por folio). */
+  readonly notas = input<NotaCredito[]>([]);
+  /** Busca una nota por folio (sirve para Público en general, que no tiene notas a su nombre). */
+  readonly buscarNota = input<(folio: string) => NotaCredito | undefined>(() => undefined);
 
   readonly cerrar = output<void>();
   readonly confirmar = output<Pago>();
@@ -59,15 +65,32 @@ export class CobroComponent implements AfterViewInit {
   /** Sin conexión no hay transferencias ni facturas (C2.16). */
   protected readonly enLinea = inject(DispositivosService).enLinea;
 
-  protected readonly metodos = METODOS;
+  /** Solo las formas de pago que el administrador dejó activas (AD9.2); el efectivo siempre. */
+  protected readonly metodos = METODOS.filter((m) => m.id === 'efectivo' || FORMAS_PAGO_CAJA[m.id as 'tarjeta' | 'transferencia' | 'mixto']);
   protected readonly bancos = BANCOS;
   protected readonly dinero = formatearDinero;
   protected readonly metodo = signal<MetodoPago>('efectivo');
 
+  // Nota de crédito: paga parte o todo; lo demás se cobra con el método elegido.
+  protected readonly nota = signal<NotaAplicada | null>(null);
+  protected readonly folioNota = signal('');
+  protected readonly errorNota = signal<string | null>(null);
+  /** Lo que falta cobrar después de la nota. */
+  protected readonly aPagar = computed(() => redondear(this.total() - (this.nota()?.monto ?? 0)));
+
+  /** AD9.2 · Comisión de la terminal: se suma a lo que se paga con tarjeta (sola o en el pago mixto). */
+  protected readonly porcentajeComision = FORMAS_PAGO_CAJA.comisionTarjeta;
+  protected readonly comision = computed(() => {
+    if (!this.porcentajeComision || this.aPagar() <= 0) return 0;
+    const conTarjeta =
+      this.metodo() === 'tarjeta' ? this.aPagar() : this.metodo() === 'mixto' ? this.partes().filter((p) => p.metodo === 'tarjeta').reduce((s, p) => s + (p.monto ?? 0), 0) : 0;
+    return redondear((conTarjeta * this.porcentajeComision) / 100);
+  });
+
   // Efectivo
   protected readonly recibido = signal<number | null>(null);
-  protected readonly montos = computed(() => montosRapidos(this.total()));
-  protected readonly cambio = computed(() => (this.recibido() ?? 0) - this.total());
+  protected readonly montos = computed(() => montosRapidos(this.aPagar()));
+  protected readonly cambio = computed(() => (this.recibido() ?? 0) - this.aPagar());
 
   // Tarjeta
   protected tipoTarjeta: 'debito' | 'credito' = 'debito';
@@ -80,12 +103,14 @@ export class CobroComponent implements AfterViewInit {
   // Mixto (C2.13): efectivo y tarjeta, como en Figma.
   protected readonly partes = signal<ParteMixta[]>([
     { metodo: 'efectivo', monto: null, referencia: '' },
-    { metodo: 'tarjeta', monto: null, referencia: '' },
+    { metodo: FORMAS_PAGO_CAJA.tarjeta || !FORMAS_PAGO_CAJA.transferencia ? 'tarjeta' : 'transferencia', monto: null, referencia: '' },
   ]);
-  private readonly mixto = computed(() => resumenMixto(this.partes(), this.total()));
+  private readonly mixto = computed(() => resumenMixto(this.partes(), this.aPagar()));
 
   // Transferencia
-  protected readonly clabe = '012 580 0123 4567 8901';
+  /** Cuenta de Configuración (AD9.2). */
+  protected readonly clabe = clabeLegible(FORMAS_PAGO_CAJA.clabe);
+  protected readonly cuenta = `Cuenta ${FORMAS_PAGO_CAJA.titular.split(' ')[0]} · ${FORMAS_PAGO_CAJA.banco}`;
   protected bancoOrigen = BANCOS[0];
   protected readonly montoTransferencia = signal<number | null>(null);
   protected readonly rastreo = signal('');
@@ -100,6 +125,8 @@ export class CobroComponent implements AfterViewInit {
   protected readonly facturaAbierta = signal(false);
 
   protected readonly valido = computed(() => {
+    // La nota cubre todo: no hay nada más que cobrar.
+    if (this.aPagar() <= 0) return true;
     switch (this.metodo()) {
       case 'efectivo':
         return this.cambio() >= 0;
@@ -107,7 +134,7 @@ export class CobroComponent implements AfterViewInit {
         return this.autorizacion().trim().length > 0;
       case 'transferencia':
         return (
-          this.rastreo().trim().length > 0 && this.verificado() && (this.montoTransferencia() ?? this.total()) >= this.total()
+          this.rastreo().trim().length > 0 && this.verificado() && (this.montoTransferencia() ?? this.aPagar()) >= this.aPagar()
         );
       case 'mixto':
         return this.mixto().valido;
@@ -116,6 +143,25 @@ export class CobroComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.enfocarCampo();
+  }
+
+  /** Aplica el saldo de una nota (hasta el total de la venta). */
+  protected aplicarNota(n: NotaCredito): void {
+    this.nota.set({ folio: n.folio, monto: redondear(Math.min(n.saldo, this.total())) });
+    this.errorNota.set(null);
+    this.folioNota.set('');
+  }
+
+  protected buscarYAplicar(): void {
+    const folio = this.folioNota().trim().toUpperCase();
+    if (!folio) return;
+    const n = this.notas().find((x) => x.folio === folio) ?? this.buscarNota()(folio);
+    if (n) this.aplicarNota(n);
+    else this.errorNota.set(`${folio} no existe, ya se usó o venció.`);
+  }
+
+  protected quitarNota(): void {
+    this.nota.set(null);
   }
 
   elegirMetodo(id: MetodoPago): void {
@@ -172,12 +218,15 @@ export class CobroComponent implements AfterViewInit {
       this.rechazo.set('fondos insuficientes (código 51)');
       return;
     }
-    const recibido = {
-      efectivo: this.recibido() ?? 0,
-      tarjeta: this.total(),
-      transferencia: this.montoTransferencia() ?? this.total(),
-      mixto: this.mixto().pagado,
-    }[metodo];
+    const recibido =
+      this.aPagar() <= 0
+        ? 0
+        : {
+            efectivo: this.recibido() ?? 0,
+            tarjeta: this.aPagar(),
+            transferencia: this.montoTransferencia() ?? this.aPagar(),
+            mixto: this.mixto().pagado,
+          }[metodo];
     this.confirmar.emit({
       metodo,
       recibido,
@@ -186,6 +235,8 @@ export class CobroComponent implements AfterViewInit {
       imprimir: this.imprimir,
       enviarCorreo: this.enviarCorreo,
       factura: this.factura(),
+      nota: this.nota() ?? undefined,
+      comision: this.comision(),
     });
   }
 

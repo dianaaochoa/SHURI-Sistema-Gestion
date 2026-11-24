@@ -9,6 +9,8 @@ use App\Http\Resources\StaffUserResource;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Acceso del personal (pantallas A.1–A.6): administrador, jefe de técnicos, técnico y cajera.
@@ -70,5 +72,20 @@ class StaffAuthController extends Controller
         );
 
         return response()->json(['message' => 'Contraseña actualizada. Se cerraron tus otras sesiones.']);
+    }
+
+    /**
+     * POST /api/v1/auth/confirm-password — pantalla bloqueada por inactividad:
+     * la misma persona confirma su contraseña y sigue con la sesión que ya tenía abierta.
+     */
+    public function confirmPassword(Request $request): JsonResponse
+    {
+        $request->validate(['password' => ['required', 'string']], [], ['password' => 'contraseña']);
+
+        if (! Hash::check($request->input('password'), $request->user()->password)) {
+            throw ValidationException::withMessages(['password' => 'La contraseña no es correcta.']);
+        }
+
+        return response()->json(['message' => 'Pantalla desbloqueada.']);
     }
 }

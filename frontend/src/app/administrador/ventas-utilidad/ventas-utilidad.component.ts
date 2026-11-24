@@ -6,7 +6,7 @@ import { InventarioService } from '../../cajera/inventario/inventario.service';
 import { calcularTotales } from '../../cajera/punto-de-venta/venta.service';
 import { HistorialVentasService, reembolsado } from '../../cajera/ventas/historial-ventas.service';
 import { DESCUENTO_DEMO, porCategoria, utilidadDe } from '../negocio';
-import { Mes, dentro, exportarCsv, mesAnterior, ultimosMeses } from '../reportes';
+import { Mes, dentro, exportarExcel, mesAnterior, ultimosMeses } from '../reportes';
 
 const DIA = 86_400_000;
 const dinero = (n: number) => formatearDinero(n, true);
@@ -142,6 +142,6 @@ export class VentasUtilidadComponent {
       ['Método', 'Monto', 'Porcentaje'],
       ...this.metodos().map((m) => [m.texto, Math.round(m.monto), `${m.porcentaje}%`]),
     ];
-    exportarCsv(`ventas-y-utilidad-${this.mes().id}`, filas);
+    exportarExcel(`ventas-y-utilidad-${this.mes().id}`, filas);
   }
 }

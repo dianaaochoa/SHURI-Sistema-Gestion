@@ -1,19 +1,3 @@
-/** Archivos CSV que abre Excel (con BOM para que respete los acentos). */
-export function descargarCsv(nombre: string, filas: (string | number)[][]): void {
-  const texto = filas.map((f) => f.map(celda).join(',')).join('\r\n');
-  const url = URL.createObjectURL(new Blob(['﻿' + texto], { type: 'text/csv;charset=utf-8' }));
-  const enlace = document.createElement('a');
-  enlace.href = url;
-  enlace.download = nombre;
-  enlace.click();
-  URL.revokeObjectURL(url);
-}
-
-function celda(valor: string | number): string {
-  const texto = String(valor);
-  return /[",\r\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
-}
-
 /** Lee un CSV sencillo (comas y comillas dobles). */
 export function leerCsv(texto: string): string[][] {
   const filas: string[][] = [];

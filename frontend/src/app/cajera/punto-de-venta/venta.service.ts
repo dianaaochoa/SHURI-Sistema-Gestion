@@ -70,6 +70,16 @@ export interface Pago {
   enviarCorreo: boolean;
   /** C2.18: datos para timbrar; null si no pidió factura. */
   factura: DatosFiscales | null;
+  /** Nota de crédito (o saldo de un cambio) que paga parte o todo el total. */
+  nota?: NotaAplicada;
+  /** Comisión de la terminal que se suma a lo pagado con tarjeta (AD9.2). */
+  comision?: number;
+}
+
+/** Saldo de una nota de crédito usado en una venta. */
+export interface NotaAplicada {
+  folio: string;
+  monto: number;
 }
 
 export interface VentaCobrada {
@@ -89,6 +99,8 @@ export interface VentaCobrada {
   iva: number;
   recibido: number;
   referencia?: string;
+  nota?: NotaAplicada;
+  comision?: number;
 }
 
 export const redondear = (valor: number) => Math.round(valor * 100) / 100;
@@ -295,7 +307,7 @@ export class VentaService {
       total: this.total(),
       metodo: pago.metodo,
       partes: pago.partes,
-      cambio: pago.metodo === 'efectivo' || pago.metodo === 'mixto' ? Math.max(0, redondear(pago.recibido - this.total())) : 0,
+      cambio: pago.metodo === 'efectivo' || pago.metodo === 'mixto' ? Math.max(0, redondear(pago.recibido - (this.total() - (pago.nota?.monto ?? 0)))) : 0,
       cliente: this.cliente(),
       imprimir: pago.imprimir,
       enviarCorreo: pago.enviarCorreo,
@@ -306,6 +318,8 @@ export class VentaService {
       iva: this.iva(),
       recibido: pago.recibido,
       referencia: pago.referencia,
+      nota: pago.nota,
+      comision: pago.comision || undefined,
     };
     this.cancelar();
     this.numeroFolio.set(this.siguienteFolio++);

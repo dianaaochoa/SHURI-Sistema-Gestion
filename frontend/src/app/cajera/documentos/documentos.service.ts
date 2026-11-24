@@ -4,6 +4,9 @@ import type { Corte } from '../corte/corte.service';
 import { Orden, OrdenesService } from '../ordenes/ordenes.service';
 import { DispositivosService } from '../punto-de-venta/dispositivos.service';
 import { HistorialVentasService, VentaRegistrada } from '../ventas/historial-ventas.service';
+import type { MovimientoCliente } from '../clientes/clientes.service';
+import type { Entrada } from '../inventario/inventario.datos';
+import type { Cliente } from '../punto-de-venta/clientes.datos';
 
 /** Encabezado de todos los documentos (Figma C11). */
 export const NEGOCIO = {
@@ -27,7 +30,9 @@ export type Documento =
   | { tipo: 'devolucion'; venta: VentaRegistrada; indice: number }
   | { tipo: 'garantia'; orden: Orden }
   | { tipo: 'corte'; corte: Corte }
-  | { tipo: 'movimiento'; movimiento: MovimientoCaja; antes: number; despues: number; cajera: string; caja: string };
+  | { tipo: 'movimiento'; movimiento: MovimientoCaja; antes: number; despues: number; cajera: string; caja: string }
+  | { tipo: 'entrada'; entrada: Entrada }
+  | { tipo: 'historial'; cliente: Cliente; movimientos: MovimientoCliente[]; periodo: string };
 
 export function folioDe(doc: Documento): string {
   switch (doc.tipo) {
@@ -38,6 +43,10 @@ export function folioDe(doc: Documento): string {
       return doc.corte.folio;
     case 'movimiento':
       return doc.movimiento.folio;
+    case 'entrada':
+      return doc.entrada.folio;
+    case 'historial':
+      return doc.cliente.nombre;
     default:
       return doc.orden.folio;
   }
@@ -97,8 +106,6 @@ export class DocumentosService {
 
   /** NC-0007: consecutivo de las notas de crédito. */
   folioNota(venta: VentaRegistrada, indice: number): string {
-    const fecha = venta.devoluciones[indice].fecha;
-    const antes = this.ventas.ventas().flatMap((v) => v.devoluciones).filter((d) => d.forma === 'nota' && d.fecha < fecha).length;
-    return `NC-${String(6 + antes + 1).padStart(4, '0')}`;
+    return this.ventas.folioNota(venta, indice);
   }
 }

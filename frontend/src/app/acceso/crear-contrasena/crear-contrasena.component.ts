@@ -38,13 +38,21 @@ export class CrearContrasenaComponent {
     {
       nueva: ['', [Validators.required, contrasenaSegura]],
       repetida: ['', Validators.required],
+      // Pregunta secreta: sin ella no podría recuperar su contraseña en línea (A.3)
+      pregunta: ['', Validators.required],
+      respuesta: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
     },
     { validators: contrasenasIguales },
   );
 
+  /** Catálogo de preguntas para el select. */
+  readonly preguntas = toSignal(this.auth.preguntasSecretas(), { initialValue: [] });
+
   readonly verNueva = signal(false);
   readonly verRepetida = signal(false);
   readonly enviando = signal(false);
+  /** Error de la API (p. ej. la contraseña es igual a la temporal). */
+  readonly error = signal<string | null>(null);
 
   private readonly nueva = toSignal(this.formulario.controls.nueva.valueChanges, { initialValue: '' });
 
@@ -55,6 +63,11 @@ export class CrearContrasenaComponent {
 
   get nuevaInvalida(): boolean {
     const control = this.formulario.controls.nueva;
+    return control.invalid && control.touched;
+  }
+
+  campoInvalido(nombre: 'pregunta' | 'respuesta'): boolean {
+    const control = this.formulario.controls[nombre];
     return control.invalid && control.touched;
   }
 
@@ -70,8 +83,14 @@ export class CrearContrasenaComponent {
     }
 
     this.enviando.set(true);
-    this.auth.crearContrasena(this.formulario.getRawValue().nueva).subscribe(() => {
+    this.error.set(null);
+    const { nueva, pregunta, respuesta } = this.formulario.getRawValue();
+    this.auth.crearContrasena(nueva, { pregunta, respuesta }).subscribe((resultado) => {
       this.enviando.set(false);
+      if (!resultado.ok) {
+        this.error.set(resultado.mensaje ?? 'No se pudo guardar tu contraseña. Inténtalo de nuevo.');
+        return;
+      }
       this.router.navigateByUrl('/inicio');
     });
   }

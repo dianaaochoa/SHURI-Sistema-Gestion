@@ -118,7 +118,8 @@ export interface Orden {
   /** ISO: cuándo se avisó "Listo". */
   listaDesde?: string;
   /** `pagado` es lo que costó en total; `cobrado` y `metodo`, lo que entró a la caja al entregar (C10). */
-  entrega?: { fecha: string; por: string; pagado: number; recogio?: string; cobrado?: number; metodo?: string };
+  /** `cartaPoder`: foto de la carta poder cuando recoge otra persona (data URL; con la API, su URL). */
+  entrega?: { fecha: string; por: string; pagado: number; recogio?: string; cobrado?: number; metodo?: string; cartaPoder?: string };
   /** Accesorios que dejó el cliente al recibir (se devuelven en C6). */
   accesorios?: string;
   /** Lo que hizo el técnico (C6 "Trabajo realizado"). */
@@ -555,7 +556,7 @@ function ordenesDemo(): Orden[] {
       ...base,
       folio: '#1029',
       recibido: hace(11, '10:30'),
-      cliente: { nombre: 'Andrés Vega', telefono: '55 4411 2299', correo: 'andres.vega@gmail.com' },
+      cliente: { nombre: 'Andrés Vega', telefono: '55 3344 9900', correo: 'andres.vega@gmail.com' },
       equipo: 'Samsung S21',
       imei: '354021118765432',
       tecnico: tecnico('CR'),
@@ -627,7 +628,7 @@ function ordenesDemo(): Orden[] {
       ...base,
       folio: '#1026',
       recibido: hace(10, '10:00'),
-      cliente: { nombre: 'Laura Medina', telefono: '55 2233 4455', correo: 'laura.medina@gmail.com' },
+      cliente: { nombre: 'Laura Medina', telefono: '87 1987 6543', correo: 'laura.medina@gmail.com' },
       equipo: 'iPhone 11',
       imei: '352001110001122',
       tecnico: tecnico('CR'),
@@ -648,7 +649,7 @@ function ordenesDemo(): Orden[] {
       ...base,
       folio: '#1021',
       recibido: hace(9, '11:30'),
-      cliente: { nombre: 'Pedro Núñez', telefono: '55 3344 5566', correo: 'pedro.nunez@gmail.com' },
+      cliente: { nombre: 'Pedro Núñez', telefono: '87 1444 8811', correo: 'pedro.nunez@gmail.com' },
       equipo: 'Redmi 12C',
       imei: '861122334455667',
       tecnico: tecnico('CR'),
@@ -687,7 +688,7 @@ function ordenesDemo(): Orden[] {
       ...base,
       folio: '#0998',
       recibido: hace(18, '10:00'),
-      cliente: { nombre: 'Raúl Ortiz', telefono: '55 9988 7766', correo: 'raul.ortiz@outlook.com' },
+      cliente: { nombre: 'Raúl Ortiz', telefono: '87 1555 0102', correo: 'raul.ortiz@outlook.com' },
       equipo: 'Motorola G84',
       imei: '359876543210987',
       tecnico: tecnico('MV'),
@@ -1024,7 +1025,7 @@ export class OrdenesService {
    * C6: entrega el equipo. Normal → "Terminado" con garantía desde hoy; sin reparar → "Entregado sin reparar";
    * tras garantía → vuelve a "Terminado" sin reiniciar la garantía original.
    */
-  entregar(folio: string, entrega: { recoge: string; pagado: number; metodo: string; cajera: string }): Orden | undefined {
+  entregar(folio: string, entrega: { recoge: string; pagado: number; metodo: string; cajera: string; cartaPoder?: string }): Orden | undefined {
     const ahora = ahoraIso();
     const por = `${entrega.cajera} · Caja 01`;
     this.actualizar(folio, (o): Orden => {
@@ -1043,7 +1044,7 @@ export class OrdenesService {
         return {
           ...o,
           estado: 'sin-reparar-entregada',
-          entrega: { fecha: ahora, por, pagado: Math.min(revision, o.anticipo) + Math.max(0, cobrado), recogio: entrega.recoge, cobrado, metodo: devuelto ? 'efectivo' : entrega.pagado > 0 ? entrega.metodo : undefined },
+          entrega: { fecha: ahora, por, pagado: Math.min(revision, o.anticipo) + Math.max(0, cobrado), recogio: entrega.recoge, cobrado, metodo: devuelto ? 'efectivo' : entrega.pagado > 0 ? entrega.metodo : undefined, cartaPoder: entrega.cartaPoder },
           historial: evento(`Entregado sin reparar a ${entrega.recoge}${nota}`),
           contactos,
         };
@@ -1053,7 +1054,7 @@ export class OrdenesService {
         ...o,
         estado: 'terminada',
         bodega: undefined,
-        entrega: { fecha: ahora, por, pagado: o.presupuesto?.total ?? o.anticipo + entrega.pagado, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.metodo },
+        entrega: { fecha: ahora, por, pagado: o.presupuesto?.total ?? o.anticipo + entrega.pagado, recogio: entrega.recoge, cobrado: entrega.pagado, metodo: entrega.metodo, cartaPoder: entrega.cartaPoder },
         historial: evento(`${desdeBodega} a ${entrega.recoge}${pago}`),
         contactos,
       };

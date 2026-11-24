@@ -2,6 +2,7 @@ import { Component, computed, input, model, signal } from '@angular/core';
 import { CampoDineroDirective } from '../../../compartido/campo-dinero.directive';
 import { formatearDinero } from '../../../compartido/formato';
 import { MetodoSimple, ParteMixta, redondear } from '../venta.service';
+import { FORMAS_PAGO_CAJA } from '../../../compartido/ajustes-documentos';
 
 const INFO: Record<MetodoSimple, { titulo: string; icono: string; referencia: string }> = {
   efectivo: { titulo: 'Efectivo', icono: 'cash-18', referencia: '' },
@@ -129,7 +130,9 @@ export class PagoMixtoComponent {
   protected readonly resumen = computed(() => resumenMixto(this.partes(), this.total()));
   /** Sin conexión no se aceptan transferencias (C2.16). */
   protected readonly metodosDisponibles = computed<MetodoSimple[]>(() =>
-    this.enLinea() ? ['efectivo', 'tarjeta', 'transferencia'] : ['efectivo', 'tarjeta'],
+    (['efectivo', 'tarjeta', 'transferencia'] as MetodoSimple[]).filter(
+      (m) => m === 'efectivo' || (FORMAS_PAGO_CAJA[m as 'tarjeta' | 'transferencia'] && (m !== 'transferencia' || this.enLinea())),
+    ),
   );
 
   protected cambiar(indice: number, cambios: Partial<ParteMixta>): void {

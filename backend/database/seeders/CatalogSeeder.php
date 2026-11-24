@@ -22,6 +22,12 @@ class CatalogSeeder extends Seeder
             ['id' => 3, 'slug' => 'technician',      'name' => 'Técnico',          'description' => 'Diagnostica y repara equipos',            'created_at' => $now, 'updated_at' => $now],
             ['id' => 4, 'slug' => 'cashier',         'name' => 'Cajera',           'description' => 'Recepción, entrega y punto de venta',     'created_at' => $now, 'updated_at' => $now],
         ]);
+        // Super usuario: una sola cuenta (php artisan shuri:create-superuser). insertOrIgnore porque su migración también lo crea.
+        DB::table('roles')->insertOrIgnore([
+            'id' => 5, 'slug' => 'super_admin', 'name' => 'Super usuario',
+            'description' => 'Acceso total al sistema; da de alta al personal y a los administradores',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
 
         // AD7.3 Permissions by role
         $permissions = [
@@ -73,6 +79,8 @@ class CatalogSeeder extends Seeder
         };
         // Admin: everything except working orders at the bench
         $grant(1, array_values(array_diff(array_keys($ids->all()), ['orders.repair', 'parts.request'])));
+        // Super usuario: todos los permisos, también los del banco del técnico
+        $grant(5, array_keys($ids->all()));
         $grant(2, ['orders.assign', 'orders.quote', 'orders.repair', 'orders.waive_storage', 'orders.storage',
             'warranties.rule', 'parts.handle', 'purchasing.orders', 'catalog.view_costs', 'inventory.view',
             'inventory.stock_in', 'inventory.adjust', 'chat.reply', 'reports.view']);

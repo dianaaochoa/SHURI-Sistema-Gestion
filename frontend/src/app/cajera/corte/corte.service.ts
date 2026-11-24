@@ -159,7 +159,8 @@ export class CorteService {
     const lista: MovimientoTurno[] = [{ fecha: desde, concepto: 'Apertura de caja · Fondo inicial', metodo: 'efectivo', monto: fondo }];
 
     for (const v of this.ventas.ventas()) {
-      if (en(v.fecha) && v.estado !== 'cancelada') lista.push({ fecha: v.fecha, concepto: `Venta ${v.folio} · ${resumenVenta(v)}`, metodo: v.metodo, monto: v.total });
+      // Lo pagado con nota de crédito no entra a la caja: solo cuenta lo que se cobró con el método.
+      if (en(v.fecha) && v.estado !== 'cancelada') lista.push({ fecha: v.fecha, concepto: `Venta ${v.folio} · ${resumenVenta(v)}${v.nota ? ` · nota ${v.nota.folio}` : ''}`, metodo: v.metodo, monto: redondear(v.total - (v.nota?.monto ?? 0) + (v.metodo === 'tarjeta' ? (v.comision ?? 0) : 0)) });
       for (const d of v.devoluciones) {
         if (!en(d.fecha) || d.forma === 'nota' || d.forma === 'cambio') continue;
         lista.push({ fecha: d.fecha, concepto: `Devolución ${v.folio}`, metodo: d.forma as MetodoSimple, monto: -d.monto });
@@ -226,6 +227,7 @@ export class CorteService {
     }
     for (const v of ventas.filter((x) => x.metodo === 'mixto')) {
       for (const p of v.partes ?? []) porMetodo[p.metodo] += p.monto ?? 0;
+      porMetodo.tarjeta += v.comision ?? 0;
     }
 
     return {

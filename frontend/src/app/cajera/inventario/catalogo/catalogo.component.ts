@@ -2,7 +2,7 @@ import { Component, computed, inject, output, signal } from '@angular/core';
 import { formatearDinero } from '../../../compartido/formato';
 import { CATEGORIAS_INVENTARIO, PROVEEDORES, ProductoInventario } from '../inventario.datos';
 import { EstadoStock, InventarioService, apartadas, disponible, estadoStock } from '../inventario.service';
-import { descargarCsv } from '../csv';
+import { descargarXlsx } from '../../../compartido/excel';
 import { PaginacionComponent, paginar } from '../paginacion/paginacion.component';
 
 type Resumen = 'todos' | 'bajo' | 'agotado';
@@ -101,7 +101,7 @@ export class CatalogoComponent {
   protected exportar(): void {
     const elegidos = this.seleccion();
     const lista = elegidos.length ? this.inventario.productos().filter((p) => elegidos.includes(p.sku)) : this.filtrados();
-    descargarCsv(`inventario_${new Date().toISOString().slice(0, 10)}.csv`, [
+    descargarXlsx(`inventario_${new Date().toISOString().slice(0, 10)}.xlsx`, [
       ['SKU', 'Código de barras', 'Nombre', 'Categoría', 'Proveedor', 'Unidad', 'Costo', 'Precio', 'Stock', 'Apartadas', 'Disponible', 'Mínimo', 'Ubicación'],
       ...lista.map((p) => [p.sku, p.codigoBarras, p.nombre, p.categoria, p.proveedor, p.unidad, p.costo, p.precio, p.stock, apartadas(p), disponible(p), p.minimo, p.ubicacion]),
     ]);

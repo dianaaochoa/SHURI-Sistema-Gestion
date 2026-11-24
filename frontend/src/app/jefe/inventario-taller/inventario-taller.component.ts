@@ -6,6 +6,7 @@ import { ProductoInventario } from '../../cajera/inventario/inventario.datos';
 import { InventarioService, apartadas, disponible, estadoStock } from '../../cajera/inventario/inventario.service';
 import { EntradaComponent } from '../../cajera/inventario/entrada/entrada.component';
 import { PaginacionComponent, paginar } from '../../cajera/inventario/paginacion/paginacion.component';
+import { PermisosService } from '../../administrador/permisos.service';
 import { formatearDinero } from '../../compartido/formato';
 import { NuevoPedidoComponent } from '../refacciones/nuevo-pedido/nuevo-pedido.component';
 import { VerProductoComponent } from './ver-producto/ver-producto.component';
@@ -36,6 +37,9 @@ type Estado = { texto: string; tono: string; accion: 'Ver pedido' | 'Pedir' | 'V
 })
 export class InventarioTallerComponent {
   protected readonly inventario = inject(InventarioService);
+  private readonly permisos = inject(PermisosService);
+  /** AD7.3 “Ver costos y utilidad”: sin él se oculta la columna Costo. */
+  protected readonly verCostos = computed(() => this.permisos.puede('costos'));
   private readonly router = inject(Router);
 
   /** ?vista=entrada muestra la entrada de mercancía (la misma de caja, C7.3). */

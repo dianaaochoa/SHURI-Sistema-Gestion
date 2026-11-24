@@ -21,6 +21,8 @@ export class ConfiguracionComponent {
   protected readonly dinero = formatearDinero;
   protected readonly opcionesSla = [12, 24, 48, 72];
   protected readonly opcionesVigencia = [3, 7, 15, 30];
+  /** Horas para el horario del chat (P5). */
+  protected readonly horas = Array.from({ length: 17 }, (_, i) => i + 6);
   protected readonly opcionesGarantia = [30, 60, 90];
   protected readonly opcionesSinCobro = [15, 30, 45, 60];
   protected readonly opcionesDespues = Object.entries(DESPUES_RESGUARDO) as [DespuesResguardo, string][];
@@ -35,7 +37,7 @@ export class ConfiguracionComponent {
   protected readonly pendientes = computed(
     () => JSON.stringify(this.niveles()) !== JSON.stringify(this.servicio.niveles()) || JSON.stringify(this.reglas()) !== JSON.stringify(this.servicio.reglas()),
   );
-  protected readonly invalido = computed(() => this.niveles().some((n) => !n.nivel.trim() || n.precio <= 0) || this.reglas().almacenajeDia < 0);
+  protected readonly invalido = computed(() => this.niveles().some((n) => !n.nivel.trim() || n.precio <= 0) || this.reglas().almacenajeDia < 0 || this.reglas().chatAbre >= this.reglas().chatCierra);
 
   protected regla<K extends keyof ReglasTaller>(clave: K, valor: ReglasTaller[K]): void {
     this.reglas.update((r) => ({ ...r, [clave]: valor }));

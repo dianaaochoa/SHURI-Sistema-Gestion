@@ -97,7 +97,7 @@ export const CLIENTES: Cliente[] = [
   { id: 'c-005', nombre: 'Raúl Ortiz', telefono: '87 1555 0102', correo: 'raul.ortiz@outlook.com' },
   { id: 'c-006', nombre: 'Andrés Vega', telefono: '55 3344 9900', correo: 'andres.vega@gmail.com', estado: { texto: '1 en taller', tono: 'info' } },
   { id: 'c-007', nombre: 'Paola Cruz', telefono: '87 1777 2233', correo: 'paola.cruz@gmail.com', estado: { texto: '1 en taller', tono: 'info' } },
-  { id: 'c-008', nombre: 'Pedro Núñez', telefono: '87 1444 8811', estado: { texto: '1 listo', tono: 'exito' } },
+  { id: 'c-008', nombre: 'Pedro Núñez', telefono: '87 1444 8811', correo: 'pedro.nunez@gmail.com', estado: { texto: '1 listo', tono: 'exito' } },
 ];
 
 /** Motivos de descuento (C2.6). */
