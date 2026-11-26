@@ -22,9 +22,11 @@
 | T-03 API REST de inventario | Brisa | Sí | ❌ Pendiente | — |
 | T-04/T-05 Recepción, asignación y bitácora (backend) | Brisa / Diana | Sí | ❌ Recepción en el Sprint 4 | — |
 | Prototipo en Figma y casos de uso | Félix | Sí | ✅ | `docs/diseno/` (19 oct) |
-| Documentación de las Unidades 1 y 2 | Diana | Sí | ✅ | PR #4, PR #5 |
+| Documentación de las Unidades 1 y 2 | Diana | Sí | ✅ | PR #3, PR #4, PR #5 |
+| Flujo de trabajo: ramas `develop`/`feature/*`, plantilla de PR, CODEOWNERS y protección de ramas | Diana | Sí | ✅ | PR #3, configuración del repositorio (20 oct) |
+| Integración de las ramas de Brisa y Félix (resolución del conflicto del README) | Diana | No planeado | ✅ | PR #3 · [BUG-01](../pruebas/registro-de-defectos.md#bug-01--conflicto-en-el-readme-al-integrar-la-rama-de-backend) |
 
-**Velocidad del backend:** se entregó el modelo de datos (arrastrado), pero ninguna tarea de API del MVP.
+**Velocidad del equipo:** documentación, prototipo y modelo de datos completos; ninguna tarea de API del MVP. **Commits en el sprint:** Félix 11, Diana 6, Brisa 1.
 
 ## Análisis de riesgos (backend)
 

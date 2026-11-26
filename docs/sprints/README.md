@@ -7,7 +7,9 @@ Evidencia de la aplicación de **Scrum** en cada sprint: objetivo, trabajo plane
 | 1 | 28 sep – 11 oct 2026 | Estructura del repositorio, base de datos y autenticación | Cerrado | [sprint-1.md](sprint-1.md) |
 | 2 | 12 oct – 25 oct 2026 | Inventario, recepción/asignación y bitácora (MVP) | Cerrado | [sprint-2.md](sprint-2.md) |
 | 3 | 26 oct – 08 nov 2026 | Punto de venta, caja, cotizaciones, garantías y compras | Cerrado | [sprint-3.md](sprint-3.md) |
-| 4 | 09 nov – 22 nov 2026 | Portal del cliente, correos, facturación, pruebas y cierre | En curso | [sprint-4.md](sprint-4.md) |
+| 4 | 09 nov – 28 nov 2026 | Portal del cliente, correos, facturación, integración y pruebas | En curso | [sprint-4.md](sprint-4.md) |
+
+Documentos de calidad relacionados: [plan de pruebas](../pruebas/plan-de-pruebas.md) · [casos de prueba](../pruebas/casos-de-prueba.md) · [registro de defectos](../pruebas/registro-de-defectos.md) · [proceso de liberación](../release/proceso-de-release.md).
 
 ## Roles Scrum
 

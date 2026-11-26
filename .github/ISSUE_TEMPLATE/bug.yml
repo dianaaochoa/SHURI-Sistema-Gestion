@@ -1,0 +1,78 @@
+name: "🐞 Bug"
+description: Reportar un error encontrado en el sistema
+title: "bug(<módulo>): <descripción corta>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar el error. Llena todos los campos para que se pueda reproducir y corregir.
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción
+      description: ¿Qué está fallando?
+    validations:
+      required: true
+  - type: dropdown
+    id: modulo
+    attributes:
+      label: Módulo
+      options:
+        - Acceso y seguridad
+        - Cajera / Punto de venta
+        - Caja
+        - Jefe de técnicos
+        - Técnico
+        - Administrador
+        - Portal del cliente
+        - Inventario y compras
+        - Base de datos
+        - Integración frontend-backend
+        - Otro
+    validations:
+      required: true
+  - type: dropdown
+    id: severidad
+    attributes:
+      label: Severidad
+      description: Ver la tabla de severidades en docs/pruebas/plan-de-pruebas.md §8
+      options:
+        - "🔴 Crítica: bloquea el sistema, pierde datos o expone información"
+        - "🟠 Alta: una funcionalidad del MVP no funciona y no hay alternativa"
+        - "🟡 Media: falla con alternativa o en un caso poco frecuente"
+        - "🟢 Baja: detalle visual o de redacción"
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducir
+      placeholder: |
+        1. Entrar como cajera (sofia)
+        2. Ir a Punto de venta
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Resultado esperado
+    validations:
+      required: true
+  - type: textarea
+    id: obtenido
+    attributes:
+      label: Resultado obtenido
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidencia
+      description: Captura de pantalla, mensaje de error o salida de la consola.
+  - type: input
+    id: entorno
+    attributes:
+      label: Entorno
+      placeholder: "Local / Staging / Producción · navegador · rama o commit"

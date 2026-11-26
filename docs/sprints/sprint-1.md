@@ -20,9 +20,9 @@
 | Ramas del flujo de trabajo | Diana | Sí | ✅ | `f12f73c` (13 oct, inicio del Sprint 2) |
 | T-01 Esquema de BD (migraciones y seeders) | Brisa | Sí | ❌ Se movió al Sprint 3 | — |
 | T-02 Autenticación con Sanctum y RBAC | Brisa / Diana | Sí | ❌ Se movió al Sprint 4 | — |
-| _Frontend / diseño_ | _Félix_ | _Por completar_ | _Por completar_ | _Por completar_ |
+| Frontend / diseño | Félix | No planeado en este sprint | — | Sin commits en el repositorio; el prototipo se entregó en el Sprint 2 |
 
-**Velocidad del backend:** 0 de 2 tareas planeadas.
+**Velocidad del equipo:** 1 de 3 tareas planeadas (la estructura del proyecto). **Commits en el sprint:** Diana 2.
 
 ## Análisis de riesgos (backend)
 

@@ -1,0 +1,27 @@
+name: "📌 Tarea"
+description: Asignar una tarea del sprint a un integrante
+title: "<tipo>: <descripción corta>"
+body:
+  - type: textarea
+    id: que
+    attributes:
+      label: Qué hacer
+    validations:
+      required: true
+  - type: textarea
+    id: terminado
+    attributes:
+      label: Criterio de terminado
+      description: ¿Cómo se sabe que la tarea está lista?
+    validations:
+      required: true
+  - type: input
+    id: rubrica
+    attributes:
+      label: Criterio de la rúbrica
+      placeholder: "Ej. Integración Frontend-Backend"
+  - type: input
+    id: requisito
+    attributes:
+      label: Requisito o tarea relacionada
+      placeholder: "Ej. RF-08, T-06"

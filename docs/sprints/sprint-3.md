@@ -23,8 +23,10 @@
 | T-06/T-09 API de POS y caja | Félix / Brisa | Sí | ❌ Pendiente | — |
 | T-10 API de garantías y compras | Brisa / Diana | Sí | ❌ Pendiente | — |
 | Vistas de Cajera (C1–C11) y Jefe de técnicos (J1–J11) | Félix | Sí | ✅ (con datos de ejemplo) | Rama `feature/frontend-ui`, PR #6 |
+| Pantallas de acceso, menú lateral por rol y notificaciones | Félix | Sí | ✅ | PR #6 |
+| Revisión del avance y pruebas de compilación del frontend | Diana | Sí | ✅ | Revisión del PR #6 |
 
-**Velocidad del backend:** la base de datos quedó completa y funcional, pero ninguna API de este sprint.
+**Velocidad del equipo:** el frontend de Cajera y Jefe quedó completo (con datos de ejemplo) y la base de datos quedó lista; no hubo API. **Commits en el sprint:** Félix 60, Brisa 1.
 
 ## Análisis de riesgos (backend)
 
