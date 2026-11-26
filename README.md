@@ -1062,7 +1062,7 @@ El proceso completo está en [`docs/release/proceso-de-release.md`](docs/release
 |---|---|---|
 | `v0.1.0-sprint2` | 20 oct 2026 | Documentación de las Unidades 1 y 2, prototipo y modelo de datos |
 | `v0.2.0` | 9 nov 2026 | Maquetado de Cajera y Jefe de técnicos |
-| `v0.3.0` | *Próxima* | Backend completo, módulos de Técnico, Administrador y Portal, e integración del acceso |
+| `v0.3.0` | 26 nov 2026 | Backend completo, módulos de Técnico, Administrador y Portal, e integración del acceso |
 
 ---
 

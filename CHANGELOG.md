@@ -6,7 +6,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
-Cambios en `develop` y en Pull Requests abiertos, que formarán parte de la siguiente versión (`v0.3.0`).
+### Pendiente para la siguiente versión
+- Integración de los módulos de Cajera, Jefe, Técnico, Administrador y Portal con la API (Issues #33–#36).
+- Pruebas del frontend, E2E e integración continua.
+
+## [0.3.0] - 2026-11-26
+
+PR #9, #10 y #32 · Backend completo, módulos de Técnico, Administrador y Portal, integración del acceso y documentación de pruebas.
 
 ### Agregado
 - **Backend completo** (PR #10, Brisa): API REST `/api/v1` en Laravel 10 con 56 tablas, autenticación con Sanctum, MFA por correo, multisesión con cierre remoto, recuperación de contraseña por correo y pregunta secreta, bloqueo tras 3 intentos, control de acceso por roles y permisos, rate limiting y encabezados de seguridad OWASP.
@@ -61,7 +67,8 @@ PR #3, #4 y #5 · Documentación de las Unidades 1 y 2, prototipo y modelo de da
 ### Agregado
 - Estructura inicial del proyecto con Laravel 10 y Angular 17.
 
-[Sin publicar]: https://github.com/dianaaochoa/SHURI-Sistema-Gestion/compare/v0.2.0...develop
+[Sin publicar]: https://github.com/dianaaochoa/SHURI-Sistema-Gestion/compare/v0.3.0...develop
+[0.3.0]: https://github.com/dianaaochoa/SHURI-Sistema-Gestion/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dianaaochoa/SHURI-Sistema-Gestion/compare/v0.1.0-sprint2...v0.2.0
 [0.1.0-sprint2]: https://github.com/dianaaochoa/SHURI-Sistema-Gestion/releases/tag/v0.1.0-sprint2
 [0.0.1]: https://github.com/dianaaochoa/SHURI-Sistema-Gestion/commit/ca56f2b
