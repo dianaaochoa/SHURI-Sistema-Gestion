@@ -250,29 +250,21 @@ Una tarea se considera terminada cuando:
 | **Sprint 1** | 28 sep – 11 oct | Estructura del repositorio, base de datos MySQL funcional, autenticación y permisos por rol (RBAC). | Brisa, Diana |
 | **Sprint 2** | 12 oct – 25 oct | Inventario centralizado, panel de Recepción/Asignación de Taller y Bitácora del Técnico (**MVP operativo**). | Diana, Félix, Brisa |
 | **Sprint 3** | 26 oct – 08 nov | Punto de Venta con liquidación de servicios, caja con cortes, cotizaciones, garantías y compras a proveedores. | Félix, Brisa |
-| **Sprint 4** | 09 nov – 28 nov | Portal del cliente (aprobación de presupuestos, garantía, chat), correos automáticos, facturación, integración y pruebas. | Félix, Diana, Brisa |
+| **Sprint 4** | 09 nov – 22 nov | Portal del cliente (aprobación de presupuestos, garantía, chat), correos automáticos, facturación, pruebas de integración y cierre. | Félix, Diana, Brisa |
 
-El detalle de cada sprint (ceremonias, planeado contra entregado y **análisis de riesgos actualizado**) está en [`docs/sprints/`](docs/sprints/README.md).
-
-### 7.7 Avance del proyecto (corte: 26 de noviembre de 2026)
+### 7.7 Avance del proyecto (corte: 20 de octubre de 2026)
 
 | Entregable | Estado | Evidencia | Responsable |
 |---|---|---|---|
 | Estructura del proyecto (Laravel 10 + Angular 17) | ✅ Terminado | [`backend/`](backend/), [`frontend/`](frontend/) | Diana |
-| Repositorio, flujo de trabajo, plantillas de PR e Issues, ramas protegidas | ✅ Terminado | [Sección 12](#-12-flujo-de-trabajo-workflow), [`.github/`](.github/) | Diana |
+| Repositorio, flujo de trabajo y plantillas de PR | ✅ Terminado | [Sección 12](#-12-flujo-de-trabajo-workflow), [`.github/`](.github/) | Diana |
 | Prototipo de alta fidelidad (6 módulos + sistema de diseño) | ✅ Terminado | [Sección 9](#-9-prototipado-y-wireframes), [`docs/diseno/`](docs/diseno/) | Félix |
 | Diagrama de casos de uso | ✅ Terminado | [Sección 14.2](#142-diagrama-de-casos-de-uso-uml) | Félix |
-| Modelo de datos: DER y diccionario (56 tablas) | ✅ Terminado | [Sección 14.3](#143-diagrama-entidad-relación-der), [Sección 15](#-15-diccionario-de-datos) | Brisa |
-| Migraciones, seeders y API REST completa | ✅ Terminado | PR #10 · [`docs/api/endpoints.md`](docs/api/endpoints.md) | Brisa |
-| Autenticación con MFA, multisesión, recuperación y control de acceso por rol | ✅ Terminado | PR #10 | Brisa |
-| Pantallas en Angular de los 5 roles (Acceso, Cajera, Jefe, Técnico, Administrador y Portal) | ✅ Terminado | PR #6, PR #9 | Félix |
-| Integración frontend-backend del acceso (login, MFA, redirección por rol, recuperación) | 🔄 En revisión | PR #32 · Issues #30, #31 | Brisa, Félix |
-| Integración de los módulos (Cajera, Jefe, Técnico, Administrador y Portal) | 🔄 En curso | Issues #33–#36 | Brisa |
-| Pruebas automatizadas del backend | ✅ 269 aprobadas | [Sección 18](#-18-pruebas-y-calidad) | Brisa |
-| Plan de pruebas, casos de prueba y registro de defectos | ✅ Terminado | [`docs/pruebas/`](docs/pruebas/) | Diana |
-| Proceso de liberación y CHANGELOG | ✅ Terminado | [Sección 19](#-19-liberación-despliegue-y-versiones) | Diana |
-| Pruebas del frontend, E2E e integración continua | ⏳ Pendiente | [Calendario de pruebas](docs/pruebas/plan-de-pruebas.md#11-calendario) | Félix, Brisa |
-| Despliegue con HTTPS | ⏳ Pendiente | [Estrategia de despliegue](docs/release/proceso-de-release.md#5-estrategia-de-despliegue) | Brisa, Félix |
+| Modelo de datos: DER y diccionario (51 tablas) | ✅ Terminado | [Sección 14.3](#143-diagrama-entidad-relación-der), [Sección 15](#-15-diccionario-de-datos) | Brisa |
+| `.gitignore` y configuración de seguridad del repositorio | ✅ Terminado | [Sección 13](#-13-configuración-del-entorno-de-versiones) | Brisa, Diana |
+| Migraciones y seeders en Laravel | 🔄 En curso | `backend/database/migrations/` | Brisa |
+| Maquetación de vistas en Angular | 🔄 En curso | `frontend/src/app/` | Félix |
+| API REST, autenticación y RBAC | ⏳ Pendiente (Sprint 2–3) | — | Brisa, Diana |
 
 ---
 
@@ -320,44 +312,7 @@ El prototipo de alta fidelidad fue diseñado en **Figma** por **Félix Martínez
 
 **Tamaños base:** escritorio 1440×900 (menú lateral de 184 px) · compacto 1366×768 (riel de 72 px) · tablet 1180×820 · celular 390×844.
 
-### 9.1 Mapa de navegación planteado en la Unidad 1
-
-La solución contempla una arquitectura adaptativa (*Responsive Web Design*) que diferencia los entornos de escritorio densos en datos, destinados al personal operativo en sucursal, de la experiencia móvil simplificada orientada al cliente final. El sistema organiza sus vistas según el perfil del usuario autenticado (control de acceso basado en roles, RBAC):
-
-1. **Acceso al sistema:** pantalla de inicio de sesión única con validación de credenciales.
-2. **Entorno de mostrador (recepcionista / cajero):**
-   - *Panel operativo de taller (dashboard de recepción):* métrica de ingresos diarios, estatus global y tabla de órdenes recientes.
-   - *Recepción de producto:* formulario estructurado para registro de cliente, especificaciones del dispositivo, falla y presupuesto estimado.
-   - *Punto de venta (POS):* catálogo visual de repuestos y servicios, carrito interactivo y cálculo de totales.
-   - *Cierre de venta y facturación:* selección de método de pago (efectivo, tarjeta, transferencia), tipo de documento fiscal y generación de comprobante o ticket.
-3. **Entorno de gestión de taller (jefe de técnicos):**
-   - *Panel de asignación de reparaciones:* indicadores clave de rendimiento (KPIs), listado de órdenes pendientes y asignación directa a personal técnico mediante selectores interactivos.
-4. **Entorno operativo técnico:**
-   - *Mi panel de trabajo técnico:* tarjetas sintéticas con equipos asignados, nivel de prioridad y estado de cuota diaria.
-   - *Detalle y bitácora de orden de trabajo:* información general del cliente, checklist de verificación física, insumos y repuestos asociados, actualización de estatus y registro cronológico en bitácora.
-5. **Entorno de administración y auditoría (administrador):**
-   - *Panel de supervisión global:* reportes financieros, desglose de ingresos semanales y métricas de rendimiento por técnico.
-   - *Gestión de usuarios:* alta, modificación, asignación de roles y desactivación de cuentas.
-   - *Auditoría del sistema:* filtros de búsqueda y registro inmutable de logs de acciones (módulo, usuario, fecha y detalle).
-6. **Portal público (vista del cliente en móvil):**
-   - *Consulta por folio y teléfono:* autenticación ligera sin necesidad de registro previo.
-   - *Mis reparaciones:* vista resumida con el historial o estado actual de sus dispositivos.
-   - *Detalle de orden de servicio:* cronograma gráfico del progreso del servicio, desglose transparente de costos e información del técnico asignado.
-   - *Aprobación de presupuesto:* interfaz para revisar el diagnóstico detallado, las notas del técnico y botones para aprobar o rechazar el presupuesto adicional.
-
-### 9.2 Evolución hacia el prototipo final
-
-Al diseñar el prototipo en Figma, el equipo amplió y ajustó el planteamiento de la Unidad 1:
-
-| Planteamiento de la Unidad 1 | Prototipo final | Motivo del cambio |
-|---|---|---|
-| 4 pantallas de mostrador | **11 pantallas de Cajera** (01–11): se agregan apertura y corte de caja, clientes, inventario, estadísticas y documentos impresos | El control de efectivo por turno evita fugas en caja (riesgo de "inventario fantasma" del planteamiento del problema) |
-| 1 panel del jefe de técnicos | **11 pantallas** (J1–J11): cotizar, garantías, refacciones, técnicos, equipos terminados, configuración, versión celular y mensajes | El jefe cotiza los presupuestos y decide las garantías, que en la U1 no tenían responsable definido |
-| 2 pantallas del técnico | **7 pantallas** (T1–T7) con cronómetro, refacciones, garantías, historial y versión tablet | El técnico trabaja en el banco con una tablet |
-| 3 pantallas del administrador | **9 pantallas** (AD1–AD9): se agregan cortes, catálogo, proveedores, facturación y configuración | Centralizar en el administrador la configuración del negocio y el catálogo maestro |
-| Portal con acceso por **folio y teléfono** | Acceso con **correo y contraseña** (temporal la primera vez), más garantía, chat con el jefe y correos | Mayor seguridad (RNF-01) y comunicación directa sin llamadas ni WhatsApp (limitación §5.2) |
-
-### 9.3 Mapa de navegación del prototipo final
+### 9.1 Mapa de navegación por rol
 
 ```mermaid
 flowchart TD
@@ -389,7 +344,7 @@ flowchart TD
     J11 -. chat .- P5
 ```
 
-### 9.4 Pantallas del prototipo
+### 9.2 Pantallas del prototipo
 
 | Entorno | Pantallas | Versiones |
 |---|---|---|
@@ -401,7 +356,7 @@ flowchart TD
 | **Portal del cliente** | P1 Acceso y mis equipos · P2 Seguimiento de la reparación · P3 Garantía (solo si se solicita) · P4 Información · P5 Chat con el Jefe de Técnicos · P6 Correos que recibe el cliente. | Celular |
 | **Sistema de diseño** | Componentes, tokens (color, espaciado, radios, sombras), iconos, reglas de comportamiento y versión a 1366 px. | — |
 
-### 9.5 Capturas del prototipo
+### 9.3 Capturas del prototipo
 
 Cada imagen es una sección completa de Figma con todas sus pantallas en orden.
 
@@ -959,7 +914,6 @@ ng serve                      # http://localhost:4200
 SHURI-Sistema-Gestion/
 ├── .github/
 │   ├── CODEOWNERS                   # Revisor obligatorio de los PR
-│   ├── ISSUE_TEMPLATE/              # Plantillas de Issue: 🐞 Bug y 📌 Tarea
 │   └── pull_request_template.md     # Plantilla de Pull Request
 ├── backend/                         # API REST — Laravel 10
 │   ├── app/
@@ -979,18 +933,13 @@ SHURI-Sistema-Gestion/
 │   ├── .env.example
 │   └── README.md                    # DER, diccionario de datos e instalación
 ├── frontend/                        # SPA — Angular 17
-│   ├── src/app/
-│   │   ├── acceso/                  # Login, MFA, recuperación y contraseñas
-│   │   ├── api/                     # Cliente HTTP e interceptor del token
-│   │   ├── cajera/ · jefe/ · tecnico/ · administrador/ · portal/   # Un módulo por rol
-│   │   ├── sistema/                 # Layout, menú lateral, notificaciones y perfil
-│   │   └── compartido/              # Componentes y utilidades reutilizables
-│   ├── BITACORA.md                  # Bitácora del frontend
+│   └── src/app/
+│       ├── core/                    # guards, interceptors, servicios      (Sprint 2–3)
+│       ├── modules/                 # admin, cajera, jefe, tecnico, portal (Sprint 2–4)
+│       └── shared/                  # componentes reutilizables            (Sprint 2–3)
 │   └── README.md                    # Prototipo, pantallas y sistema de diseño
 ├── docs/
 │   ├── api/endpoints.md             # Guía de la API para el frontend
-│   ├── pruebas/                     # Plan de pruebas, casos de prueba y registro de defectos
-│   ├── release/                     # Proceso de liberación, despliegue y rollback
 │   ├── sprints/                     # Registro de sprints y análisis de riesgos
 │   └── diseno/                      # Prototipo exportado de Figma
 │       ├── 01-acceso/ … 06-portal-cliente/   # Pantallas por rol
@@ -998,7 +947,6 @@ SHURI-Sistema-Gestion/
 │       ├── 08-casos-de-uso/         # Diagrama de casos de uso
 │       └── README.md                # Índice del diseño
 ├── .gitignore
-├── CHANGELOG.md                     # Cambios de cada versión
 └── README.md
 ```
 
